@@ -1,6 +1,6 @@
 local module = {}
 
-function module.hello()
+function module.sayHello()
 	print("\nHello from a module! 🧩")
 end
 

@@ -7,7 +7,7 @@ print("Hello, lune! 🌙")
 ]==]
 
 local module = require(".lune/module")
-module.hello()
+module.sayHello()
 
 --[==[
 	EXAMPLE #2
