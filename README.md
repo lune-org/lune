@@ -76,9 +76,7 @@ type process = {
 </details>
 
 <details>
-<summary><b>🔀 Example translation from Bash to Luau</b></summary>
-
-**_Before:_**
+<summary><b>🔀 Example translation from Bash</b></summary>
 
 ```bash
 #!/bin/bash
@@ -95,7 +93,7 @@ do
 done
 ```
 
-**_After:_**
+**_With Lune & Luau:_**
 
 ```lua
 local valid = true
