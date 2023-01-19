@@ -3,6 +3,9 @@ name: Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   init:
     name: Init
