@@ -1,0 +1,17 @@
+{
+	"luau-lsp.types.roblox": false,
+	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"],
+	"luau-lsp.sourcemap.enabled": false,
+	"editor.formatOnSave": true,
+	"stylua.searchParentDirectories": true,
+	"prettier.tabWidth": 2,
+	"[luau][lua]": {
+		"editor.defaultFormatter": "JohnnyMorganz.stylua"
+	},
+	"[json][jsonc][markdown][yaml]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[rust]": {
+		"editor.defaultFormatter": "rust-lang.rust-analyzer"
+	}
+}

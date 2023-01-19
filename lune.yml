@@ -1,0 +1,55 @@
+---
+globals:
+  # FS (filesystem)
+  fs.readFile:
+    args:
+      - type: string
+  fs.readDir:
+    args:
+      - type: string
+  fs.writeFile:
+    args:
+      - type: string
+      - type: string
+  fs.writeDir:
+    args:
+      - type: string
+  fs.removeFile:
+    args:
+      - type: string
+  fs.removeDir:
+    args:
+      - type: string
+  fs.isFile:
+    args:
+      - type: string
+  fs.isDir:
+    args:
+      - type: string
+  # JSON
+  json.encode:
+    args:
+      - type: any
+      - required: false
+        type: boolean
+  json.decode:
+    args:
+      - type: string
+  # Process
+  process.getEnvVars:
+  process.getEnvVar:
+    args:
+      - type: string
+  process.setEnvVar:
+    args:
+      - type: string
+      - type: string
+  process.exit:
+    args:
+      - required: false
+        type: number
+  process.spawn:
+    args:
+      - type: string
+      - required: false
+        type: table

@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  init:
+    name: Init
+    runs-on: ubuntu-latest
+    outputs:
+      manifest_name: ${{ steps.get_name.outputs.value }}
+      manifest_version: ${{ steps.get_version.outputs.value }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get name from manifest
+        uses: SebRollen/toml-action@0ad94c4a52c402aaa76e14e8a43551163b6cedf9
+        id: get_name
+        with:
+          file: Cargo.toml
+          field: package.name
+
+      - name: Get version from manifest
+        uses: SebRollen/toml-action@0ad94c4a52c402aaa76e14e8a43551163b6cedf9
+        id: get_version
+        with:
+          file: Cargo.toml
+          field: package.version
+
+  create-release:
+    needs: ["init"]
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.init.outputs.manifest_version }}
+          release_name: ${{ needs.init.outputs.manifest_version }}
+          draft: true
+
+  release:
+    needs: ["init", "create-release"]
+    strategy:
+      matrix:
+        include:
+          - name: Windows x86_64
+            runner-os: windows-latest
+            artifact-name: ${{ needs.init.outputs.manifest_name }}-${{ needs.init.outputs.manifest_version }}-windows-x86_64
+            cargo-target: x86_64-pc-windows-msvc
+          - name: Linux x86_64
+            runner-os: ubuntu-latest
+            artifact-name: ${{ needs.init.outputs.manifest_name }}-${{ needs.init.outputs.manifest_version }}-linux-x86_64
+            cargo-target: x86_64-unknown-linux-gnu
+          - name: macOS x86_64
+            runner-os: macos-latest
+            artifact-name: ${{ needs.init.outputs.manifest_name }}-${{ needs.init.outputs.manifest_version }}-macos-x86_64
+            cargo-target: x86_64-apple-darwin
+
+    name: Build - ${{ matrix.name }}
+    runs-on: ${{ matrix.runner-os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.cargo-target }}
+          override: true
+          profile: minimal
+
+      - name: Build binary
+        run: cargo build --locked --release --all-features --target ${{ matrix.cargo-target }}
+        env:
+          CARGO_TARGET_DIR: output
+          OPENSSL_STATIC: 1
+
+      - name: Create binary archive
+        shell: bash
+        run: |
+          mkdir -p staging
+          if [ "${{ matrix.runner-os }}" = "windows-latest" ]; then
+            cp "output/${{ matrix.cargo-target }}/release/${{ needs.init.outputs.manifest_name }}.exe" staging/
+            cd staging
+            7z a ../release.zip *
+          else
+            cp "output/${{ matrix.cargo-target }}/release/${{ needs.init.outputs.manifest_name }}" staging/
+            cd staging
+            zip ../release.zip *
+          fi
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: release.zip
+
+      - name: Upload binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: release.zip
+          asset_name: ${{ matrix.artifact-name }}.zip
+          asset_content_type: application/octet-stream

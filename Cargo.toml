@@ -1,0 +1,11 @@
+[package]
+name = "lune"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.1.1", features = ["derive"] }
+mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }
+tokio = { version = "1.24.2", features = ["full"] }
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = { version = "1.0.91" }

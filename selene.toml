@@ -1,0 +1,6 @@
+std = "luau+lune"
+
+exclude = ["luneTypes.d.luau"]
+
+[lints]
+high_cyclomatic_complexity = "warn"
