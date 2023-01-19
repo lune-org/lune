@@ -8,6 +8,16 @@ description = "A Luau script runner"
 keywords = ["cli", "lua", "luau", "scripts"]
 categories = ["command-line-interface"]
 
+[[bin]]
+name = "lune"
+path = "src/main.rs"
+
+[profile.release]
+strip = true # Automatically strip symbols from the binary.
+opt-level = "z" # Optimize for size.
+lto = true # Enable link-time optimization
+panic = "abort" # Remove extra panic info
+
 [dependencies]
 anyhow = { version = "1.0.68" }
 clap = { version = "4.1.1", features = ["derive"] }
