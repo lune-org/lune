@@ -2,6 +2,11 @@
 name = "lune"
 version = "0.0.1"
 edition = "2021"
+license = "MPL 2.0"
+repository = "https://github.com/filiptibell/lune"
+description = "A Luau script runner"
+keywords = ["cli", "lua", "luau", "scripts"]
+categories = ["command-line-interface"]
 
 [dependencies]
 clap = { version = "4.1.1", features = ["derive"] }
