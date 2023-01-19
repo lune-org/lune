@@ -23,7 +23,7 @@ This will add `lune` to an `aftman.toml` file in the current directory, or creat
 aftman add filiptibell/lune
 ```
 
-You can also download pre-built binaries for most systems directly from the linked GitHub Releases page.
+You can also download pre-built binaries for most systems directly from the GitHub Releases page.
 
 ## ✏️ Writing Lune Scripts
 

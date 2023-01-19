@@ -1,4 +1,4 @@
--- Lune v0.0.1
+-- Lune v0.0.2
 
 declare fs: {
 	readFile: (path: string) -> string,
