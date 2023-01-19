@@ -53,19 +53,23 @@ for _, key in vars do
 	print(string.format("[%s] %s", box, key))
 end
 
--- Call out to another program
+-- Call out to another program / executable
+-- NOTE: We don't do this in GitHub Actions and
+-- our test suite since ping does not work there
 
-print("\nSending 4 pings to google...")
-local result = process.spawn("ping", {
-	"google.com",
-	"-c 4",
-})
+if process.getEnvVar("GITHUB_ACTIONS") == nil then
+	print("\nSending 4 pings to google...")
+	local result = process.spawn("ping", {
+		"google.com",
+		"-c 4",
+	})
 
-if result.ok then
-	print(result.stdout)
-else
-	print(result.stderr)
-	process.exit(result.code)
+	if result.ok then
+		print(result.stdout)
+	else
+		print(result.stderr)
+		process.exit(result.code)
+	end
 end
 
 print("\nGoodbye, lune! 🌙")

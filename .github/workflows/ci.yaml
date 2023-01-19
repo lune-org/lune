@@ -1,11 +1,11 @@
-name: Build
+name: CI
 
 on:
   push:
 
 jobs:
-  build:
-    name: Build
+  ci:
+    name: CI
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +17,16 @@ jobs:
         with:
           toolchain: stable
           override: true
-          profile: minimal
+          components: rustfmt, clippy
+
+      - name: Rustfmt
+        run: cargo fmt -- --check
 
       - name: Build
         run: cargo build --locked --verbose
+
+      - name: Clippy
+        run: cargo clippy
+
+      - name: Test
+        run: cargo test
