@@ -12,10 +12,30 @@ use crate::lune::{fs::LuneFs, json::LuneJson, process::LuneProcess};
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
-    /// Path to the file to run
-    path: String,
-    /// Arguments to pass to the file
-    args: Vec<String>,
+    /// Path to the file to run, or the name
+    /// of a luau file in a lune directory
+    script_path: String,
+    /// Arguments to pass to the file as vararg (...)
+    script_args: Vec<String>,
+    /// Pass this flag to download the Selene type
+    /// definitions file to the current directory
+    #[clap(long)]
+    download_selene_types: bool,
+    /// Pass this flag to download the Luau type
+    /// definitions file to the current directory
+    #[clap(long)]
+    download_luau_types: bool,
+}
+
+impl Default for Cli {
+    fn default() -> Self {
+        Self {
+            script_path: "".to_string(),
+            script_args: vec![],
+            download_selene_types: false,
+            download_luau_types: false,
+        }
+    }
 }
 
 impl Cli {
@@ -25,8 +45,8 @@ impl Cli {
         S: Into<String>,
     {
         Self {
-            path: path.into(),
-            args: vec![],
+            script_path: path.into(),
+            ..Default::default()
         }
     }
 
@@ -37,14 +57,15 @@ impl Cli {
         A: Into<Vec<String>>,
     {
         Self {
-            path: path.into(),
-            args: args.into(),
+            script_path: path.into(),
+            script_args: args.into(),
+            ..Default::default()
         }
     }
 
     pub async fn run(self) -> Result<()> {
         // Parse and read the wanted file
-        let file_path = find_parse_file_path(&self.path)?;
+        let file_path = find_parse_file_path(&self.script_path)?;
         let file_contents = read_to_string(file_path)?;
         // Create a new lua state and add in all lune globals
         let lua = Lua::new();
@@ -55,7 +76,7 @@ impl Cli {
         lua.sandbox(true)?;
         // Load & call the file with the given args
         let lua_args = self
-            .args
+            .script_args
             .iter()
             .map(|value| value.to_owned().to_lua(&lua))
             .collect::<Result<Vec<_>>>()?;
