@@ -51,6 +51,34 @@ jobs:
           release_name: ${{ needs.init.outputs.manifest_version }}
           draft: true
 
+  upload-assets:
+    needs: ["init", "create-release"]
+    name: Upload assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Upload Selene types to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: lune.yml
+          asset_name: lune.yml
+          asset_content_type: application/x-yaml
+
+      - name: Upload Luau types to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: luneTypes.d.luau
+          asset_name: luneTypes.d.luau
+          asset_content_type: application/x-luau
+
   release:
     needs: ["init", "create-release"]
     strategy:
@@ -117,4 +145,4 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: release.zip
           asset_name: ${{ matrix.artifact-name }}.zip
-          asset_content_type: application/octet-stream
+          asset_content_type: application/zip
