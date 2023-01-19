@@ -12,6 +12,18 @@ module.hello()
 --[==[
 	EXAMPLE #2
 
+	Using arguments given to the program
+]==]
+
+local arg: string? = ...
+if arg then
+	print("\nGot an argument while running hello_lune:")
+	print(arg)
+end
+
+--[==[
+	EXAMPLE #3
+
 	Get & set environment variables
 
 	Checks if environment variables are empty or not,
@@ -32,7 +44,7 @@ for _, key in vars do
 end
 
 --[==[
-	EXAMPLE #3
+	EXAMPLE #4
 
 	Read files in the current directory
 
@@ -79,7 +91,7 @@ if process.getEnvVar("GITHUB_ACTIONS") then
 end
 
 --[==[
-	EXAMPLE #4
+	EXAMPLE #5
 
 	Call out to another program / executable
 
@@ -94,7 +106,7 @@ local result = process.spawn("ping", {
 })
 
 --[==[
-	EXAMPLE #5
+	EXAMPLE #6
 
 	Using the result of a spawned process, exiting the process
 

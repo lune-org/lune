@@ -4,7 +4,7 @@ use std::{
 };
 
 use clap::Parser;
-use mlua::{Lua, Result};
+use mlua::{Lua, MultiValue, Result, ToLua};
 
 use crate::lune::{fs::LuneFs, json::LuneJson, process::LuneProcess};
 
@@ -14,13 +14,31 @@ use crate::lune::{fs::LuneFs, json::LuneJson, process::LuneProcess};
 pub struct Cli {
     /// Path to the file to run
     path: String,
+    /// Arguments to pass to the file
+    args: Vec<String>,
 }
 
 impl Cli {
     #[allow(dead_code)]
-    pub fn from_path<S: AsRef<str>>(path: S) -> Self {
+    pub fn from_path<S>(path: S) -> Self
+    where
+        S: Into<String>,
+    {
         Self {
-            path: path.as_ref().to_owned(),
+            path: path.into(),
+            args: vec![],
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn from_path_with_args<S, A>(path: S, args: A) -> Self
+    where
+        S: Into<String>,
+        A: Into<Vec<String>>,
+    {
+        Self {
+            path: path.into(),
+            args: args.into(),
         }
     }
 
@@ -35,8 +53,15 @@ impl Cli {
         globals.set("process", LuneProcess::new())?;
         globals.set("json", LuneJson::new())?;
         lua.sandbox(true)?;
-        // Run the file
-        lua.load(&file_contents).exec_async().await?;
+        // Load & call the file with the given args
+        let lua_args = self
+            .args
+            .iter()
+            .map(|value| value.to_owned().to_lua(&lua))
+            .collect::<Result<Vec<_>>>()?;
+        lua.load(&file_contents)
+            .call_async(MultiValue::from_vec(lua_args))
+            .await?;
         Ok(())
     }
 }

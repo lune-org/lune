@@ -26,7 +26,8 @@ async fn main() -> Result<()> {
 
 #[tokio::test]
 async fn hello_lune() {
-    let cli = Cli::from_path("hello_lune");
+    let args = vec!["Hello, test! ✅".to_owned()];
+    let cli = Cli::from_path_with_args("hello_lune", args);
     let result = cli.run().await;
     assert!(result.is_ok());
 }
