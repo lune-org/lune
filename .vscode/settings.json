@@ -2,6 +2,7 @@
 	"luau-lsp.types.roblox": false,
 	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"],
 	"luau-lsp.sourcemap.enabled": false,
+	"rust-analyzer.check.command": "clippy",
 	"editor.formatOnSave": true,
 	"stylua.searchParentDirectories": true,
 	"prettier.tabWidth": 2,

@@ -25,9 +25,9 @@ impl UserData for LuneFs {
 }
 
 async fn fs_read_file(_: &Lua, path: String) -> Result<String> {
-    Ok(fs::read_to_string(&path)
+    fs::read_to_string(&path)
         .await
-        .map_err(mlua::Error::external)?)
+        .map_err(mlua::Error::external)
 }
 
 async fn fs_read_dir(_: &Lua, path: String) -> Result<Vec<String>> {
@@ -61,27 +61,25 @@ async fn fs_read_dir(_: &Lua, path: String) -> Result<Vec<String>> {
 }
 
 async fn fs_write_file(_: &Lua, (path, contents): (String, String)) -> Result<()> {
-    Ok(fs::write(&path, &contents)
+    fs::write(&path, &contents)
         .await
-        .map_err(mlua::Error::external)?)
+        .map_err(mlua::Error::external)
 }
 
 async fn fs_write_dir(_: &Lua, path: String) -> Result<()> {
-    Ok(fs::create_dir_all(&path)
+    fs::create_dir_all(&path)
         .await
-        .map_err(mlua::Error::external)?)
+        .map_err(mlua::Error::external)
 }
 
 async fn fs_remove_file(_: &Lua, path: String) -> Result<()> {
-    Ok(fs::remove_file(&path)
-        .await
-        .map_err(mlua::Error::external)?)
+    fs::remove_file(&path).await.map_err(mlua::Error::external)
 }
 
 async fn fs_remove_dir(_: &Lua, path: String) -> Result<()> {
-    Ok(fs::remove_dir_all(&path)
+    fs::remove_dir_all(&path)
         .await
-        .map_err(mlua::Error::external)?)
+        .map_err(mlua::Error::external)
 }
 
 async fn fs_is_file(_: &Lua, path: String) -> Result<bool> {

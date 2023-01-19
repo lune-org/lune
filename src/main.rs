@@ -1,3 +1,5 @@
+#![deny(clippy::all, clippy::cargo)]
+
 use clap::Parser;
 use mlua::Result;
 

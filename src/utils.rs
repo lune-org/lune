@@ -28,6 +28,6 @@ pub fn pretty_print_luau_error(e: &mlua::Error) {
                 from, to, msg
             )
         }
-        e => eprintln!("{}", e.to_string()),
+        e => eprintln!("{e}"),
     }
 }

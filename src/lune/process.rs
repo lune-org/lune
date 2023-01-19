@@ -44,7 +44,8 @@ fn process_get_env_var(lua: &Lua, key: String) -> Result<Value> {
 }
 
 fn process_set_env_var(_: &Lua, (key, value): (String, String)) -> Result<()> {
-    Ok(env::set_var(&key, &value))
+    env::set_var(key, value);
+    Ok(())
 }
 
 fn process_exit(_: &Lua, exit_code: Option<i32>) -> Result<()> {
@@ -78,7 +79,7 @@ async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)
     let code = output
         .status
         .code()
-        .unwrap_or_else(|| match output.stderr.is_empty() {
+        .unwrap_or(match output.stderr.is_empty() {
             true => 0,
             false => 1,
         });

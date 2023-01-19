@@ -24,5 +24,5 @@ fn json_encode(_: &Lua, (val, pretty): (Value, Option<bool>)) -> Result<String> 
 }
 
 fn json_decode(lua: &Lua, json: String) -> Result<Value> {
-    Ok(lua.to_value(&json)?)
+    lua.to_value(&json)
 }
