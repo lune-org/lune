@@ -1,14 +1,23 @@
 print("Hello, lune! 🌙")
 
--- Use a function from another module
+--[==[
+	EXAMPLE #1
+
+	Using a function from another module
+]==]
 
 local module = require(".lune/module")
 module.hello()
 
--- Read and print out directories & files in
--- the current directory, with fancy icons
+--[==[
+	EXAMPLE #2
 
-print("\nReading current dir...")
+	Read files in the current directory
+
+	This prints out directory & file names with some fancy icons
+]==]
+
+print("\nReading current dir 🗂️")
 local entries = fs.readDir(".")
 
 -- NOTE: We have to do this outside of the sort function
@@ -27,9 +36,11 @@ table.sort(entries, function(entry0, entry1)
 	return entry0 < entry1
 end)
 
+-- Make sure we got some known files that should always exist
 assert(table.find(entries, "Cargo.toml") ~= nil, "Missing Cargo.toml")
 assert(table.find(entries, "Cargo.lock") ~= nil, "Missing Cargo.lock")
 
+-- Print the pretty stuff
 for _, entry in entries do
 	if fs.isDir(entry) then
 		print("📁 " .. entry)
@@ -38,9 +49,16 @@ for _, entry in entries do
 	end
 end
 
--- Read and print out environment variables
+--[==[
+	EXAMPLE #3
 
-print("\nReading current environment...")
+	Get & set environment variables
+
+	Checks if environment variables are empty or not,
+	prints out ❌ if empty and ✅ if they have a value
+]==]
+
+print("\nReading current environment 🔎")
 local vars = process.getEnvVars()
 table.sort(vars)
 
@@ -53,23 +71,51 @@ for _, key in vars do
 	print(string.format("[%s] %s", box, key))
 end
 
--- Call out to another program / executable
--- NOTE: We don't do this in GitHub Actions and
--- our test suite since ping does not work there
+-- NOTE: We skip the last example in GitHub Actions
+-- since the ping command does not work in azure
+if process.getEnvVar("GITHUB_ACTIONS") then
+	print("\nGoodbye, lune! 🌙")
+	process.exit(0)
+end
 
-if process.getEnvVar("GITHUB_ACTIONS") == nil then
-	print("\nSending 4 pings to google...")
-	local result = process.spawn("ping", {
-		"google.com",
-		"-c 4",
-	})
+--[==[
+	EXAMPLE #4
 
-	if result.ok then
-		print(result.stdout)
-	else
-		print(result.stderr)
-		process.exit(result.code)
-	end
+	Call out to another program / executable
+
+	Here we send some pings to google to demonstrate that programs
+	that yield or perform any network requests work correctly
+]==]
+
+print("\nSending 4 pings to google 🌏")
+local result = process.spawn("ping", {
+	"google.com",
+	"-c 4",
+})
+
+--[==[
+	EXAMPLE #5
+
+	Using the result of a spawned process, exiting the process
+
+	We use the result from the above ping command and parse it
+	to show the results it gave us in a nicer format, then we
+	either exit successfully or with an error (exit code 1)
+]==]
+
+if result.ok then
+	assert(#result.stdout > 0, "Result output was empty")
+	local min, avg, max, stddev = string.match(
+		result.stdout,
+		"min/avg/max/stddev = ([%d%.]+)/([%d%.]+)/([%d%.]+)/([%d%.]+) ms"
+	)
+	print(string.format("Minimum ping time: %.3fms", assert(tonumber(min))))
+	print(string.format("Maximum ping time: %.3fms", assert(tonumber(max))))
+	print(string.format("Average ping time: %.3fms", assert(tonumber(avg))))
+	print(string.format("Standard deviation: %.3fms", assert(tonumber(stddev))))
+else
+	print(result.stderr)
+	process.exit(result.code)
 end
 
 print("\nGoodbye, lune! 🌙")
