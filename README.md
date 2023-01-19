@@ -15,17 +15,13 @@ A [Luau](https://luau-lang.org) script runner
 
 ## ⚙️ Installation
 
-### Using [Aftman](https://github.com/lpghatguy/aftman)
+The preferred way of installing Lune is using [Aftman](https://github.com/lpghatguy/aftman).
 
-The preferred way of installing Lune.
-
-This will add `lune` to an `aftman.toml` file in the current directory, or create one if it does not exist.
+This will add `lune` to an `aftman.toml` file in the current directory, or create one if it does not exist:
 
 ```sh
 $ aftman add filiptibell/lune
 ```
-
-### From [GitHub Releases](https://github.com/filiptibell/lune/releases)
 
 You can also download pre-built binaries for most systems directly from the linked GitHub Releases page.
 
