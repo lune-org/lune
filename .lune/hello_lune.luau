@@ -12,46 +12,6 @@ module.hello()
 --[==[
 	EXAMPLE #2
 
-	Read files in the current directory
-
-	This prints out directory & file names with some fancy icons
-]==]
-
-print("\nReading current dir 🗂️")
-local entries = fs.readDir(".")
-
--- NOTE: We have to do this outside of the sort function
--- to avoid yielding across the metamethod boundary, any
--- calls to fs functions may yield for any reason
-local dirs = {}
-for _, entry in entries do
-	dirs[entry] = fs.isDir(entry)
-end
-
--- Sort directories first, then alphabetically
-table.sort(entries, function(entry0, entry1)
-	if dirs[entry0] ~= dirs[entry1] then
-		return dirs[entry0]
-	end
-	return entry0 < entry1
-end)
-
--- Make sure we got some known files that should always exist
-assert(table.find(entries, "Cargo.toml") ~= nil, "Missing Cargo.toml")
-assert(table.find(entries, "Cargo.lock") ~= nil, "Missing Cargo.lock")
-
--- Print the pretty stuff
-for _, entry in entries do
-	if fs.isDir(entry) then
-		print("📁 " .. entry)
-	else
-		print("📄 " .. entry)
-	end
-end
-
---[==[
-	EXAMPLE #3
-
 	Get & set environment variables
 
 	Checks if environment variables are empty or not,
@@ -69,6 +29,46 @@ for _, key in vars do
 	local value = process.getEnvVar(key)
 	local box = if value and value ~= "" then "✅" else "❌"
 	print(string.format("[%s] %s", box, key))
+end
+
+--[==[
+	EXAMPLE #3
+
+	Read files in the current directory
+
+	This prints out directory & file names with some fancy icons
+]==]
+
+print("\nReading current dir 🗂️")
+local entries = fs.readDir(".")
+
+-- NOTE: We have to do this outside of the sort function
+-- to avoid yielding across the metamethod boundary, any
+-- calls to fs functions may yield for any reason
+local entryIsDir = {}
+for _, entry in entries do
+	entryIsDir[entry] = fs.isDir(entry)
+end
+
+-- Sort prioritizing directories first, then alphabetically
+table.sort(entries, function(entry0, entry1)
+	if entryIsDir[entry0] ~= entryIsDir[entry1] then
+		return entryIsDir[entry0]
+	end
+	return entry0 < entry1
+end)
+
+-- Make sure we got some known files that should always exist
+assert(table.find(entries, "Cargo.toml") ~= nil, "Missing Cargo.toml")
+assert(table.find(entries, "Cargo.lock") ~= nil, "Missing Cargo.lock")
+
+-- Print the pretty stuff
+for _, entry in entries do
+	if fs.isDir(entry) then
+		print("📁 " .. entry)
+	else
+		print("📄 " .. entry)
+	end
 end
 
 -- NOTE: We skip the last example in GitHub Actions
