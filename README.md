@@ -142,7 +142,7 @@ When you've written a script with either a `.lua` or `.luau` extension, you can 
 lune script-name
 ```
 
-This will look for the script `script_name` in a few locations:
+This will look for the script `script-name` in a few locations:
 
 - The current directory
 - The folder `lune` in the current directory, if it exists
