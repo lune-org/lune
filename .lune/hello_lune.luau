@@ -2,7 +2,7 @@ print("Hello, lune! 🌙")
 
 -- Use a function from another module
 
-local module = require("scripts/module")
+local module = require(".lune/module")
 module.hello()
 
 -- Read and print out directories & files in
