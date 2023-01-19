@@ -20,7 +20,7 @@ The preferred way of installing Lune is using [Aftman](https://github.com/lpghat
 This will add `lune` to an `aftman.toml` file in the current directory, or create one if it does not exist:
 
 ```sh
-$ aftman add filiptibell/lune
+aftman add filiptibell/lune
 ```
 
 You can also download pre-built binaries for most systems directly from the linked GitHub Releases page.
@@ -139,7 +139,7 @@ Lune puts developer experience first, and as such provides type definitions and 
 When you've written a script with either a `.lua` or `.luau` extension, you can run it:
 
 ```sh
-$ lune script-name
+lune script-name
 ```
 
 This will look for the script `script_name` in a few locations:
