@@ -7,7 +7,7 @@ use clap::{CommandFactory, Parser};
 use mlua::{Lua, MultiValue, Result, ToLua};
 
 use crate::{
-    lune::{fs::LuneFs, json::LuneJson, process::LuneProcess},
+    lune::{fs::LuneFs, net::LuneNet, process::LuneProcess},
     utils::GithubClient,
 };
 
@@ -102,8 +102,8 @@ impl Cli {
         let lua = Lua::new();
         let globals = lua.globals();
         globals.set("fs", LuneFs::new())?;
+        globals.set("net", LuneNet::new())?;
         globals.set("process", LuneProcess::new())?;
-        globals.set("json", LuneJson::new())?;
         lua.sandbox(true)?;
         // Load & call the file with the given args
         let lua_args = self

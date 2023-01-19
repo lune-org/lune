@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added networking functions under `net`
+
+  Example usage:
+
+  ```lua
+  local apiResult = net.request({
+  	url = "https://jsonplaceholder.typicode.com/posts/1",
+  	method = "PATCH",
+  	headers = {
+  		["Content-Type"] = "application/json",
+  	},
+  	body = net.jsonEncode({
+  		title = "foo",
+  		body = "bar",
+  	}),
+  })
+
+  local apiResponse = net.jsonDecode(apiResult.body)
+  assert(apiResponse.title == "foo", "Invalid json response")
+  assert(apiResponse.body == "bar", "Invalid json response")
+  ```
+
+### Changed
+
+- The `json` api is now part of `net`
+  - `json.encode` becomes `net.jsonEncode`
+  - `json.decode` become `net.jsonDecode`
+
+### Fixed
+
+- Fixed JSON decode not working properly
+
 ## `0.0.2` - January 19th, 2023
 
 ### Added

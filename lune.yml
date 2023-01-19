@@ -27,15 +27,18 @@ globals:
   fs.isDir:
     args:
       - type: string
-  # JSON
-  json.encode:
+  # Net (networking)
+  net.jsonEncode:
     args:
       - type: any
       - required: false
         type: boolean
-  json.decode:
+  net.jsonDecode:
     args:
       - type: string
+  net.request:
+    args:
+      - type: any
   # Process
   process.getEnvVars:
   process.getEnvVar:

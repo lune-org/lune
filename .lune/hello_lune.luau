@@ -110,9 +110,9 @@ local result = process.spawn("ping", {
 
 	Using the result of a spawned process, exiting the process
 
-	We use the result from the above ping command and parse it
-	to show the results it gave us in a nicer format, then we
-	either exit successfully or with an error (exit code 1)
+	We use the result from the above ping command and parse
+	it to show the results it gave us in a nicer format, here we
+	also exit with an error (exit code 1) if spawning the process failed
 ]==]
 
 if result.ok then
@@ -126,8 +126,52 @@ if result.ok then
 	print(string.format("Average ping time: %.3fms", assert(tonumber(avg))))
 	print(string.format("Standard deviation: %.3fms", assert(tonumber(stddev))))
 else
+	print("\nFailed to send ping to google!")
 	print(result.stderr)
 	process.exit(result.code)
 end
+
+--[==[
+	EXAMPLE #7
+
+	Using the built-in networking library
+]==]
+print("\nSending PATCH request to web API 📤")
+local apiResult = net.request({
+	url = "https://jsonplaceholder.typicode.com/posts/1",
+	method = "PATCH",
+	headers = {
+		["Content-Type"] = "application/json",
+	},
+	body = net.jsonEncode({
+		title = "foo",
+		body = "bar",
+	}),
+})
+
+if not result.ok then
+	print("\nFailed to send network request!")
+	print(string.format("%d (%s)", apiResult.statusCode, apiResult.statusMessage))
+	print(apiResult.body)
+	process.exit(1)
+end
+
+type ApiResponse = {
+	id: number,
+	title: string,
+	body: string,
+	userId: number,
+}
+
+local apiResponse: ApiResponse = net.jsonDecode(apiResult.body)
+assert(apiResponse.title == "foo", "Invalid json response")
+assert(apiResponse.body == "bar", "Invalid json response")
+print("Got valid JSON response with changes applied")
+
+--[==[
+	Example #8
+
+	Saying goodbye 😔
+]==]
 
 print("\nGoodbye, lune! 🌙")

@@ -11,9 +11,21 @@ declare fs: {
 	isDir: (path: string) -> boolean,
 }
 
-declare json: {
-	encode: (value: any, pretty: boolean?) -> string,
-	decode: (encoded: string) -> any,
+declare net: {
+	request: (config: string | {
+		url: string,
+		method: ("GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH")?,
+		headers: { [string]: string }?,
+		body: string?,
+	}) -> {
+		ok: boolean,
+		statusCode: number,
+		statusMessage: string,
+		headers: { [string]: string },
+		body: string,
+	},
+	jsonEncode: (value: any, pretty: boolean?) -> string,
+	jsonDecode: (encoded: string) -> any,
 }
 
 declare process: {

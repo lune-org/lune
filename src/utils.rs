@@ -37,15 +37,11 @@ pub struct GithubClient {
 
 impl GithubClient {
     pub fn new() -> Result<Self> {
-        let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
-            .strip_prefix("https://github.com/")
-            .unwrap()
-            .split_once('/')
-            .unwrap();
+        let (github_owner, github_repo) = get_github_owner_and_repo();
         let mut headers = HeaderMap::new();
         headers.insert(
             "User-Agent",
-            HeaderValue::from_str(&format!("{}-{}-cli", github_owner, github_repo))?,
+            HeaderValue::from_str(&get_github_user_agent_header())?,
         );
         headers.insert(
             "Accept",
@@ -58,8 +54,8 @@ impl GithubClient {
         let client = Client::builder().default_headers(headers).build()?;
         Ok(Self {
             client,
-            github_owner: github_owner.to_string(),
-            github_repo: github_repo.to_string(),
+            github_owner,
+            github_repo,
         })
     }
 
@@ -126,6 +122,20 @@ impl GithubClient {
         }
         Ok(())
     }
+}
+
+pub fn get_github_owner_and_repo() -> (String, String) {
+    let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
+        .strip_prefix("https://github.com/")
+        .unwrap()
+        .split_once('/')
+        .unwrap();
+    (github_owner.to_owned(), github_repo.to_owned())
+}
+
+pub fn get_github_user_agent_header() -> String {
+    let (github_owner, github_repo) = get_github_owner_and_repo();
+    format!("{}-{}-cli", github_owner, github_repo)
 }
 
 pub fn pretty_print_luau_error(e: &mlua::Error) {
