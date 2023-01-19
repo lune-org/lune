@@ -1,3 +1,5 @@
+-- Lune v0.0.1
+
 declare fs: {
 	readFile: (path: string) -> string,
 	readDir: (path: string) -> { string },
