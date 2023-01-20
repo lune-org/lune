@@ -83,52 +83,49 @@ for _, entry in entries do
 	end
 end
 
--- NOTE: We skip the last example in GitHub Actions
+-- NOTE: We skip the ping example in GitHub Actions
 -- since the ping command does not work in azure
-if process.getEnvVar("GITHUB_ACTIONS") then
-	print("\nGoodbye, lune! 🌙")
-	process.exit(0)
-end
+if not process.getEnvVar("GITHUB_ACTIONS") then
+	--[==[
+		EXAMPLE #5
 
---[==[
-	EXAMPLE #5
+		Call out to another program / executable
 
-	Call out to another program / executable
+		Here we send some pings to google to demonstrate that programs
+		that yield or perform any network requests work correctly
+	]==]
 
-	Here we send some pings to google to demonstrate that programs
-	that yield or perform any network requests work correctly
-]==]
+	print("\nSending 4 pings to google 🌏")
+	local result = process.spawn("ping", {
+		"google.com",
+		"-c 4",
+	})
 
-print("\nSending 4 pings to google 🌏")
-local result = process.spawn("ping", {
-	"google.com",
-	"-c 4",
-})
+	--[==[
+		EXAMPLE #6
 
---[==[
-	EXAMPLE #6
+		Using the result of a spawned process, exiting the process
 
-	Using the result of a spawned process, exiting the process
+		We use the result from the above ping command and parse
+		it to show the results it gave us in a nicer format, here we
+		also exit with an error (exit code 1) if spawning the process failed
+	]==]
 
-	We use the result from the above ping command and parse
-	it to show the results it gave us in a nicer format, here we
-	also exit with an error (exit code 1) if spawning the process failed
-]==]
-
-if result.ok then
-	assert(#result.stdout > 0, "Result output was empty")
-	local min, avg, max, stddev = string.match(
-		result.stdout,
-		"min/avg/max/stddev = ([%d%.]+)/([%d%.]+)/([%d%.]+)/([%d%.]+) ms"
-	)
-	print(string.format("Minimum ping time: %.3fms", assert(tonumber(min))))
-	print(string.format("Maximum ping time: %.3fms", assert(tonumber(max))))
-	print(string.format("Average ping time: %.3fms", assert(tonumber(avg))))
-	print(string.format("Standard deviation: %.3fms", assert(tonumber(stddev))))
-else
-	print("\nFailed to send ping to google!")
-	print(result.stderr)
-	process.exit(result.code)
+	if result.ok then
+		assert(#result.stdout > 0, "Result output was empty")
+		local min, avg, max, stddev = string.match(
+			result.stdout,
+			"min/avg/max/stddev = ([%d%.]+)/([%d%.]+)/([%d%.]+)/([%d%.]+) ms"
+		)
+		print(string.format("Minimum ping time: %.3fms", assert(tonumber(min))))
+		print(string.format("Maximum ping time: %.3fms", assert(tonumber(max))))
+		print(string.format("Average ping time: %.3fms", assert(tonumber(avg))))
+		print(string.format("Standard deviation: %.3fms", assert(tonumber(stddev))))
+	else
+		print("\nFailed to send ping to google!")
+		print(result.stderr)
+		process.exit(result.code)
+	end
 end
 
 --[==[
@@ -149,7 +146,7 @@ local apiResult = net.request({
 	}),
 })
 
-if not result.ok then
+if not apiResult.ok then
 	print("\nFailed to send network request!")
 	print(string.format("%d (%s)", apiResult.statusCode, apiResult.statusMessage))
 	print(apiResult.body)
