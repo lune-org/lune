@@ -4,7 +4,7 @@ use std::{
 };
 
 use clap::{CommandFactory, Parser};
-use mlua::{Lua, MultiValue, Result, ToLua};
+use mlua::{Lua, Result};
 
 use crate::{
     lune::{console::LuneConsole, fs::LuneFs, net::LuneNet, process::LuneProcess},
@@ -97,23 +97,19 @@ impl Cli {
         }
         // Parse and read the wanted file
         let file_path = find_parse_file_path(&self.script_path.unwrap())?;
-        let file_contents = read_to_string(file_path)?;
+        let file_contents = read_to_string(&file_path)?;
         // Create a new lua state and add in all lune globals
         let lua = Lua::new();
         let globals = lua.globals();
         globals.set("console", LuneConsole::new())?;
         globals.set("fs", LuneFs::new())?;
         globals.set("net", LuneNet::new())?;
-        globals.set("process", LuneProcess::new())?;
+        globals.set("process", LuneProcess::new(self.script_args))?;
         lua.sandbox(true)?;
         // Load & call the file with the given args
-        let lua_args = self
-            .script_args
-            .iter()
-            .map(|value| value.to_owned().to_lua(&lua))
-            .collect::<Result<Vec<_>>>()?;
         lua.load(&file_contents)
-            .call_async(MultiValue::from_vec(lua_args))
+            .set_name(file_path.with_extension("").display().to_string())?
+            .exec_async()
             .await?;
         Ok(())
     }

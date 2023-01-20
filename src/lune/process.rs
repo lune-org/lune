@@ -1,51 +1,109 @@
 use std::{
-    env::{self, VarError},
+    env,
     process::{exit, Stdio},
 };
 
-use mlua::{Error, Lua, Result, Table, UserData, UserDataMethods, Value};
+use mlua::{
+    Error, Function, Lua, MetaMethod, Result, Table, UserData, UserDataFields, UserDataMethods,
+    Value,
+};
+use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
-pub struct LuneProcess();
+pub struct LuneProcess {
+    args: Vec<String>,
+}
 
 impl LuneProcess {
-    pub fn new() -> Self {
-        Self()
+    pub fn new(args: Vec<String>) -> Self {
+        Self { args }
     }
 }
 
 impl UserData for LuneProcess {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("args", |lua, this| {
+            // TODO: Use the same strategy as env uses below to avoid
+            // copying each time args are accessed? is it worth it?
+            let tab = lua.create_table()?;
+            for arg in &this.args {
+                tab.push(arg.to_owned())?;
+            }
+            Ok(tab)
+        });
+        fields.add_field_method_get("env", |lua, _| {
+            let meta = lua.create_table()?;
+            meta.raw_set(
+                MetaMethod::Index.name(),
+                lua.create_function(process_env_get)?,
+            )?;
+            meta.raw_set(
+                MetaMethod::NewIndex.name(),
+                lua.create_function(process_env_set)?,
+            )?;
+            meta.raw_set(
+                MetaMethod::Iter.name(),
+                lua.create_function(process_env_iter)?,
+            )?;
+            let tab = lua.create_table()?;
+            tab.set_metatable(Some(meta));
+            tab.set_readonly(true);
+            Ok(tab)
+        })
+    }
+
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("getEnvVars", process_get_env_vars);
-        methods.add_function("getEnvVar", process_get_env_var);
-        methods.add_function("setEnvVar", process_set_env_var);
         methods.add_function("exit", process_exit);
         methods.add_async_function("spawn", process_spawn);
     }
 }
 
-fn process_get_env_vars(_: &Lua, _: ()) -> Result<Vec<String>> {
-    let mut vars = Vec::new();
-    for (key, _) in env::vars() {
-        vars.push(key);
-    }
-    Ok(vars)
-}
-
-fn process_get_env_var(lua: &Lua, key: String) -> Result<Value> {
-    match env::var(&key) {
-        Ok(value) => Ok(Value::String(lua.create_string(&value)?)),
-        Err(VarError::NotPresent) => Ok(Value::Nil),
-        Err(VarError::NotUnicode(_)) => Err(Error::external(format!(
-            "The env var '{}' contains invalid utf8",
-            &key
-        ))),
+fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Result<Value<'lua>> {
+    match env::var_os(key) {
+        Some(value) => {
+            let raw_value = RawOsString::new(value);
+            Ok(Value::String(lua.create_string(raw_value.as_raw_bytes())?))
+        }
+        None => Ok(Value::Nil),
     }
 }
 
-fn process_set_env_var(_: &Lua, (key, value): (String, String)) -> Result<()> {
-    env::set_var(key, value);
+fn process_env_set(_: &Lua, (_, key, value): (Value, String, String)) -> Result<()> {
+    // Make sure key is valid, otherwise set_var will panic
+    if key.is_empty() {
+        return Err(Error::RuntimeError("Key must not be empty".to_string()));
+    } else if key.contains('=') {
+        return Err(Error::RuntimeError(
+            "Key must not contain the equals character '='".to_string(),
+        ));
+    } else if key.contains('\0') {
+        return Err(Error::RuntimeError(
+            "Key must not contain the NUL character".to_string(),
+        ));
+    }
+    // Make sure value is valid, otherwise set_var will panic
+    if value.contains('\0') {
+        return Err(Error::RuntimeError(
+            "Value must not contain the NUL character".to_string(),
+        ));
+    }
+    env::set_var(&key, &value);
     Ok(())
+}
+
+fn process_env_iter<'lua>(lua: &'lua Lua, (_, _): (Value<'lua>, ())) -> Result<Function<'lua>> {
+    let mut vars = env::vars_os();
+    lua.create_function_mut(move |lua, _: ()| match vars.next() {
+        Some((key, value)) => {
+            let raw_key = RawOsString::new(key);
+            let raw_value = RawOsString::new(value);
+            Ok((
+                Value::String(lua.create_string(raw_key.as_raw_bytes())?),
+                Value::String(lua.create_string(raw_value.as_raw_bytes())?),
+            ))
+        }
+        None => Ok((Value::Nil, Value::Nil)),
+    })
 }
 
 fn process_exit(_: &Lua, exit_code: Option<i32>) -> Result<()> {

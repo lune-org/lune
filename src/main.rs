@@ -8,7 +8,7 @@ mod lune;
 mod utils;
 
 use cli::Cli;
-use utils::pretty_print_luau_error;
+use utils::{pretty_print_luau_error, print_label};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,7 +17,8 @@ async fn main() -> Result<()> {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!();
-            eprintln!("[ERROR]");
+            print_label("ERROR").unwrap();
+            eprintln!();
             pretty_print_luau_error(&e);
             std::process::exit(1);
         }

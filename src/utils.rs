@@ -1,11 +1,34 @@
-use std::env::current_dir;
+use std::{
+    env::current_dir,
+    fmt::Write,
+    io::{self, Write as IoWrite},
+};
 
 use anyhow::{bail, Context, Result};
+use mlua::{MultiValue, Value};
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client,
 };
 use serde::{Deserialize, Serialize};
+
+const MAX_FORMAT_DEPTH: usize = 4;
+
+const INDENT: &str = "    ";
+
+const COLOR_RESET: &str = "\x1B[0m";
+const COLOR_BLACK: &str = "\x1B[30m";
+const COLOR_RED: &str = "\x1B[31m";
+const COLOR_GREEN: &str = "\x1B[32m";
+const COLOR_YELLOW: &str = "\x1B[33m";
+const COLOR_BLUE: &str = "\x1B[34m";
+const COLOR_PURPLE: &str = "\x1B[35m";
+const COLOR_CYAN: &str = "\x1B[36m";
+const COLOR_WHITE: &str = "\x1B[37m";
+
+const STYLE_RESET: &str = "\x1B[22m";
+const STYLE_BOLD: &str = "\x1B[1m";
+const STYLE_DIM: &str = "\x1B[2m";
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct GithubReleaseAsset {
@@ -136,6 +159,155 @@ pub fn get_github_owner_and_repo() -> (String, String) {
 pub fn get_github_user_agent_header() -> String {
     let (github_owner, github_repo) = get_github_owner_and_repo();
     format!("{}-{}-cli", github_owner, github_repo)
+}
+
+// TODO: Separate utils out into github & formatting
+
+pub fn flush_stdout() -> mlua::Result<()> {
+    io::stdout().flush().map_err(mlua::Error::external)
+}
+
+pub fn print_label<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+    print!(
+        "{}[{}{}{}{}]{} ",
+        STYLE_BOLD,
+        match s.as_ref().to_ascii_lowercase().as_str() {
+            "info" => COLOR_BLUE,
+            "warn" => COLOR_YELLOW,
+            "error" => COLOR_RED,
+            _ => COLOR_WHITE,
+        },
+        s.as_ref().to_ascii_uppercase(),
+        COLOR_RESET,
+        STYLE_BOLD,
+        STYLE_RESET
+    );
+    flush_stdout()?;
+    Ok(())
+}
+
+pub fn print_style<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+    print!(
+        "{}",
+        match s.as_ref() {
+            "reset" => STYLE_RESET,
+            "bold" => STYLE_BOLD,
+            "dim" => STYLE_DIM,
+            _ => {
+                return Err(mlua::Error::RuntimeError(format!(
+                    "The style '{}' is not a valid style name",
+                    s.as_ref()
+                )));
+            }
+        }
+    );
+    flush_stdout()?;
+    Ok(())
+}
+
+pub fn print_color<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+    print!(
+        "{}",
+        match s.as_ref() {
+            "reset" => COLOR_RESET,
+            "black" => COLOR_BLACK,
+            "red" => COLOR_RED,
+            "green" => COLOR_GREEN,
+            "yellow" => COLOR_YELLOW,
+            "blue" => COLOR_BLUE,
+            "purple" => COLOR_PURPLE,
+            "cyan" => COLOR_CYAN,
+            "white" => COLOR_WHITE,
+            _ => {
+                return Err(mlua::Error::RuntimeError(format!(
+                    "The color '{}' is not a valid color name",
+                    s.as_ref()
+                )));
+            }
+        }
+    );
+    flush_stdout()?;
+    Ok(())
+}
+
+fn can_be_plain_lua_table_key(s: &mlua::String) -> bool {
+    let str = s.to_string_lossy().to_string();
+    let first_char = str.chars().next().unwrap();
+    if first_char.is_alphabetic() {
+        str.chars().all(|c| c == '_' || c.is_alphanumeric())
+    } else {
+        false
+    }
+}
+
+fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> anyhow::Result<()> {
+    // TODO: Handle tables with cyclic references
+    // TODO: Handle other types like function, userdata, ...
+    match &value {
+        Value::Nil => write!(buffer, "nil")?,
+        Value::Boolean(true) => write!(buffer, "{}true{}", COLOR_YELLOW, COLOR_RESET)?,
+        Value::Boolean(false) => write!(buffer, "{}false{}", COLOR_YELLOW, COLOR_RESET)?,
+        Value::Number(n) => write!(buffer, "{}{}{}", COLOR_BLUE, n, COLOR_RESET)?,
+        Value::Integer(i) => write!(buffer, "{}{}{}", COLOR_BLUE, i, COLOR_RESET)?,
+        Value::String(s) => write!(
+            buffer,
+            "{}\"{}\"{}",
+            COLOR_GREEN,
+            s.to_string_lossy()
+                .replace('"', r#"\""#)
+                .replace('\n', r#"\n"#),
+            COLOR_RESET
+        )?,
+        Value::Table(ref tab) => {
+            if depth >= MAX_FORMAT_DEPTH {
+                write!(buffer, "{}{{ ... }}{}", STYLE_DIM, STYLE_RESET)?;
+            } else {
+                let depth_indent = INDENT.repeat(depth);
+                write!(buffer, "{}{{{}", STYLE_DIM, STYLE_RESET)?;
+                for pair in tab.clone().pairs::<Value, Value>() {
+                    let (key, value) = pair?;
+                    match &key {
+                        Value::String(s) if can_be_plain_lua_table_key(s) => write!(
+                            buffer,
+                            "\n{}{}{} {}={} ",
+                            depth_indent,
+                            INDENT,
+                            s.to_string_lossy(),
+                            STYLE_DIM,
+                            STYLE_RESET
+                        )?,
+                        _ => {
+                            write!(buffer, "\n{}{}[", depth_indent, INDENT)?;
+                            pretty_format_value(buffer, &key, depth)?;
+                            write!(buffer, "] {}={} ", STYLE_DIM, STYLE_RESET)?;
+                        }
+                    }
+                    pretty_format_value(buffer, &value, depth + 1)?;
+                    write!(buffer, "{},{}", STYLE_DIM, STYLE_RESET)?;
+                }
+                write!(buffer, "\n{}{}}}{}", depth_indent, STYLE_DIM, STYLE_RESET)?;
+            }
+        }
+        _ => write!(buffer, "?")?,
+    }
+    Ok(())
+}
+
+pub fn pretty_format_multi_value(multi: &MultiValue) -> mlua::Result<String> {
+    let mut buffer = String::new();
+    let mut counter = 0;
+    for value in multi {
+        counter += 1;
+        if let Value::String(s) = value {
+            write!(buffer, "{}", s.to_string_lossy()).map_err(mlua::Error::external)?
+        } else {
+            pretty_format_value(&mut buffer, value, 0).map_err(mlua::Error::external)?;
+        }
+        if counter < multi.len() {
+            write!(&mut buffer, " ").map_err(mlua::Error::external)?;
+        }
+    }
+    Ok(buffer)
 }
 
 pub fn pretty_print_luau_error(e: &mlua::Error) {

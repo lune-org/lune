@@ -15,10 +15,12 @@ module.sayHello()
 	Using arguments given to the program
 ]==]
 
-local arg: string? = ...
-if arg then
-	print("\nGot an argument while running hello_lune:")
-	print(arg)
+if #process.args > 0 then
+	print("\nGot arguments while running hello_lune:")
+	console.log(process.args)
+	if #process.args > 3 then
+		error("Too many arguments!")
+	end
 end
 
 --[==[
@@ -31,14 +33,13 @@ end
 ]==]
 
 print("\nReading current environment 🔎")
-local vars = process.getEnvVars()
-table.sort(vars)
 
-assert(table.find(vars, "PATH") ~= nil, "Missing PATH")
-assert(table.find(vars, "PWD") ~= nil, "Missing PWD")
+-- Environment variables can be read directly
+assert(process.env.PATH ~= nil, "Missing PATH")
+assert(process.env.PWD ~= nil, "Missing PWD")
 
-for _, key in vars do
-	local value = process.getEnvVar(key)
+-- And they can also be accessed using generalized iteration (not pairs!)
+for key, value in process.env do
 	local box = if value and value ~= "" then "✅" else "❌"
 	print(string.format("[%s] %s", box, key))
 end
@@ -85,7 +86,7 @@ end
 
 -- NOTE: We skip the ping example in GitHub Actions
 -- since the ping command does not work in azure
-if not process.getEnvVar("GITHUB_ACTIONS") then
+if not process.env.GITHUB_ACTIONS then
 	--[==[
 		EXAMPLE #5
 

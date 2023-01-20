@@ -41,9 +41,8 @@ declare net: {
 }
 
 declare process: {
-	getEnvVars: () -> { string },
-	getEnvVar: (key: string) -> string?,
-	setEnvVar: (key: string, value: string) -> (),
+	args: { string },
+	env: { [string]: string? },
 	exit: (code: number?) -> (),
 	spawn: (program: string, params: { string }?) -> {
 		ok: boolean,

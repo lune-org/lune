@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added `process.args` for inspecting values given to Lune when running (read only)
+- Added `process.env` which is a plain table where you can get & set environment variables
+
+### Changed
+
+- Improved error formatting & added proper file name to stack traces
+
+### Removed
+
+- Removed `...` for process arguments, use `process.args` instead
+- Removed individual functions for getting & setting environment variables, use `process.env` instead
+
 ## `0.0.3` - January 19th, 2023
 
 ### Added

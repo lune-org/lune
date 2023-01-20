@@ -63,15 +63,7 @@ globals:
   net.request:
     args:
       - type: any
-  # Process
-  process.getEnvVars:
-  process.getEnvVar:
-    args:
-      - type: string
-  process.setEnvVar:
-    args:
-      - type: string
-      - type: string
+  # Processs
   process.exit:
     args:
       - required: false

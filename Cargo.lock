@@ -516,6 +516,7 @@ dependencies = [
  "anyhow",
  "clap",
  "mlua",
+ "os_str_bytes",
  "reqwest",
  "serde",
  "serde_json",
@@ -668,6 +669,9 @@ name = "os_str_bytes"
 version = "6.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "parking_lot"
