@@ -208,8 +208,8 @@ fn console_log(_: &Lua, args: MultiValue) -> Result<()> {
 
 fn console_info(_: &Lua, args: MultiValue) -> Result<()> {
     print!(
-        "{}{}[INFO]{}{} ",
-        STYLE_BOLD, COLOR_CYAN, COLOR_RESET, STYLE_RESET
+        "{}[{}INFO{}{}]{} ",
+        STYLE_BOLD, COLOR_CYAN, COLOR_RESET, STYLE_BOLD, STYLE_RESET
     );
     let s = pretty_format_multi_value(&args)?;
     println!("{}", s);
@@ -219,8 +219,8 @@ fn console_info(_: &Lua, args: MultiValue) -> Result<()> {
 
 fn console_warn(_: &Lua, args: MultiValue) -> Result<()> {
     print!(
-        "{}{}[WARN]{}{} ",
-        STYLE_BOLD, COLOR_YELLOW, COLOR_RESET, STYLE_RESET
+        "{}[{}WARN{}{}]{} ",
+        STYLE_BOLD, COLOR_YELLOW, COLOR_RESET, STYLE_BOLD, STYLE_RESET
     );
     let s = pretty_format_multi_value(&args)?;
     println!("{}", s);
@@ -230,8 +230,8 @@ fn console_warn(_: &Lua, args: MultiValue) -> Result<()> {
 
 fn console_error(_: &Lua, args: MultiValue) -> Result<()> {
     eprint!(
-        "{}{}[ERROR]{}{} ",
-        STYLE_BOLD, COLOR_RED, COLOR_RESET, STYLE_RESET
+        "{}[{}ERROR{}{}]{} ",
+        STYLE_BOLD, COLOR_RED, COLOR_RESET, STYLE_BOLD, STYLE_RESET
     );
     let s = pretty_format_multi_value(&args)?;
     eprintln!("{}", s);
