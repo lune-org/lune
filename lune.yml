@@ -1,6 +1,30 @@
 # Lune v0.0.2
 ---
 globals:
+  # Console
+  console.resetColor:
+  console.setColor:
+    args:
+      - type: string
+  console.resetStyle:
+  console.setStyle:
+    args:
+      - type: string
+  console.format:
+    args:
+      - type: "..."
+  console.log:
+    args:
+      - type: "..."
+  console.info:
+    args:
+      - type: "..."
+  console.warn:
+    args:
+      - type: "..."
+  console.error:
+    args:
+      - type: "..."
   # FS (filesystem)
   fs.readFile:
     args:

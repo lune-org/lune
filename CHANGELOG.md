@@ -31,6 +31,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   assert(apiResponse.body == "bar", "Invalid json response")
   ```
 
+- Added console logging & coloring functions under `console`
+
+  This piece of code:
+
+  ```lua
+  local tab = { Integer = 1234, Hello = { "World" } }
+  console.log(tab)
+  ```
+
+  Will print the following formatted text to the console, **_with syntax highlighting_**:
+
+  ```lua
+  {
+      Integer = 1234,
+      Hello = {
+          "World",
+      }
+  }
+  ```
+
+  Additional utility functions exist with the same behavior but that also print out a colored
+  tag together with any data given to them: `console.info`, `console.warn`, `console.error` -
+  These print out prefix tags `[INFO]`, `[WARN]`, `[ERROR]` in blue, orange, and red, respectively.
+
 ### Changed
 
 - The `json` api is now part of `net`

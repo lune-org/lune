@@ -32,7 +32,27 @@ Check out the examples of how to write a script in the [.lune](.lune) folder !
 <details>
 <summary><b>🔎 Full list of APIs</b></summary>
 
-### **`fs`** - Filesystem
+<details>
+<summary><b>console</b> - Logging & formatting</summary>
+
+```lua
+type console = {
+	resetColor: () -> (),
+	setColor: (color: "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
+	resetStyle: () -> (),
+	setStyle: (color: "bold" | "dim") -> (),
+	format: (...any) -> (string),
+	log: (...any) -> (),
+	info: (...any) -> (),
+	warn: (...any) -> (),
+	error: (...any) -> (),
+}
+```
+
+</details>
+
+<details>
+<summary><b>fs</b> - Filesystem</summary>
 
 ```lua
 type fs = {
@@ -47,7 +67,10 @@ type fs = {
 }
 ```
 
-### **`net`** - Networking
+</details>
+
+<details>
+<summary><b>net</b> - Networking</summary>
 
 ```lua
 type net = {
@@ -68,7 +91,10 @@ type net = {
 }
 ```
 
-### **`process`** - Current process & child processes
+</details>
+
+<details>
+<summary><b>process</b> - Current process & child processes</summary>
 
 ```lua
 type process = {
@@ -84,6 +110,8 @@ type process = {
 	},
 }
 ```
+
+</details>
 
 </details>
 

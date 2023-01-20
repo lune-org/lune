@@ -7,7 +7,7 @@ use clap::{CommandFactory, Parser};
 use mlua::{Lua, MultiValue, Result, ToLua};
 
 use crate::{
-    lune::{fs::LuneFs, net::LuneNet, process::LuneProcess},
+    lune::{console::LuneConsole, fs::LuneFs, net::LuneNet, process::LuneProcess},
     utils::GithubClient,
 };
 
@@ -101,6 +101,7 @@ impl Cli {
         // Create a new lua state and add in all lune globals
         let lua = Lua::new();
         let globals = lua.globals();
+        globals.set("console", LuneConsole::new())?;
         globals.set("fs", LuneFs::new())?;
         globals.set("net", LuneNet::new())?;
         globals.set("process", LuneProcess::new())?;

@@ -169,7 +169,36 @@ assert(apiResponse.body == "bar", "Invalid json response")
 print("Got valid JSON response with changes applied")
 
 --[==[
-	Example #8
+	EXAMPLE #8
+
+	Using the console library to print pretty
+]==]
+
+print("\nPrinting with pretty colors and auto-formatting 🎨")
+
+console.setColor("blue")
+print(string.rep("—", 22))
+console.resetColor()
+
+console.info("API response:", apiResponse)
+console.warn({
+	Oh = {
+		No = {
+			TooMuch = {
+				Nesting = {
+					"Will not print",
+				},
+			},
+		},
+	},
+})
+
+console.setColor("blue")
+print(string.rep("—", 22))
+console.resetColor()
+
+--[==[
+	EXAMPLE #9
 
 	Saying goodbye 😔
 ]==]

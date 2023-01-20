@@ -1,5 +1,17 @@
 -- Lune v0.0.2
 
+declare console: {
+	resetColor: () -> (),
+	setColor: (color: "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
+	resetStyle: () -> (),
+	setStyle: (color: "bold" | "dim") -> (),
+	format: (...any) -> (string),
+	log: (...any) -> (),
+	info: (...any) -> (),
+	warn: (...any) -> (),
+	error: (...any) -> (),
+}
+
 declare fs: {
 	readFile: (path: string) -> string,
 	readDir: (path: string) -> { string },
