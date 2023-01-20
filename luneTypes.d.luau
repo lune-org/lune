@@ -1,4 +1,4 @@
--- Lune v0.0.2
+-- Lune v0.0.3
 
 declare console: {
 	resetColor: () -> (),
