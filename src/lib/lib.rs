@@ -98,7 +98,9 @@ mod tests {
         fs_dirs: "fs/dirs",
         process_args: "process/args",
         process_env: "process/env",
-        process_exit: "process/exit",
+        // NOTE: This test does not currently work, it will exit the entire
+        // process, meaning it will also exit our test runner and skip testing
+        // process_exit: "process/exit",
         process_spawn: "process/spawn",
         net_request_codes: "net/request/codes",
         net_request_methods: "net/request/methods",
