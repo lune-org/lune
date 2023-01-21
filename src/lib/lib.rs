@@ -5,7 +5,7 @@ pub mod globals;
 pub mod utils;
 
 use crate::{
-    globals::{Console, Fs, Net, Process},
+    globals::{ConsoleGlobal, FsGlobal, NetGlobal, ProcessGlobal, TaskGlobal},
     utils::formatting::{pretty_print_luau_error, print_label},
 };
 
@@ -29,10 +29,12 @@ impl Lune {
     pub fn with_default_globals(self) -> Result<Self> {
         {
             let globals = self.lua.globals();
-            globals.set("console", Console::new())?;
-            globals.set("fs", Fs())?;
-            globals.set("net", Net::new())?;
-            globals.set("process", Process::new(self.args.clone()))?;
+            globals.raw_set("console", ConsoleGlobal::new())?;
+            globals.raw_set("fs", FsGlobal::new())?;
+            globals.raw_set("net", NetGlobal::new())?;
+            globals.raw_set("process", ProcessGlobal::new(self.args.clone()))?;
+            globals.raw_set("task", TaskGlobal::new())?;
+            globals.set_readonly(true);
         }
         Ok(self)
     }
@@ -107,5 +109,6 @@ mod tests {
         net_request_redirect: "net/request/redirect",
         net_json_decode: "net/json/decode",
         net_json_encode: "net/json/encode",
+        task_wait: "task/wait",
     }
 }

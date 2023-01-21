@@ -51,3 +51,7 @@ declare process: {
 		stderr: string,
 	},
 }
+
+declare task: {
+	wait: (duration: number?) -> (number),
+}

@@ -73,3 +73,8 @@ globals:
       - type: string
       - required: false
         type: table
+  # Task
+  task.wait:
+    args:
+      - required: false
+        type: number
