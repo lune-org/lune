@@ -1,4 +1,6 @@
-use anyhow::Result;
+use std::sync::{Arc, Mutex};
+
+use anyhow::{bail, Result};
 use mlua::Lua;
 
 pub mod globals;
@@ -6,63 +8,39 @@ pub mod utils;
 
 use crate::{
     globals::{new_console, new_fs, new_net, new_process, new_task},
-    utils::formatting::{pretty_print_luau_error, print_label},
+    utils::formatting::{format_label, pretty_format_luau_error},
 };
 
-pub struct Lune {
-    lua: Lua,
-    args: Vec<String>,
-}
-
-impl Lune {
-    pub fn new() -> Result<Self> {
-        let lua = Lua::new();
-        lua.sandbox(true)?;
-        Ok(Self { lua, args: vec![] })
+pub async fn run_lune(name: &str, chunk: &str, args: Vec<String>) -> Result<()> {
+    let lua = Lua::new();
+    let threads = Arc::new(Mutex::new(Vec::new()));
+    lua.sandbox(true)?;
+    // Add in all globals
+    {
+        let globals = lua.globals();
+        globals.raw_set("console", new_console(&lua)?)?;
+        globals.raw_set("fs", new_fs(&lua)?)?;
+        globals.raw_set("net", new_net(&lua)?)?;
+        globals.raw_set("process", new_process(&lua, args.clone())?)?;
+        globals.raw_set("task", new_task(&lua, &threads)?)?;
+        globals.set_readonly(true);
     }
-
-    pub fn with_args(mut self, args: Vec<String>) -> Result<Self> {
-        self.args = args;
-        Ok(self)
-    }
-
-    pub fn with_default_globals(self) -> Result<Self> {
-        {
-            let globals = self.lua.globals();
-            globals.raw_set("console", new_console(&self.lua)?)?;
-            globals.raw_set("fs", new_fs(&self.lua)?)?;
-            globals.raw_set("net", new_net(&self.lua)?)?;
-            globals.raw_set("process", new_process(&self.lua, self.args.clone())?)?;
-            globals.raw_set("task", new_task(&self.lua)?)?;
-            globals.set_readonly(true);
-        }
-        Ok(self)
-    }
-
-    pub async fn run(&self, chunk: &str) -> Result<()> {
-        self.handle_result(self.lua.load(chunk).exec_async().await)
-    }
-
-    pub async fn run_with_name(&self, chunk: &str, name: &str) -> Result<()> {
-        self.handle_result(self.lua.load(chunk).set_name(name)?.exec_async().await)
-    }
-
-    fn handle_result(&self, result: mlua::Result<()>) -> Result<()> {
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                eprintln!();
-                print_label("ERROR").unwrap();
-                eprintln!();
-                pretty_print_luau_error(&e);
-                Err(e.into())
-            }
-        }
+    // Run the requested chunk asynchronously
+    let result = lua.load(chunk).set_name(name)?.exec_async().await;
+    match result {
+        Ok(_) => Ok(()),
+        Err(e) => bail!(
+            "\n{}\n{}",
+            format_label("ERROR"),
+            pretty_format_luau_error(&e)
+        ),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::run_lune;
+
     macro_rules! run_tests {
         ($($name:ident: $value:expr,)*) => {
             $(
@@ -75,16 +53,10 @@ mod tests {
                     let path = std::env::current_dir()
                         .unwrap()
                         .join(format!("src/tests/{}.luau", $value));
-                    let lune = crate::Lune::new()
-                        .unwrap()
-                        .with_args(args)
-                        .unwrap()
-                        .with_default_globals()
-                        .unwrap();
                     let script = tokio::fs::read_to_string(&path)
                         .await
                         .unwrap();
-                    if let Err(e) = lune.run_with_name(&script, $value).await {
+                    if let Err(e) = run_lune($value, &script, args).await {
                         panic!("Test '{}' failed!\n{}", $value, e.to_string())
                     }
                 }

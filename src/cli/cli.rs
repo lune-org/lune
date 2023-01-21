@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
 
-use lune::Lune;
+use lune::run_lune;
 
 use crate::utils::{files::find_parse_file_path, github::Client as GithubClient};
 
@@ -96,11 +96,7 @@ impl Cli {
         // Display the file path relative to cwd with no extensions in stack traces
         let file_display_name = file_path.with_extension("").display().to_string();
         // Create a new lune object with all globals & run the script
-        Lune::new()?
-            .with_args(self.script_args)?
-            .with_default_globals()?
-            .run_with_name(&file_contents, &file_display_name)
-            .await?;
+        run_lune(&file_display_name, &file_contents, self.script_args).await?;
         Ok(())
     }
 }

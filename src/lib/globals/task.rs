@@ -1,13 +1,24 @@
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use mlua::{Function, Lua, Result, Table, Value, Variadic};
+use mlua::{Function, Lua, Result, Table, Thread, Value, Variadic};
 use tokio::time;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
 const DEFAULT_SLEEP_DURATION: f32 = 1.0 / 60.0;
 
-pub fn new(lua: &Lua) -> Result<Table> {
+pub struct WaitingThread<'a> {
+    is_delayed_for: Option<f32>,
+    is_deferred: Option<bool>,
+    thread: Thread<'a>,
+    args: Variadic<Value<'a>>,
+}
+
+pub fn new<'a>(lua: &'a Lua, threads: &Arc<Mutex<Vec<WaitingThread<'a>>>>) -> Result<Table<'a>> {
+    // TODO: Figure out how to insert into threads vec
     ReadonlyTableBuilder::new(lua)?
         .with_async_function(
             "defer",

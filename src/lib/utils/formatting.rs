@@ -39,8 +39,8 @@ fn can_be_plain_lua_table_key(s: &mlua::String) -> bool {
     }
 }
 
-pub fn print_label<S: AsRef<str>>(s: S) -> mlua::Result<()> {
-    print!(
+pub fn format_label<S: AsRef<str>>(s: S) -> String {
+    format!(
         "{}[{}{}{}{}]{} ",
         STYLE_BOLD,
         match s.as_ref().to_ascii_lowercase().as_str() {
@@ -53,7 +53,11 @@ pub fn print_label<S: AsRef<str>>(s: S) -> mlua::Result<()> {
         COLOR_RESET,
         STYLE_BOLD,
         STYLE_RESET
-    );
+    )
+}
+
+pub fn print_label<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+    print!("{}", format_label(s));
     flush_stdout()?;
     Ok(())
 }
@@ -186,34 +190,45 @@ pub fn pretty_format_multi_value(multi: &MultiValue) -> mlua::Result<String> {
     Ok(buffer)
 }
 
-pub fn pretty_print_luau_error(e: &mlua::Error) {
+pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
     match e {
         mlua::Error::RuntimeError(e) => {
-            eprintln!("{e}");
+            let err_string = e.to_string();
+            let mut err_lines = err_string.lines().collect::<Vec<_>>();
+            for (index, line) in err_lines.clone().iter().enumerate().rev() {
+                if *line == "stack traceback:" {
+                    err_lines[index] = "Stack Begin";
+                    break;
+                }
+            }
+            err_lines.push("Stack End");
+            err_lines.join("\n")
         }
         mlua::Error::CallbackError { cause, traceback } => {
-            pretty_print_luau_error(cause.as_ref());
-            eprintln!("Traceback:");
-            eprintln!("{}", traceback.strip_prefix("stack traceback:\n").unwrap());
+            format!(
+                "{}\nStack Begin{}Stack End",
+                pretty_format_luau_error(cause.as_ref()),
+                traceback.strip_prefix("stack traceback:\n").unwrap()
+            )
         }
         mlua::Error::ToLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            eprintln!(
+            format!(
                 "Failed to convert Rust type '{}' into Luau type '{}'!{}",
                 from, to, msg
-            );
+            )
         }
         mlua::Error::FromLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            eprintln!(
+            format!(
                 "Failed to convert Luau type '{}' into Rust type '{}'!{}",
                 from, to, msg
-            );
+            )
         }
-        e => eprintln!("{e}"),
+        e => format!("{e}"),
     }
 }
