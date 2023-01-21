@@ -3,15 +3,15 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::{Lua, Result, UserData, UserDataMethods};
 use tokio::fs;
 
-pub struct LuneFs();
+pub struct Fs();
 
-impl LuneFs {
+impl Fs {
     pub fn new() -> Self {
         Self()
     }
 }
 
-impl UserData for LuneFs {
+impl UserData for Fs {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_async_function("readFile", fs_read_file);
         methods.add_async_function("readDir", fs_read_dir);

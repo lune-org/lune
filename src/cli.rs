@@ -7,7 +7,7 @@ use clap::{CommandFactory, Parser};
 use mlua::{Lua, Result};
 
 use crate::{
-    lune::{console::LuneConsole, fs::LuneFs, net::LuneNet, process::LuneProcess},
+    lune::{console::Console, fs::Fs, net::Net, process::Process},
     utils::GithubClient,
 };
 
@@ -82,18 +82,17 @@ impl Cli {
             }
         }
         if self.script_path.is_none() {
-            if !download_types_requested {
-                // HACK: We know that we didn't get any arguments here but since
-                // script_path is optional clap will not error on its own, to fix
-                // we will duplicate the cli command and make arguments required,
-                // which will then fail and print out the normal help message
-                let cmd = Cli::command();
-                cmd.arg_required_else_help(true).get_matches();
-            } else {
-                // Only downloading types without running a script is completely
-                // fine, and we should just exit the program normally afterwards
+            // Only downloading types without running a script is completely
+            // fine, and we should just exit the program normally afterwards
+            if download_types_requested {
                 return Ok(());
             }
+            // HACK: We know that we didn't get any arguments here but since
+            // script_path is optional clap will not error on its own, to fix
+            // we will duplicate the cli command and make arguments required,
+            // which will then fail and print out the normal help message
+            let cmd = Cli::command();
+            cmd.arg_required_else_help(true).get_matches();
         }
         // Parse and read the wanted file
         let file_path = find_parse_file_path(&self.script_path.unwrap())?;
@@ -101,10 +100,10 @@ impl Cli {
         // Create a new lua state and add in all lune globals
         let lua = Lua::new();
         let globals = lua.globals();
-        globals.set("console", LuneConsole::new())?;
-        globals.set("fs", LuneFs::new())?;
-        globals.set("net", LuneNet::new())?;
-        globals.set("process", LuneProcess::new(self.script_args))?;
+        globals.set("console", Console::new())?;
+        globals.set("fs", Fs::new())?;
+        globals.set("net", Net::new())?;
+        globals.set("process", Process::new(self.script_args))?;
         lua.sandbox(true)?;
         // Load & call the file with the given args
         lua.load(&file_contents)

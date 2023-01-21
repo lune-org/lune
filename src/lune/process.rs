@@ -10,24 +10,24 @@ use mlua::{
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
-pub struct LuneProcess {
+pub struct Process {
     args: Vec<String>,
 }
 
-impl LuneProcess {
+impl Process {
     pub fn new(args: Vec<String>) -> Self {
         Self { args }
     }
 }
 
-impl UserData for LuneProcess {
+impl UserData for Process {
     fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("args", |lua, this| {
             // TODO: Use the same strategy as env uses below to avoid
             // copying each time args are accessed? is it worth it?
             let tab = lua.create_table()?;
             for arg in &this.args {
-                tab.push(arg.to_owned())?;
+                tab.push(arg.clone())?;
             }
             Ok(tab)
         });
@@ -49,7 +49,7 @@ impl UserData for LuneProcess {
             tab.set_metatable(Some(meta));
             tab.set_readonly(true);
             Ok(tab)
-        })
+        });
     }
 
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -137,10 +137,7 @@ async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)
     let code = output
         .status
         .code()
-        .unwrap_or(match output.stderr.is_empty() {
-            true => 0,
-            false => 1,
-        });
+        .unwrap_or_else(|| i32::from(!output.stderr.is_empty()));
     // Construct and return a readonly lua table with results
     let table = lua.create_table()?;
     table.raw_set("ok", code == 0)?;

@@ -4,15 +4,15 @@ use crate::utils::{
     flush_stdout, pretty_format_multi_value, print_color, print_label, print_style,
 };
 
-pub struct LuneConsole();
+pub struct Console();
 
-impl LuneConsole {
+impl Console {
     pub fn new() -> Self {
         Self()
     }
 }
 
-impl UserData for LuneConsole {
+impl UserData for Console {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("resetColor", console_reset_color);
         methods.add_function("setColor", console_set_color);
@@ -54,7 +54,7 @@ fn console_format(_: &Lua, args: MultiValue) -> Result<String> {
 
 fn console_log(_: &Lua, args: MultiValue) -> Result<()> {
     let s = pretty_format_multi_value(&args)?;
-    println!("{}", s);
+    println!("{s}");
     flush_stdout()?;
     Ok(())
 }
@@ -62,7 +62,7 @@ fn console_log(_: &Lua, args: MultiValue) -> Result<()> {
 fn console_info(_: &Lua, args: MultiValue) -> Result<()> {
     print_label("info")?;
     let s = pretty_format_multi_value(&args)?;
-    println!("{}", s);
+    println!("{s}");
     flush_stdout()?;
     Ok(())
 }
@@ -70,7 +70,7 @@ fn console_info(_: &Lua, args: MultiValue) -> Result<()> {
 fn console_warn(_: &Lua, args: MultiValue) -> Result<()> {
     print_label("warn")?;
     let s = pretty_format_multi_value(&args)?;
-    println!("{}", s);
+    println!("{s}");
     flush_stdout()?;
     Ok(())
 }
@@ -78,7 +78,7 @@ fn console_warn(_: &Lua, args: MultiValue) -> Result<()> {
 fn console_error(_: &Lua, args: MultiValue) -> Result<()> {
     print_label("error")?;
     let s = pretty_format_multi_value(&args)?;
-    eprintln!("{}", s);
+    eprintln!("{s}");
     flush_stdout()?;
     Ok(())
 }

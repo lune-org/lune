@@ -8,15 +8,15 @@ use reqwest::{
 
 use crate::utils::get_github_user_agent_header;
 
-pub struct LuneNet();
+pub struct Net();
 
-impl LuneNet {
+impl Net {
     pub fn new() -> Self {
         Self()
     }
 }
 
-impl UserData for LuneNet {
+impl UserData for Net {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("jsonEncode", net_json_encode);
         methods.add_function("jsonDecode", net_json_decode);
@@ -108,12 +108,12 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Value<
     // Create and send the request
     let mut request = client.request(method, url).headers(header_map);
     if let Some(body) = body {
-        request = request.body(body)
+        request = request.body(body);
     }
     let response = request.send().await.map_err(Error::external)?;
     // Extract status, headers, body
     let res_status = response.status();
-    let res_headers = response.headers().to_owned();
+    let res_headers = response.headers().clone();
     let res_bytes = response.bytes().await.map_err(Error::external)?;
     // Construct and return a readonly lua table with results
     let tab = lua.create_table()?;

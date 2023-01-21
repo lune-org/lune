@@ -106,8 +106,8 @@ impl GithubClient {
         all_releases
             .iter()
             .find(|release| release.tag_name == release_version_tag)
-            .map(|release| release.to_owned())
-            .with_context(|| format!("Failed to find release for version {}", release_version_tag))
+            .map(ToOwned::to_owned)
+            .with_context(|| format!("Failed to find release for version {release_version_tag}"))
     }
 
     pub async fn fetch_release_asset(
@@ -158,7 +158,7 @@ pub fn get_github_owner_and_repo() -> (String, String) {
 
 pub fn get_github_user_agent_header() -> String {
     let (github_owner, github_repo) = get_github_owner_and_repo();
-    format!("{}-{}-cli", github_owner, github_repo)
+    format!("{github_owner}-{github_repo}-cli")
 }
 
 // TODO: Separate utils out into github & formatting
@@ -245,10 +245,10 @@ fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> anyh
     // TODO: Handle other types like function, userdata, ...
     match &value {
         Value::Nil => write!(buffer, "nil")?,
-        Value::Boolean(true) => write!(buffer, "{}true{}", COLOR_YELLOW, COLOR_RESET)?,
-        Value::Boolean(false) => write!(buffer, "{}false{}", COLOR_YELLOW, COLOR_RESET)?,
-        Value::Number(n) => write!(buffer, "{}{}{}", COLOR_BLUE, n, COLOR_RESET)?,
-        Value::Integer(i) => write!(buffer, "{}{}{}", COLOR_BLUE, i, COLOR_RESET)?,
+        Value::Boolean(true) => write!(buffer, "{COLOR_YELLOW}true{COLOR_RESET}")?,
+        Value::Boolean(false) => write!(buffer, "{COLOR_YELLOW}false{COLOR_RESET}")?,
+        Value::Number(n) => write!(buffer, "{COLOR_BLUE}{n}{COLOR_RESET}")?,
+        Value::Integer(i) => write!(buffer, "{COLOR_BLUE}{i}{COLOR_RESET}")?,
         Value::String(s) => write!(
             buffer,
             "{}\"{}\"{}",
@@ -260,10 +260,10 @@ fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> anyh
         )?,
         Value::Table(ref tab) => {
             if depth >= MAX_FORMAT_DEPTH {
-                write!(buffer, "{}{{ ... }}{}", STYLE_DIM, STYLE_RESET)?;
+                write!(buffer, "{STYLE_DIM}{{ ... }}{STYLE_RESET}")?;
             } else {
                 let depth_indent = INDENT.repeat(depth);
-                write!(buffer, "{}{{{}", STYLE_DIM, STYLE_RESET)?;
+                write!(buffer, "{STYLE_DIM}{{{STYLE_RESET}")?;
                 for pair in tab.clone().pairs::<Value, Value>() {
                     let (key, value) = pair?;
                     match &key {
@@ -277,15 +277,15 @@ fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> anyh
                             STYLE_RESET
                         )?,
                         _ => {
-                            write!(buffer, "\n{}{}[", depth_indent, INDENT)?;
+                            write!(buffer, "\n{depth_indent}{INDENT}[")?;
                             pretty_format_value(buffer, &key, depth)?;
-                            write!(buffer, "] {}={} ", STYLE_DIM, STYLE_RESET)?;
+                            write!(buffer, "] {STYLE_DIM}={STYLE_RESET} ")?;
                         }
                     }
                     pretty_format_value(buffer, &value, depth + 1)?;
-                    write!(buffer, "{},{}", STYLE_DIM, STYLE_RESET)?;
+                    write!(buffer, "{STYLE_DIM},{STYLE_RESET}")?;
                 }
-                write!(buffer, "\n{}{}}}{}", depth_indent, STYLE_DIM, STYLE_RESET)?;
+                write!(buffer, "\n{depth_indent}{STYLE_DIM}}}{STYLE_RESET}")?;
             }
         }
         _ => write!(buffer, "?")?,
@@ -299,7 +299,7 @@ pub fn pretty_format_multi_value(multi: &MultiValue) -> mlua::Result<String> {
     for value in multi {
         counter += 1;
         if let Value::String(s) = value {
-            write!(buffer, "{}", s.to_string_lossy()).map_err(mlua::Error::external)?
+            write!(buffer, "{}", s.to_string_lossy()).map_err(mlua::Error::external)?;
         } else {
             pretty_format_value(&mut buffer, value, 0).map_err(mlua::Error::external)?;
         }
@@ -313,7 +313,7 @@ pub fn pretty_format_multi_value(multi: &MultiValue) -> mlua::Result<String> {
 pub fn pretty_print_luau_error(e: &mlua::Error) {
     match e {
         mlua::Error::RuntimeError(e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
         }
         mlua::Error::CallbackError { cause, traceback } => {
             pretty_print_luau_error(cause.as_ref());
@@ -323,22 +323,20 @@ pub fn pretty_print_luau_error(e: &mlua::Error) {
         mlua::Error::ToLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
-                .map(|m| format!("\nDetails:\n\t{m}"))
-                .unwrap_or_else(|| "".to_string());
+                .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
             eprintln!(
                 "Failed to convert Rust type '{}' into Luau type '{}'!{}",
                 from, to, msg
-            )
+            );
         }
         mlua::Error::FromLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
-                .map(|m| format!("\nDetails:\n\t{m}"))
-                .unwrap_or_else(|| "".to_string());
+                .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
             eprintln!(
                 "Failed to convert Luau type '{}' into Rust type '{}'!{}",
                 from, to, msg
-            )
+            );
         }
         e => eprintln!("{e}"),
     }
