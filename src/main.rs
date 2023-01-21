@@ -5,11 +5,11 @@ use clap::Parser;
 use mlua::Result;
 
 mod cli;
-mod lune;
+mod globals;
 mod utils;
 
 use cli::Cli;
-use utils::{pretty_print_luau_error, print_label};
+use utils::formatting::{pretty_print_luau_error, print_label};
 
 #[tokio::main]
 async fn main() -> Result<()> {

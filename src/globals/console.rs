@@ -1,6 +1,6 @@
 use mlua::{Lua, MultiValue, Result, UserData, UserDataMethods};
 
-use crate::utils::{
+use crate::utils::formatting::{
     flush_stdout, pretty_format_multi_value, print_color, print_label, print_style,
 };
 

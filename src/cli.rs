@@ -7,8 +7,8 @@ use clap::{CommandFactory, Parser};
 use mlua::{Lua, Result};
 
 use crate::{
-    lune::{console::Console, fs::Fs, net::Net, process::Process},
-    utils::GithubClient,
+    globals::{console::Console, fs::Fs, net::Net, process::Process},
+    utils::github::Client as GithubClient,
 };
 
 /// Lune CLI

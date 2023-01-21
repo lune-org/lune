@@ -6,7 +6,7 @@ use reqwest::{
     Method,
 };
 
-use crate::utils::get_github_user_agent_header;
+use crate::utils::github::get_github_user_agent_header;
 
 pub struct Net();
 
