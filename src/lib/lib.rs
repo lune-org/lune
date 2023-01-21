@@ -109,6 +109,9 @@ mod tests {
         net_request_redirect: "net/request/redirect",
         net_json_decode: "net/json/decode",
         net_json_encode: "net/json/encode",
+        task_defer: "task/defer",
+        task_delay: "task/delay",
+        task_spawn: "task/spawn",
         task_wait: "task/wait",
     }
 }

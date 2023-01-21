@@ -516,6 +516,7 @@ dependencies = [
  "anyhow",
  "clap",
  "mlua",
+ "once_cell",
  "os_str_bytes",
  "reqwest",
  "serde",

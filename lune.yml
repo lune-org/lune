@@ -74,6 +74,20 @@ globals:
       - required: false
         type: table
   # Task
+  task.defer:
+    args:
+      - type: thread | function
+      - type: "..."
+  task.delay:
+    args:
+      - required: false
+        type: number
+      - type: thread | function
+      - type: "..."
+  task.spawn:
+    args:
+      - type: thread | function
+      - type: "..."
   task.wait:
     args:
       - required: false

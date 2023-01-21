@@ -26,7 +26,8 @@ panic = "abort" # Remove extra panic info
 anyhow = { version = "1.0.68" }
 clap = { version = "4.1.1", features = ["derive"] }
 mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }
-os_str_bytes = "6.4.1"
+once_cell = { version = "1.17.0" }
+os_str_bytes = { version = "6.4.1" }
 reqwest = { version = "0.11.13", features = ["gzip", "deflate"] }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91" }

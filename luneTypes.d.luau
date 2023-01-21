@@ -53,5 +53,8 @@ declare process: {
 }
 
 declare task: {
+	defer: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
+	delay: <A..., R...>(duration: number?, f: thread | (A...) -> (R...), A...) -> (R...),
+	spawn: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
 	wait: (duration: number?) -> (number),
 }
