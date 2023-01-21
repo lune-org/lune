@@ -6,72 +6,36 @@ use crate::utils::{
 };
 
 pub fn new(lua: &Lua) -> Result<Table> {
+    let print = |args: &MultiValue, throw: bool| -> Result<()> {
+        let s = pretty_format_multi_value(args)?;
+        if throw {
+            eprintln!("{s}");
+        } else {
+            println!("{s}");
+        }
+        flush_stdout()?;
+        Ok(())
+    };
     ReadonlyTableBuilder::new(lua)?
-        .with_function("resetColor", console_reset_color)?
-        .with_function("setColor", console_set_color)?
-        .with_function("resetStyle", console_reset_style)?
-        .with_function("setStyle", console_set_style)?
-        .with_function("format", console_format)?
-        .with_function("log", console_log)?
-        .with_function("info", console_info)?
-        .with_function("warn", console_warn)?
-        .with_function("error", console_error)?
+        .with_function("resetColor", |_, _: ()| print_color("reset"))?
+        .with_function("setColor", |_, color: String| print_color(color))?
+        .with_function("resetStyle", |_, _: ()| print_style("reset"))?
+        .with_function("setStyle", |_, style: String| print_style(style))?
+        .with_function("format", |_, args: MultiValue| {
+            pretty_format_multi_value(&args)
+        })?
+        .with_function("log", move |_, args: MultiValue| print(&args, false))?
+        .with_function("info", move |_, args: MultiValue| {
+            print_label("info")?;
+            print(&args, false)
+        })?
+        .with_function("warn", move |_, args: MultiValue| {
+            print_label("warn")?;
+            print(&args, false)
+        })?
+        .with_function("error", move |_, args: MultiValue| {
+            print_label("error")?;
+            print(&args, true)
+        })?
         .build()
-}
-
-fn console_reset_color(_: &Lua, _: ()) -> Result<()> {
-    print_color("reset")?;
-    flush_stdout()?;
-    Ok(())
-}
-
-fn console_set_color(_: &Lua, color: String) -> Result<()> {
-    print_color(color.trim().to_ascii_lowercase())?;
-    Ok(())
-}
-
-fn console_reset_style(_: &Lua, _: ()) -> Result<()> {
-    print_style("reset")?;
-    flush_stdout()?;
-    Ok(())
-}
-
-fn console_set_style(_: &Lua, style: String) -> Result<()> {
-    print_style(style.trim().to_ascii_lowercase())?;
-    Ok(())
-}
-
-fn console_format(_: &Lua, args: MultiValue) -> Result<String> {
-    pretty_format_multi_value(&args)
-}
-
-fn console_log(_: &Lua, args: MultiValue) -> Result<()> {
-    let s = pretty_format_multi_value(&args)?;
-    println!("{s}");
-    flush_stdout()?;
-    Ok(())
-}
-
-fn console_info(_: &Lua, args: MultiValue) -> Result<()> {
-    print_label("info")?;
-    let s = pretty_format_multi_value(&args)?;
-    println!("{s}");
-    flush_stdout()?;
-    Ok(())
-}
-
-fn console_warn(_: &Lua, args: MultiValue) -> Result<()> {
-    print_label("warn")?;
-    let s = pretty_format_multi_value(&args)?;
-    println!("{s}");
-    flush_stdout()?;
-    Ok(())
-}
-
-fn console_error(_: &Lua, args: MultiValue) -> Result<()> {
-    print_label("error")?;
-    let s = pretty_format_multi_value(&args)?;
-    eprintln!("{s}");
-    flush_stdout()?;
-    Ok(())
 }
