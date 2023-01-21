@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use mlua::{Error, Lua, LuaSerdeExt, Result, UserData, UserDataMethods, Value};
+use mlua::{Error, Lua, LuaSerdeExt, Result, Table, Value};
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Method,
@@ -8,26 +8,13 @@ use reqwest::{
 
 use crate::utils::net::get_request_user_agent_header;
 
-pub struct Net();
-
-impl Net {
-    pub fn new() -> Self {
-        Self()
-    }
-}
-
-impl Default for Net {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl UserData for Net {
-    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("jsonEncode", net_json_encode);
-        methods.add_function("jsonDecode", net_json_decode);
-        methods.add_async_function("request", net_request);
-    }
+pub fn new(lua: &Lua) -> Result<Table> {
+    let tab = lua.create_table()?;
+    tab.raw_set("jsonEncode", lua.create_function(net_json_encode)?)?;
+    tab.raw_set("jsonDecode", lua.create_function(net_json_decode)?)?;
+    tab.raw_set("request", lua.create_async_function(net_request)?)?;
+    tab.set_readonly(true);
+    Ok(tab)
 }
 
 fn net_json_encode(_: &Lua, (val, pretty): (Value, Option<bool>)) -> Result<String> {

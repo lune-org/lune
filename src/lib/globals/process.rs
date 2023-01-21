@@ -3,66 +3,44 @@ use std::{
     process::{exit, Stdio},
 };
 
-use mlua::{
-    Error, Function, Lua, MetaMethod, Result, Table, UserData, UserDataFields, UserDataMethods,
-    Value,
-};
+use mlua::{Error, Function, Lua, MetaMethod, Result, Table, Value};
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
-pub struct Process {
-    args: Vec<String>,
-}
-
-impl Default for Process {
-    fn default() -> Self {
-        Self::new(vec![])
+pub fn new(lua: &Lua, args_vec: Vec<String>) -> Result<Table> {
+    // Create readonly args array
+    let inner_args = lua.create_table()?;
+    for arg in &args_vec {
+        inner_args.push(arg.clone())?;
     }
-}
-
-impl Process {
-    pub fn new(args: Vec<String>) -> Self {
-        Self { args }
-    }
-}
-
-impl UserData for Process {
-    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("args", |lua, this| {
-            // TODO: Use the same strategy as env uses below to avoid
-            // copying each time args are accessed? is it worth it?
-            let tab = lua.create_table()?;
-            for arg in &this.args {
-                tab.push(arg.clone())?;
-            }
-            tab.set_readonly(true);
-            Ok(tab)
-        });
-        fields.add_field_method_get("env", |lua, _| {
-            let meta = lua.create_table()?;
-            meta.raw_set(
-                MetaMethod::Index.name(),
-                lua.create_function(process_env_get)?,
-            )?;
-            meta.raw_set(
-                MetaMethod::NewIndex.name(),
-                lua.create_function(process_env_set)?,
-            )?;
-            meta.raw_set(
-                MetaMethod::Iter.name(),
-                lua.create_function(process_env_iter)?,
-            )?;
-            let tab = lua.create_table()?;
-            tab.set_metatable(Some(meta));
-            tab.set_readonly(true);
-            Ok(tab)
-        });
-    }
-
-    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("exit", process_exit);
-        methods.add_async_function("spawn", process_spawn);
-    }
+    inner_args.set_readonly(true);
+    // Create proxied env metatable that gets & sets real env vars
+    let inner_env_meta = lua.create_table()?;
+    inner_env_meta.raw_set(
+        MetaMethod::Index.name(),
+        lua.create_function(process_env_get)?,
+    )?;
+    inner_env_meta.raw_set(
+        MetaMethod::NewIndex.name(),
+        lua.create_function(process_env_set)?,
+    )?;
+    inner_env_meta.raw_set(
+        MetaMethod::Iter.name(),
+        lua.create_function(process_env_iter)?,
+    )?;
+    inner_env_meta.set_readonly(true);
+    // Create blank table for env with the metatable
+    let inner_env = lua.create_table()?;
+    inner_env.set_metatable(Some(inner_env_meta));
+    inner_env.set_readonly(true);
+    // Create the full process table
+    let tab = lua.create_table()?;
+    tab.raw_set("args", inner_args)?;
+    tab.raw_set("env", inner_env)?;
+    tab.raw_set("exit", lua.create_function(process_exit)?)?;
+    tab.raw_set("spawn", lua.create_async_function(process_spawn)?)?;
+    tab.set_readonly(true);
+    Ok(tab)
 }
 
 fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Result<Value<'lua>> {

@@ -1,33 +1,20 @@
 use std::path::{PathBuf, MAIN_SEPARATOR};
 
-use mlua::{Lua, Result, UserData, UserDataMethods};
+use mlua::{Lua, Result, Table};
 use tokio::fs;
 
-pub struct Fs();
-
-impl Fs {
-    pub fn new() -> Self {
-        Self()
-    }
-}
-
-impl Default for Fs {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl UserData for Fs {
-    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_async_function("readFile", fs_read_file);
-        methods.add_async_function("readDir", fs_read_dir);
-        methods.add_async_function("writeFile", fs_write_file);
-        methods.add_async_function("writeDir", fs_write_dir);
-        methods.add_async_function("removeFile", fs_remove_file);
-        methods.add_async_function("removeDir", fs_remove_dir);
-        methods.add_async_function("isFile", fs_is_file);
-        methods.add_async_function("isDir", fs_is_dir);
-    }
+pub fn new(lua: &Lua) -> Result<Table> {
+    let tab = lua.create_table()?;
+    tab.raw_set("readFile", lua.create_async_function(fs_read_file)?)?;
+    tab.raw_set("readDir", lua.create_async_function(fs_read_dir)?)?;
+    tab.raw_set("writeFile", lua.create_async_function(fs_write_file)?)?;
+    tab.raw_set("writeDir", lua.create_async_function(fs_write_dir)?)?;
+    tab.raw_set("removeFile", lua.create_async_function(fs_remove_file)?)?;
+    tab.raw_set("removeDir", lua.create_async_function(fs_remove_dir)?)?;
+    tab.raw_set("isFile", lua.create_async_function(fs_is_file)?)?;
+    tab.raw_set("isDir", lua.create_async_function(fs_is_dir)?)?;
+    tab.set_readonly(true);
+    Ok(tab)
 }
 
 async fn fs_read_file(_: &Lua, path: String) -> Result<String> {

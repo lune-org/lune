@@ -1,35 +1,22 @@
-use mlua::{Lua, MultiValue, Result, UserData, UserDataMethods};
+use mlua::{Lua, MultiValue, Result, Table};
 
 use crate::utils::formatting::{
     flush_stdout, pretty_format_multi_value, print_color, print_label, print_style,
 };
 
-pub struct Console();
-
-impl Console {
-    pub fn new() -> Self {
-        Self()
-    }
-}
-
-impl Default for Console {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl UserData for Console {
-    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("resetColor", console_reset_color);
-        methods.add_function("setColor", console_set_color);
-        methods.add_function("resetStyle", console_reset_style);
-        methods.add_function("setStyle", console_set_style);
-        methods.add_function("format", console_format);
-        methods.add_function("log", console_log);
-        methods.add_function("info", console_info);
-        methods.add_function("warn", console_warn);
-        methods.add_function("error", console_error);
-    }
+pub fn new(lua: &Lua) -> Result<Table> {
+    let tab = lua.create_table()?;
+    tab.raw_set("resetColor", lua.create_function(console_reset_color)?)?;
+    tab.raw_set("setColor", lua.create_function(console_set_color)?)?;
+    tab.raw_set("resetStyle", lua.create_function(console_reset_style)?)?;
+    tab.raw_set("setStyle", lua.create_function(console_set_style)?)?;
+    tab.raw_set("format", lua.create_function(console_format)?)?;
+    tab.raw_set("log", lua.create_function(console_log)?)?;
+    tab.raw_set("info", lua.create_function(console_info)?)?;
+    tab.raw_set("warn", lua.create_function(console_warn)?)?;
+    tab.raw_set("error", lua.create_function(console_error)?)?;
+    tab.set_readonly(true);
+    Ok(tab)
 }
 
 fn console_reset_color(_: &Lua, _: ()) -> Result<()> {
