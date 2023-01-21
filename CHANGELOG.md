@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `...` for process arguments, use `process.args` instead
 - Removed individual functions for getting & setting environment variables, use `process.env` instead
 
-## `0.0.3` - January 19th, 2023
+## `0.0.3` - January 20th, 2023
 
 ### Added
 
