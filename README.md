@@ -175,16 +175,20 @@ Lune puts developer experience first, and as such provides type definitions and 
 
 ## 🏃 Running Lune Scripts
 
-When you've written a script with either a `.lua` or `.luau` extension, you can run it:
+After you've written a script file, for example `script-name.luau`, you can run it:
 
 ```sh
 lune script-name
 ```
 
-This will look for the script `script-name` in a few locations:
+This will look for the file `script-name.luau` in a few locations:
 
 - The current directory
 - The folder `lune` in the current directory, if it exists
 - The folder `.lune` in the current directory, if it exists
 
-If you don't want Lune to look in sub-directories you can provide a full file path with the file extension included, instead of only the file name.
+If you don't want Lune to look in sub-directories you can provide a full file path with the file extension included, instead of only the file name. <br>
+
+---
+
+**_NOTE:_** _Lune also supports files with the `.lua` extension but using the `.luau` extension is highly recommended._
