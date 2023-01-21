@@ -1,7 +1,5 @@
 #![deny(clippy::all, clippy::cargo, clippy::pedantic)]
-// mlua does not implement userdata for &str
-// so in some cases we have to use String
-#![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::needless_pass_by_value, clippy::match_bool)]
 
 use clap::Parser;
 use mlua::Result;

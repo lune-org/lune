@@ -132,12 +132,15 @@ async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)
         .wait_with_output()
         .await
         .map_err(mlua::Error::external)?;
-    // NOTE: Exit code defaults to 1 if it did not exist and if there
-    // is any stderr, will otherwise default to 0 if it did not exist
+    // NOTE: If an exit code was not given by the child process,
+    // we default to 1 if it yielded any error output, otherwise 0
     let code = output
         .status
         .code()
-        .unwrap_or_else(|| i32::from(!output.stderr.is_empty()));
+        .unwrap_or(match output.stderr.is_empty() {
+            true => 0,
+            false => 1,
+        });
     // Construct and return a readonly lua table with results
     let table = lua.create_table()?;
     table.raw_set("ok", code == 0)?;
