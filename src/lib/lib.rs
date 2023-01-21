@@ -83,7 +83,7 @@ mod tests {
                         .await
                         .unwrap();
                     if let Err(e) = lune.run_with_name(&script, $value).await {
-                        panic!("{}", e.to_string())
+                        panic!("Test '{}' failed!\n{}", $value, e.to_string())
                     }
                 }
             )*
@@ -94,5 +94,10 @@ mod tests {
         process_args: "process/args",
         process_env: "process/env",
         process_spawn: "process/spawn",
+        net_request_codes: "net/request/codes",
+        net_request_methods: "net/request/methods",
+        net_request_redirect: "net/request/redirect",
+        net_json_decode: "net/json/decode",
+        net_json_encode: "net/json/encode",
     }
 }
