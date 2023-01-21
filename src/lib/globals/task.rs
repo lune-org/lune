@@ -21,6 +21,10 @@ pub struct WaitingThread<'a> {
 pub fn new<'a>(lua: &'a Lua, _threads: &Arc<Mutex<Vec<WaitingThread<'a>>>>) -> Result<Table<'a>> {
     // TODO: Figure out how to insert into threads vec
     ReadonlyTableBuilder::new(lua)?
+        .with_function("cancel", |lua, thread: Thread| {
+            thread.reset(lua.create_function(|_, _: ()| Ok(()))?)?;
+            Ok(())
+        })?
         .with_async_function(
             "defer",
             |lua, (func, args): (Function, Variadic<Value>)| async move {
@@ -31,7 +35,7 @@ pub fn new<'a>(lua: &'a Lua, _threads: &Arc<Mutex<Vec<WaitingThread<'a>>>>) -> R
         )?
         .with_async_function(
             "delay",
-            |lua, (func, duration, args): (Function, Option<f32>, Variadic<Value>)| async move {
+            |lua, (duration, func, args): (Option<f32>, Function, Variadic<Value>)| async move {
                 let secs = duration.unwrap_or(DEFAULT_SLEEP_DURATION);
                 time::sleep(Duration::from_secs_f32(secs)).await;
                 let thread = lua.create_thread(func)?;

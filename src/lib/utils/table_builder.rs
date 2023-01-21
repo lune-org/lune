@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use mlua::{FromLuaMulti, Lua, Result, Table, ToLuaMulti};
+use mlua::{FromLuaMulti, Lua, Result, Table, ToLuaMulti, Value};
 
 pub struct ReadonlyTableBuilder<'lua> {
     lua: &'lua Lua,
@@ -11,6 +11,11 @@ impl<'lua> ReadonlyTableBuilder<'lua> {
     pub fn new(lua: &'lua Lua) -> Result<Self> {
         let tab = lua.create_table()?;
         Ok(Self { lua, tab })
+    }
+
+    pub fn with_value(self, key: &'static str, value: Value) -> Result<Self> {
+        self.tab.raw_set(key, value)?;
+        Ok(self)
     }
 
     pub fn with_table(self, key: &'static str, value: Table) -> Result<Self> {

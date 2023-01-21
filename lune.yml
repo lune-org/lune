@@ -74,6 +74,7 @@ globals:
       - required: false
         type: table
   # Task
+  task.cancel:
   task.defer:
     args:
       - type: thread | function
