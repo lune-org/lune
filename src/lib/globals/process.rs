@@ -119,6 +119,8 @@ fn process_env_iter<'lua>(lua: &'lua Lua, (_, _): (Value<'lua>, ())) -> Result<F
 }
 
 fn process_exit(_: &Lua, exit_code: Option<i32>) -> Result<()> {
+    // TODO: Exit gracefully to the root with an Ok
+    // result instead of completely exiting the process
     if let Some(code) = exit_code {
         exit(code);
     } else {

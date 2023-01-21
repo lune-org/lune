@@ -98,6 +98,7 @@ mod tests {
         fs_dirs: "fs/dirs",
         process_args: "process/args",
         process_env: "process/env",
+        process_exit: "process/exit",
         process_spawn: "process/spawn",
         net_request_codes: "net/request/codes",
         net_request_methods: "net/request/methods",
