@@ -10,6 +10,7 @@ use crate::utils::table_builder::ReadonlyTableBuilder;
 
 const DEFAULT_SLEEP_DURATION: f32 = 1.0 / 60.0;
 
+#[allow(dead_code)]
 pub struct WaitingThread<'a> {
     is_delayed_for: Option<f32>,
     is_deferred: Option<bool>,
@@ -17,7 +18,7 @@ pub struct WaitingThread<'a> {
     args: Variadic<Value<'a>>,
 }
 
-pub fn new<'a>(lua: &'a Lua, threads: &Arc<Mutex<Vec<WaitingThread<'a>>>>) -> Result<Table<'a>> {
+pub fn new<'a>(lua: &'a Lua, _threads: &Arc<Mutex<Vec<WaitingThread<'a>>>>) -> Result<Table<'a>> {
     // TODO: Figure out how to insert into threads vec
     ReadonlyTableBuilder::new(lua)?
         .with_async_function(

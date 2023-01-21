@@ -96,7 +96,10 @@ impl Cli {
         // Display the file path relative to cwd with no extensions in stack traces
         let file_display_name = file_path.with_extension("").display().to_string();
         // Create a new lune object with all globals & run the script
-        run_lune(&file_display_name, &file_contents, self.script_args).await?;
+        if let Err(e) = run_lune(&file_display_name, &file_contents, self.script_args).await {
+            eprintln!("{e}");
+            std::process::exit(1);
+        };
         Ok(())
     }
 }

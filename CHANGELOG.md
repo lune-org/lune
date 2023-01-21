@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Improved general formatting of errors to make them more readable & glanceable
 - Improved output formatting of non-primitive types
 - Improved output formatting of empty tables
+
+### Fixed
+
+- Fixed double stack trace for certain kinds of errors
 
 ## `0.0.4` - January 21st, 2023
 

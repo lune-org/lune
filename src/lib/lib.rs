@@ -57,7 +57,7 @@ mod tests {
                         .await
                         .unwrap();
                     if let Err(e) = run_lune($value, &script, args).await {
-                        panic!("Test '{}' failed!\n{}", $value, e.to_string())
+                        panic!("\nTest '{}' failed!\n{}\n", $value, e.to_string())
                     }
                 }
             )*

@@ -191,24 +191,34 @@ pub fn pretty_format_multi_value(multi: &MultiValue) -> mlua::Result<String> {
 }
 
 pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
-    match e {
+    let stack_begin = format!("[{}Stack Begin{}]", COLOR_BLUE, COLOR_RESET);
+    let stack_end = format!("[{}Stack End{}]", COLOR_BLUE, COLOR_RESET);
+    let err_string = match e {
         mlua::Error::RuntimeError(e) => {
+            // Add "Stack Begin" instead of default stack traceback string
             let err_string = e.to_string();
-            let mut err_lines = err_string.lines().collect::<Vec<_>>();
+            let mut err_lines = err_string
+                .lines()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>();
             for (index, line) in err_lines.clone().iter().enumerate().rev() {
                 if *line == "stack traceback:" {
-                    err_lines[index] = "Stack Begin";
+                    err_lines[index] = stack_begin;
                     break;
                 }
             }
-            err_lines.push("Stack End");
+            // Add "Stack End" to the very end of the stack trace for symmetry
+            err_lines.push(stack_end);
             err_lines.join("\n")
         }
         mlua::Error::CallbackError { cause, traceback } => {
+            // Same error formatting as above
             format!(
-                "{}\nStack Begin{}Stack End",
+                "{}\n{}{}{}",
                 pretty_format_luau_error(cause.as_ref()),
-                traceback.strip_prefix("stack traceback:\n").unwrap()
+                stack_begin,
+                traceback.strip_prefix("stack traceback:\n").unwrap(),
+                stack_end
             )
         }
         mlua::Error::ToLuaConversionError { from, to, message } => {
@@ -230,5 +240,24 @@ pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
             )
         }
         e => format!("{e}"),
+    };
+    let mut err_lines = err_string.lines().collect::<Vec<_>>();
+    // Remove the script path from the error message
+    // itself, it can be found in the stack trace
+    if let Some(first_line) = err_lines.first() {
+        if first_line.starts_with("[string \"") {
+            if let Some(closing_bracket) = first_line.find("]:") {
+                let after_closing_bracket = &first_line[closing_bracket + 2..first_line.len()];
+                if let Some(last_colon) = after_closing_bracket.find(": ") {
+                    err_lines[0] = &after_closing_bracket
+                        [last_colon + 2..first_line.len() - closing_bracket - 2];
+                } else {
+                    err_lines[0] = after_closing_bracket
+                }
+            }
+        }
     }
+    // Reformat stack trace lines, ignore lines that just mention C functions
+    // Merge all lines back together into one string
+    err_lines.join("\n")
 }
