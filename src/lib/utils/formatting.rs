@@ -154,6 +154,14 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
                 }
             }
         }
+        Value::Vector(x, y, z) => {
+            write!(buffer, "{COLOR_PURPLE}<vector({x}, {y}, {z})>{COLOR_RESET}",)?
+        }
+        Value::Thread(_) => write!(buffer, "{COLOR_PURPLE}<thread>{COLOR_RESET}")?,
+        Value::Function(_) => write!(buffer, "{COLOR_PURPLE}<function>{COLOR_RESET}")?,
+        Value::UserData(_) | Value::LightUserData(_) => {
+            write!(buffer, "{COLOR_PURPLE}<userdata>{COLOR_RESET}")?
+        }
         _ => write!(buffer, "?")?,
     }
     Ok(())
