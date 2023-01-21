@@ -9,19 +9,21 @@ const MAX_FORMAT_DEPTH: usize = 4;
 
 const INDENT: &str = "    ";
 
-pub const COLOR_RESET: &str = "\x1B[0m";
-pub const COLOR_BLACK: &str = "\x1B[30m";
-pub const COLOR_RED: &str = "\x1B[31m";
-pub const COLOR_GREEN: &str = "\x1B[32m";
-pub const COLOR_YELLOW: &str = "\x1B[33m";
-pub const COLOR_BLUE: &str = "\x1B[34m";
-pub const COLOR_PURPLE: &str = "\x1B[35m";
-pub const COLOR_CYAN: &str = "\x1B[36m";
-pub const COLOR_WHITE: &str = "\x1B[37m";
+// TODO: Use some crate for this instead
 
-pub const STYLE_RESET: &str = "\x1B[22m";
-pub const STYLE_BOLD: &str = "\x1B[1m";
-pub const STYLE_DIM: &str = "\x1B[2m";
+pub const COLOR_RESET: &str = if cfg!(test) { "" } else { "\x1B[0m" };
+pub const COLOR_BLACK: &str = if cfg!(test) { "" } else { "\x1B[30m" };
+pub const COLOR_RED: &str = if cfg!(test) { "" } else { "\x1B[31m" };
+pub const COLOR_GREEN: &str = if cfg!(test) { "" } else { "\x1B[32m" };
+pub const COLOR_YELLOW: &str = if cfg!(test) { "" } else { "\x1B[33m" };
+pub const COLOR_BLUE: &str = if cfg!(test) { "" } else { "\x1B[34m" };
+pub const COLOR_PURPLE: &str = if cfg!(test) { "" } else { "\x1B[35m" };
+pub const COLOR_CYAN: &str = if cfg!(test) { "" } else { "\x1B[36m" };
+pub const COLOR_WHITE: &str = if cfg!(test) { "" } else { "\x1B[37m" };
+
+pub const STYLE_RESET: &str = if cfg!(test) { "" } else { "\x1B[22m" };
+pub const STYLE_BOLD: &str = if cfg!(test) { "" } else { "\x1B[1m" };
+pub const STYLE_DIM: &str = if cfg!(test) { "" } else { "\x1B[2m" };
 
 pub fn flush_stdout() -> mlua::Result<()> {
     io::stdout().flush().map_err(mlua::Error::external)

@@ -91,6 +91,9 @@ mod tests {
     }
 
     run_tests! {
+        console_format: "console/format",
+        console_set_color: "console/set_color",
+        console_set_style: "console/set_style",
         process_args: "process/args",
         process_env: "process/env",
         process_spawn: "process/spawn",

@@ -4,7 +4,7 @@ declare console: {
 	resetColor: () -> (),
 	setColor: (color: "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
 	resetStyle: () -> (),
-	setStyle: (color: "bold" | "dim") -> (),
+	setStyle: (style: "bold" | "dim") -> (),
 	format: (...any) -> (string),
 	log: (...any) -> (),
 	info: (...any) -> (),
