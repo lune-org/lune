@@ -16,27 +16,3 @@ async fn main() -> Result<()> {
     cli.run().await?;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    macro_rules! tests {
-        ($($name:ident: $value:expr,)*) => {
-            $(
-                #[tokio::test]
-                async fn $name() {
-                    let args = vec!["Foo".to_owned(), "Bar".to_owned()];
-                    let cli = crate::Cli::from_path_with_args($value, args);
-                    if let Err(e) = cli.run().await {
-                        panic!("{}", e.to_string())
-                    }
-                }
-            )*
-        }
-    }
-
-    tests! {
-        process_args: "tests/process/args",
-        process_env: "tests/process/env",
-        process_spawn: "tests/process/spawn",
-    }
-}

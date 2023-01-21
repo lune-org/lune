@@ -58,3 +58,41 @@ impl Lune {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    macro_rules! run_tests {
+        ($($name:ident: $value:expr,)*) => {
+            $(
+                #[tokio::test]
+                async fn $name() {
+                    let args = vec![
+                        "Foo".to_owned(),
+                        "Bar".to_owned()
+                    ];
+                    let path = std::env::current_dir()
+                        .unwrap()
+                        .join(format!("src/tests/{}.luau", $value));
+                    let lune = crate::Lune::new()
+                        .unwrap()
+                        .with_args(args)
+                        .unwrap()
+                        .with_default_globals()
+                        .unwrap();
+                    let script = tokio::fs::read_to_string(&path)
+                        .await
+                        .unwrap();
+                    if let Err(e) = lune.run_with_name(&script, $value).await {
+                        panic!("{}", e.to_string())
+                    }
+                }
+            )*
+        }
+    }
+
+    run_tests! {
+        process_args: "process/args",
+        process_env: "process/env",
+        process_spawn: "process/spawn",
+    }
+}
