@@ -35,6 +35,7 @@ impl UserData for Process {
             for arg in &this.args {
                 tab.push(arg.clone())?;
             }
+            tab.set_readonly(true);
             Ok(tab)
         });
         fields.add_field_method_get("env", |lua, _| {
@@ -74,7 +75,7 @@ fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Res
     }
 }
 
-fn process_env_set(_: &Lua, (_, key, value): (Value, String, String)) -> Result<()> {
+fn process_env_set(_: &Lua, (_, key, value): (Value, String, Option<String>)) -> Result<()> {
     // Make sure key is valid, otherwise set_var will panic
     if key.is_empty() {
         return Err(Error::RuntimeError("Key must not be empty".to_string()));
@@ -87,13 +88,18 @@ fn process_env_set(_: &Lua, (_, key, value): (Value, String, String)) -> Result<
             "Key must not contain the NUL character".to_string(),
         ));
     }
-    // Make sure value is valid, otherwise set_var will panic
-    if value.contains('\0') {
-        return Err(Error::RuntimeError(
-            "Value must not contain the NUL character".to_string(),
-        ));
+    match value {
+        Some(value) => {
+            // Make sure value is valid, otherwise set_var will panic
+            if value.contains('\0') {
+                return Err(Error::RuntimeError(
+                    "Value must not contain the NUL character".to_string(),
+                ));
+            }
+            env::set_var(&key, &value);
+        }
+        None => env::remove_var(&key),
     }
-    env::set_var(&key, &value);
     Ok(())
 }
 

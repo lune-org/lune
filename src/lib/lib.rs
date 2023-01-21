@@ -53,7 +53,7 @@ impl Lune {
                 print_label("ERROR").unwrap();
                 eprintln!();
                 pretty_print_luau_error(&e);
-                std::process::exit(1);
+                Err(e.into())
             }
         }
     }
