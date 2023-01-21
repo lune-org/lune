@@ -12,6 +12,12 @@ impl Console {
     }
 }
 
+impl Default for Console {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UserData for Console {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("resetColor", console_reset_color);

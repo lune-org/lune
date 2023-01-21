@@ -1,2 +1,2 @@
 pub mod formatting;
-pub mod github;
+pub mod net;

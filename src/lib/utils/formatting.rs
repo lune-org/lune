@@ -107,8 +107,8 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
         Value::Nil => write!(buffer, "nil")?,
         Value::Boolean(true) => write!(buffer, "{COLOR_YELLOW}true{COLOR_RESET}")?,
         Value::Boolean(false) => write!(buffer, "{COLOR_YELLOW}false{COLOR_RESET}")?,
-        Value::Number(n) => write!(buffer, "{COLOR_BLUE}{n}{COLOR_RESET}")?,
-        Value::Integer(i) => write!(buffer, "{COLOR_BLUE}{i}{COLOR_RESET}")?,
+        Value::Number(n) => write!(buffer, "{COLOR_CYAN}{n}{COLOR_RESET}")?,
+        Value::Integer(i) => write!(buffer, "{COLOR_CYAN}{i}{COLOR_RESET}")?,
         Value::String(s) => write!(
             buffer,
             "{}\"{}\"{}",
@@ -122,6 +122,7 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
             if depth >= MAX_FORMAT_DEPTH {
                 write!(buffer, "{STYLE_DIM}{{ ... }}{STYLE_RESET}")?;
             } else {
+                let mut is_empty = false;
                 let depth_indent = INDENT.repeat(depth);
                 write!(buffer, "{STYLE_DIM}{{{STYLE_RESET}")?;
                 for pair in tab.clone().pairs::<Value, Value>() {
@@ -144,8 +145,13 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
                     }
                     pretty_format_value(buffer, &value, depth + 1)?;
                     write!(buffer, "{STYLE_DIM},{STYLE_RESET}")?;
+                    is_empty = false;
                 }
-                write!(buffer, "\n{depth_indent}{STYLE_DIM}}}{STYLE_RESET}")?;
+                if is_empty {
+                    write!(buffer, " {STYLE_DIM}}}{STYLE_RESET}")?;
+                } else {
+                    write!(buffer, "\n{depth_indent}{STYLE_DIM}}}{STYLE_RESET}")?;
+                }
             }
         }
         _ => write!(buffer, "?")?,

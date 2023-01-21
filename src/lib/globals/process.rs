@@ -14,6 +14,12 @@ pub struct Process {
     args: Vec<String>,
 }
 
+impl Default for Process {
+    fn default() -> Self {
+        Self::new(vec![])
+    }
+}
+
 impl Process {
     pub fn new(args: Vec<String>) -> Self {
         Self { args }

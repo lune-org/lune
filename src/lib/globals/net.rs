@@ -6,13 +6,19 @@ use reqwest::{
     Method,
 };
 
-use crate::utils::github::get_github_user_agent_header;
+use crate::utils::net::get_request_user_agent_header;
 
 pub struct Net();
 
 impl Net {
     pub fn new() -> Self {
         Self()
+    }
+}
+
+impl Default for Net {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -98,7 +104,7 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Value<
     };
     header_map.insert(
         "User-Agent",
-        HeaderValue::from_str(&get_github_user_agent_header()).map_err(Error::external)?,
+        HeaderValue::from_str(&get_request_user_agent_header()).map_err(Error::external)?,
     );
     // Create a client to send a request with
     // FUTURE: Try to reuse this client

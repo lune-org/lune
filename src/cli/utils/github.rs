@@ -4,6 +4,8 @@ use anyhow::{bail, Context, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 
+use lune::utils::net::{get_github_owner_and_repo, get_request_user_agent_header};
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ReleaseAsset {
     id: u64,
@@ -38,7 +40,7 @@ impl Client {
         let mut headers = HeaderMap::new();
         headers.insert(
             "User-Agent",
-            HeaderValue::from_str(&get_github_user_agent_header())?,
+            HeaderValue::from_str(&get_request_user_agent_header())?,
         );
         headers.insert(
             "Accept",
@@ -117,18 +119,4 @@ impl Client {
         }
         Ok(())
     }
-}
-
-pub fn get_github_owner_and_repo() -> (String, String) {
-    let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
-        .strip_prefix("https://github.com/")
-        .unwrap()
-        .split_once('/')
-        .unwrap();
-    (github_owner.to_owned(), github_repo.to_owned())
-}
-
-pub fn get_github_user_agent_header() -> String {
-    let (github_owner, github_repo) = get_github_owner_and_repo();
-    format!("{github_owner}-{github_repo}-cli")
 }

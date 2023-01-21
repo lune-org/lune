@@ -11,6 +11,12 @@ impl Fs {
     }
 }
 
+impl Default for Fs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UserData for Fs {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_async_function("readFile", fs_read_file);

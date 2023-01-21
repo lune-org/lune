@@ -1,15 +1,11 @@
-use std::{
-    fs::read_to_string,
-    path::{PathBuf, MAIN_SEPARATOR},
-};
+use std::fs::read_to_string;
 
+use anyhow::Result;
 use clap::{CommandFactory, Parser};
-use mlua::{Lua, Result};
 
-use crate::{
-    globals::{console::Console, fs::Fs, net::Net, process::Process},
-    utils::github::Client as GithubClient,
-};
+use lune::Lune;
+
+use crate::utils::{files::find_parse_file_path, github::Client as GithubClient};
 
 /// Lune CLI
 #[derive(Parser, Debug, Default)]
@@ -97,62 +93,14 @@ impl Cli {
         // Parse and read the wanted file
         let file_path = find_parse_file_path(&self.script_path.unwrap())?;
         let file_contents = read_to_string(&file_path)?;
-        // Create a new lua state and add in all lune globals
-        let lua = Lua::new();
-        let globals = lua.globals();
-        globals.set("console", Console::new())?;
-        globals.set("fs", Fs::new())?;
-        globals.set("net", Net::new())?;
-        globals.set("process", Process::new(self.script_args))?;
-        lua.sandbox(true)?;
-        // Load & call the file with the given args
-        lua.load(&file_contents)
-            .set_name(file_path.with_extension("").display().to_string())?
-            .exec_async()
+        // Display the file path relative to cwd with no extensions in stack traces
+        let file_display_name = file_path.with_extension("").display().to_string();
+        // Create a new lune object with all globals & run the script
+        Lune::new()?
+            .with_args(self.script_args)?
+            .with_default_globals()?
+            .run_with_name(&file_contents, &file_display_name)
             .await?;
         Ok(())
-    }
-}
-
-fn find_luau_file_path(path: &str) -> Option<PathBuf> {
-    let file_path = PathBuf::from(path);
-    if let Some(ext) = file_path.extension() {
-        match ext {
-            e if e == "lua" || e == "luau" && file_path.exists() => Some(file_path),
-            _ => None,
-        }
-    } else {
-        let file_path_lua = PathBuf::from(path).with_extension("lua");
-        if file_path_lua.exists() {
-            Some(file_path_lua)
-        } else {
-            let file_path_luau = PathBuf::from(path).with_extension("luau");
-            if file_path_luau.exists() {
-                Some(file_path_luau)
-            } else {
-                None
-            }
-        }
-    }
-}
-
-fn find_parse_file_path(path: &str) -> Result<PathBuf> {
-    let parsed_file_path = find_luau_file_path(path)
-        .or_else(|| find_luau_file_path(&format!("lune{MAIN_SEPARATOR}{path}")))
-        .or_else(|| find_luau_file_path(&format!(".lune{MAIN_SEPARATOR}{path}")));
-    if let Some(file_path) = parsed_file_path {
-        if file_path.exists() {
-            Ok(file_path)
-        } else {
-            Err(mlua::Error::RuntimeError(format!(
-                "File does not exist at path: '{}'",
-                path
-            )))
-        }
-    } else {
-        Err(mlua::Error::RuntimeError(format!(
-            "Invalid file path: '{}'",
-            path
-        )))
     }
 }

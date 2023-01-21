@@ -10,7 +10,11 @@ categories = ["command-line-interface"]
 
 [[bin]]
 name = "lune"
-path = "src/main.rs"
+path = "src/cli/main.rs"
+
+[lib]
+name = "lune"
+path = "src/lib/lib.rs"
 
 [profile.release]
 strip = true # Automatically strip symbols from the binary.
