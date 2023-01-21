@@ -28,5 +28,8 @@ jobs:
       - name: Clippy
         run: cargo clippy
 
-      - name: Test
-        run: cargo test
+      - name: Test - Lune
+        run: cargo test --lib
+
+      - name: Test - CLI
+        run: cargo test --bin lune
