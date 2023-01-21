@@ -7,6 +7,8 @@ use mlua::{Error, Function, Lua, MetaMethod, Result, Table, Value};
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
+use crate::utils::table_builder::ReadonlyTableBuilder;
+
 pub fn new(lua: &Lua, args_vec: Vec<String>) -> Result<Table> {
     // Create readonly args array
     let inner_args = lua.create_table()?;
@@ -34,13 +36,12 @@ pub fn new(lua: &Lua, args_vec: Vec<String>) -> Result<Table> {
     inner_env.set_metatable(Some(inner_env_meta));
     inner_env.set_readonly(true);
     // Create the full process table
-    let tab = lua.create_table()?;
-    tab.raw_set("args", inner_args)?;
-    tab.raw_set("env", inner_env)?;
-    tab.raw_set("exit", lua.create_function(process_exit)?)?;
-    tab.raw_set("spawn", lua.create_async_function(process_spawn)?)?;
-    tab.set_readonly(true);
-    Ok(tab)
+    ReadonlyTableBuilder::new(lua)?
+        .with_table("args", inner_args)?
+        .with_table("env", inner_env)?
+        .with_function("exit", process_exit)?
+        .with_async_function("spawn", process_spawn)?
+        .build()
 }
 
 fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Result<Value<'lua>> {

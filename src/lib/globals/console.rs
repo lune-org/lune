@@ -1,22 +1,22 @@
 use mlua::{Lua, MultiValue, Result, Table};
 
-use crate::utils::formatting::{
-    flush_stdout, pretty_format_multi_value, print_color, print_label, print_style,
+use crate::utils::{
+    formatting::{flush_stdout, pretty_format_multi_value, print_color, print_label, print_style},
+    table_builder::ReadonlyTableBuilder,
 };
 
 pub fn new(lua: &Lua) -> Result<Table> {
-    let tab = lua.create_table()?;
-    tab.raw_set("resetColor", lua.create_function(console_reset_color)?)?;
-    tab.raw_set("setColor", lua.create_function(console_set_color)?)?;
-    tab.raw_set("resetStyle", lua.create_function(console_reset_style)?)?;
-    tab.raw_set("setStyle", lua.create_function(console_set_style)?)?;
-    tab.raw_set("format", lua.create_function(console_format)?)?;
-    tab.raw_set("log", lua.create_function(console_log)?)?;
-    tab.raw_set("info", lua.create_function(console_info)?)?;
-    tab.raw_set("warn", lua.create_function(console_warn)?)?;
-    tab.raw_set("error", lua.create_function(console_error)?)?;
-    tab.set_readonly(true);
-    Ok(tab)
+    ReadonlyTableBuilder::new(lua)?
+        .with_function("resetColor", console_reset_color)?
+        .with_function("setColor", console_set_color)?
+        .with_function("resetStyle", console_reset_style)?
+        .with_function("setStyle", console_set_style)?
+        .with_function("format", console_format)?
+        .with_function("log", console_log)?
+        .with_function("info", console_info)?
+        .with_function("warn", console_warn)?
+        .with_function("error", console_error)?
+        .build()
 }
 
 fn console_reset_color(_: &Lua, _: ()) -> Result<()> {

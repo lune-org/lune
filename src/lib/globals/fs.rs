@@ -3,18 +3,19 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::{Lua, Result, Table};
 use tokio::fs;
 
+use crate::utils::table_builder::ReadonlyTableBuilder;
+
 pub fn new(lua: &Lua) -> Result<Table> {
-    let tab = lua.create_table()?;
-    tab.raw_set("readFile", lua.create_async_function(fs_read_file)?)?;
-    tab.raw_set("readDir", lua.create_async_function(fs_read_dir)?)?;
-    tab.raw_set("writeFile", lua.create_async_function(fs_write_file)?)?;
-    tab.raw_set("writeDir", lua.create_async_function(fs_write_dir)?)?;
-    tab.raw_set("removeFile", lua.create_async_function(fs_remove_file)?)?;
-    tab.raw_set("removeDir", lua.create_async_function(fs_remove_dir)?)?;
-    tab.raw_set("isFile", lua.create_async_function(fs_is_file)?)?;
-    tab.raw_set("isDir", lua.create_async_function(fs_is_dir)?)?;
-    tab.set_readonly(true);
-    Ok(tab)
+    ReadonlyTableBuilder::new(lua)?
+        .with_async_function("readFile", fs_read_file)?
+        .with_async_function("readDir", fs_read_dir)?
+        .with_async_function("writeFile", fs_write_file)?
+        .with_async_function("writeDir", fs_write_dir)?
+        .with_async_function("removeFile", fs_remove_file)?
+        .with_async_function("removeDir", fs_remove_dir)?
+        .with_async_function("isFile", fs_is_file)?
+        .with_async_function("isDir", fs_is_dir)?
+        .build()
 }
 
 async fn fs_read_file(_: &Lua, path: String) -> Result<String> {
