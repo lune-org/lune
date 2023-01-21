@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added full test suite for all Lune globals to ensure correct behavior
+- Added library version of Lune that can be used from other Rust projects
+
 ### Changed
 
 - Improved output formatting of non-primitive types
