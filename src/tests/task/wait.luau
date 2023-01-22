@@ -1,18 +1,8 @@
--- Wait should work everywhere
+-- Wait should be accurate down to at least 10ms
 
-local flag: boolean = false
-coroutine.wrap(function()
-	task.wait(0.1)
-	flag = true
-end)()
-assert(flag, "Wait failed while in a coroutine")
-
--- Wait should be accurate
-
-local DEFAULT = 1 / 60
 local EPSILON = 1 / 100
 
-local function test(expected: number?)
+local function test(expected: number)
 	local start = os.clock()
 	local returned = task.wait(expected)
 	local elapsed = (os.clock() - start)
@@ -23,7 +13,7 @@ local function test(expected: number?)
 				"Elapsed time diverged too much from argument!"
 					.. "\nGot argument of %.3fs and elapsed time of %.3fs"
 					.. "\nGot maximum difference of %.3fs and real difference of %.3fs",
-				expected or DEFAULT,
+				expected,
 				elapsed,
 				EPSILON,
 				difference
@@ -32,15 +22,23 @@ local function test(expected: number?)
 	end
 end
 
-local function measure(duration: number?)
+local function measure(duration: number)
 	for _ = 1, 5 do
 		test(duration)
 	end
 end
 
-measure()
 measure(1 / 100)
 measure(1 / 60)
 measure(1 / 30)
 measure(1 / 20)
 measure(1 / 10)
+
+-- Wait should work in other threads, too
+
+local flag: boolean = false
+coroutine.wrap(function()
+	task.wait(0.1)
+	flag = true
+end)()
+assert(flag, "Wait failed while in a coroutine")
