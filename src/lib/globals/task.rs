@@ -5,6 +5,8 @@ use tokio::time::{self, Instant};
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
+type Vararg<'lua> = Variadic<Value<'lua>>;
+
 pub async fn create(lua: &Lua) -> Result<()> {
     lua.globals().raw_set(
         "task",
@@ -18,8 +20,8 @@ pub async fn create(lua: &Lua) -> Result<()> {
     )
 }
 
-fn get_thread_from_arg<'a>(lua: &'a Lua, thread_or_function_arg: Value<'a>) -> Result<Thread<'a>> {
-    Ok(match thread_or_function_arg {
+fn get_or_create_thread_from_arg<'a>(lua: &'a Lua, arg: Value<'a>) -> Result<Thread<'a>> {
+    Ok(match arg {
         Value::Thread(thread) => thread,
         Value::Function(func) => lua.create_thread(func)?,
         val => {
@@ -38,28 +40,28 @@ async fn task_cancel(lua: &Lua, thread: Thread<'_>) -> Result<()> {
     Ok(())
 }
 
-async fn task_defer<'a>(lua: &Lua, (tof, args): (Value<'a>, Variadic<Value<'a>>)) -> Result<()> {
+async fn task_defer<'a>(lua: &Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> Result<()> {
     task_wait(lua, None).await?;
-    get_thread_from_arg(lua, tof)?
-        .into_async::<_, Variadic<Value<'_>>>(args)
+    get_or_create_thread_from_arg(lua, tof)?
+        .into_async::<_, Vararg<'_>>(args)
         .await?;
     Ok(())
 }
 
 async fn task_delay<'a>(
     lua: &Lua,
-    (delay, tof, args): (Option<f32>, Value<'a>, Variadic<Value<'a>>),
+    (delay, tof, args): (Option<f32>, Value<'a>, Vararg<'a>),
 ) -> Result<()> {
     task_wait(lua, delay).await?;
-    get_thread_from_arg(lua, tof)?
-        .into_async::<_, Variadic<Value<'_>>>(args)
+    get_or_create_thread_from_arg(lua, tof)?
+        .into_async::<_, Vararg<'_>>(args)
         .await?;
     Ok(())
 }
 
-async fn task_spawn<'a>(lua: &Lua, (tof, args): (Value<'a>, Variadic<Value<'a>>)) -> Result<()> {
-    get_thread_from_arg(lua, tof)?
-        .into_async::<_, Variadic<Value<'_>>>(args)
+async fn task_spawn<'a>(lua: &Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> Result<()> {
+    get_or_create_thread_from_arg(lua, tof)?
+        .into_async::<_, Vararg<'_>>(args)
         .await?;
     Ok(())
 }
