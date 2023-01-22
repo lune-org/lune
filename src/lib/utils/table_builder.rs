@@ -18,9 +18,8 @@ impl<'lua> ReadonlyTableBuilder<'lua> {
         Ok(self)
     }
 
-    pub fn with_table(self, key: &'static str, value: Table) -> Result<Self> {
-        self.tab.raw_set(key, value)?;
-        Ok(self)
+    pub fn with_table(self, key: &'static str, table: Table) -> Result<Self> {
+        self.with_value(key, Value::Table(table))
     }
 
     pub fn with_function<A, R, F>(self, key: &'static str, func: F) -> Result<Self>
@@ -29,9 +28,8 @@ impl<'lua> ReadonlyTableBuilder<'lua> {
         R: ToLuaMulti<'lua>,
         F: 'static + Fn(&'lua Lua, A) -> Result<R>,
     {
-        let value = self.lua.create_function(func)?;
-        self.tab.raw_set(key, value)?;
-        Ok(self)
+        let f = self.lua.create_function(func)?;
+        self.with_value(key, Value::Function(f))
     }
 
     pub fn with_async_function<A, R, F, FR>(self, key: &'static str, func: F) -> Result<Self>
@@ -41,9 +39,8 @@ impl<'lua> ReadonlyTableBuilder<'lua> {
         F: 'static + Fn(&'lua Lua, A) -> FR,
         FR: 'lua + Future<Output = Result<R>>,
     {
-        let value = self.lua.create_async_function(func)?;
-        self.tab.raw_set(key, value)?;
-        Ok(self)
+        let f = self.lua.create_async_function(func)?;
+        self.with_value(key, Value::Function(f))
     }
 
     pub fn build(self) -> Result<Table<'lua>> {

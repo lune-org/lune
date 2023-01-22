@@ -1,60 +1,40 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{thread::sleep, time::Duration};
 
-use mlua::{Function, Lua, Result, Table, Thread, Value, Variadic};
-use tokio::time;
+use mlua::{Function, Lua, Result, Table, Value};
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
 const DEFAULT_SLEEP_DURATION: f32 = 1.0 / 60.0;
 
-#[allow(dead_code)]
-pub struct WaitingThread<'a> {
-    is_delayed_for: Option<f32>,
-    is_deferred: Option<bool>,
-    thread: Thread<'a>,
-    args: Variadic<Value<'a>>,
+const TASK_LIB_LUAU: &str = include_str!("../luau/task.luau");
+
+pub async fn new(lua: &Lua) -> Result<Table> {
+    let task_lib: Table = lua
+        .load(TASK_LIB_LUAU)
+        .set_name("task")?
+        .eval_async()
+        .await?;
+    // FUTURE: Properly implementing the task library in async rust is
+    // very complicated but should be done at some point, for now we will
+    // fall back to implementing only task.wait and doing the rest in lua
+    let task_cancel: Function = task_lib.raw_get("cancel")?;
+    let task_defer: Function = task_lib.raw_get("defer")?;
+    let task_delay: Function = task_lib.raw_get("delay")?;
+    let task_spawn: Function = task_lib.raw_get("spawn")?;
+    ReadonlyTableBuilder::new(lua)?
+        .with_value("cancel", Value::Function(task_cancel))?
+        .with_value("defer", Value::Function(task_defer))?
+        .with_value("delay", Value::Function(task_delay))?
+        .with_value("spawn", Value::Function(task_spawn))?
+        .with_function("wait", wait)?
+        .build()
 }
 
-pub fn new<'a>(lua: &'a Lua, _threads: &Arc<Mutex<Vec<WaitingThread<'a>>>>) -> Result<Table<'a>> {
-    // TODO: Figure out how to insert into threads vec
-    ReadonlyTableBuilder::new(lua)?
-        .with_function("cancel", |lua, thread: Thread| {
-            thread.reset(lua.create_function(|_, _: ()| Ok(()))?)?;
-            Ok(())
-        })?
-        .with_async_function(
-            "defer",
-            |lua, (func, args): (Function, Variadic<Value>)| async move {
-                let thread = lua.create_thread(func)?;
-                thread.into_async(args).await?;
-                Ok(())
-            },
-        )?
-        .with_async_function(
-            "delay",
-            |lua, (duration, func, args): (Option<f32>, Function, Variadic<Value>)| async move {
-                let secs = duration.unwrap_or(DEFAULT_SLEEP_DURATION);
-                time::sleep(Duration::from_secs_f32(secs)).await;
-                let thread = lua.create_thread(func)?;
-                thread.into_async(args).await?;
-                Ok(())
-            },
-        )?
-        .with_async_function(
-            "spawn",
-            |lua, (func, args): (Function, Variadic<Value>)| async move {
-                let thread = lua.create_thread(func)?;
-                thread.into_async(args).await?;
-                Ok(())
-            },
-        )?
-        .with_async_function("wait", |_, duration: Option<f32>| async move {
-            let secs = duration.unwrap_or(DEFAULT_SLEEP_DURATION);
-            time::sleep(Duration::from_secs_f32(secs)).await;
-            Ok(secs)
-        })?
-        .build()
+// FIXME: It does seem possible to properly make an async wait
+// function with mlua right now, something breaks when using
+// async wait functions inside of coroutines
+fn wait(_: &Lua, duration: Option<f32>) -> Result<f32> {
+    let secs = duration.unwrap_or(DEFAULT_SLEEP_DURATION);
+    sleep(Duration::from_secs_f32(secs));
+    Ok(secs)
 }

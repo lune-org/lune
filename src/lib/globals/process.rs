@@ -9,7 +9,7 @@ use tokio::process::Command;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
-pub fn new(lua: &Lua, args_vec: Vec<String>) -> Result<Table> {
+pub async fn new(lua: &Lua, args_vec: Vec<String>) -> Result<Table> {
     // Create readonly args array
     let inner_args = lua.create_table()?;
     for arg in &args_vec {

@@ -8,7 +8,7 @@ use reqwest::{
 
 use crate::utils::{net::get_request_user_agent_header, table_builder::ReadonlyTableBuilder};
 
-pub fn new(lua: &Lua) -> Result<Table> {
+pub async fn new(lua: &Lua) -> Result<Table> {
     ReadonlyTableBuilder::new(lua)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?

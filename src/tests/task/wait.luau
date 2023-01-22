@@ -1,3 +1,14 @@
+-- Wait should work everywhere
+
+local flag: boolean = false
+coroutine.wrap(function()
+	task.wait(0.1)
+	flag = true
+end)()
+assert(flag, "Wait failed while in a coroutine")
+
+-- Wait should be accurate
+
 local DEFAULT = 1 / 60
 local EPSILON = 1 / 100
 

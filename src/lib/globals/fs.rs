@@ -5,7 +5,7 @@ use tokio::fs;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
-pub fn new(lua: &Lua) -> Result<Table> {
+pub async fn new(lua: &Lua) -> Result<Table> {
     ReadonlyTableBuilder::new(lua)?
         .with_async_function("readFile", fs_read_file)?
         .with_async_function("readDir", fs_read_dir)?

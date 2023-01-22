@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use anyhow::{bail, Result};
 use mlua::Lua;
 
@@ -13,16 +11,15 @@ use crate::{
 
 pub async fn run_lune(name: &str, chunk: &str, args: Vec<String>) -> Result<()> {
     let lua = Lua::new();
-    let threads = Arc::new(Mutex::new(Vec::new()));
     lua.sandbox(true)?;
     // Add in all globals
     {
         let globals = lua.globals();
-        globals.raw_set("console", new_console(&lua)?)?;
-        globals.raw_set("fs", new_fs(&lua)?)?;
-        globals.raw_set("net", new_net(&lua)?)?;
-        globals.raw_set("process", new_process(&lua, args.clone())?)?;
-        globals.raw_set("task", new_task(&lua, &threads)?)?;
+        globals.raw_set("console", new_console(&lua).await?)?;
+        globals.raw_set("fs", new_fs(&lua).await?)?;
+        globals.raw_set("net", new_net(&lua).await?)?;
+        globals.raw_set("process", new_process(&lua, args.clone()).await?)?;
+        globals.raw_set("task", new_task(&lua).await?)?;
         globals.set_readonly(true);
     }
     // Run the requested chunk asynchronously

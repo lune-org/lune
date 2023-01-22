@@ -4,16 +4,18 @@ local flag: boolean = false
 task.spawn(function()
 	flag = true
 end)
-assert(flag, "Spawn should run instantly until yielded")
+assert(flag, "Spawn should run instantly")
 
 -- Spawned functions should work with yielding
 
 local flag2: boolean = false
 task.spawn(function()
-	task.wait()
+	task.wait(0.1)
 	flag2 = true
 end)
-assert(not flag2, "Spawn should work with yielding")
+assert(not flag2, "Spawn should work with yielding (1)")
+task.wait(0.2)
+assert(flag2, "Spawn should work with yielding (2)")
 
 -- Varargs should get passed correctly
 
