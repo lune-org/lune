@@ -1,40 +1,26 @@
 use std::time::Duration;
 
-use mlua::{Function, Lua, Result, Table, Value};
+use mlua::{Lua, Result};
 use tokio::time;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
 const DEFAULT_SLEEP_DURATION: f32 = 1.0 / 60.0;
 
-const TASK_LIB_LUAU: &str = include_str!("../luau/task.luau");
-
-pub async fn new(lua: &Lua) -> Result<Table> {
-    let task_lib: Table = lua
-        .load(TASK_LIB_LUAU)
-        .set_name("task")?
-        .eval_async()
-        .await?;
-    // FUTURE: Properly implementing the task library in async rust is
-    // very complicated but should be done at some point, for now we will
-    // fall back to implementing only task.wait and doing the rest in lua
-    let task_cancel: Function = task_lib.raw_get("cancel")?;
-    let task_defer: Function = task_lib.raw_get("defer")?;
-    let task_delay: Function = task_lib.raw_get("delay")?;
-    let task_spawn: Function = task_lib.raw_get("spawn")?;
-    ReadonlyTableBuilder::new(lua)?
-        .with_value("cancel", Value::Function(task_cancel))?
-        .with_value("defer", Value::Function(task_defer))?
-        .with_value("delay", Value::Function(task_delay))?
-        .with_value("spawn", Value::Function(task_spawn))?
-        .with_async_function("wait", wait)?
-        .build()
+pub async fn create(lua: Lua) -> Result<Lua> {
+    lua.globals().raw_set(
+        "task",
+        ReadonlyTableBuilder::new(&lua)?
+            .with_async_function("wait", task_wait)?
+            .build()?,
+    )?;
+    Ok(lua)
 }
 
 // FIXME: It does seem possible to properly make an async wait
 // function with mlua right now, something breaks when using
 // async wait functions inside of coroutines
-async fn wait(_: &Lua, duration: Option<f32>) -> Result<f32> {
+async fn task_wait(_: &Lua, duration: Option<f32>) -> Result<f32> {
     let secs = duration.unwrap_or(DEFAULT_SLEEP_DURATION);
     time::sleep(Duration::from_secs_f32(secs)).await;
     Ok(secs)

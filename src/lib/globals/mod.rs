@@ -4,8 +4,8 @@ mod net;
 mod process;
 mod task;
 
-pub use console::new as new_console;
-pub use fs::new as new_fs;
-pub use net::new as new_net;
-pub use process::new as new_process;
-pub use task::new as new_task;
+pub use console::create as create_console;
+pub use fs::create as create_fs;
+pub use net::create as create_net;
+pub use process::create as create_process;
+pub use task::create as create_task;

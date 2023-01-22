@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{bail, Result};
 use mlua::Lua;
 
@@ -5,38 +7,85 @@ pub mod globals;
 pub mod utils;
 
 use crate::{
-    globals::{new_console, new_fs, new_net, new_process, new_task},
+    globals::{create_console, create_fs, create_net, create_process, create_task},
     utils::formatting::{format_label, pretty_format_luau_error},
 };
 
-pub async fn run_lune(name: &str, chunk: &str, args: Vec<String>) -> Result<()> {
-    let lua = Lua::new();
-    lua.sandbox(true)?;
-    // Add in all globals
-    {
-        let globals = lua.globals();
-        globals.raw_set("console", new_console(&lua).await?)?;
-        globals.raw_set("fs", new_fs(&lua).await?)?;
-        globals.raw_set("net", new_net(&lua).await?)?;
-        globals.raw_set("process", new_process(&lua, args.clone()).await?)?;
-        globals.raw_set("task", new_task(&lua).await?)?;
-        globals.set_readonly(true);
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum LuneGlobal {
+    Console,
+    Fs,
+    Net,
+    Process,
+    Task,
+}
+
+impl LuneGlobal {
+    pub fn get_all() -> Vec<Self> {
+        vec![
+            Self::Console,
+            Self::Fs,
+            Self::Net,
+            Self::Process,
+            Self::Task,
+        ]
     }
-    // Run the requested chunk asynchronously
-    let result = lua.load(chunk).set_name(name)?.exec_async().await;
-    match result {
-        Ok(_) => Ok(()),
-        Err(e) => bail!(
-            "\n{}\n{}",
-            format_label("ERROR"),
-            pretty_format_luau_error(&e)
-        ),
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Lune {
+    globals: HashSet<LuneGlobal>,
+    args: Vec<String>,
+}
+
+impl Lune {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_args(mut self, args: Vec<String>) -> Self {
+        self.args = args;
+        self
+    }
+
+    pub fn with_global(mut self, global: LuneGlobal) -> Self {
+        self.globals.insert(global);
+        self
+    }
+
+    pub fn with_all_globals(mut self) -> Self {
+        for global in LuneGlobal::get_all() {
+            self.globals.insert(global);
+        }
+        self
+    }
+
+    pub async fn run(&self, name: &str, chunk: &str) -> Result<()> {
+        let mut lua = Lua::new();
+        for global in &self.globals {
+            lua = match &global {
+                LuneGlobal::Console => create_console(lua).await?,
+                LuneGlobal::Fs => create_fs(lua).await?,
+                LuneGlobal::Net => create_net(lua).await?,
+                LuneGlobal::Process => create_process(lua, self.args.clone()).await?,
+                LuneGlobal::Task => create_task(lua).await?,
+            }
+        }
+        let result = lua.load(chunk).set_name(name)?.exec_async().await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => bail!(
+                "\n{}\n{}",
+                format_label("ERROR"),
+                pretty_format_luau_error(&e)
+            ),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::run_lune;
+    use crate::Lune;
 
     macro_rules! run_tests {
         ($($name:ident: $value:expr,)*) => {
@@ -53,7 +102,10 @@ mod tests {
                     let script = tokio::fs::read_to_string(&path)
                         .await
                         .unwrap();
-                    if let Err(e) = run_lune($value, &script, args).await {
+                    let lune = Lune::new()
+                        .with_args(args)
+                        .with_all_globals();
+                    if let Err(e) = lune.run($value, &script).await {
                         panic!("\nTest '{}' failed!\n{}\n", $value, e.to_string())
                     }
                 }
