@@ -1,3 +1,8 @@
+-- Spawning a task should return the thread that can then be cancelled
+
+local thread = task.spawn(function() end)
+assert(type(thread) == "thread", "Spawn should return the thread spawned")
+
 -- Spawned functions should run right away
 
 local flag: boolean = false

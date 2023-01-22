@@ -1,3 +1,8 @@
+-- Deferring a task should return the thread that can then be cancelled
+
+local thread = task.defer(function() end)
+assert(type(thread) == "thread", "Defer should return the thread spawned")
+
 -- Deferred functions should run after other threads
 
 local flag: boolean = false
