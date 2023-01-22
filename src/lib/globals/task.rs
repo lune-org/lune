@@ -1,6 +1,7 @@
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 
 use mlua::{Function, Lua, Result, Table, Value};
+use tokio::time;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
@@ -26,15 +27,15 @@ pub async fn new(lua: &Lua) -> Result<Table> {
         .with_value("defer", Value::Function(task_defer))?
         .with_value("delay", Value::Function(task_delay))?
         .with_value("spawn", Value::Function(task_spawn))?
-        .with_function("wait", wait)?
+        .with_async_function("wait", wait)?
         .build()
 }
 
 // FIXME: It does seem possible to properly make an async wait
 // function with mlua right now, something breaks when using
 // async wait functions inside of coroutines
-fn wait(_: &Lua, duration: Option<f32>) -> Result<f32> {
+async fn wait(_: &Lua, duration: Option<f32>) -> Result<f32> {
     let secs = duration.unwrap_or(DEFAULT_SLEEP_DURATION);
-    sleep(Duration::from_secs_f32(secs));
+    time::sleep(Duration::from_secs_f32(secs)).await;
     Ok(secs)
 }
