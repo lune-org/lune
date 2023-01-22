@@ -5,10 +5,10 @@ use tokio::fs;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
-pub async fn create(lua: Lua) -> Result<Lua> {
+pub async fn create(lua: &Lua) -> Result<()> {
     lua.globals().raw_set(
         "fs",
-        ReadonlyTableBuilder::new(&lua)?
+        ReadonlyTableBuilder::new(lua)?
             .with_async_function("readFile", fs_read_file)?
             .with_async_function("readDir", fs_read_dir)?
             .with_async_function("writeFile", fs_write_file)?
@@ -18,8 +18,7 @@ pub async fn create(lua: Lua) -> Result<Lua> {
             .with_async_function("isFile", fs_is_file)?
             .with_async_function("isDir", fs_is_dir)?
             .build()?,
-    )?;
-    Ok(lua)
+    )
 }
 
 async fn fs_read_file(_: &Lua, path: String) -> Result<String> {

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::{bail, Result};
 use mlua::Lua;
+use tokio::task;
 
 pub mod globals;
 pub mod utils;
@@ -61,25 +62,40 @@ impl Lune {
     }
 
     pub async fn run(&self, name: &str, chunk: &str) -> Result<()> {
-        let mut lua = Lua::new();
-        for global in &self.globals {
-            lua = match &global {
-                LuneGlobal::Console => create_console(lua).await?,
-                LuneGlobal::Fs => create_fs(lua).await?,
-                LuneGlobal::Net => create_net(lua).await?,
-                LuneGlobal::Process => create_process(lua, self.args.clone()).await?,
-                LuneGlobal::Task => create_task(lua).await?,
-            }
-        }
-        let result = lua.load(chunk).set_name(name)?.exec_async().await;
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) => bail!(
-                "\n{}\n{}",
-                format_label("ERROR"),
-                pretty_format_luau_error(&e)
-            ),
-        }
+        let run_name = name.to_owned();
+        let run_chunk = chunk.to_owned();
+        let run_globals = self.globals.to_owned();
+        let run_args = self.args.to_owned();
+        // Spawn a thread-local task so that we can then spawn
+        // more tasks in our globals without the Send requirement
+        let local = task::LocalSet::new();
+        local
+            .run_until(async move {
+                task::spawn_local(async move {
+                    let lua = Lua::new();
+                    for global in &run_globals {
+                        match &global {
+                            LuneGlobal::Console => create_console(&lua).await?,
+                            LuneGlobal::Fs => create_fs(&lua).await?,
+                            LuneGlobal::Net => create_net(&lua).await?,
+                            LuneGlobal::Process => create_process(&lua, run_args.clone()).await?,
+                            LuneGlobal::Task => create_task(&lua).await?,
+                        }
+                    }
+                    let result = lua.load(&run_chunk).set_name(&run_name)?.exec_async().await;
+                    match result {
+                        Ok(_) => Ok(()),
+                        Err(e) => bail!(
+                            "\n{}\n{}",
+                            format_label("ERROR"),
+                            pretty_format_luau_error(&e)
+                        ),
+                    }
+                })
+                .await
+                .unwrap()
+            })
+            .await
     }
 }
 

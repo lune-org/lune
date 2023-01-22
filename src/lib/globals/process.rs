@@ -9,7 +9,7 @@ use tokio::process::Command;
 
 use crate::utils::table_builder::ReadonlyTableBuilder;
 
-pub async fn create(lua: Lua, args_vec: Vec<String>) -> Result<Lua> {
+pub async fn create(lua: &Lua, args_vec: Vec<String>) -> Result<()> {
     // Create readonly args array
     let inner_args = lua.create_table()?;
     for arg in &args_vec {
@@ -38,14 +38,13 @@ pub async fn create(lua: Lua, args_vec: Vec<String>) -> Result<Lua> {
     // Create the full process table
     lua.globals().raw_set(
         "process",
-        ReadonlyTableBuilder::new(&lua)?
+        ReadonlyTableBuilder::new(lua)?
             .with_table("args", inner_args)?
             .with_table("env", inner_env)?
             .with_function("exit", process_exit)?
             .with_async_function("spawn", process_spawn)?
             .build()?,
-    )?;
-    Ok(lua)
+    )
 }
 
 fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Result<Value<'lua>> {

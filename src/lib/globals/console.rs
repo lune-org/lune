@@ -5,7 +5,7 @@ use crate::utils::{
     table_builder::ReadonlyTableBuilder,
 };
 
-pub async fn create(lua: Lua) -> Result<Lua> {
+pub async fn create(lua: &Lua) -> Result<()> {
     let print = |args: &MultiValue, throw: bool| -> Result<()> {
         let s = pretty_format_multi_value(args)?;
         if throw {
@@ -18,7 +18,7 @@ pub async fn create(lua: Lua) -> Result<Lua> {
     };
     lua.globals().raw_set(
         "console",
-        ReadonlyTableBuilder::new(&lua)?
+        ReadonlyTableBuilder::new(lua)?
             .with_function("resetColor", |_, _: ()| print_color("reset"))?
             .with_function("setColor", |_, color: String| print_color(color))?
             .with_function("resetStyle", |_, _: ()| print_style("reset"))?
@@ -40,6 +40,5 @@ pub async fn create(lua: Lua) -> Result<Lua> {
                 print(&args, true)
             })?
             .build()?,
-    )?;
-    Ok(lua)
+    )
 }

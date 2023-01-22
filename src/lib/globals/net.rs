@@ -8,16 +8,15 @@ use reqwest::{
 
 use crate::utils::{net::get_request_user_agent_header, table_builder::ReadonlyTableBuilder};
 
-pub async fn create(lua: Lua) -> Result<Lua> {
+pub async fn create(lua: &Lua) -> Result<()> {
     lua.globals().raw_set(
         "net",
-        ReadonlyTableBuilder::new(&lua)?
+        ReadonlyTableBuilder::new(lua)?
             .with_function("jsonEncode", net_json_encode)?
             .with_function("jsonDecode", net_json_decode)?
             .with_async_function("request", net_request)?
             .build()?,
-    )?;
-    Ok(lua)
+    )
 }
 
 fn net_json_encode(_: &Lua, (val, pretty): (Value, Option<bool>)) -> Result<String> {
