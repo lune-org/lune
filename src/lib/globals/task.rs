@@ -33,6 +33,16 @@ fn get_or_create_thread_from_arg<'a>(lua: &'a Lua, arg: Value<'a>) -> Result<Thr
     })
 }
 
+async fn resume_thread(lua: &Lua, thread: Thread<'_>, args: Vararg<'_>) -> Result<()> {
+    let coroutine: Table = lua.globals().raw_get("coroutine")?;
+    let resume: Function = coroutine.raw_get("resume")?;
+    // FIXME: This is blocking, we should spawn a local tokio task,
+    // but doing that moves "thread" and "args", that both have
+    // the lifetime of the outer function, so it doesn't work
+    resume.call_async((thread, args)).await?;
+    Ok(())
+}
+
 async fn task_cancel(lua: &Lua, thread: Thread<'_>) -> Result<()> {
     let coroutine: Table = lua.globals().raw_get("coroutine")?;
     let close: Function = coroutine.raw_get("close")?;
@@ -40,30 +50,27 @@ async fn task_cancel(lua: &Lua, thread: Thread<'_>) -> Result<()> {
     Ok(())
 }
 
-async fn task_defer<'a>(lua: &Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> Result<()> {
-    task_wait(lua, None).await?;
-    get_or_create_thread_from_arg(lua, tof)?
-        .into_async::<_, Vararg<'_>>(args)
-        .await?;
-    Ok(())
+async fn task_defer<'a>(lua: &'a Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> Result<Thread<'a>> {
+    // TODO: Defer (sleep a minimum amount of time)
+    let thread = get_or_create_thread_from_arg(lua, tof)?;
+    resume_thread(lua, thread.clone(), args).await?;
+    Ok(thread)
 }
 
 async fn task_delay<'a>(
-    lua: &Lua,
-    (delay, tof, args): (Option<f32>, Value<'a>, Vararg<'a>),
-) -> Result<()> {
-    task_wait(lua, delay).await?;
-    get_or_create_thread_from_arg(lua, tof)?
-        .into_async::<_, Vararg<'_>>(args)
-        .await?;
-    Ok(())
+    lua: &'a Lua,
+    (_delay, tof, args): (Option<f32>, Value<'a>, Vararg<'a>),
+) -> Result<Thread<'a>> {
+    // TODO: Delay by the amount of time wanted
+    let thread = get_or_create_thread_from_arg(lua, tof)?;
+    resume_thread(lua, thread.clone(), args).await?;
+    Ok(thread)
 }
 
-async fn task_spawn<'a>(lua: &Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> Result<()> {
-    get_or_create_thread_from_arg(lua, tof)?
-        .into_async::<_, Vararg<'_>>(args)
-        .await?;
-    Ok(())
+async fn task_spawn<'a>(lua: &'a Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> Result<Thread<'a>> {
+    let thread = get_or_create_thread_from_arg(lua, tof)?;
+    resume_thread(lua, thread.clone(), args).await?;
+    Ok(thread)
 }
 
 // FIXME: It doesn't seem possible to properly make an async wait
