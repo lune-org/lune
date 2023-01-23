@@ -1,5 +1,3 @@
-// TODO: Figure out a good way to remove all the shared boilerplate from these functions
-
 use std::{
     sync::Weak,
     time::{Duration, Instant},
