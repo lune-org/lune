@@ -4,8 +4,8 @@ use std::{
 };
 
 use mlua::prelude::*;
-use smol::prelude::*;
 use smol::{channel::Sender, LocalExecutor, Timer};
+use smol::{future::yield_now, prelude::*};
 
 use crate::{utils::table_builder::TableBuilder, LuneMessage};
 
@@ -65,7 +65,6 @@ async fn run_registered_task(
         .await
         .map_err(LuaError::external)?;
     // Run the new task separately from the current one using the executor
-    // FIXME: This should run the task instantly and only stop at the first yield
     let sender = sender.clone();
     let task = exec.spawn(async move {
         sender
@@ -80,10 +79,13 @@ async fn run_registered_task(
     // to the main thread which will then handle them properly
     if run_in_background {
         task.detach();
-        Ok(())
     } else {
-        task.await.map_err(LuaError::external)
+        task.await.map_err(LuaError::external)?;
     }
+    // Yield once right away to let the above spawned task start working
+    // instantly, forcing it to run until completion or until it yields
+    yield_now().await;
+    Ok(())
 }
 
 async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
