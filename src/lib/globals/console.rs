@@ -5,7 +5,7 @@ use crate::utils::{
     table_builder::TableBuilder,
 };
 
-pub async fn create(lua: &Lua) -> LuaResult<()> {
+pub fn create(lua: &Lua) -> LuaResult<()> {
     let print = |args: &LuaMultiValue, throw: bool| -> LuaResult<()> {
         let s = pretty_format_multi_value(args)?;
         if throw {

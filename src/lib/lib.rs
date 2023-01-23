@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use mlua::prelude::*;
 use smol::LocalExecutor;
 
@@ -33,6 +33,13 @@ impl LuneGlobal {
     }
 }
 
+pub(crate) enum LuneMessage {
+    Spawned,
+    Finished,
+    Error(anyhow::Error),
+    LuaError(mlua::Error),
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Lune {
     globals: HashSet<LuneGlobal>,
@@ -62,37 +69,76 @@ impl Lune {
     }
 
     pub async fn run(&self, name: &str, chunk: &str) -> Result<()> {
-        let lua = Lua::new();
-        let exec = LocalExecutor::new();
-        smol::block_on(exec.run(async {
-            for global in &self.globals {
-                match &global {
-                    LuneGlobal::Console => create_console(&lua).await?,
-                    LuneGlobal::Fs => create_fs(&lua).await?,
-                    LuneGlobal::Net => create_net(&lua).await?,
-                    LuneGlobal::Process => create_process(&lua, self.args.clone()).await?,
-                    LuneGlobal::Task => create_task(&lua).await?,
-                }
+        let (s, r) = smol::channel::unbounded::<LuneMessage>();
+        let lua = Arc::new(mlua::Lua::new());
+        let exec = Arc::new(LocalExecutor::new());
+        let sender = Arc::new(s);
+        let receiver = Arc::new(r);
+        lua.set_app_data(Arc::downgrade(&lua));
+        lua.set_app_data(Arc::downgrade(&exec));
+        lua.set_app_data(Arc::downgrade(&sender));
+        lua.set_app_data(Arc::downgrade(&receiver));
+        // Add in wanted lune globals
+        for global in &self.globals {
+            match &global {
+                LuneGlobal::Console => create_console(&lua)?,
+                LuneGlobal::Fs => create_fs(&lua)?,
+                LuneGlobal::Net => create_net(&lua)?,
+                LuneGlobal::Process => create_process(&lua, self.args.clone())?,
+                LuneGlobal::Task => create_task(&lua)?,
             }
+        }
+        // Spawn the main thread from our entrypoint script
+        let script_name = name.to_string();
+        let script_chunk = chunk.to_string();
+        exec.spawn(async move {
+            sender.send(LuneMessage::Spawned).await?;
             let result = lua
-                .load(chunk)
-                .set_name(name)?
+                .load(&script_chunk)
+                .set_name(&script_name)
+                .unwrap()
                 .call_async::<_, LuaMultiValue>(LuaMultiValue::new())
                 .await;
-            match result {
-                Ok(_) => Ok(()),
-                Err(e) => {
-                    if cfg!(test) {
-                        bail!(pretty_format_luau_error(&e))
-                    } else {
-                        bail!(
-                            "\n{}\n{}",
-                            format_label("ERROR"),
-                            pretty_format_luau_error(&e)
-                        )
+            let message = match result {
+                Ok(_) => LuneMessage::Finished,
+                Err(e) => LuneMessage::Error(if cfg!(test) {
+                    anyhow!("{}", pretty_format_luau_error(&e))
+                } else {
+                    anyhow!(
+                        "\n{}\n{}",
+                        format_label("ERROR"),
+                        pretty_format_luau_error(&e)
+                    )
+                }),
+            };
+            sender.send(message).await
+        })
+        .detach();
+        // Run the executor until there are no tasks left
+        let mut task_count = 1;
+        smol::block_on(exec.run(async {
+            while let Ok(message) = receiver.recv().await {
+                match message {
+                    LuneMessage::Spawned => {
+                        task_count += 1;
+                    }
+                    LuneMessage::Finished => {
+                        task_count -= 1;
+                        if task_count <= 0 {
+                            break;
+                        }
+                    }
+                    LuneMessage::Error(e) => {
+                        task_count -= 1;
+                        bail!("{}", e)
+                    }
+                    LuneMessage::LuaError(e) => {
+                        task_count -= 1;
+                        bail!("{}", e)
                     }
                 }
             }
+            Ok(())
         }))
     }
 }

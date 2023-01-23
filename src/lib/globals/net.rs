@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use crate::utils::{net::get_request_user_agent_header, table_builder::TableBuilder};
 
-pub async fn create(lua: &Lua) -> LuaResult<()> {
+pub fn create(lua: &Lua) -> LuaResult<()> {
     lua.globals().raw_set(
         "net",
         TableBuilder::new(lua)?

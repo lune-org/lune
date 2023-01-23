@@ -9,7 +9,7 @@ use smol::process::Command;
 
 use crate::utils::table_builder::TableBuilder;
 
-pub async fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
+pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
     // Create readonly args array
     let args_tab = TableBuilder::new(lua)?
         .with_sequential_values(args_vec)?

@@ -5,7 +5,7 @@ use smol::{fs, prelude::*};
 
 use crate::utils::table_builder::TableBuilder;
 
-pub async fn create(lua: &Lua) -> LuaResult<()> {
+pub fn create(lua: &Lua) -> LuaResult<()> {
     lua.globals().raw_set(
         "fs",
         TableBuilder::new(lua)?
