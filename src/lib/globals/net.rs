@@ -34,18 +34,16 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Table<
         Value::String(s) => {
             let url = s.to_string_lossy().to_string();
             let method = "GET".to_string();
-            (url, method, HashMap::new(), None)
+            Ok((url, method, HashMap::new(), None))
         }
         Value::Table(tab) => {
             // Extract url
             let url = match tab.raw_get::<&str, mlua::String>("url") {
-                Ok(config_url) => config_url.to_string_lossy().to_string(),
-                Err(_) => {
-                    return Err(Error::RuntimeError(
-                        "Missing 'url' in request config".to_string(),
-                    ))
-                }
-            };
+                Ok(config_url) => Ok(config_url.to_string_lossy().to_string()),
+                Err(_) => Err(Error::RuntimeError(
+                    "Missing 'url' in request config".to_string(),
+                )),
+            }?;
             // Extract method
             let method = match tab.raw_get::<&str, mlua::String>("method") {
                 Ok(config_method) => config_method.to_string_lossy().trim().to_ascii_uppercase(),
@@ -68,26 +66,22 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Table<
                 Ok(config_body) => Some(config_body.as_bytes().to_owned()),
                 Err(_) => None,
             };
-            (url, method, headers, body)
+            Ok((url, method, headers, body))
         }
-        value => {
-            return Err(Error::RuntimeError(format!(
-                "Invalid request config - expected string or table, got {}",
-                value.type_name()
-            )))
-        }
-    };
+        value => Err(Error::RuntimeError(format!(
+            "Invalid request config - expected string or table, got {}",
+            value.type_name()
+        ))),
+    }?;
     // Convert method string into proper enum
     let method = method.trim().to_ascii_uppercase();
     let method = match method.as_ref() {
-        "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH" => &method,
-        _ => {
-            return Err(Error::RuntimeError(format!(
-                "Invalid request config method '{}'",
-                &method
-            )))
-        }
-    };
+        "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH" => Ok(&method),
+        _ => Err(Error::RuntimeError(format!(
+            "Invalid request config method '{}'",
+            &method
+        ))),
+    }?;
     // Create and send the request
     let mut request = ureq::request(method, &url);
     for (header, value) in headers {

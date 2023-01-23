@@ -49,29 +49,34 @@ fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Res
 fn process_env_set(_: &Lua, (_, key, value): (Value, String, Option<String>)) -> Result<()> {
     // Make sure key is valid, otherwise set_var will panic
     if key.is_empty() {
-        return Err(Error::RuntimeError("Key must not be empty".to_string()));
+        Err(Error::RuntimeError("Key must not be empty".to_string()))
     } else if key.contains('=') {
-        return Err(Error::RuntimeError(
+        Err(Error::RuntimeError(
             "Key must not contain the equals character '='".to_string(),
-        ));
+        ))
     } else if key.contains('\0') {
-        return Err(Error::RuntimeError(
+        Err(Error::RuntimeError(
             "Key must not contain the NUL character".to_string(),
-        ));
-    }
-    match value {
-        Some(value) => {
-            // Make sure value is valid, otherwise set_var will panic
-            if value.contains('\0') {
-                return Err(Error::RuntimeError(
-                    "Value must not contain the NUL character".to_string(),
-                ));
+        ))
+    } else {
+        match value {
+            Some(value) => {
+                // Make sure value is valid, otherwise set_var will panic
+                if value.contains('\0') {
+                    Err(Error::RuntimeError(
+                        "Value must not contain the NUL character".to_string(),
+                    ))
+                } else {
+                    env::set_var(&key, &value);
+                    Ok(())
+                }
             }
-            env::set_var(&key, &value);
+            None => {
+                env::remove_var(&key);
+                Ok(())
+            }
         }
-        None => env::remove_var(&key),
     }
-    Ok(())
 }
 
 fn process_env_iter<'lua>(lua: &'lua Lua, (_, _): (Value<'lua>, ())) -> Result<Function<'lua>> {

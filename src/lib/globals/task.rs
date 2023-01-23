@@ -21,16 +21,14 @@ pub async fn create(lua: &Lua) -> Result<()> {
 }
 
 fn get_or_create_thread_from_arg<'a>(lua: &'a Lua, arg: Value<'a>) -> Result<Thread<'a>> {
-    Ok(match arg {
-        Value::Thread(thread) => thread,
-        Value::Function(func) => lua.create_thread(func)?,
-        val => {
-            return Err(Error::RuntimeError(format!(
-                "Expected type thread or function, got {}",
-                val.type_name()
-            )))
-        }
-    })
+    match arg {
+        Value::Thread(thread) => Ok(thread),
+        Value::Function(func) => Ok(lua.create_thread(func)?),
+        val => Err(Error::RuntimeError(format!(
+            "Expected type thread or function, got {}",
+            val.type_name()
+        ))),
+    }
 }
 
 async fn resume_thread(lua: &Lua, thread: Thread<'_>, args: Vararg<'_>) -> Result<()> {
