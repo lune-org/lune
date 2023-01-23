@@ -85,11 +85,17 @@ impl Lune {
                     let result = lua.load(&run_chunk).set_name(&run_name)?.exec_async().await;
                     match result {
                         Ok(_) => Ok(()),
-                        Err(e) => bail!(
-                            "\n{}\n{}",
-                            format_label("ERROR"),
-                            pretty_format_luau_error(&e)
-                        ),
+                        Err(e) => {
+                            if cfg!(test) {
+                                bail!(pretty_format_luau_error(&e))
+                            } else {
+                                bail!(
+                                    "\n{}\n{}",
+                                    format_label("ERROR"),
+                                    pretty_format_luau_error(&e)
+                                )
+                            }
+                        }
                     }
                 })
                 .await
@@ -102,28 +108,27 @@ impl Lune {
 #[cfg(test)]
 mod tests {
     use crate::Lune;
+    use anyhow::Result;
+    use std::env::current_dir;
+    use tokio::fs::read_to_string;
+
+    const ARGS: &[&str] = &["Foo", "Bar"];
 
     macro_rules! run_tests {
         ($($name:ident: $value:expr,)*) => {
             $(
                 #[tokio::test]
-                async fn $name() {
-                    let args = vec![
-                        "Foo".to_owned(),
-                        "Bar".to_owned()
-                    ];
-                    let path = std::env::current_dir()
+                async fn $name() -> Result<()> {
+                    let path = current_dir()
                         .unwrap()
                         .join(format!("src/tests/{}.luau", $value));
-                    let script = tokio::fs::read_to_string(&path)
+                    let script = read_to_string(&path)
                         .await
                         .unwrap();
                     let lune = Lune::new()
-                        .with_args(args)
+                        .with_args(ARGS.clone().iter().map(ToString::to_string).collect())
                         .with_all_globals();
-                    if let Err(e) = lune.run($value, &script).await {
-                        panic!("\nTest '{}' failed!\n{}\n", $value, e.to_string())
-                    }
+                    lune.run($value, &script).await
                 }
             )*
         }
