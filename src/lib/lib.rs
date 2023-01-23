@@ -1,4 +1,10 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::HashSet,
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
+};
 
 use anyhow::{anyhow, bail, Result};
 use mlua::prelude::*;
@@ -9,8 +15,11 @@ pub mod utils;
 
 use crate::{
     globals::{create_console, create_fs, create_net, create_process, create_task},
-    utils::formatting::{format_label, pretty_format_luau_error},
+    utils::formatting::pretty_format_luau_error,
 };
+
+#[cfg(not(test))]
+use crate::utils::formatting::format_label;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LuneGlobal {
@@ -101,42 +110,35 @@ impl Lune {
                 .await;
             let message = match result {
                 Ok(_) => LuneMessage::Finished,
-                Err(e) => LuneMessage::Error(if cfg!(test) {
-                    anyhow!("{}", pretty_format_luau_error(&e))
-                } else {
-                    anyhow!(
-                        "\n{}\n{}",
-                        format_label("ERROR"),
-                        pretty_format_luau_error(&e)
-                    )
-                }),
+                #[cfg(test)]
+                Err(e) => LuneMessage::Error(anyhow!("{}", pretty_format_luau_error(&e))),
+                #[cfg(not(test))]
+                Err(e) => LuneMessage::Error(anyhow!(
+                    "\n{}\n{}",
+                    format_label("ERROR"),
+                    pretty_format_luau_error(&e)
+                )),
             };
             sender.send(message).await
         })
         .detach();
         // Run the executor until there are no tasks left
-        let mut task_count = 1;
+        let task_count = AtomicU32::new(0);
         smol::block_on(exec.run(async {
             while let Ok(message) = receiver.recv().await {
-                match message {
-                    LuneMessage::Spawned => {
-                        task_count += 1;
-                    }
-                    LuneMessage::Finished => {
-                        task_count -= 1;
-                        if task_count <= 0 {
-                            break;
-                        }
-                    }
+                let value = match message {
+                    LuneMessage::Spawned => task_count.fetch_add(1, Ordering::Relaxed),
+                    LuneMessage::Finished => task_count.fetch_sub(1, Ordering::Relaxed),
                     LuneMessage::Error(e) => {
-                        task_count -= 1;
+                        task_count.fetch_sub(1, Ordering::Relaxed);
                         bail!("{}", e)
                     }
                     LuneMessage::LuaError(e) => {
-                        task_count -= 1;
+                        task_count.fetch_sub(1, Ordering::Relaxed);
                         bail!("{}", e)
                     }
-                }
+                };
+                println!("Running tasks: {value}");
             }
             Ok(())
         }))
