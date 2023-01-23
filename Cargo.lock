@@ -471,12 +471,11 @@ dependencies = [
 
 [[package]]
 name = "lune"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "clap",
  "mlua",
- "once_cell",
  "os_str_bytes",
  "serde",
  "serde_json",

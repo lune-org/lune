@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Large internal changes to allow for implementing the `task` library.
+  The Lune binary size has decreased as a result of these changes.
 - Improved general formatting of errors to make them more readable & glanceable
 - Improved output formatting of non-primitive types
 - Improved output formatting of empty tables

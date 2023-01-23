@@ -1,4 +1,4 @@
--- Lune v0.0.4
+-- Lune v0.0.5
 
 declare console: {
 	resetColor: () -> (),
@@ -52,10 +52,12 @@ declare process: {
 	},
 }
 
-declare task: {
-	cancel: (t: thread) -> (),
-	defer: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
-	delay: <A..., R...>(duration: number?, f: thread | (A...) -> (R...), A...) -> (R...),
-	spawn: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
-	wait: (duration: number?) -> (number),
-}
+--[[
+	declare task: {
+		cancel: (t: thread) -> (),
+		defer: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
+		delay: <A..., R...>(duration: number?, f: thread | (A...) -> (R...), A...) -> (R...),
+		spawn: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
+		wait: (duration: number?) -> (number),
+	}
+]]

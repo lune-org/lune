@@ -1,4 +1,4 @@
-# Lune v0.0.4
+# Lune v0.0.5
 ---
 globals:
   # Console
@@ -74,22 +74,22 @@ globals:
       - required: false
         type: table
   # Task
-  task.cancel:
-  task.defer:
-    args:
-      - type: thread | function
-      - type: "..."
-  task.delay:
-    args:
-      - required: false
-        type: number
-      - type: thread | function
-      - type: "..."
-  task.spawn:
-    args:
-      - type: thread | function
-      - type: "..."
-  task.wait:
-    args:
-      - required: false
-        type: number
+  # task.cancel:
+  # task.defer:
+  #   args:
+  #     - type: thread | function
+  #     - type: "..."
+  # task.delay:
+  #   args:
+  #     - required: false
+  #       type: number
+  #     - type: thread | function
+  #     - type: "..."
+  # task.spawn:
+  #   args:
+  #     - type: thread | function
+  #     - type: "..."
+  # task.wait:
+  #   args:
+  #     - required: false
+  #       type: number
