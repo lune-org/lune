@@ -10,6 +10,11 @@ use smol::{channel::Sender, LocalExecutor, Timer};
 use crate::{utils::table_builder::TableBuilder, LuneMessage};
 
 pub fn create(lua: &Lua) -> LuaResult<()> {
+    // HACK: There is no way to call coroutine.close directly from the mlua
+    // create, so we need to fetch the function and store it in the registry
+    let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
+    let close: LuaFunction = coroutine.raw_get("close")?;
+    lua.set_named_registry_value("coroutine.close", close)?;
     lua.globals().raw_set(
         "task",
         TableBuilder::new(lua)?
@@ -77,9 +82,8 @@ async fn run_registered_task(
 }
 
 async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
-    let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
-    let close: LuaFunction = coroutine.raw_get("close")?;
-    close.call_async(thread).await?;
+    let close: LuaFunction = lua.named_registry_value("coroutine.close")?;
+    close.call_async::<_, LuaMultiValue>(thread).await?;
     Ok(())
 }
 
