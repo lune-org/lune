@@ -112,7 +112,6 @@ pub fn pretty_format_value(
     depth: usize,
 ) -> anyhow::Result<()> {
     // TODO: Handle tables with cyclic references
-    // TODO: Handle other types like function, userdata, ...
     match &value {
         LuaValue::Nil => write!(buffer, "nil")?,
         LuaValue::Boolean(true) => write!(buffer, "{COLOR_YELLOW}true{COLOR_RESET}")?,
