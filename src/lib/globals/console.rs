@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use crate::utils::{
     formatting::{flush_stdout, pretty_format_multi_value, print_color, print_label, print_style},
-    table_builder::TableBuilder,
+    table::TableBuilder,
 };
 
 pub fn create(lua: &Lua) -> LuaResult<()> {

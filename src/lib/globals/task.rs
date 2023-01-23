@@ -4,14 +4,16 @@ use std::{
 };
 
 use mlua::prelude::*;
-use smol::{channel::Sender, LocalExecutor, Timer};
-use smol::{future::yield_now, prelude::*};
+use smol::Timer;
 
-use crate::{utils::table_builder::TableBuilder, LuneMessage};
+use crate::utils::{
+    table::TableBuilder,
+    task::{run_registered_task, TaskRunMode},
+};
 
 pub fn create(lua: &Lua) -> LuaResult<()> {
     // HACK: There is no way to call coroutine.close directly from the mlua
-    // create, so we need to fetch the function and store it in the registry
+    // crate, so we need to fetch the function and store it in the registry
     let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
     let close: LuaFunction = coroutine.raw_get("close")?;
     lua.set_named_registry_value("coroutine.close", close)?;
@@ -43,51 +45,6 @@ fn tof_to_thread<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>
     }
 }
 
-async fn run_registered_task(
-    lua: &Lua,
-    to_run: impl Future<Output = LuaResult<()>> + 'static,
-    run_in_background: bool,
-) -> LuaResult<()> {
-    // Fetch global references to task executor & message sender
-    let exec = lua
-        .app_data_ref::<Weak<LocalExecutor>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let sender = lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    // Send a message that we have started our task
-    sender
-        .send(LuneMessage::Spawned)
-        .await
-        .map_err(LuaError::external)?;
-    // Run the new task separately from the current one using the executor
-    let sender = sender.clone();
-    let task = exec.spawn(async move {
-        sender
-            .send(match to_run.await {
-                Ok(_) => LuneMessage::Finished,
-                Err(e) => LuneMessage::LuaError(e),
-            })
-            .await
-    });
-    // Wait for the task to complete OR let it run in the background
-    // Any lua errors will be sent through the message channel back
-    // to the main thread which will then handle them properly
-    if run_in_background {
-        task.detach();
-    } else {
-        task.await.map_err(LuaError::external)?;
-    }
-    // Yield once right away to let the above spawned task start working
-    // instantly, forcing it to run until completion or until it yields
-    yield_now().await;
-    Ok(())
-}
-
 async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
     let close: LuaFunction = lua.named_registry_value("coroutine.close")?;
     close.call_async::<_, LuaMultiValue>(thread).await?;
@@ -100,18 +57,13 @@ async fn task_defer<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
-    run_registered_task(
-        lua,
-        async move {
-            task_wait(&task_lua, None).await?;
-            let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
-            if thread.status() == LuaThreadStatus::Resumable {
-                thread.into_async::<_, LuaMultiValue>(()).await?;
-            }
-            Ok(())
-        },
-        true,
-    )
+    run_registered_task(lua, TaskRunMode::Deferred, async move {
+        let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
+        if thread.status() == LuaThreadStatus::Resumable {
+            thread.into_async::<_, LuaMultiValue>(()).await?;
+        }
+        Ok(())
+    })
     .await?;
     Ok(lua_thread_to_return)
 }
@@ -125,18 +77,14 @@ async fn task_delay<'a>(
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
-    run_registered_task(
-        lua,
-        async move {
-            task_wait(&task_lua, duration).await?;
-            let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
-            if thread.status() == LuaThreadStatus::Resumable {
-                thread.into_async::<_, LuaMultiValue>(()).await?;
-            }
-            Ok(())
-        },
-        true,
-    )
+    run_registered_task(lua, TaskRunMode::Deferred, async move {
+        task_wait(&task_lua, duration).await?;
+        let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
+        if thread.status() == LuaThreadStatus::Resumable {
+            thread.into_async::<_, LuaMultiValue>(()).await?;
+        }
+        Ok(())
+    })
     .await?;
     Ok(lua_thread_to_return)
 }
@@ -147,36 +95,28 @@ async fn task_spawn<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
-    run_registered_task(
-        lua,
-        async move {
-            let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
-            if thread.status() == LuaThreadStatus::Resumable {
-                thread.into_async::<_, LuaMultiValue>(()).await?;
-            }
-            Ok(())
-        },
-        true,
-    )
+    run_registered_task(lua, TaskRunMode::Instant, async move {
+        let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
+        if thread.status() == LuaThreadStatus::Resumable {
+            thread.into_async::<_, LuaMultiValue>(()).await?;
+        }
+        Ok(())
+    })
     .await?;
     Ok(lua_thread_to_return)
 }
 
 async fn task_wait(lua: &Lua, duration: Option<f32>) -> LuaResult<f32> {
     let start = Instant::now();
-    run_registered_task(
-        lua,
-        async move {
-            Timer::after(
-                duration
-                    .map(Duration::from_secs_f32)
-                    .unwrap_or(Duration::ZERO),
-            )
-            .await;
-            Ok(())
-        },
-        false,
-    )
+    run_registered_task(lua, TaskRunMode::Blocking, async move {
+        Timer::after(
+            duration
+                .map(Duration::from_secs_f32)
+                .unwrap_or(Duration::ZERO),
+        )
+        .await;
+        Ok(())
+    })
     .await?;
     let end = Instant::now();
     Ok((end - start).as_secs_f32())

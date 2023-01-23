@@ -78,17 +78,17 @@ globals:
   task.defer:
     args:
       - type: thread | function
-      - type: "..."
+  #     - type: "..."
   task.delay:
     args:
       - required: false
         type: number
       - type: thread | function
-      - type: "..."
+  #      - type: "..."
   task.spawn:
     args:
       - type: thread | function
-      - type: "..."
+  #      - type: "..."
   task.wait:
     args:
       - required: false

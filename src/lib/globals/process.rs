@@ -4,7 +4,7 @@ use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use smol::{channel::Sender, process::Command, LocalExecutor};
 
-use crate::{utils::table_builder::TableBuilder, LuneMessage};
+use crate::{utils::table::TableBuilder, LuneMessage};
 
 pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
     // Create readonly args array

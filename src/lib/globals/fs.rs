@@ -3,7 +3,7 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::prelude::*;
 use smol::{fs, prelude::*};
 
-use crate::utils::table_builder::TableBuilder;
+use crate::utils::table::TableBuilder;
 
 pub fn create(lua: &Lua) -> LuaResult<()> {
     lua.globals().raw_set(
