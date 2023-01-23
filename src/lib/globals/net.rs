@@ -1,10 +1,6 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use mlua::{Error, Lua, LuaSerdeExt, Result, Table, Value};
-use reqwest::{
-    header::{HeaderMap, HeaderName, HeaderValue},
-    Method,
-};
 
 use crate::utils::{net::get_request_user_agent_header, table_builder::TableBuilder};
 
@@ -38,7 +34,7 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Table<
         Value::String(s) => {
             let url = s.to_string_lossy().to_string();
             let method = "GET".to_string();
-            (url, method, None, None)
+            (url, method, HashMap::new(), None)
         }
         Value::Table(tab) => {
             // Extract url
@@ -58,17 +54,14 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Table<
             // Extract headers
             let headers = match tab.raw_get::<&str, mlua::Table>("headers") {
                 Ok(config_headers) => {
-                    let mut lua_headers = HeaderMap::new();
+                    let mut lua_headers = HashMap::new();
                     for pair in config_headers.pairs::<mlua::String, mlua::String>() {
-                        let (key, value) = pair?;
-                        lua_headers.insert(
-                            HeaderName::from_str(key.to_str()?).map_err(Error::external)?,
-                            HeaderValue::from_str(value.to_str()?).map_err(Error::external)?,
-                        );
+                        let (key, value) = pair?.to_owned();
+                        lua_headers.insert(key, value);
                     }
-                    Some(lua_headers)
+                    lua_headers
                 }
-                Err(_) => None,
+                Err(_) => HashMap::new(),
             };
             // Extract body
             let body = match tab.raw_get::<&str, mlua::String>("body") {
@@ -85,58 +78,46 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Table<
         }
     };
     // Convert method string into proper enum
-    let method = match Method::from_str(&method) {
-        Ok(meth) => meth,
-        Err(_) => {
+    let method = method.trim().to_ascii_uppercase();
+    let method = match method.as_ref() {
+        "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH" => &method,
+        _ => {
             return Err(Error::RuntimeError(format!(
                 "Invalid request config method '{}'",
                 &method
             )))
         }
     };
-    // Extract headers from config, force user agent
-    let mut header_map = if let Some(headers) = headers {
-        headers
-    } else {
-        HeaderMap::new()
-    };
-    header_map.insert(
-        "User-Agent",
-        HeaderValue::from_str(&get_request_user_agent_header()).map_err(Error::external)?,
-    );
-    // Create a client to send a request with
-    // FUTURE: Try to reuse this client
-    let client = reqwest::Client::builder()
-        .build()
-        .map_err(Error::external)?;
     // Create and send the request
-    let mut request = client.request(method, url).headers(header_map);
-    if let Some(body) = body {
-        request = request.body(body);
+    let mut request = ureq::request(method, &url);
+    for (header, value) in headers {
+        request = request.set(header.to_str()?, value.to_str()?);
     }
-    let response = request.send().await.map_err(Error::external)?;
-    // Extract status, headers, body
-    let res_status = response.status();
-    let res_headers = response.headers().clone();
-    let res_bytes = response.bytes().await.map_err(Error::external)?;
-    // Construct and return a readonly lua table with results
-    TableBuilder::new(lua)?
-        .with_value("ok", res_status.is_success())?
-        .with_value("statusCode", res_status.as_u16())?
-        .with_value(
-            "statusMessage",
-            res_status.canonical_reason().unwrap_or("?"),
-        )?
-        .with_value(
-            "headers",
-            res_headers
+    let response = request
+        .set("User-Agent", &get_request_user_agent_header()) // Always force user agent
+        .send_bytes(&body.unwrap_or_default());
+    match response {
+        Ok(res) | Err(ureq::Error::Status(_, res)) => {
+            // Extract status, headers
+            let res_status = res.status();
+            let res_status_text = res.status_text().to_owned();
+            let res_header_names = &res.headers_names();
+            let res_headers = res_header_names
                 .iter()
-                .filter_map(|(key, value)| match value.to_str() {
-                    Ok(value) => Some((key.as_str(), value)),
-                    Err(_) => None,
-                })
-                .collect::<HashMap<_, _>>(),
-        )?
-        .with_value("body", lua.create_string(&res_bytes)?)?
-        .build_readonly()
+                .map(|name| (name.to_owned(), res.header(name).unwrap().to_owned()))
+                .collect::<HashMap<String, String>>();
+            // Read response bytes
+            let mut res_bytes = Vec::new();
+            res.into_reader().read_to_end(&mut res_bytes)?;
+            // Construct and return a readonly lua table with results
+            TableBuilder::new(lua)?
+                .with_value("ok", (200..300).contains(&res_status))?
+                .with_value("statusCode", res_status)?
+                .with_value("statusMessage", res_status_text)?
+                .with_value("headers", res_headers)?
+                .with_value("body", lua.create_string(&res_bytes)?)?
+                .build_readonly()
+        }
+        Err(e) => Err(Error::external(e)),
+    }
 }

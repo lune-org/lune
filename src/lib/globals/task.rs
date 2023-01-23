@@ -1,7 +1,7 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use mlua::{Error, Function, Lua, Result, Table, Thread, Value, Variadic};
-use tokio::time::{self, Instant};
+use smol::Timer;
 
 use crate::utils::table_builder::TableBuilder;
 
@@ -78,7 +78,7 @@ async fn task_spawn<'a>(lua: &'a Lua, (tof, args): (Value<'a>, Vararg<'a>)) -> R
 // the async wait function inside of a coroutine
 async fn task_wait(_: &Lua, duration: Option<f32>) -> Result<f32> {
     let start = Instant::now();
-    time::sleep(
+    Timer::after(
         duration
             .map(Duration::from_secs_f32)
             .unwrap_or(Duration::ZERO),

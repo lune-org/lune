@@ -5,7 +5,7 @@ use std::{
 
 use mlua::{Error, Function, Lua, MetaMethod, Result, Table, Value};
 use os_str_bytes::RawOsString;
-use tokio::process::Command;
+use smol::process::Command;
 
 use crate::utils::table_builder::TableBuilder;
 
@@ -113,10 +113,7 @@ async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)
         .stderr(Stdio::piped())
         .spawn()
         .map_err(mlua::Error::external)?;
-    let output = child
-        .wait_with_output()
-        .await
-        .map_err(mlua::Error::external)?;
+    let output = child.output().await.map_err(mlua::Error::external)?;
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
     let code = output

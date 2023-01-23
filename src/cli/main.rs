@@ -10,9 +10,10 @@ mod utils;
 
 use cli::Cli;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let cli = Cli::parse();
-    cli.run().await?;
-    Ok(())
+fn main() -> Result<()> {
+    smol::block_on(async {
+        let cli = Cli::parse();
+        cli.run().await?;
+        Ok(())
+    })
 }

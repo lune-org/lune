@@ -57,7 +57,7 @@ impl Cli {
         // Download definition files, if wanted
         let download_types_requested = self.download_selene_types || self.download_luau_types;
         if download_types_requested {
-            let client = GithubClient::new().map_err(mlua::Error::external)?;
+            let client = GithubClient::new();
             let release = client
                 .fetch_release_for_this_version()
                 .await
