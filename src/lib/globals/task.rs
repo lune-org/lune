@@ -84,10 +84,6 @@ async fn task_defer<'a>(task_lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaTh
             .await
     })
     .detach();
-    sender
-        .send(LuneMessage::Finished)
-        .await
-        .map_err(LuaError::external)?;
     Ok(thread_to_return)
 }
 
@@ -137,10 +133,6 @@ async fn task_delay<'a>(
             .await
     })
     .detach();
-    sender
-        .send(LuneMessage::Finished)
-        .await
-        .map_err(LuaError::external)?;
     Ok(thread_to_return)
 }
 
@@ -187,10 +179,6 @@ async fn task_spawn<'a>(task_lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaTh
             .await
     })
     .detach();
-    sender
-        .send(LuneMessage::Finished)
-        .await
-        .map_err(LuaError::external)?;
     Ok(thread_to_return)
 }
 
