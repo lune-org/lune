@@ -6,6 +6,7 @@ use std::{
 };
 
 use mlua::prelude::*;
+use smol::prelude::*;
 use smol::{channel::Sender, LocalExecutor, Timer};
 
 use crate::{utils::table_builder::TableBuilder, LuneMessage};
@@ -34,6 +35,49 @@ fn tof_to_thread<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>
     }
 }
 
+async fn run_registered_task(
+    lua: &Lua,
+    to_run: impl Future<Output = LuaResult<()>> + 'static,
+    run_in_background: bool,
+) -> LuaResult<()> {
+    // Fetch global references to task executor & message sender
+    let exec = lua
+        .app_data_ref::<Weak<LocalExecutor>>()
+        .unwrap()
+        .upgrade()
+        .unwrap();
+    let sender = lua
+        .app_data_ref::<Weak<Sender<LuneMessage>>>()
+        .unwrap()
+        .upgrade()
+        .unwrap();
+    // Send a message that we have started our task
+    sender
+        .send(LuneMessage::Spawned)
+        .await
+        .map_err(LuaError::external)?;
+    // Run the new task separately from the current one using the executor
+    // FIXME: This should run the task instantly and only stop at the first yield
+    let sender = sender.clone();
+    let task = exec.spawn(async move {
+        sender
+            .send(match to_run.await {
+                Ok(_) => LuneMessage::Finished,
+                Err(e) => LuneMessage::LuaError(e),
+            })
+            .await
+    });
+    // Wait for the task to complete OR let it run in the background
+    // Any lua errors will be sent through the message channel back
+    // to the main thread which will then handle them properly
+    if run_in_background {
+        task.detach();
+        Ok(())
+    } else {
+        task.await.map_err(LuaError::external)
+    }
+}
+
 async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
     let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
     let close: LuaFunction = coroutine.raw_get("close")?;
@@ -41,168 +85,90 @@ async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
     Ok(())
 }
 
-async fn task_defer<'a>(task_lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
-    // Boilerplate to get arc-ed lua & async executor
-    let lua = task_lua
-        .app_data_ref::<Weak<Lua>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let exec = task_lua
-        .app_data_ref::<Weak<LocalExecutor>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let sender = task_lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    // Spawn a new detached thread
-    sender
-        .send(LuneMessage::Spawned)
-        .await
-        .map_err(LuaError::external)?;
-    let thread = tof_to_thread(&lua, tof)?;
-    let thread_key = lua.create_registry_value(thread)?;
-    let thread_to_return = task_lua.registry_value(&thread_key)?;
-    let thread_sender = sender.clone();
-    exec.spawn(async move {
-        let result = async {
-            task_wait(&lua, None).await?;
-            let thread = lua.registry_value::<LuaThread>(&thread_key)?;
+async fn task_defer<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
+    // Spawn a new detached task using a lua reference that we can use inside of our task
+    let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
+    let task_thread = tof_to_thread(lua, tof)?;
+    let task_thread_key = lua.create_registry_value(task_thread)?;
+    let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
+    run_registered_task(
+        lua,
+        async move {
+            task_wait(&task_lua, None).await?;
+            let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
             if thread.status() == LuaThreadStatus::Resumable {
                 thread.into_async::<_, LuaMultiValue>(()).await?;
             }
-            Ok::<_, LuaError>(())
-        };
-        thread_sender
-            .send(match result.await {
-                Ok(_) => LuneMessage::Finished,
-                Err(e) => LuneMessage::LuaError(e),
-            })
-            .await
-    })
-    .detach();
-    Ok(thread_to_return)
+            Ok(())
+        },
+        true,
+    )
+    .await?;
+    Ok(lua_thread_to_return)
 }
 
 async fn task_delay<'a>(
-    task_lua: &'a Lua,
+    lua: &'a Lua,
     (duration, tof): (Option<f32>, LuaValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
-    // Boilerplate to get arc-ed lua & async executor
-    let lua = task_lua
-        .app_data_ref::<Weak<Lua>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let exec = task_lua
-        .app_data_ref::<Weak<LocalExecutor>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let sender = task_lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    // Spawn a new detached thread
-    sender
-        .send(LuneMessage::Spawned)
-        .await
-        .map_err(LuaError::external)?;
-    let thread = tof_to_thread(&lua, tof)?;
-    let thread_key = lua.create_registry_value(thread)?;
-    let thread_to_return = task_lua.registry_value(&thread_key)?;
-    let thread_sender = sender.clone();
-    exec.spawn(async move {
-        let result = async {
-            task_wait(&lua, duration).await?;
-            let thread = lua.registry_value::<LuaThread>(&thread_key)?;
+    // Spawn a new detached task using a lua reference that we can use inside of our task
+    let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
+    let task_thread = tof_to_thread(lua, tof)?;
+    let task_thread_key = lua.create_registry_value(task_thread)?;
+    let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
+    run_registered_task(
+        lua,
+        async move {
+            task_wait(&task_lua, duration).await?;
+            let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
             if thread.status() == LuaThreadStatus::Resumable {
                 thread.into_async::<_, LuaMultiValue>(()).await?;
             }
-            Ok::<_, LuaError>(())
-        };
-        thread_sender
-            .send(match result.await {
-                Ok(_) => LuneMessage::Finished,
-                Err(e) => LuneMessage::LuaError(e),
-            })
-            .await
-    })
-    .detach();
-    Ok(thread_to_return)
+            Ok(())
+        },
+        true,
+    )
+    .await?;
+    Ok(lua_thread_to_return)
 }
 
-async fn task_spawn<'a>(task_lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
-    // Boilerplate to get arc-ed lua & async executor
-    let lua = task_lua
-        .app_data_ref::<Weak<Lua>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let exec = task_lua
-        .app_data_ref::<Weak<LocalExecutor>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let sender = task_lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    // Spawn a new detached thread
-    sender
-        .send(LuneMessage::Spawned)
-        .await
-        .map_err(LuaError::external)?;
-    let thread = tof_to_thread(&lua, tof)?;
-    let thread_key = lua.create_registry_value(thread)?;
-    let thread_to_return = task_lua.registry_value(&thread_key)?;
-    let thread_sender = sender.clone();
-    // FIXME: This does not run the thread instantly
-    exec.spawn(async move {
-        let result = async {
-            let thread = lua.registry_value::<LuaThread>(&thread_key)?;
+async fn task_spawn<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
+    // Spawn a new detached task using a lua reference that we can use inside of our task
+    let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
+    let task_thread = tof_to_thread(lua, tof)?;
+    let task_thread_key = lua.create_registry_value(task_thread)?;
+    let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
+    run_registered_task(
+        lua,
+        async move {
+            let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
             if thread.status() == LuaThreadStatus::Resumable {
                 thread.into_async::<_, LuaMultiValue>(()).await?;
             }
-            Ok::<_, LuaError>(())
-        };
-        thread_sender
-            .send(match result.await {
-                Ok(_) => LuneMessage::Finished,
-                Err(e) => LuneMessage::LuaError(e),
-            })
-            .await
-    })
-    .detach();
-    Ok(thread_to_return)
+            Ok(())
+        },
+        true,
+    )
+    .await?;
+    Ok(lua_thread_to_return)
 }
 
 async fn task_wait(lua: &Lua, duration: Option<f32>) -> LuaResult<f32> {
-    let sender = lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    sender
-        .send(LuneMessage::Spawned)
-        .await
-        .map_err(LuaError::external)?;
     let start = Instant::now();
-    Timer::after(
-        duration
-            .map(Duration::from_secs_f32)
-            .unwrap_or(Duration::ZERO),
+    run_registered_task(
+        lua,
+        async move {
+            Timer::after(
+                duration
+                    .map(Duration::from_secs_f32)
+                    .unwrap_or(Duration::ZERO),
+            )
+            .await;
+            Ok(())
+        },
+        false,
     )
-    .await;
+    .await?;
     let end = Instant::now();
-    sender
-        .send(LuneMessage::Finished)
-        .await
-        .map_err(LuaError::external)?;
     Ok((end - start).as_secs_f32())
 }
