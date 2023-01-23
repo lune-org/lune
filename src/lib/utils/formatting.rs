@@ -3,7 +3,7 @@ use std::{
     io::{self, Write as _},
 };
 
-use mlua::{MultiValue, Value};
+use mlua::prelude::*;
 
 const MAX_FORMAT_DEPTH: usize = 4;
 
@@ -25,11 +25,11 @@ pub const STYLE_RESET: &str = if cfg!(test) { "" } else { "\x1B[22m" };
 pub const STYLE_BOLD: &str = if cfg!(test) { "" } else { "\x1B[1m" };
 pub const STYLE_DIM: &str = if cfg!(test) { "" } else { "\x1B[2m" };
 
-pub fn flush_stdout() -> mlua::Result<()> {
-    io::stdout().flush().map_err(mlua::Error::external)
+pub fn flush_stdout() -> LuaResult<()> {
+    io::stdout().flush().map_err(LuaError::external)
 }
 
-fn can_be_plain_lua_table_key(s: &mlua::String) -> bool {
+fn can_be_plain_lua_table_key(s: &LuaString) -> bool {
     let str = s.to_string_lossy().to_string();
     let first_char = str.chars().next().unwrap();
     if first_char.is_alphabetic() {
@@ -56,13 +56,13 @@ pub fn format_label<S: AsRef<str>>(s: S) -> String {
     )
 }
 
-pub fn print_label<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+pub fn print_label<S: AsRef<str>>(s: S) -> LuaResult<()> {
     print!("{}", format_label(s));
     flush_stdout()?;
     Ok(())
 }
 
-pub fn print_style<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+pub fn print_style<S: AsRef<str>>(s: S) -> LuaResult<()> {
     print!(
         "{}",
         match s.as_ref() {
@@ -70,7 +70,7 @@ pub fn print_style<S: AsRef<str>>(s: S) -> mlua::Result<()> {
             "bold" => STYLE_BOLD,
             "dim" => STYLE_DIM,
             _ => {
-                return Err(mlua::Error::RuntimeError(format!(
+                return Err(LuaError::RuntimeError(format!(
                     "The style '{}' is not a valid style name",
                     s.as_ref()
                 )));
@@ -81,7 +81,7 @@ pub fn print_style<S: AsRef<str>>(s: S) -> mlua::Result<()> {
     Ok(())
 }
 
-pub fn print_color<S: AsRef<str>>(s: S) -> mlua::Result<()> {
+pub fn print_color<S: AsRef<str>>(s: S) -> LuaResult<()> {
     print!(
         "{}",
         match s.as_ref() {
@@ -95,7 +95,7 @@ pub fn print_color<S: AsRef<str>>(s: S) -> mlua::Result<()> {
             "cyan" => COLOR_CYAN,
             "white" => COLOR_WHITE,
             _ => {
-                return Err(mlua::Error::RuntimeError(format!(
+                return Err(LuaError::RuntimeError(format!(
                     "The color '{}' is not a valid color name",
                     s.as_ref()
                 )));
@@ -106,16 +106,20 @@ pub fn print_color<S: AsRef<str>>(s: S) -> mlua::Result<()> {
     Ok(())
 }
 
-pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> anyhow::Result<()> {
+pub fn pretty_format_value(
+    buffer: &mut String,
+    value: &LuaValue,
+    depth: usize,
+) -> anyhow::Result<()> {
     // TODO: Handle tables with cyclic references
     // TODO: Handle other types like function, userdata, ...
     match &value {
-        Value::Nil => write!(buffer, "nil")?,
-        Value::Boolean(true) => write!(buffer, "{COLOR_YELLOW}true{COLOR_RESET}")?,
-        Value::Boolean(false) => write!(buffer, "{COLOR_YELLOW}false{COLOR_RESET}")?,
-        Value::Number(n) => write!(buffer, "{COLOR_CYAN}{n}{COLOR_RESET}")?,
-        Value::Integer(i) => write!(buffer, "{COLOR_CYAN}{i}{COLOR_RESET}")?,
-        Value::String(s) => write!(
+        LuaValue::Nil => write!(buffer, "nil")?,
+        LuaValue::Boolean(true) => write!(buffer, "{COLOR_YELLOW}true{COLOR_RESET}")?,
+        LuaValue::Boolean(false) => write!(buffer, "{COLOR_YELLOW}false{COLOR_RESET}")?,
+        LuaValue::Number(n) => write!(buffer, "{COLOR_CYAN}{n}{COLOR_RESET}")?,
+        LuaValue::Integer(i) => write!(buffer, "{COLOR_CYAN}{i}{COLOR_RESET}")?,
+        LuaValue::String(s) => write!(
             buffer,
             "{}\"{}\"{}",
             COLOR_GREEN,
@@ -124,17 +128,17 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
                 .replace('\n', r#"\n"#),
             COLOR_RESET
         )?,
-        Value::Table(ref tab) => {
+        LuaValue::Table(ref tab) => {
             if depth >= MAX_FORMAT_DEPTH {
                 write!(buffer, "{STYLE_DIM}{{ ... }}{STYLE_RESET}")?;
             } else {
                 let mut is_empty = false;
                 let depth_indent = INDENT.repeat(depth);
                 write!(buffer, "{STYLE_DIM}{{{STYLE_RESET}")?;
-                for pair in tab.clone().pairs::<Value, Value>() {
+                for pair in tab.clone().pairs::<LuaValue, LuaValue>() {
                     let (key, value) = pair?;
                     match &key {
-                        Value::String(s) if can_be_plain_lua_table_key(s) => write!(
+                        LuaValue::String(s) if can_be_plain_lua_table_key(s) => write!(
                             buffer,
                             "\n{}{}{} {}={} ",
                             depth_indent,
@@ -160,12 +164,12 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
                 }
             }
         }
-        Value::Vector(x, y, z) => {
+        LuaValue::Vector(x, y, z) => {
             write!(buffer, "{COLOR_PURPLE}<vector({x}, {y}, {z})>{COLOR_RESET}",)?
         }
-        Value::Thread(_) => write!(buffer, "{COLOR_PURPLE}<thread>{COLOR_RESET}")?,
-        Value::Function(_) => write!(buffer, "{COLOR_PURPLE}<function>{COLOR_RESET}")?,
-        Value::UserData(_) | Value::LightUserData(_) => {
+        LuaValue::Thread(_) => write!(buffer, "{COLOR_PURPLE}<thread>{COLOR_RESET}")?,
+        LuaValue::Function(_) => write!(buffer, "{COLOR_PURPLE}<function>{COLOR_RESET}")?,
+        LuaValue::UserData(_) | LuaValue::LightUserData(_) => {
             write!(buffer, "{COLOR_PURPLE}<userdata>{COLOR_RESET}")?
         }
         _ => write!(buffer, "?")?,
@@ -173,28 +177,28 @@ pub fn pretty_format_value(buffer: &mut String, value: &Value, depth: usize) -> 
     Ok(())
 }
 
-pub fn pretty_format_multi_value(multi: &MultiValue) -> mlua::Result<String> {
+pub fn pretty_format_multi_value(multi: &LuaMultiValue) -> LuaResult<String> {
     let mut buffer = String::new();
     let mut counter = 0;
     for value in multi {
         counter += 1;
-        if let Value::String(s) = value {
-            write!(buffer, "{}", s.to_string_lossy()).map_err(mlua::Error::external)?;
+        if let LuaValue::String(s) = value {
+            write!(buffer, "{}", s.to_string_lossy()).map_err(LuaError::external)?;
         } else {
-            pretty_format_value(&mut buffer, value, 0).map_err(mlua::Error::external)?;
+            pretty_format_value(&mut buffer, value, 0).map_err(LuaError::external)?;
         }
         if counter < multi.len() {
-            write!(&mut buffer, " ").map_err(mlua::Error::external)?;
+            write!(&mut buffer, " ").map_err(LuaError::external)?;
         }
     }
     Ok(buffer)
 }
 
-pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
+pub fn pretty_format_luau_error(e: &LuaError) -> String {
     let stack_begin = format!("[{}Stack Begin{}]", COLOR_BLUE, COLOR_RESET);
     let stack_end = format!("[{}Stack End{}]", COLOR_BLUE, COLOR_RESET);
     let err_string = match e {
-        mlua::Error::RuntimeError(e) => {
+        LuaError::RuntimeError(e) => {
             // Add "Stack Begin" instead of default stack traceback string
             let err_string = e.to_string();
             let mut err_lines = err_string
@@ -211,7 +215,7 @@ pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
             err_lines.push(stack_end);
             err_lines.join("\n")
         }
-        mlua::Error::CallbackError { cause, traceback } => {
+        LuaError::CallbackError { cause, traceback } => {
             // Same error formatting as above
             format!(
                 "{}\n{}{}{}",
@@ -221,7 +225,7 @@ pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
                 stack_end
             )
         }
-        mlua::Error::ToLuaConversionError { from, to, message } => {
+        LuaError::ToLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
@@ -230,7 +234,7 @@ pub fn pretty_format_luau_error(e: &mlua::Error) -> String {
                 from, to, msg
             )
         }
-        mlua::Error::FromLuaConversionError { from, to, message } => {
+        LuaError::FromLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));

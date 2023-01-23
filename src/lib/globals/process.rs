@@ -3,13 +3,13 @@ use std::{
     process::{exit, Stdio},
 };
 
-use mlua::{Error, Function, Lua, MetaMethod, Result, Table, Value};
+use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use smol::process::Command;
 
 use crate::utils::table_builder::TableBuilder;
 
-pub async fn create(lua: &Lua, args_vec: Vec<String>) -> Result<()> {
+pub async fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
     // Create readonly args array
     let args_tab = TableBuilder::new(lua)?
         .with_sequential_values(args_vec)?
@@ -18,9 +18,9 @@ pub async fn create(lua: &Lua, args_vec: Vec<String>) -> Result<()> {
     let env_tab = TableBuilder::new(lua)?
         .with_metatable(
             TableBuilder::new(lua)?
-                .with_function(MetaMethod::Index.name(), process_env_get)?
-                .with_function(MetaMethod::NewIndex.name(), process_env_set)?
-                .with_function(MetaMethod::Iter.name(), process_env_iter)?
+                .with_function(LuaMetaMethod::Index.name(), process_env_get)?
+                .with_function(LuaMetaMethod::NewIndex.name(), process_env_set)?
+                .with_function(LuaMetaMethod::Iter.name(), process_env_iter)?
                 .build_readonly()?,
         )?
         .build_readonly()?;
@@ -36,26 +36,31 @@ pub async fn create(lua: &Lua, args_vec: Vec<String>) -> Result<()> {
     )
 }
 
-fn process_env_get<'lua>(lua: &'lua Lua, (_, key): (Value<'lua>, String)) -> Result<Value<'lua>> {
+fn process_env_get<'lua>(
+    lua: &'lua Lua,
+    (_, key): (LuaValue<'lua>, String),
+) -> LuaResult<LuaValue<'lua>> {
     match env::var_os(key) {
         Some(value) => {
             let raw_value = RawOsString::new(value);
-            Ok(Value::String(lua.create_string(raw_value.as_raw_bytes())?))
+            Ok(LuaValue::String(
+                lua.create_string(raw_value.as_raw_bytes())?,
+            ))
         }
-        None => Ok(Value::Nil),
+        None => Ok(LuaValue::Nil),
     }
 }
 
-fn process_env_set(_: &Lua, (_, key, value): (Value, String, Option<String>)) -> Result<()> {
+fn process_env_set(_: &Lua, (_, key, value): (LuaValue, String, Option<String>)) -> LuaResult<()> {
     // Make sure key is valid, otherwise set_var will panic
     if key.is_empty() {
-        Err(Error::RuntimeError("Key must not be empty".to_string()))
+        Err(LuaError::RuntimeError("Key must not be empty".to_string()))
     } else if key.contains('=') {
-        Err(Error::RuntimeError(
+        Err(LuaError::RuntimeError(
             "Key must not contain the equals character '='".to_string(),
         ))
     } else if key.contains('\0') {
-        Err(Error::RuntimeError(
+        Err(LuaError::RuntimeError(
             "Key must not contain the NUL character".to_string(),
         ))
     } else {
@@ -63,7 +68,7 @@ fn process_env_set(_: &Lua, (_, key, value): (Value, String, Option<String>)) ->
             Some(value) => {
                 // Make sure value is valid, otherwise set_var will panic
                 if value.contains('\0') {
-                    Err(Error::RuntimeError(
+                    Err(LuaError::RuntimeError(
                         "Value must not contain the NUL character".to_string(),
                     ))
                 } else {
@@ -79,22 +84,25 @@ fn process_env_set(_: &Lua, (_, key, value): (Value, String, Option<String>)) ->
     }
 }
 
-fn process_env_iter<'lua>(lua: &'lua Lua, (_, _): (Value<'lua>, ())) -> Result<Function<'lua>> {
+fn process_env_iter<'lua>(
+    lua: &'lua Lua,
+    (_, _): (LuaValue<'lua>, ()),
+) -> LuaResult<LuaFunction<'lua>> {
     let mut vars = env::vars_os();
     lua.create_function_mut(move |lua, _: ()| match vars.next() {
         Some((key, value)) => {
             let raw_key = RawOsString::new(key);
             let raw_value = RawOsString::new(value);
             Ok((
-                Value::String(lua.create_string(raw_key.as_raw_bytes())?),
-                Value::String(lua.create_string(raw_value.as_raw_bytes())?),
+                LuaValue::String(lua.create_string(raw_key.as_raw_bytes())?),
+                LuaValue::String(lua.create_string(raw_value.as_raw_bytes())?),
             ))
         }
-        None => Ok((Value::Nil, Value::Nil)),
+        None => Ok((LuaValue::Nil, LuaValue::Nil)),
     })
 }
 
-fn process_exit(_: &Lua, exit_code: Option<i32>) -> Result<()> {
+fn process_exit(_: &Lua, exit_code: Option<i32>) -> LuaResult<()> {
     // TODO: Exit gracefully to the root with an Ok
     // result instead of completely exiting the process
     if let Some(code) = exit_code {
@@ -104,7 +112,10 @@ fn process_exit(_: &Lua, exit_code: Option<i32>) -> Result<()> {
     }
 }
 
-async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)) -> Result<Table> {
+async fn process_spawn(
+    lua: &Lua,
+    (program, args): (String, Option<Vec<String>>),
+) -> LuaResult<LuaTable> {
     // Create and spawn a child process, and
     // wait for it to terminate with output
     let mut cmd = Command::new(program);
@@ -112,13 +123,13 @@ async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)
         cmd.args(args);
     }
     let child = cmd
-        .current_dir(env::current_dir().map_err(mlua::Error::external)?)
+        .current_dir(env::current_dir().map_err(LuaError::external)?)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(mlua::Error::external)?;
-    let output = child.output().await.map_err(mlua::Error::external)?;
+        .map_err(LuaError::external)?;
+    let output = child.output().await.map_err(LuaError::external)?;
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
     let code = output

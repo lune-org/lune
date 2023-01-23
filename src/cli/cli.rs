@@ -2,6 +2,7 @@ use std::fs::read_to_string;
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
+use mlua::prelude::*;
 
 use lune::Lune;
 
@@ -61,20 +62,20 @@ impl Cli {
             let release = client
                 .fetch_release_for_this_version()
                 .await
-                .map_err(mlua::Error::external)?;
+                .map_err(LuaError::external)?;
             if self.download_selene_types {
                 println!("Downloading Selene type definitions...");
                 client
                     .fetch_release_asset(&release, "lune.yml")
                     .await
-                    .map_err(mlua::Error::external)?;
+                    .map_err(LuaError::external)?;
             }
             if self.download_luau_types {
                 println!("Downloading Luau type definitions...");
                 client
                     .fetch_release_asset(&release, "luneTypes.d.luau")
                     .await
-                    .map_err(mlua::Error::external)?;
+                    .map_err(LuaError::external)?;
             }
         }
         if self.script_path.is_none() {

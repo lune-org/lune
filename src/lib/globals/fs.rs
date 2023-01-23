@@ -1,11 +1,11 @@
 use std::path::{PathBuf, MAIN_SEPARATOR};
 
-use mlua::{Lua, Result};
+use mlua::prelude::*;
 use smol::{fs, prelude::*};
 
 use crate::utils::table_builder::TableBuilder;
 
-pub async fn create(lua: &Lua) -> Result<()> {
+pub async fn create(lua: &Lua) -> LuaResult<()> {
     lua.globals().raw_set(
         "fs",
         TableBuilder::new(lua)?
@@ -21,20 +21,18 @@ pub async fn create(lua: &Lua) -> Result<()> {
     )
 }
 
-async fn fs_read_file(_: &Lua, path: String) -> Result<String> {
-    fs::read_to_string(&path)
-        .await
-        .map_err(mlua::Error::external)
+async fn fs_read_file(_: &Lua, path: String) -> LuaResult<String> {
+    fs::read_to_string(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_read_dir(_: &Lua, path: String) -> Result<Vec<String>> {
+async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
-    let mut dir = fs::read_dir(&path).await.map_err(mlua::Error::external)?;
-    while let Some(dir_entry) = dir.try_next().await.map_err(mlua::Error::external)? {
+    let mut dir = fs::read_dir(&path).await.map_err(LuaError::external)?;
+    while let Some(dir_entry) = dir.try_next().await.map_err(LuaError::external)? {
         if let Some(dir_path_str) = dir_entry.path().to_str() {
             dir_strings.push(dir_path_str.to_owned());
         } else {
-            return Err(mlua::Error::RuntimeError(format!(
+            return Err(LuaError::RuntimeError(format!(
                 "File path could not be converted into a string: '{}'",
                 dir_entry.path().display()
             )));
@@ -57,46 +55,42 @@ async fn fs_read_dir(_: &Lua, path: String) -> Result<Vec<String>> {
     Ok(dir_strings_no_prefix)
 }
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, String)) -> Result<()> {
+async fn fs_write_file(_: &Lua, (path, contents): (String, String)) -> LuaResult<()> {
     fs::write(&path, &contents)
         .await
-        .map_err(mlua::Error::external)
+        .map_err(LuaError::external)
 }
 
-async fn fs_write_dir(_: &Lua, path: String) -> Result<()> {
-    fs::create_dir_all(&path)
-        .await
-        .map_err(mlua::Error::external)
+async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {
+    fs::create_dir_all(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_remove_file(_: &Lua, path: String) -> Result<()> {
-    fs::remove_file(&path).await.map_err(mlua::Error::external)
+async fn fs_remove_file(_: &Lua, path: String) -> LuaResult<()> {
+    fs::remove_file(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_remove_dir(_: &Lua, path: String) -> Result<()> {
-    fs::remove_dir_all(&path)
-        .await
-        .map_err(mlua::Error::external)
+async fn fs_remove_dir(_: &Lua, path: String) -> LuaResult<()> {
+    fs::remove_dir_all(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_is_file(_: &Lua, path: String) -> Result<bool> {
+async fn fs_is_file(_: &Lua, path: String) -> LuaResult<bool> {
     let path = PathBuf::from(path);
     if path.exists() {
         Ok(fs::metadata(path)
             .await
-            .map_err(mlua::Error::external)?
+            .map_err(LuaError::external)?
             .is_file())
     } else {
         Ok(false)
     }
 }
 
-async fn fs_is_dir(_: &Lua, path: String) -> Result<bool> {
+async fn fs_is_dir(_: &Lua, path: String) -> LuaResult<bool> {
     let path = PathBuf::from(path);
     if path.exists() {
         Ok(fs::metadata(path)
             .await
-            .map_err(mlua::Error::external)?
+            .map_err(LuaError::external)?
             .is_dir())
     } else {
         Ok(false)

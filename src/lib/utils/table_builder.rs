@@ -1,19 +1,19 @@
 use std::future::Future;
 
-use mlua::{FromLuaMulti, Lua, Result, Table, ToLua, ToLuaMulti, Value};
+use mlua::prelude::*;
 
 pub struct TableBuilder<'lua> {
     lua: &'lua Lua,
-    tab: Table<'lua>,
+    tab: LuaTable<'lua>,
 }
 
 impl<'lua> TableBuilder<'lua> {
-    pub fn new(lua: &'lua Lua) -> Result<Self> {
+    pub fn new(lua: &'lua Lua) -> LuaResult<Self> {
         let tab = lua.create_table()?;
         Ok(Self { lua, tab })
     }
 
-    pub fn with_value<K, V>(self, key: K, value: V) -> Result<Self>
+    pub fn with_value<K, V>(self, key: K, value: V) -> LuaResult<Self>
     where
         K: ToLua<'lua>,
         V: ToLua<'lua>,
@@ -22,7 +22,7 @@ impl<'lua> TableBuilder<'lua> {
         Ok(self)
     }
 
-    pub fn with_values<K, V>(self, values: Vec<(K, V)>) -> Result<Self>
+    pub fn with_values<K, V>(self, values: Vec<(K, V)>) -> LuaResult<Self>
     where
         K: ToLua<'lua>,
         V: ToLua<'lua>,
@@ -33,7 +33,7 @@ impl<'lua> TableBuilder<'lua> {
         Ok(self)
     }
 
-    pub fn with_sequential_value<V>(self, value: V) -> Result<Self>
+    pub fn with_sequential_value<V>(self, value: V) -> LuaResult<Self>
     where
         V: ToLua<'lua>,
     {
@@ -41,7 +41,7 @@ impl<'lua> TableBuilder<'lua> {
         Ok(self)
     }
 
-    pub fn with_sequential_values<V>(self, values: Vec<V>) -> Result<Self>
+    pub fn with_sequential_values<V>(self, values: Vec<V>) -> LuaResult<Self>
     where
         V: ToLua<'lua>,
     {
@@ -51,40 +51,40 @@ impl<'lua> TableBuilder<'lua> {
         Ok(self)
     }
 
-    pub fn with_metatable(self, table: Table) -> Result<Self> {
+    pub fn with_metatable(self, table: LuaTable) -> LuaResult<Self> {
         self.tab.set_metatable(Some(table));
         Ok(self)
     }
 
-    pub fn with_function<K, A, R, F>(self, key: K, func: F) -> Result<Self>
+    pub fn with_function<K, A, R, F>(self, key: K, func: F) -> LuaResult<Self>
     where
         K: ToLua<'lua>,
         A: FromLuaMulti<'lua>,
         R: ToLuaMulti<'lua>,
-        F: 'static + Fn(&'lua Lua, A) -> Result<R>,
+        F: 'static + Fn(&'lua Lua, A) -> LuaResult<R>,
     {
         let f = self.lua.create_function(func)?;
-        self.with_value(key, Value::Function(f))
+        self.with_value(key, LuaValue::Function(f))
     }
 
-    pub fn with_async_function<K, A, R, F, FR>(self, key: K, func: F) -> Result<Self>
+    pub fn with_async_function<K, A, R, F, FR>(self, key: K, func: F) -> LuaResult<Self>
     where
         K: ToLua<'lua>,
         A: FromLuaMulti<'lua>,
         R: ToLuaMulti<'lua>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'lua + Future<Output = Result<R>>,
+        FR: 'lua + Future<Output = LuaResult<R>>,
     {
         let f = self.lua.create_async_function(func)?;
-        self.with_value(key, Value::Function(f))
+        self.with_value(key, LuaValue::Function(f))
     }
 
-    pub fn build_readonly(self) -> Result<Table<'lua>> {
+    pub fn build_readonly(self) -> LuaResult<LuaTable<'lua>> {
         self.tab.set_readonly(true);
         Ok(self.tab)
     }
 
-    pub fn build(self) -> Result<Table<'lua>> {
+    pub fn build(self) -> LuaResult<LuaTable<'lua>> {
         Ok(self.tab)
     }
 }
