@@ -15,6 +15,11 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
     let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
     let close: LuaFunction = coroutine.raw_get("close")?;
     lua.set_named_registry_value("coroutine.close", close)?;
+    // HACK: coroutine.resume has some weird scheduling issues, but our custom
+    // task.spawn implementation is more or less a replacement for it, so we
+    // overwrite the original coroutine.resume function with it to fix that
+    coroutine.raw_set("resume", lua.create_async_function(task_spawn)?)?;
+    // Rest of the task library is normal, just async functions, no metatable
     lua.globals().raw_set(
         "task",
         TableBuilder::new(lua)?

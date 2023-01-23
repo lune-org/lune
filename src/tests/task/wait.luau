@@ -41,6 +41,15 @@ task.spawn(function()
 	task.wait(0.1)
 	flag = true
 end)
-assert(not flag, "Wait failed for a task-spawned thread (1)")
+assert(not flag, "Wait failed while inside task-spawned thread (1)")
 task.wait(0.2)
-assert(flag, "Wait failed for a task-spawned thread (2)")
+assert(flag, "Wait failed while inside task-spawned thread (2)")
+
+local flag2: boolean = false
+coroutine.resume(coroutine.create(function()
+	task.wait(0.1)
+	flag2 = true
+end))
+assert(not flag2, "Wait failed while inside coroutine (1)")
+task.wait(0.2)
+assert(flag2, "Wait failed while inside coroutine (2)")
