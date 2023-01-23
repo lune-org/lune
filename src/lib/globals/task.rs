@@ -3,20 +3,20 @@ use std::time::Duration;
 use mlua::{Error, Function, Lua, Result, Table, Thread, Value, Variadic};
 use tokio::time::{self, Instant};
 
-use crate::utils::table_builder::ReadonlyTableBuilder;
+use crate::utils::table_builder::TableBuilder;
 
 type Vararg<'lua> = Variadic<Value<'lua>>;
 
 pub async fn create(lua: &Lua) -> Result<()> {
     lua.globals().raw_set(
         "task",
-        ReadonlyTableBuilder::new(lua)?
+        TableBuilder::new(lua)?
             .with_async_function("cancel", task_cancel)?
             .with_async_function("defer", task_defer)?
             .with_async_function("delay", task_delay)?
             .with_async_function("spawn", task_spawn)?
             .with_async_function("wait", task_wait)?
-            .build()?,
+            .build_readonly()?,
     )
 }
 

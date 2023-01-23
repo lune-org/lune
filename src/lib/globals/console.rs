@@ -2,7 +2,7 @@ use mlua::{Lua, MultiValue, Result};
 
 use crate::utils::{
     formatting::{flush_stdout, pretty_format_multi_value, print_color, print_label, print_style},
-    table_builder::ReadonlyTableBuilder,
+    table_builder::TableBuilder,
 };
 
 pub async fn create(lua: &Lua) -> Result<()> {
@@ -18,7 +18,7 @@ pub async fn create(lua: &Lua) -> Result<()> {
     };
     lua.globals().raw_set(
         "console",
-        ReadonlyTableBuilder::new(lua)?
+        TableBuilder::new(lua)?
             .with_function("resetColor", |_, _: ()| print_color("reset"))?
             .with_function("setColor", |_, color: String| print_color(color))?
             .with_function("resetStyle", |_, _: ()| print_style("reset"))?
@@ -39,6 +39,6 @@ pub async fn create(lua: &Lua) -> Result<()> {
                 print_label("error")?;
                 print(&args, true)
             })?
-            .build()?,
+            .build_readonly()?,
     )
 }

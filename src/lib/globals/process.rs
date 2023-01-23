@@ -7,43 +7,32 @@ use mlua::{Error, Function, Lua, MetaMethod, Result, Table, Value};
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
-use crate::utils::table_builder::ReadonlyTableBuilder;
+use crate::utils::table_builder::TableBuilder;
 
 pub async fn create(lua: &Lua, args_vec: Vec<String>) -> Result<()> {
     // Create readonly args array
-    let inner_args = lua.create_table()?;
-    for arg in &args_vec {
-        inner_args.push(arg.clone())?;
-    }
-    inner_args.set_readonly(true);
-    // Create proxied env metatable that gets & sets real env vars
-    let inner_env_meta = lua.create_table()?;
-    inner_env_meta.raw_set(
-        MetaMethod::Index.name(),
-        lua.create_function(process_env_get)?,
-    )?;
-    inner_env_meta.raw_set(
-        MetaMethod::NewIndex.name(),
-        lua.create_function(process_env_set)?,
-    )?;
-    inner_env_meta.raw_set(
-        MetaMethod::Iter.name(),
-        lua.create_function(process_env_iter)?,
-    )?;
-    inner_env_meta.set_readonly(true);
-    // Create blank table for env with the metatable
-    let inner_env = lua.create_table()?;
-    inner_env.set_metatable(Some(inner_env_meta));
-    inner_env.set_readonly(true);
+    let args_tab = TableBuilder::new(lua)?
+        .with_sequential_values(args_vec)?
+        .build_readonly()?;
+    // Create proxied table for env that gets & sets real env vars
+    let env_tab = TableBuilder::new(lua)?
+        .with_metatable(
+            TableBuilder::new(lua)?
+                .with_function(MetaMethod::Index.name(), process_env_get)?
+                .with_function(MetaMethod::NewIndex.name(), process_env_set)?
+                .with_function(MetaMethod::Iter.name(), process_env_iter)?
+                .build_readonly()?,
+        )?
+        .build_readonly()?;
     // Create the full process table
     lua.globals().raw_set(
         "process",
-        ReadonlyTableBuilder::new(lua)?
-            .with_table("args", inner_args)?
-            .with_table("env", inner_env)?
+        TableBuilder::new(lua)?
+            .with_value("args", args_tab)?
+            .with_value("env", env_tab)?
             .with_function("exit", process_exit)?
             .with_async_function("spawn", process_spawn)?
-            .build()?,
+            .build_readonly()?,
     )
 }
 
@@ -138,11 +127,10 @@ async fn process_spawn(lua: &Lua, (program, args): (String, Option<Vec<String>>)
             false => 1,
         });
     // Construct and return a readonly lua table with results
-    let table = lua.create_table()?;
-    table.raw_set("ok", code == 0)?;
-    table.raw_set("code", code)?;
-    table.raw_set("stdout", lua.create_string(&output.stdout)?)?;
-    table.raw_set("stderr", lua.create_string(&output.stderr)?)?;
-    table.set_readonly(true);
-    Ok(table)
+    TableBuilder::new(lua)?
+        .with_value("ok", code == 0)?
+        .with_value("code", code)?
+        .with_value("stdout", lua.create_string(&output.stdout)?)?
+        .with_value("stderr", lua.create_string(&output.stderr)?)?
+        .build_readonly()
 }

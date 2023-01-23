@@ -1,21 +1,21 @@
 use std::{collections::HashMap, str::FromStr};
 
-use mlua::{Error, Lua, LuaSerdeExt, Result, Value};
+use mlua::{Error, Lua, LuaSerdeExt, Result, Table, Value};
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Method,
 };
 
-use crate::utils::{net::get_request_user_agent_header, table_builder::ReadonlyTableBuilder};
+use crate::utils::{net::get_request_user_agent_header, table_builder::TableBuilder};
 
 pub async fn create(lua: &Lua) -> Result<()> {
     lua.globals().raw_set(
         "net",
-        ReadonlyTableBuilder::new(lua)?
+        TableBuilder::new(lua)?
             .with_function("jsonEncode", net_json_encode)?
             .with_function("jsonDecode", net_json_decode)?
             .with_async_function("request", net_request)?
-            .build()?,
+            .build_readonly()?,
     )
 }
 
@@ -32,7 +32,7 @@ fn net_json_decode(lua: &Lua, json: String) -> Result<Value> {
     lua.to_value(&json)
 }
 
-async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Value<'lua>> {
+async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Table<'lua>> {
     // Extract stuff from config and make sure its all valid
     let (url, method, headers, body) = match config {
         Value::String(s) => {
@@ -44,7 +44,11 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Value<
             // Extract url
             let url = match tab.raw_get::<&str, mlua::String>("url") {
                 Ok(config_url) => config_url.to_string_lossy().to_string(),
-                Err(_) => return Err(Error::RuntimeError("Missing 'url' in config".to_string())),
+                Err(_) => {
+                    return Err(Error::RuntimeError(
+                        "Missing 'url' in request config".to_string(),
+                    ))
+                }
             };
             // Extract method
             let method = match tab.raw_get::<&str, mlua::String>("method") {
@@ -73,14 +77,19 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Value<
             };
             (url, method, headers, body)
         }
-        _ => return Err(Error::RuntimeError("Invalid config value".to_string())),
+        value => {
+            return Err(Error::RuntimeError(format!(
+                "Invalid request config - expected string or table, got {}",
+                value.type_name()
+            )))
+        }
     };
     // Convert method string into proper enum
     let method = match Method::from_str(&method) {
         Ok(meth) => meth,
         Err(_) => {
             return Err(Error::RuntimeError(format!(
-                "Invalid config method '{}'",
+                "Invalid request config method '{}'",
                 &method
             )))
         }
@@ -111,22 +120,23 @@ async fn net_request<'lua>(lua: &'lua Lua, config: Value<'lua>) -> Result<Value<
     let res_headers = response.headers().clone();
     let res_bytes = response.bytes().await.map_err(Error::external)?;
     // Construct and return a readonly lua table with results
-    let tab = lua.create_table()?;
-    tab.raw_set("ok", res_status.is_success())?;
-    tab.raw_set("statusCode", res_status.as_u16())?;
-    tab.raw_set(
-        "statusMessage",
-        res_status.canonical_reason().unwrap_or("?"),
-    )?;
-    tab.raw_set(
-        "headers",
-        res_headers
-            .iter()
-            .filter(|(_, value)| value.to_str().is_ok())
-            .map(|(key, value)| (key.as_str(), value.to_str().unwrap()))
-            .collect::<HashMap<_, _>>(),
-    )?;
-    tab.raw_set("body", lua.create_string(&res_bytes)?)?;
-    tab.set_readonly(true);
-    Ok(Value::Table(tab))
+    TableBuilder::new(lua)?
+        .with_value("ok", res_status.is_success())?
+        .with_value("statusCode", res_status.as_u16())?
+        .with_value(
+            "statusMessage",
+            res_status.canonical_reason().unwrap_or("?"),
+        )?
+        .with_value(
+            "headers",
+            res_headers
+                .iter()
+                .filter_map(|(key, value)| match value.to_str() {
+                    Ok(value) => Some((key.as_str(), value)),
+                    Err(_) => None,
+                })
+                .collect::<HashMap<_, _>>(),
+        )?
+        .with_value("body", lua.create_string(&res_bytes)?)?
+        .build_readonly()
 }
