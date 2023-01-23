@@ -16,8 +16,10 @@ assert(not flag, "Cancel should handle non-immediate threads")
 
 local flag2: number = 1
 task.spawn(function()
+	task.wait(0.1)
 	flag2 = 2
-	task.wait()
+	task.wait(0.2)
 	flag2 = 3
 end)
+task.wait(0.2)
 assert(flag2 == 2, "Cancel should properly handle yielding threads")
