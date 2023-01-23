@@ -1,14 +1,10 @@
-use std::{
-    env,
-    process::{exit, Stdio},
-    sync::Weak,
-};
+use std::{env, process::Stdio, sync::Weak};
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use smol::{process::Command, LocalExecutor};
+use smol::{channel::Sender, process::Command, LocalExecutor};
 
-use crate::utils::table_builder::TableBuilder;
+use crate::{utils::table_builder::TableBuilder, LuneMessage};
 
 pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
     // Create readonly args array
@@ -31,7 +27,7 @@ pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
         TableBuilder::new(lua)?
             .with_value("args", args_tab)?
             .with_value("env", env_tab)?
-            .with_function("exit", process_exit)?
+            .with_async_function("exit", process_exit)?
             .with_async_function("spawn", process_spawn)?
             .build_readonly()?,
     )
@@ -103,14 +99,17 @@ fn process_env_iter<'lua>(
     })
 }
 
-fn process_exit(_: &Lua, exit_code: Option<i32>) -> LuaResult<()> {
-    // TODO: Exit gracefully to the root with an Ok
-    // result instead of completely exiting the process
-    if let Some(code) = exit_code {
-        exit(code);
-    } else {
-        exit(0)
-    }
+async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
+    let sender = lua
+        .app_data_ref::<Weak<Sender<LuneMessage>>>()
+        .unwrap()
+        .upgrade()
+        .unwrap();
+    sender
+        .send(LuneMessage::Exit(exit_code.unwrap_or(0)))
+        .await
+        .map_err(LuaError::external)?;
+    Ok(())
 }
 
 async fn process_spawn(

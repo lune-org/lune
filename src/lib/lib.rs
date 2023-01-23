@@ -1,10 +1,4 @@
-use std::{
-    collections::HashSet,
-    sync::{
-        atomic::{AtomicU32, Ordering},
-        Arc,
-    },
-};
+use std::{collections::HashSet, sync::Arc};
 
 use anyhow::{anyhow, bail, Result};
 use mlua::prelude::*;
@@ -42,7 +36,9 @@ impl LuneGlobal {
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum LuneMessage {
+    Exit(u8),
     Spawned,
     Finished,
     Error(anyhow::Error),
@@ -77,7 +73,7 @@ impl Lune {
         self
     }
 
-    pub async fn run(&self, name: &str, chunk: &str) -> Result<()> {
+    pub async fn run(&self, name: &str, chunk: &str) -> Result<u8> {
         let (s, r) = smol::channel::unbounded::<LuneMessage>();
         let lua = Arc::new(mlua::Lua::new());
         let exec = Arc::new(LocalExecutor::new());
@@ -122,33 +118,72 @@ impl Lune {
             sender.send(message).await
         })
         .detach();
-        // Run the executor until there are no tasks left
-        let task_count = AtomicU32::new(0);
-        smol::block_on(exec.run(async {
+        // Run the executor until there are no tasks left,
+        // taking care to not exit right away for errors
+        let (got_code, got_error, exit_code) = smol::block_on(exec.run(async {
+            let mut task_count = 0;
+            let mut got_error = false;
+            let mut got_code = false;
+            let mut exit_code = 0;
             while let Ok(message) = receiver.recv().await {
-                let value = match message {
-                    LuneMessage::Spawned => task_count.fetch_add(1, Ordering::Relaxed),
-                    LuneMessage::Finished => task_count.fetch_sub(1, Ordering::Relaxed),
+                // Make sure our task-count-modifying messages are sent correctly, one
+                // task spawned must always correspond to one task finished / errored
+                match &message {
+                    LuneMessage::Exit(_) => {}
+                    LuneMessage::Spawned => {}
+                    message => {
+                        if task_count == 0 {
+                            bail!(
+                                "Got message while task count was 0!\nMessage: {:#?}",
+                                message
+                            )
+                        }
+                    }
+                }
+                // Handle whatever message we got
+                match message {
+                    LuneMessage::Exit(code) => {
+                        exit_code = code;
+                        got_code = true;
+                        break;
+                    }
+                    LuneMessage::Spawned => task_count += 1,
+                    LuneMessage::Finished => task_count -= 1,
                     LuneMessage::Error(e) => {
-                        task_count.fetch_sub(1, Ordering::Relaxed);
-                        bail!("{}", e)
+                        eprintln!("{}", e);
+                        got_error = true;
+                        task_count += 1;
                     }
                     LuneMessage::LuaError(e) => {
-                        task_count.fetch_sub(1, Ordering::Relaxed);
-                        bail!("{}", e)
+                        eprintln!("{}", e);
+                        got_error = true;
+                        task_count += 1;
                     }
                 };
-                println!("Running tasks: {value}");
+                // If there are no tasks left running, it is now
+                // safe to close the receiver and end execution
+                if task_count == 0 {
+                    receiver.close();
+                }
             }
-            Ok(())
-        }))
+            Ok((got_code, got_error, exit_code))
+        }))?;
+        // If we got an error, we will default to exiting
+        // with code 1, unless a code was manually given
+        if got_code {
+            Ok(exit_code)
+        } else if got_error {
+            Ok(1)
+        } else {
+            Ok(0)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::Lune;
-    use anyhow::Result;
+    use anyhow::{bail, Result};
     use smol::fs::read_to_string;
     use std::env::current_dir;
 
@@ -167,9 +202,19 @@ mod tests {
                             .await
                             .unwrap();
                         let lune = Lune::new()
-                            .with_args(ARGS.clone().iter().map(ToString::to_string).collect())
+                            .with_args(
+                                ARGS
+                                    .clone()
+                                    .iter()
+                                    .map(ToString::to_string)
+                                    .collect()
+                            )
                             .with_all_globals();
-                        lune.run($value, &script).await
+                        let exit_code = lune.run($value, &script).await?;
+                        if exit_code != 0 {
+                            bail!("Test exited with failure code {}", exit_code);
+                        }
+                        Ok(())
                     })
                 }
             )*
@@ -184,9 +229,7 @@ mod tests {
         fs_dirs: "fs/dirs",
         process_args: "process/args",
         process_env: "process/env",
-        // NOTE: This test does not currently work, it will exit the entire
-        // process, meaning it will also exit our test runner and skip testing
-        // process_exit: "process/exit",
+        process_exit: "process/exit",
         process_spawn: "process/spawn",
         net_request_codes: "net/request/codes",
         net_request_methods: "net/request/methods",
