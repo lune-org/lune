@@ -52,12 +52,10 @@ declare process: {
 	},
 }
 
---[[
-	declare task: {
-		cancel: (t: thread) -> (),
-		defer: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
-		delay: <A..., R...>(duration: number?, f: thread | (A...) -> (R...), A...) -> (R...),
-		spawn: <A..., R...>(f: thread | (A...) -> (R...), A...) -> (R...),
-		wait: (duration: number?) -> (number),
-	}
-]]
+declare task: {
+	cancel: (t: thread) -> (),
+	defer: <T...>(f: thread | (T...) -> (...any), T...) -> thread,
+	delay: <T...>(duration: number?, f: thread | (T...) -> (...any), T...) -> thread,
+	spawn: <T...>(f: thread | (T...) -> (...any), T...) -> thread,
+	wait: (duration: number?) -> (number),
+}

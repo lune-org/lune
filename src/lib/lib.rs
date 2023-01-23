@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::{bail, Result};
 use mlua::prelude::*;
+use smol::LocalExecutor;
 
 pub mod globals;
 pub mod utils;
@@ -61,8 +62,9 @@ impl Lune {
     }
 
     pub async fn run(&self, name: &str, chunk: &str) -> Result<()> {
-        smol::block_on(async {
-            let lua = Lua::new();
+        let lua = Lua::new();
+        let exec = LocalExecutor::new();
+        smol::block_on(exec.run(async {
             for global in &self.globals {
                 match &global {
                     LuneGlobal::Console => create_console(&lua).await?,
@@ -72,7 +74,11 @@ impl Lune {
                     LuneGlobal::Task => create_task(&lua).await?,
                 }
             }
-            let result = lua.load(chunk).set_name(name)?.exec_async().await;
+            let result = lua
+                .load(chunk)
+                .set_name(name)?
+                .call_async::<_, LuaMultiValue>(LuaMultiValue::new())
+                .await;
             match result {
                 Ok(_) => Ok(()),
                 Err(e) => {
@@ -87,7 +93,7 @@ impl Lune {
                     }
                 }
             }
-        })
+        }))
     }
 }
 
@@ -139,11 +145,10 @@ mod tests {
         net_request_redirect: "net/request/redirect",
         net_json_decode: "net/json/decode",
         net_json_encode: "net/json/encode",
-        // FIXME: Re-enable these tests for doing more work on the task library
-        // task_cancel: "task/cancel",
-        // task_defer: "task/defer",
-        // task_delay: "task/delay",
-        // task_spawn: "task/spawn",
-        // task_wait: "task/wait",
+        task_cancel: "task/cancel",
+        task_defer: "task/defer",
+        task_delay: "task/delay",
+        task_spawn: "task/spawn",
+        task_wait: "task/wait",
     }
 }
