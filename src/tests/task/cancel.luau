@@ -2,26 +2,30 @@
 
 local flag: boolean = false
 local thread = task.defer(function()
-	task.wait(0.1)
-	flag = true
-end)
-local thread2 = task.delay(0, function()
-	task.wait(0.1)
 	flag = true
 end)
 task.cancel(thread)
+task.wait(0.1)
+assert(not flag, "Cancel should handle deferred threads")
+
+local flag2: boolean = false
+local thread2 = task.delay(0, function()
+	flag2 = true
+end)
 task.cancel(thread2)
-task.wait(0.2)
-assert(not flag, "Cancel should handle non-immediate threads")
+task.wait(0.1)
+assert(not flag2, "Cancel should handle deferred threads")
 
--- Cancellation should be as immediate as possible
+-- Cancellation should work with yields in spawned threads
 
-local flag2: number = 1
-task.spawn(function()
+local flag3: number = 1
+local thread3 = task.spawn(function()
 	task.wait(0.1)
-	flag2 = 2
+	flag3 = 2
 	task.wait(0.2)
-	flag2 = 3
+	flag3 = 3
 end)
 task.wait(0.2)
-assert(flag2 == 2, "Cancel should properly handle yielding threads")
+task.cancel(thread3)
+task.wait(0.2)
+assert(flag3 == 2, "Cancel should properly handle yielding threads")
