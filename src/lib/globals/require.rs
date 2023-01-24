@@ -1,13 +1,28 @@
-use std::{env, path::PathBuf, sync::Arc};
+use std::{
+    env::{self, current_dir},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use mlua::prelude::*;
-use os_str_bytes::RawOsStr;
+use os_str_bytes::{OsStrBytes, RawOsStr};
 
 pub fn create(lua: &Lua) -> LuaResult<()> {
     // Preserve original require behavior if we have a special env var set
     if env::var_os("LUAU_PWD_REQUIRE").is_some() {
         return Ok(());
     }
+    /*
+      Store the current working directory so that we can use it later
+      and remove it from require paths in error messages, showing
+      absolute paths is bad ux and we should try to avoid it
+
+      Throughout this function we also take extra care to not perform any lossy
+      conversion and use os strings instead of Rust's utf-8 checked strings,
+      just in case someone out there uses luau with non-utf8 string requires
+    */
+    let pwd = lua.create_string(&current_dir()?.to_raw_bytes())?;
+    lua.set_named_registry_value("require_pwd", pwd)?;
     // Fetch the debug info function and store it in the registry
     // - we will use it to fetch the current scripts file name
     let debug: LuaTable = lua.globals().raw_get("debug")?;
@@ -22,6 +37,7 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
       for, and then runs the original require function with the wanted path
     */
     let new_require = lua.create_function(|lua, require_path: LuaString| {
+        let require_pwd: LuaString = lua.named_registry_value("require_pwd")?;
         let require_original: LuaFunction = lua.named_registry_value("require_original")?;
         let require_getinfo: LuaFunction = lua.named_registry_value("require_getinfo")?;
         let require_source: LuaString = require_getinfo.call((2, "s"))?;
@@ -29,17 +45,24 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
           Combine the require caller source with the wanted path
           string to get a final path relative to pwd - it is definitely
           relative to pwd because Lune will only load files relative to pwd
-
-          Here we also take extra care to not perform any lossy conversion
-          and use os strings instead of Rust's utf-8 checked strings, in the
-          unlikely case someone out there uses luau with non-utf8 string requires
         */
+        let raw_pwd_str = RawOsStr::assert_from_raw_bytes(require_pwd.as_bytes());
         let raw_source = RawOsStr::assert_from_raw_bytes(require_source.as_bytes());
         let raw_path = RawOsStr::assert_from_raw_bytes(require_path.as_bytes());
-        let path_relative_to_pwd = PathBuf::from(&raw_source.to_os_str())
+        let mut path_relative_to_pwd = PathBuf::from(&raw_source.to_os_str())
             .parent()
             .unwrap()
             .join(raw_path.to_os_str());
+        // Try to normalize and resolve relative path segments such as './' and '../'
+        if let Ok(canonicalized) = path_relative_to_pwd.with_extension("luau").canonicalize() {
+            path_relative_to_pwd = canonicalized.with_extension("");
+        }
+        if let Ok(canonicalized) = path_relative_to_pwd.with_extension("lua").canonicalize() {
+            path_relative_to_pwd = canonicalized.with_extension("");
+        }
+        if let Ok(stripped) = path_relative_to_pwd.strip_prefix(&raw_pwd_str.to_os_str()) {
+            path_relative_to_pwd = stripped.to_path_buf();
+        }
         // Create a lossless lua string from the pathbuf and finally call require
         let raw_path_str = RawOsStr::new(path_relative_to_pwd.as_os_str());
         let lua_path_str = lua.create_string(raw_path_str.as_raw_bytes());

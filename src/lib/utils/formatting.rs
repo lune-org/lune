@@ -198,8 +198,12 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
     let stack_end = format!("[{}Stack End{}]", COLOR_BLUE, COLOR_RESET);
     let err_string = match e {
         LuaError::RuntimeError(e) => {
+            // Remove unnecessary prefix
+            let mut err_string = e.to_string();
+            if let Some(no_prefix) = err_string.strip_prefix("runtime error: ") {
+                err_string = no_prefix.to_string();
+            }
             // Add "Stack Begin" instead of default stack traceback string
-            let err_string = e.to_string();
             let mut err_lines = err_string
                 .lines()
                 .map(|s| s.to_string())
