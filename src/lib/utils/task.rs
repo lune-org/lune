@@ -38,8 +38,13 @@ pub async fn run_registered_task<T>(
     // Run the new task separately from the current one using the executor
     let sender = sender.clone();
     let task = exec.spawn(async move {
+        // HACK: For deferred tasks we yield a bunch of times to try and ensure
+        // we run our task at the very end of the async queue, this can fail if
+        // the user creates a bunch of interleaved deferred and normal tasks
         if mode == TaskRunMode::Deferred {
-            yield_now().await;
+            for _ in 0..64 {
+                yield_now().await;
+            }
         }
         sender
             .send(match to_run.await {
