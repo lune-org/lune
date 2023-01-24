@@ -204,23 +204,36 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
                 .lines()
                 .map(|s| s.to_string())
                 .collect::<Vec<String>>();
+            let mut found_stack_begin = false;
             for (index, line) in err_lines.clone().iter().enumerate().rev() {
                 if *line == "stack traceback:" {
                     err_lines[index] = stack_begin;
+                    found_stack_begin = true;
                     break;
                 }
             }
             // Add "Stack End" to the very end of the stack trace for symmetry
-            err_lines.push(stack_end);
+            if found_stack_begin {
+                err_lines.push(stack_end);
+            }
             err_lines.join("\n")
         }
-        LuaError::CallbackError { cause, traceback } => {
+        LuaError::CallbackError { traceback, cause } => {
+            // Find the best traceback (longest) and the root error message
+            let mut best_trace = traceback;
+            let mut root_cause = cause.as_ref();
+            while let LuaError::CallbackError { cause, traceback } = root_cause {
+                if traceback.len() > best_trace.len() {
+                    best_trace = traceback;
+                }
+                root_cause = cause;
+            }
             // Same error formatting as above
             format!(
-                "{}\n{}{}{}",
-                pretty_format_luau_error(cause.as_ref()),
+                "{}\n{}\n{}\n{}",
+                pretty_format_luau_error(root_cause),
                 stack_begin,
-                traceback.strip_prefix("stack traceback:\n").unwrap(),
+                best_trace.strip_prefix("stack traceback:\n").unwrap(),
                 stack_end
             )
         }
@@ -247,6 +260,8 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
     let mut err_lines = err_string.lines().collect::<Vec<_>>();
     // Remove the script path from the error message
     // itself, it can be found in the stack trace
+    // FIXME: This no longer works now that we use
+    // an exact name when our lune script is loaded
     if let Some(first_line) = err_lines.first() {
         if first_line.starts_with("[string \"") {
             if let Some(closing_bracket) = first_line.find("]:") {
@@ -260,7 +275,6 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
             }
         }
     }
-    // Reformat stack trace lines, ignore lines that just mention C functions
     // Merge all lines back together into one string
     err_lines.join("\n")
 }

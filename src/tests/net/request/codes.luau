@@ -1,4 +1,4 @@
-local util = require("src/tests/net/request/util")
+local util = require("./util")
 local pass, fail = util.pass, util.fail
 
 pass("GET", "https://httpbin.org/status/200", "Request status code - 200")

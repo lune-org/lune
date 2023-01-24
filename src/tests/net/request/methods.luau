@@ -1,4 +1,4 @@
-local util = require("src/tests/net/request/util")
+local util = require("./util")
 local pass = util.pass
 
 -- stylua: ignore start

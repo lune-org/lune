@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- `require` now uses paths relative to the file instead of being relative to the current directory, which is consistent with almost all other languages but not original Lua / Luau - this is a breaking change but will allow for proper packaging of third-party modules and more in the future.
+- Improved error message when an invalid file path is passed to `require`
+- Much improved error formatting and stack traces
+
+### Fixed
+
+- Process termination will now always make sure all lua state is cleaned up before exiting, in all cases
+
 ## `0.0.6` - January 23rd, 2023
 
 ### Added

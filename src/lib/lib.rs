@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, process::ExitCode, sync::Arc};
 
 use anyhow::{anyhow, bail, Result};
 use mlua::prelude::*;
@@ -8,7 +8,7 @@ pub mod globals;
 pub mod utils;
 
 use crate::{
-    globals::{create_console, create_fs, create_net, create_process, create_task},
+    globals::{create_console, create_fs, create_net, create_process, create_require, create_task},
     utils::formatting::pretty_format_luau_error,
 };
 
@@ -21,6 +21,7 @@ pub enum LuneGlobal {
     Fs,
     Net,
     Process,
+    Require,
     Task,
 }
 
@@ -31,6 +32,7 @@ impl LuneGlobal {
             Self::Fs,
             Self::Net,
             Self::Process,
+            Self::Require,
             Self::Task,
         ]
     }
@@ -73,7 +75,7 @@ impl Lune {
         self
     }
 
-    pub async fn run(&self, name: &str, chunk: &str) -> Result<u8> {
+    pub async fn run(&self, name: &str, chunk: &str) -> Result<ExitCode> {
         let (s, r) = smol::channel::unbounded::<LuneMessage>();
         let lua = Arc::new(mlua::Lua::new());
         let exec = Arc::new(LocalExecutor::new());
@@ -90,6 +92,7 @@ impl Lune {
                 LuneGlobal::Fs => create_fs(&lua)?,
                 LuneGlobal::Net => create_net(&lua)?,
                 LuneGlobal::Process => create_process(&lua, self.args.clone())?,
+                LuneGlobal::Require => create_require(&lua)?,
                 LuneGlobal::Task => create_task(&lua)?,
             }
         }
@@ -100,7 +103,7 @@ impl Lune {
             sender.send(LuneMessage::Spawned).await?;
             let result = lua
                 .load(&script_chunk)
-                .set_name(&script_name)
+                .set_name(&format!("={}", script_name))
                 .unwrap()
                 .call_async::<_, LuaMultiValue>(LuaMultiValue::new())
                 .await;
@@ -155,7 +158,7 @@ impl Lune {
                         task_count += 1;
                     }
                     LuneMessage::LuaError(e) => {
-                        eprintln!("{}", e);
+                        eprintln!("{}", pretty_format_luau_error(&e));
                         got_error = true;
                         task_count += 1;
                     }
@@ -171,11 +174,11 @@ impl Lune {
         // If we got an error, we will default to exiting
         // with code 1, unless a code was manually given
         if got_code {
-            Ok(exit_code)
+            Ok(ExitCode::from(exit_code))
         } else if got_error {
-            Ok(1)
+            Ok(ExitCode::FAILURE)
         } else {
-            Ok(0)
+            Ok(ExitCode::SUCCESS)
         }
     }
 }
@@ -183,9 +186,9 @@ impl Lune {
 #[cfg(test)]
 mod tests {
     use crate::Lune;
-    use anyhow::{bail, Result};
+    use anyhow::Result;
     use smol::fs::read_to_string;
-    use std::env::current_dir;
+    use std::process::ExitCode;
 
     const ARGS: &[&str] = &["Foo", "Bar"];
 
@@ -193,12 +196,10 @@ mod tests {
         ($($name:ident: $value:expr,)*) => {
             $(
                 #[test]
-                fn $name() -> Result<()> {
+                fn $name() -> Result<ExitCode> {
                     smol::block_on(async {
-                        let path = current_dir()
-                            .unwrap()
-                            .join(format!("src/tests/{}.luau", $value));
-                        let script = read_to_string(&path)
+                        let full_name = format!("src/tests/{}.luau", $value);
+                        let script = read_to_string(&full_name)
                             .await
                             .unwrap();
                         let lune = Lune::new()
@@ -210,11 +211,8 @@ mod tests {
                                     .collect()
                             )
                             .with_all_globals();
-                        let exit_code = lune.run($value, &script).await?;
-                        if exit_code != 0 {
-                            bail!("Test exited with failure code {}", exit_code);
-                        }
-                        Ok(())
+                        let script_name = full_name.strip_suffix(".luau").unwrap();
+                        lune.run(&script_name, &script).await
                     })
                 }
             )*
@@ -227,15 +225,20 @@ mod tests {
         console_set_style: "console/set_style",
         fs_files: "fs/files",
         fs_dirs: "fs/dirs",
-        process_args: "process/args",
-        process_env: "process/env",
-        process_exit: "process/exit",
-        process_spawn: "process/spawn",
         net_request_codes: "net/request/codes",
         net_request_methods: "net/request/methods",
         net_request_redirect: "net/request/redirect",
         net_json_decode: "net/json/decode",
         net_json_encode: "net/json/encode",
+        process_args: "process/args",
+        process_env: "process/env",
+        process_exit: "process/exit",
+        process_spawn: "process/spawn",
+        require_children: "require/tests/children",
+        require_invalid: "require/tests/invalid",
+        require_nested: "require/tests/nested",
+        require_parents: "require/tests/parents",
+        require_siblings: "require/tests/siblings",
         task_cancel: "task/cancel",
         task_defer: "task/defer",
         task_delay: "task/delay",

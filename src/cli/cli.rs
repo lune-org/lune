@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::{fs::read_to_string, process::ExitCode};
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
@@ -54,7 +54,7 @@ impl Cli {
         }
     }
 
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self) -> Result<ExitCode> {
         // Download definition files, if wanted
         let download_types_requested = self.download_selene_types || self.download_luau_types;
         if download_types_requested {
@@ -82,7 +82,7 @@ impl Cli {
             // Only downloading types without running a script is completely
             // fine, and we should just exit the program normally afterwards
             if download_types_requested {
-                return Ok(());
+                return Ok(ExitCode::SUCCESS);
             }
             // HACK: We know that we didn't get any arguments here but since
             // script_path is optional clap will not error on its own, to fix
@@ -98,10 +98,13 @@ impl Cli {
         let file_display_name = file_path.with_extension("").display().to_string();
         // Create a new lune object with all globals & run the script
         let lune = Lune::new().with_args(self.script_args).with_all_globals();
-        if let Err(e) = lune.run(&file_display_name, &file_contents).await {
-            eprintln!("{e}");
-            std::process::exit(1);
-        };
-        Ok(())
+        let result = lune.run(&file_display_name, &file_contents).await;
+        Ok(match result {
+            Err(e) => {
+                eprintln!("{e}");
+                ExitCode::from(1)
+            }
+            Ok(code) => code,
+        })
     }
 }

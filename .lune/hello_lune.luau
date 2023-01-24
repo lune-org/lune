@@ -6,7 +6,7 @@ print("Hello, lune! 🌙")
 	Using a function from another module
 ]==]
 
-local module = require(".lune/module")
+local module = require("./module")
 module.sayHello()
 
 --[==[
@@ -36,8 +36,7 @@ end)
 
 print("Spawning a delayed task that will run in 5 seconds")
 task.delay(5, function()
-	print()
-	print("...")
+	print("\n...")
 	task.wait(1)
 	print("Hello again!")
 	task.wait(1)
