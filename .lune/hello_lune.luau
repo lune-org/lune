@@ -26,6 +26,27 @@ end
 --[==[
 	EXAMPLE #3
 
+	Spawning tasks
+]==]
+
+task.spawn(function()
+	print("\nSpawned a task that will run instantly but not block")
+	task.wait(5)
+end)
+
+print("Spawning a delayed task that will run in 5 seconds")
+task.delay(5, function()
+	print()
+	print("...")
+	task.wait(1)
+	print("Hello again!")
+	task.wait(1)
+	print("Goodbye again! 🌙")
+end)
+
+--[==[
+	EXAMPLE #4
+
 	Get & set environment variables
 
 	Checks if environment variables are empty or not,
@@ -45,7 +66,7 @@ for key, value in process.env do
 end
 
 --[==[
-	EXAMPLE #4
+	EXAMPLE #5
 
 	Read files in the current directory
 
@@ -88,7 +109,7 @@ end
 -- since the ping command does not work in azure
 if not process.env.GITHUB_ACTIONS then
 	--[==[
-		EXAMPLE #5
+		EXAMPLE #6
 
 		Call out to another program / executable
 
@@ -103,7 +124,7 @@ if not process.env.GITHUB_ACTIONS then
 	})
 
 	--[==[
-		EXAMPLE #6
+		EXAMPLE #7
 
 		Using the result of a spawned process, exiting the process
 
@@ -130,7 +151,7 @@ if not process.env.GITHUB_ACTIONS then
 end
 
 --[==[
-	EXAMPLE #7
+	EXAMPLE #8
 
 	Using the built-in networking library
 ]==]
@@ -167,7 +188,7 @@ assert(apiResponse.body == "bar", "Invalid json response")
 print("Got valid JSON response with changes applied")
 
 --[==[
-	EXAMPLE #8
+	EXAMPLE #9
 
 	Using the console library to print pretty
 ]==]
@@ -196,7 +217,7 @@ print(string.rep("—", 22))
 console.resetColor()
 
 --[==[
-	EXAMPLE #9
+	EXAMPLE #10
 
 	Saying goodbye 😔
 ]==]
