@@ -1,8 +1,12 @@
 {
+	// Luau - disable Roblox features, enable Lune typedefs & requires
+	"luau-lsp.sourcemap.enabled": false,
 	"luau-lsp.types.roblox": false,
 	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"],
-	"luau-lsp.sourcemap.enabled": false,
+	"luau-lsp.require.mode": "relativeToFile",
+	// Rust
 	"rust-analyzer.check.command": "clippy",
+	// Formatting
 	"editor.formatOnSave": true,
 	"stylua.searchParentDirectories": true,
 	"prettier.tabWidth": 2,
