@@ -121,43 +121,50 @@ impl Cli {
 
 #[cfg(test)]
 mod tests {
-    use std::{env::set_current_dir, time::Duration};
+    use std::env::{current_dir, set_current_dir};
 
-    use anyhow::{bail, Result};
+    use anyhow::{bail, Context, Result};
     use serde_json::Value;
-    use smol::{
-        fs::{create_dir_all, read_to_string},
-        Timer,
-    };
+    use smol::fs::{create_dir_all, read_to_string, remove_file};
 
     use super::{Cli, LUNE_LUAU_FILE_NAME, LUNE_SELENE_FILE_NAME};
 
-    async fn sleep(seconds: f32) -> Result<()> {
-        Timer::after(Duration::from_secs_f32(seconds)).await;
+    async fn run_cli(cli: Cli) -> Result<()> {
+        let path = current_dir()
+            .context("Failed to get current dir")?
+            .join("bin");
+        create_dir_all(&path)
+            .await
+            .context("Failed to create bin dir")?;
+        set_current_dir(&path).context("Failed to set current dir")?;
+        cli.run().await?;
         Ok(())
     }
 
-    async fn run_cli(cli: Cli) -> Result<()> {
-        create_dir_all("bin").await?;
-        sleep(0.125).await?;
-        set_current_dir("bin")?;
-        sleep(0.125).await?;
-        cli.run().await?;
-        sleep(0.125).await?;
-        Ok(())
+    async fn ensure_file_exists_and_is_not_json(file_name: &str) -> Result<()> {
+        match read_to_string(file_name)
+            .await
+            .context("Failed to read definitions file")
+        {
+            Ok(file_contents) => match serde_json::from_str::<Value>(&file_contents) {
+                Err(_) => {
+                    remove_file(file_name)
+                        .await
+                        .context("Failed to remove definitions file")?;
+                    Ok(())
+                }
+                Ok(_) => bail!("Downloading selene definitions returned json, expected luau"),
+            },
+            Err(e) => bail!("Failed to download selene definitions!\n{e}"),
+        }
     }
 
     #[test]
     fn download_selene_types() -> Result<()> {
         smol::block_on(async {
             run_cli(Cli::download_selene_types()).await?;
-            match read_to_string(LUNE_SELENE_FILE_NAME).await {
-                Ok(file_contents) => match serde_json::from_str::<Value>(&file_contents) {
-                    Err(_) => Ok(()),
-                    Ok(_) => bail!("Downloading selene definitions returned json, expected luau"),
-                },
-                Err(_) => bail!("Failed to download selene definitions!"),
-            }
+            ensure_file_exists_and_is_not_json(LUNE_SELENE_FILE_NAME).await?;
+            Ok(())
         })
     }
 
@@ -165,13 +172,8 @@ mod tests {
     fn download_luau_types() -> Result<()> {
         smol::block_on(async {
             run_cli(Cli::download_luau_types()).await?;
-            match read_to_string(LUNE_LUAU_FILE_NAME).await {
-                Ok(file_contents) => match serde_json::from_str::<Value>(&file_contents) {
-                    Err(_) => Ok(()),
-                    Ok(_) => bail!("Downloading luau definitions returned json, expected luau"),
-                },
-                Err(_) => bail!("Failed to download luau definitions!"),
-            }
+            ensure_file_exists_and_is_not_json(LUNE_LUAU_FILE_NAME).await?;
+            Ok(())
         })
     }
 }
