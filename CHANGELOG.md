@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `require` now uses paths relative to the file instead of being relative to the current directory, which is consistent with almost all other languages but not original Lua / Luau - this is a breaking change but will allow for proper packaging of third-party modules and more in the future.
+  - **_NOTE:_** _If you still want to use the default Lua behavior instead of relative paths, set the environment variable `LUAU_PWD_REQUIRE` to `true`_
 - Improved error message when an invalid file path is passed to `require`
 - Much improved error formatting and stack traces
 
