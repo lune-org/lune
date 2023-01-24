@@ -55,19 +55,23 @@ async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
 
 async fn task_defer<'a>(
     lua: &'a Lua,
-    (tof, _args): (LuaValue<'a>, LuaMultiValue<'a>),
+    (tof, args): (LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
     // Spawn a new detached task using a lua reference that we can use inside of our task
     let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
+    let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
     run_registered_task(lua, TaskRunMode::Deferred, async move {
-        let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
+        let thread: LuaThread = task_lua.registry_value(&task_thread_key)?;
+        let argsv: Vec<LuaValue> = task_lua.registry_value(&task_args_key)?;
+        let args = LuaMultiValue::from_vec(argsv);
         if thread.status() == LuaThreadStatus::Resumable {
-            thread.into_async::<_, LuaMultiValue>(()).await?;
+            let _: LuaMultiValue = thread.into_async(args).await?;
         }
         task_lua.remove_registry_value(task_thread_key)?;
+        task_lua.remove_registry_value(task_args_key)?;
         Ok(())
     })
     .await?;
@@ -76,20 +80,24 @@ async fn task_defer<'a>(
 
 async fn task_delay<'a>(
     lua: &'a Lua,
-    (duration, tof, _args): (Option<f32>, LuaValue<'a>, LuaMultiValue<'a>),
+    (duration, tof, args): (Option<f32>, LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
     // Spawn a new detached task using a lua reference that we can use inside of our task
     let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
+    let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
     run_registered_task(lua, TaskRunMode::Deferred, async move {
         task_wait(&task_lua, duration).await?;
-        let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
+        let thread: LuaThread = task_lua.registry_value(&task_thread_key)?;
+        let argsv: Vec<LuaValue> = task_lua.registry_value(&task_args_key)?;
+        let args = LuaMultiValue::from_vec(argsv);
         if thread.status() == LuaThreadStatus::Resumable {
-            thread.into_async::<_, LuaMultiValue>(()).await?;
+            let _: LuaMultiValue = thread.into_async(args).await?;
         }
         task_lua.remove_registry_value(task_thread_key)?;
+        task_lua.remove_registry_value(task_args_key)?;
         Ok(())
     })
     .await?;
@@ -98,19 +106,23 @@ async fn task_delay<'a>(
 
 async fn task_spawn<'a>(
     lua: &'a Lua,
-    (tof, _args): (LuaValue<'a>, LuaMultiValue<'a>),
+    (tof, args): (LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
     // Spawn a new detached task using a lua reference that we can use inside of our task
     let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
+    let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
     run_registered_task(lua, TaskRunMode::Instant, async move {
-        let thread = task_lua.registry_value::<LuaThread>(&task_thread_key)?;
+        let thread: LuaThread = task_lua.registry_value(&task_thread_key)?;
+        let argsv: Vec<LuaValue> = task_lua.registry_value(&task_args_key)?;
+        let args = LuaMultiValue::from_vec(argsv);
         if thread.status() == LuaThreadStatus::Resumable {
-            thread.into_async::<_, LuaMultiValue>(()).await?;
+            let _: LuaMultiValue = thread.into_async(args).await?;
         }
         task_lua.remove_registry_value(task_thread_key)?;
+        task_lua.remove_registry_value(task_args_key)?;
         Ok(())
     })
     .await?;

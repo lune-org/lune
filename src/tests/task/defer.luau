@@ -40,10 +40,24 @@ assert(not flag2, "Defer should run after spawned threads")
 
 -- Varargs should get passed correctly
 
-local function f(arg1: string, arg2: number, f2: (...any) -> ...any)
-	assert(type(arg1) == "string", "Invalid arg 1 passed to function")
-	assert(type(arg2) == "number", "Invalid arg 2 passed to function")
-	assert(type(arg3) == "function", "Invalid arg 3 passed to function")
+local function fcheck(index: number, type: string, value: any)
+	if typeof(value) ~= type then
+		console.error(
+			string.format(
+				"Expected argument #%d to be of type %s, got %s",
+				index,
+				type,
+				console.format(value)
+			)
+		)
+		process.exit(1)
+	end
+end
+
+local function f(...: any)
+	fcheck(1, "string", select(1, ...))
+	fcheck(2, "number", select(2, ...))
+	fcheck(3, "function", select(3, ...))
 end
 
 task.defer(f, "", 1, f)
