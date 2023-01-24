@@ -112,6 +112,21 @@ type process = {
 
 </details>
 
+<details>
+<summary><b>task</b> - Task scheduler & thread spawning</summary>
+
+```lua
+type task = {
+	cancel: (thread: thread) -> (),
+	defer: (functionOrThread: thread | (...any) -> (...any)) -> thread,
+	delay: (duration: number?, functionOrThread: thread | (...any) -> (...any)) -> thread,
+	spawn: (functionOrThread: thread | (...any) -> (...any)) -> thread,
+	wait: (duration: number?) -> (number),
+}
+```
+
+</details>
+
 </details>
 
 <details>
