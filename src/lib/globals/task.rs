@@ -11,6 +11,8 @@ use crate::utils::{
     task::{run_registered_task, TaskRunMode},
 };
 
+const MINIMUM_WAIT_OR_DELAY_DURATION: f32 = 10.0 / 1_000.0; // 10ms
+
 pub fn create(lua: &Lua) -> LuaResult<()> {
     // HACK: There is no way to call coroutine.close directly from the mlua
     // crate, so we need to fetch the function and store it in the registry
@@ -109,11 +111,11 @@ async fn task_spawn<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<
 async fn task_wait(lua: &Lua, duration: Option<f32>) -> LuaResult<f32> {
     let start = Instant::now();
     run_registered_task(lua, TaskRunMode::Blocking, async move {
-        Timer::after(
+        Timer::after(Duration::from_secs_f32(
             duration
-                .map(Duration::from_secs_f32)
-                .unwrap_or(Duration::ZERO),
-        )
+                .map(|d| d.max(MINIMUM_WAIT_OR_DELAY_DURATION))
+                .unwrap_or(MINIMUM_WAIT_OR_DELAY_DURATION),
+        ))
         .await;
         Ok(())
     })
