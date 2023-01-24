@@ -5,7 +5,7 @@
 [![CI](https://github.com/filiptibell/lune/actions/workflows/ci.yaml/badge.svg)](https://github.com/filiptibell/lune/actions/workflows/ci.yaml)
 [![Release](https://github.com/filiptibell/lune/actions/workflows/release.yaml/badge.svg)](https://github.com/filiptibell/lune/actions/workflows/release.yaml)
 
-A [Luau](https://luau-lang.org) script runner
+A standalone [Luau](https://luau-lang.org) script runner
 
 ---
 
