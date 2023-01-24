@@ -118,9 +118,9 @@ type process = {
 ```lua
 type task = {
 	cancel: (thread: thread) -> (),
-	defer: (functionOrThread: thread | (...any) -> (...any)) -> thread,
-	delay: (duration: number?, functionOrThread: thread | (...any) -> (...any)) -> thread,
-	spawn: (functionOrThread: thread | (...any) -> (...any)) -> thread,
+	defer: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
+	delay: <T...>(duration: number?, functionOrThread: thread | (T...) -> (...any), T...) -> thread,
+	spawn: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
 	wait: (duration: number?) -> (number),
 }
 ```
