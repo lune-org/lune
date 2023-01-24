@@ -172,17 +172,22 @@ Lune puts developer experience first, and as such provides type definitions and 
 <summary>Luau LSP</summary>
 
 1. Use `lune --download-luau-types` to download Luau types (`luneTypes.d.luau`) to the current directory
-2. Set your definition files setting to include `luneTypes.d.luau`, an example can be found in the [.vscode](.vscode) folder in this repository
+2. Set your definition files setting to include `luneTypes.d.luau`
+3. Set the require mode setting to `relativeToFile`
+
+En example of these settings can be found in the [.vscode](.vscode) folder in this repository
 
 </details>
 
 <details>
+
 <summary>Selene</summary>
 
 1. Use `lune --download-selene-types` to download Selene types (`lune.yml`) to the current directory
-2. Use either `std = "roblox-lune"` or `std = "luau+lune"` in your `selene.toml` configuration file
+2. Use either `std = "luau+lune"`, or `std = "roblox+lune"` if your project also contains Roblox-specific code, in your `selene.toml` configuration file
 
 </details>
+<br>
 
 **_NOTE:_** _It is highly recommended to add any type definition files to your `.gitignore` and to only download them using these commands, since this guarantees that you have type definitions compatible with your installed version of Lune._
 
