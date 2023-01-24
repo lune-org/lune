@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Initial implementation of [Roblox's task library](https://create.roblox.com/docs/reference/engine/libraries/task), with some caveats:
+
+  - Minimum wait / delay time is currently set to 10ms, subject to change
+  - It is not yet possible to pass arguments to tasks created using `spawn` / `delay` / `defer`
+  - Timings for `defer` are flaky and deferred tasks are not (yet) guaranteed to run after spawned tasks
+
+  With all that said, everything else should be stable!
+
+  - Mixing and matching the `coroutine` library with `task` works in all cases
+  - `process.exit()` will stop all spawned / delayed / deferred threads and exit the process
+  - Lune is guaranteed to keep running until there are no longer any waiting threads
+
+  If any of the abovementioned things do not work as expected, it is a bug, please file an issue!
+
 ### Fixed
 
-- Potential fix for spawned processes that yield erroring
-  with "attempt to yield across metamethod/c-call boundary"
+- Potential fix for spawned processes that yield erroring with "attempt to yield across metamethod/c-call boundary"
 
 ## `0.0.5` - January 22nd, 2023
 
@@ -22,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Large internal changes to allow for implementing the `task` library.
-  The Lune binary size has decreased as a result of these changes.
 - Improved general formatting of errors to make them more readable & glanceable
 - Improved output formatting of non-primitive types
 - Improved output formatting of empty tables
