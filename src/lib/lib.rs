@@ -187,10 +187,12 @@ impl Lune {
 
 #[cfg(test)]
 mod tests {
-    use crate::Lune;
+    use std::process::ExitCode;
+
     use anyhow::Result;
     use smol::fs::read_to_string;
-    use std::process::ExitCode;
+
+    use crate::Lune;
 
     const ARGS: &[&str] = &["Foo", "Bar"];
 

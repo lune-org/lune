@@ -2,7 +2,6 @@ use std::{fs::read_to_string, process::ExitCode};
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
-use mlua::prelude::*;
 
 use lune::Lune;
 
@@ -75,23 +74,18 @@ impl Cli {
         let download_types_requested = self.download_selene_types || self.download_luau_types;
         if download_types_requested {
             let client = GithubClient::new();
-            let release = client
-                .fetch_release_for_this_version()
-                .await
-                .map_err(LuaError::external)?;
+            let release = client.fetch_release_for_this_version().await?;
             if self.download_selene_types {
                 println!("Downloading Selene type definitions...");
                 client
                     .fetch_release_asset(&release, LUNE_SELENE_FILE_NAME)
-                    .await
-                    .map_err(LuaError::external)?;
+                    .await?;
             }
             if self.download_luau_types {
                 println!("Downloading Luau type definitions...");
                 client
                     .fetch_release_asset(&release, LUNE_LUAU_FILE_NAME)
-                    .await
-                    .map_err(LuaError::external)?;
+                    .await?;
             }
         }
         if self.script_path.is_none() {
@@ -127,16 +121,29 @@ impl Cli {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, LUNE_LUAU_FILE_NAME, LUNE_SELENE_FILE_NAME};
+    use std::{env::set_current_dir, time::Duration};
+
     use anyhow::{bail, Result};
     use serde_json::Value;
-    use smol::fs::{create_dir_all, read_to_string};
-    use std::env::set_current_dir;
+    use smol::{
+        fs::{create_dir_all, read_to_string},
+        Timer,
+    };
+
+    use super::{Cli, LUNE_LUAU_FILE_NAME, LUNE_SELENE_FILE_NAME};
+
+    async fn sleep(seconds: f32) -> Result<()> {
+        Timer::after(Duration::from_secs_f32(seconds)).await;
+        Ok(())
+    }
 
     async fn run_cli(cli: Cli) -> Result<()> {
         create_dir_all("bin").await?;
+        sleep(0.125).await?;
         set_current_dir("bin")?;
+        sleep(0.125).await?;
         cli.run().await?;
+        sleep(0.125).await?;
         Ok(())
     }
 
