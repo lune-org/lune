@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::sync::Weak;
 
 use mlua::prelude::*;
@@ -43,6 +44,7 @@ pub async fn run_registered_task<T>(
         sender
             .send(match to_run.await {
                 Ok(_) => LuneMessage::Finished,
+                Err(LuaError::CoroutineInactive) => LuneMessage::Finished, // Task was canceled
                 Err(e) => LuneMessage::LuaError(e),
             })
             .await
