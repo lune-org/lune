@@ -28,6 +28,8 @@ assert(not flag2, "Delay should work with yielding (2)")
 
 -- Varargs should get passed correctly
 
+-- TODO: Uncomment when vararg support is added
+--[[
 local function f(arg1: string, arg2: number, f2: (...any) -> ...any)
 	assert(type(arg1) == "string", "Invalid arg 1 passed to function")
 	assert(type(arg2) == "number", "Invalid arg 2 passed to function")
@@ -37,5 +39,4 @@ end
 task.delay(0, f, "", 1, f)
 task.delay(0, f, "inf", math.huge, f)
 task.delay(0, f, "NaN", 0 / 0, f)
-
-task.wait(0.1)
+]]

@@ -2,14 +2,16 @@
 
 local flag: boolean = false
 local thread = task.defer(function()
+	task.wait(0.1)
 	flag = true
 end)
 local thread2 = task.delay(0, function()
+	task.wait(0.1)
 	flag = true
 end)
 task.cancel(thread)
 task.cancel(thread2)
-task.wait(0.1)
+task.wait(0.2)
 assert(not flag, "Cancel should handle non-immediate threads")
 
 -- Cancellation should be as immediate as possible

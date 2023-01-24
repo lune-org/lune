@@ -53,19 +53,19 @@ declare process: {
 }
 
 declare task: {
-	cancel: (t: thread) -> (),
-	defer: (f: thread | (...any) -> (...any)) -> thread,
-	delay: (duration: number?, f: thread | (...any) -> (...any)) -> thread,
-	spawn: (f: thread | (...any) -> (...any)) -> thread,
+	cancel: (thread: thread) -> (),
+	defer: (functionOrThread: thread | (...any) -> (...any)) -> thread,
+	delay: (duration: number?, functionOrThread: thread | (...any) -> (...any)) -> thread,
+	spawn: (functionOrThread: thread | (...any) -> (...any)) -> thread,
 	wait: (duration: number?) -> (number),
 }
 
 --[[
 declare task: {
-	cancel: (t: thread) -> (),
-	defer: <T...>(f: thread | (T...) -> (...any), T...) -> thread,
-	delay: <T...>(duration: number?, f: thread | (T...) -> (...any), T...) -> thread,
-	spawn: <T...>(f: thread | (T...) -> (...any), T...) -> thread,
+	cancel: (thread: thread) -> (),
+	defer: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
+	delay: <T...>(duration: number?, functionOrThread: thread | (T...) -> (...any), T...) -> thread,
+	spawn: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
 	wait: (duration: number?) -> (number),
 }
 ]]
