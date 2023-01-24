@@ -28,19 +28,7 @@ assert(not flag2, "Delay should work with yielding (2)")
 
 -- Varargs should get passed correctly
 
-local function fcheck(index: number, type: string, value: any)
-	if typeof(value) ~= type then
-		console.error(
-			string.format(
-				"Expected argument #%d to be of type %s, got %s",
-				index,
-				type,
-				console.format(value)
-			)
-		)
-		process.exit(1)
-	end
-end
+local fcheck = require("./fcheck")
 
 local function f(...: any)
 	fcheck(1, "string", select(1, ...))
