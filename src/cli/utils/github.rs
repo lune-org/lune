@@ -79,7 +79,9 @@ impl Client {
             .find(|asset| matches!(&asset.name, Some(name) if name == asset_name))
         {
             let file_path = current_dir()?.join(asset_name);
-            let file_string = self.get(&asset.url, &[]).await?;
+            let file_string = self
+                .get(&asset.url, &[("Accept", "application/octet-stream")])
+                .await?;
             smol::fs::write(&file_path, &file_string)
                 .await
                 .with_context(|| {
