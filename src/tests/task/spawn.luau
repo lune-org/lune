@@ -33,8 +33,6 @@ assert(flag3, "Spawn should run threads made from coroutine.create")
 
 -- Varargs should get passed correctly
 
--- TODO: Uncomment when vararg support is added
---[[
 local function f(arg1: string, arg2: number, f2: (...any) -> ...any)
 	assert(type(arg1) == "string", "Invalid arg 1 passed to function")
 	assert(type(arg2) == "number", "Invalid arg 2 passed to function")
@@ -44,4 +42,3 @@ end
 task.spawn(f, "", 1, f)
 task.spawn(f, "inf", math.huge, f)
 task.spawn(f, "NaN", 0 / 0, f)
-]]
