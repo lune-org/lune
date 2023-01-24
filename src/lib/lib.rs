@@ -123,54 +123,56 @@ impl Lune {
         .detach();
         // Run the executor until there are no tasks left,
         // taking care to not exit right away for errors
-        let (got_code, got_error, exit_code) = smol::block_on(exec.run(async {
-            let mut task_count = 0;
-            let mut got_error = false;
-            let mut got_code = false;
-            let mut exit_code = 0;
-            while let Ok(message) = receiver.recv().await {
-                // Make sure our task-count-modifying messages are sent correctly, one
-                // task spawned must always correspond to one task finished / errored
-                match &message {
-                    LuneMessage::Exit(_) => {}
-                    LuneMessage::Spawned => {}
-                    message => {
-                        if task_count == 0 {
-                            bail!(
-                                "Got message while task count was 0!\nMessage: {:#?}",
-                                message
-                            )
+        let (got_code, got_error, exit_code) = exec
+            .run(async {
+                let mut task_count = 0;
+                let mut got_error = false;
+                let mut got_code = false;
+                let mut exit_code = 0;
+                while let Ok(message) = receiver.recv().await {
+                    // Make sure our task-count-modifying messages are sent correctly, one
+                    // task spawned must always correspond to one task finished / errored
+                    match &message {
+                        LuneMessage::Exit(_) => {}
+                        LuneMessage::Spawned => {}
+                        message => {
+                            if task_count == 0 {
+                                bail!(
+                                    "Got message while task count was 0!\nMessage: {:#?}",
+                                    message
+                                )
+                            }
                         }
                     }
+                    // Handle whatever message we got
+                    match message {
+                        LuneMessage::Exit(code) => {
+                            exit_code = code;
+                            got_code = true;
+                            break;
+                        }
+                        LuneMessage::Spawned => task_count += 1,
+                        LuneMessage::Finished => task_count -= 1,
+                        LuneMessage::Error(e) => {
+                            eprintln!("{}", e);
+                            got_error = true;
+                            task_count += 1;
+                        }
+                        LuneMessage::LuaError(e) => {
+                            eprintln!("{}", pretty_format_luau_error(&e));
+                            got_error = true;
+                            task_count += 1;
+                        }
+                    };
+                    // If there are no tasks left running, it is now
+                    // safe to close the receiver and end execution
+                    if task_count == 0 {
+                        receiver.close();
+                    }
                 }
-                // Handle whatever message we got
-                match message {
-                    LuneMessage::Exit(code) => {
-                        exit_code = code;
-                        got_code = true;
-                        break;
-                    }
-                    LuneMessage::Spawned => task_count += 1,
-                    LuneMessage::Finished => task_count -= 1,
-                    LuneMessage::Error(e) => {
-                        eprintln!("{}", e);
-                        got_error = true;
-                        task_count += 1;
-                    }
-                    LuneMessage::LuaError(e) => {
-                        eprintln!("{}", pretty_format_luau_error(&e));
-                        got_error = true;
-                        task_count += 1;
-                    }
-                };
-                // If there are no tasks left running, it is now
-                // safe to close the receiver and end execution
-                if task_count == 0 {
-                    receiver.close();
-                }
-            }
-            Ok((got_code, got_error, exit_code))
-        }))?;
+                Ok((got_code, got_error, exit_code))
+            })
+            .await?;
         // If we got an error, we will default to exiting
         // with code 1, unless a code was manually given
         if got_code {
