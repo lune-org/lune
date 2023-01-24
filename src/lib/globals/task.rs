@@ -53,7 +53,10 @@ async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
     Ok(())
 }
 
-async fn task_defer<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
+async fn task_defer<'a>(
+    lua: &'a Lua,
+    (tof, _args): (LuaValue<'a>, LuaMultiValue<'a>),
+) -> LuaResult<LuaThread<'a>> {
     // Spawn a new detached task using a lua reference that we can use inside of our task
     let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
@@ -64,6 +67,7 @@ async fn task_defer<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<
         if thread.status() == LuaThreadStatus::Resumable {
             thread.into_async::<_, LuaMultiValue>(()).await?;
         }
+        task_lua.remove_registry_value(task_thread_key)?;
         Ok(())
     })
     .await?;
@@ -72,7 +76,7 @@ async fn task_defer<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<
 
 async fn task_delay<'a>(
     lua: &'a Lua,
-    (duration, tof): (Option<f32>, LuaValue<'a>),
+    (duration, tof, _args): (Option<f32>, LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
     // Spawn a new detached task using a lua reference that we can use inside of our task
     let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
@@ -85,13 +89,17 @@ async fn task_delay<'a>(
         if thread.status() == LuaThreadStatus::Resumable {
             thread.into_async::<_, LuaMultiValue>(()).await?;
         }
+        task_lua.remove_registry_value(task_thread_key)?;
         Ok(())
     })
     .await?;
     Ok(lua_thread_to_return)
 }
 
-async fn task_spawn<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
+async fn task_spawn<'a>(
+    lua: &'a Lua,
+    (tof, _args): (LuaValue<'a>, LuaMultiValue<'a>),
+) -> LuaResult<LuaThread<'a>> {
     // Spawn a new detached task using a lua reference that we can use inside of our task
     let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
@@ -102,6 +110,7 @@ async fn task_spawn<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<
         if thread.status() == LuaThreadStatus::Resumable {
             thread.into_async::<_, LuaMultiValue>(()).await?;
         }
+        task_lua.remove_registry_value(task_thread_key)?;
         Ok(())
     })
     .await?;
