@@ -175,7 +175,7 @@ Lune puts developer experience first, and as such provides type definitions and 
 2. Set your definition files setting to include `luneTypes.d.luau`
 3. Set the require mode setting to `relativeToFile`
 
-En example of these settings can be found in the [.vscode](.vscode) folder in this repository
+An example of these settings can be found in the [.vscode](.vscode) folder in this repository
 
 </details>
 
