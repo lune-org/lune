@@ -1,0 +1,4 @@
+* text=auto
+# Temporarily highlight luau as normal lua files
+# until we get native linguist support for Luau
+*.luau linguist-language=Lua
