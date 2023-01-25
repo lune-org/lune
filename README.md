@@ -1,17 +1,25 @@
 <!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD041 -->
 
-# Lune 🌙
+<div align="center">
+	<h1> Lune 🌙 </h1>
 
-[![CI](https://github.com/filiptibell/lune/actions/workflows/ci.yaml/badge.svg)](https://github.com/filiptibell/lune/actions/workflows/ci.yaml)
-[![Release](https://github.com/filiptibell/lune/actions/workflows/release.yaml/badge.svg)](https://github.com/filiptibell/lune/actions/workflows/release.yaml)
+<div align="center">
+	<a href="https://crates.io/crates/lune"><img src="https://img.shields.io/crates/v/lune.svg?label=Version" alt="Current Lune library version" /></a>
+	<a href="https://github.com/filiptibell/lune/actions"><img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/ci.yaml" alt="CI status" /></a>
+	<a href="https://github.com/filiptibell/lune/actions"><img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/release.yaml" alt="Release status" /></a>
+	<a href="https://github.com/filiptibell/lune/blob/main/LICENSE.txt"><img src="https://img.shields.io/github/license/filiptibell/lune.svg?label=License&color=informational" alt="Current Lune library version" /></a>
+</div>
 
-A standalone [Luau](https://luau-lang.org) script runner
+<br />
 
----
+A standalone <a href="https://luau-lang.org">Luau</a> script runner
 
-🚀 Use the ergonomics and readability of Luau instead of shell scripts 🚀
+🚀 Use the ergonomics and readability of Luau for your shell scripts 🚀
 
-[Full example & walkthrough](.lune/hello_lune.luau)
+</div>
+
+<hr />
 
 ## ⚙️ Installation
 
@@ -27,7 +35,8 @@ You can also download pre-built binaries for most systems directly from the GitH
 
 ## ✏️ Writing Lune Scripts
 
-Check out the examples of how to write a script in the [.lune](.lune) folder !
+Check out the examples on how to write a script in the [.lune](.lune) folder ! <br>
+A great starting point and walkthrough of Lune can be found in the [Hello, Lune](.lune/hello_lune.luau) example.
 
 <details>
 <summary><b>🔎 Full list of APIs</b></summary>
