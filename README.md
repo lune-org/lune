@@ -3,20 +3,14 @@
 
 <div align="center">
 	<h1> Lune 🌙 </h1>
-
-<div align="center">
-	<a href="https://crates.io/crates/lune"><img src="https://img.shields.io/crates/v/lune.svg?label=Version" alt="Current Lune library version" /></a>
-	<a href="https://github.com/filiptibell/lune/actions"><img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/ci.yaml" alt="CI status" /></a>
-	<a href="https://github.com/filiptibell/lune/actions"><img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/release.yaml" alt="Release status" /></a>
-	<a href="https://github.com/filiptibell/lune/blob/main/LICENSE.txt"><img src="https://img.shields.io/github/license/filiptibell/lune.svg?label=License&color=informational" alt="Current Lune library version" /></a>
-</div>
-
-<br />
-
-A standalone <a href="https://luau-lang.org">Luau</a> script runner
-
-🚀 Use the ergonomics and readability of Luau for your shell scripts 🚀
-
+	<div>
+		<a href="https://crates.io/crates/lune"><img src="https://img.shields.io/crates/v/lune.svg?label=Version" alt="Current Lune library version" />
+		<a href="https://github.com/filiptibell/lune/actions"><img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/ci.yaml" alt="CI status" />
+		<a href="https://github.com/filiptibell/lune/actions"><img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/release.yaml" alt="Release status" />
+		<a href="https://github.com/filiptibell/lune/blob/main/LICENSE.txt"><img src="https://img.shields.io/github/license/filiptibell/lune.svg?label=License&color=informational" alt="Current Lune library version" />
+	</div>
+	<br /> A standalone <a href="https://luau-lang.org">Luau</a> script runner
+	<br /> 🚀 Use the ergonomics and readability of Luau for your shell scripts 🚀
 </div>
 
 <hr />
@@ -35,7 +29,7 @@ You can also download pre-built binaries for most systems directly from the GitH
 
 ## ✏️ Writing Lune Scripts
 
-Check out the examples on how to write a script in the [.lune](.lune) folder ! <br>
+Check out the examples on how to write a script in the [.lune](.lune) folder ! <br />
 A great starting point and walkthrough of Lune can be found in the [Hello, Lune](.lune/hello_lune.luau) example.
 
 <details>
@@ -196,7 +190,7 @@ An example of these settings can be found in the [.vscode](.vscode) folder in th
 2. Use either `std = "luau+lune"`, or `std = "roblox+lune"` if your project also contains Roblox-specific code, in your `selene.toml` configuration file
 
 </details>
-<br>
+<br />
 
 **_NOTE:_** _It is highly recommended to add any type definition files to your `.gitignore` and to only download them using these commands, since this guarantees that you have type definitions compatible with your installed version of Lune._
 
@@ -216,7 +210,7 @@ This will look for the file `script-name.luau` in a few locations:
 - The folder `lune` in the current directory, if it exists
 - The folder `.lune` in the current directory, if it exists
 
-If you don't want Lune to look in sub-directories you can provide a full file path with the file extension included, instead of only the file name. <br>
+If you don't want Lune to look in sub-directories you can provide a full file path with the file extension included, instead of only the file name. <br />
 
 ## 💭 Additional Commands
 
@@ -224,8 +218,8 @@ If you don't want Lune to look in sub-directories you can provide a full file pa
 lune --list
 ```
 
-Lists all scripts found in `lune` or `.lune` directories, including description comments if they exist. <br>
-If both `lune` and `.lune` directories exist, only the former will have its scripts listed, which is consistent with the behavior of running scripts.
+Lists all scripts found in `lune` or `.lune` directories, including any top-level description comments. <br />
+Lune description comments are always written at the top of a file and start with a lua-style comment arrow (`-->`).
 
 ---
 
