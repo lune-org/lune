@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## `0.1.2` - January 24th, 2023
 
+### Added
+
+- Added automatic publishing of the Lune library to [crates.io](https://crates.io/crates/lune)
+
 ### Fixed
 
 - Fixed scripts that terminate instantly sometimes hanging
