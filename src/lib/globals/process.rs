@@ -1,12 +1,8 @@
-use std::{
-    env,
-    process::{Command, Stdio},
-    sync::Weak,
-};
+use std::{env, process::Stdio, sync::Weak};
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use smol::{channel::Sender, unblock};
+use smol::{channel::Sender, process::Command};
 
 use crate::{utils::table::TableBuilder, LuneMessage};
 
@@ -120,24 +116,19 @@ async fn process_spawn(
     lua: &Lua,
     (program, args): (String, Option<Vec<String>>),
 ) -> LuaResult<LuaTable> {
-    // Create and spawn a **blocking** child process to prevent
-    // issues with yielding across the metamethod/c-call boundary
+    // Create and spawn our child process
     let pwd = env::current_dir()?;
-    let output = unblock(move || {
-        let mut cmd = Command::new(program);
-        if let Some(args) = args {
-            cmd.args(args);
-        }
-        let child = cmd
-            .current_dir(pwd)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
-        child.wait_with_output()
-    })
-    .await
-    .map_err(LuaError::external)?;
+    let mut cmd = Command::new(program);
+    if let Some(args) = args {
+        cmd.args(args);
+    }
+    let output = cmd
+        .current_dir(pwd)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await?;
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
     let code = output

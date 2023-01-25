@@ -1,6 +1,6 @@
 use std::{collections::HashSet, process::ExitCode, sync::Arc};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use mlua::prelude::*;
 use smol::LocalExecutor;
 
@@ -11,9 +11,6 @@ use crate::{
     globals::{create_console, create_fs, create_net, create_process, create_require, create_task},
     utils::formatting::pretty_format_luau_error,
 };
-
-#[cfg(not(test))]
-use crate::utils::formatting::format_label;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LuneGlobal {
@@ -43,7 +40,6 @@ pub(crate) enum LuneMessage {
     Exit(u8),
     Spawned,
     Finished,
-    Error(anyhow::Error),
     LuaError(mlua::Error),
 }
 
@@ -97,28 +93,21 @@ impl Lune {
             }
         }
         // Spawn the main thread from our entrypoint script
+        let script_lua = lua.clone();
         let script_name = name.to_string();
         let script_chunk = chunk.to_string();
+        sender.send(LuneMessage::Spawned).await?;
         exec.spawn(async move {
-            sender.send(LuneMessage::Spawned).await?;
-            let result = lua
+            let result = script_lua
                 .load(&script_chunk)
                 .set_name(&format!("={}", script_name))
                 .unwrap()
-                .call_async::<_, LuaMultiValue>(LuaMultiValue::new())
+                .eval_async::<LuaValue>()
                 .await;
-            let message = match result {
-                Ok(_) => LuneMessage::Finished,
-                #[cfg(test)]
-                Err(e) => LuneMessage::Error(anyhow!("{}", pretty_format_luau_error(&e))),
-                #[cfg(not(test))]
-                Err(e) => LuneMessage::Error(anyhow!(
-                    "\n{}\n{}",
-                    format_label("ERROR"),
-                    pretty_format_luau_error(&e)
-                )),
-            };
-            sender.send(message).await
+            match result {
+                Err(e) => sender.send(LuneMessage::LuaError(e)).await,
+                Ok(_) => sender.send(LuneMessage::Finished).await,
+            }
         })
         .detach();
         // Run the executor until there are no tasks left,
@@ -153,11 +142,6 @@ impl Lune {
                         }
                         LuneMessage::Spawned => task_count += 1,
                         LuneMessage::Finished => task_count -= 1,
-                        LuneMessage::Error(e) => {
-                            eprintln!("{}", e);
-                            got_error = true;
-                            task_count += 1;
-                        }
                         LuneMessage::LuaError(e) => {
                             eprintln!("{}", pretty_format_luau_error(&e));
                             got_error = true;
@@ -166,6 +150,7 @@ impl Lune {
                     };
                     // If there are no tasks left running, it is now
                     // safe to close the receiver and end execution
+                    println!("{}", task_count);
                     if task_count == 0 {
                         receiver.close();
                     }

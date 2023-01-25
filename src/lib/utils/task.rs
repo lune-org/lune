@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 use std::sync::Weak;
 
 use mlua::prelude::*;
@@ -12,6 +12,16 @@ pub enum TaskRunMode {
     Blocking,
     Instant,
     Deferred,
+}
+
+impl fmt::Display for TaskRunMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Blocking => write!(f, "Blocking"),
+            Self::Instant => write!(f, "Instant"),
+            Self::Deferred => write!(f, "Deferred"),
+        }
+    }
 }
 
 pub async fn run_registered_task<T>(
