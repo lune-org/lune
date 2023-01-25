@@ -218,6 +218,15 @@ This will look for the file `script-name.luau` in a few locations:
 
 If you don't want Lune to look in sub-directories you can provide a full file path with the file extension included, instead of only the file name. <br>
 
+## 💭 Additional Commands
+
+```sh
+lune --list
+```
+
+Lists all scripts found in `lune` or `.lune` directories, including description comments if they exist. <br>
+If both `lune` and `.lune` directories exist, only the former will have its scripts listed, which is consistent with the behavior of running scripts.
+
 ---
 
 **_NOTE:_** _Lune also supports files with the `.lua` extension but using the `.luau` extension is highly recommended._
