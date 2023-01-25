@@ -150,7 +150,6 @@ impl Lune {
                     };
                     // If there are no tasks left running, it is now
                     // safe to close the receiver and end execution
-                    println!("{}", task_count);
                     if task_count == 0 {
                         receiver.close();
                     }
