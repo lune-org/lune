@@ -1,3 +1,5 @@
+--> A walkthrough of all of the basic Lune features.
+
 print("Hello, lune! 🌙")
 
 --[==[

@@ -5,7 +5,11 @@ use clap::{CommandFactory, Parser};
 
 use lune::Lune;
 
-use crate::utils::{files::find_parse_file_path, github::Client as GithubClient};
+use crate::utils::{
+    files::find_parse_file_path,
+    github::Client as GithubClient,
+    listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
+};
 
 const LUNE_SELENE_FILE_NAME: &str = "lune.yml";
 const LUNE_LUAU_FILE_NAME: &str = "luneTypes.d.luau";
@@ -21,6 +25,10 @@ pub struct Cli {
     script_path: Option<String>,
     /// Arguments to pass to the file as vararg (...)
     script_args: Vec<String>,
+    /// Pass this flag to list scripts inside of
+    /// nearby `lune` and / or `.lune` directories
+    #[clap(long, short = 'l')]
+    list: bool,
     /// Pass this flag to download the Selene type
     /// definitions file to the current directory
     #[clap(long)]
@@ -69,7 +77,34 @@ impl Cli {
         }
     }
 
+    pub fn list() -> Self {
+        Self {
+            list: true,
+            ..Default::default()
+        }
+    }
+
     pub async fn run(self) -> Result<ExitCode> {
+        // List files in `lune` and `.lune` directories, if wanted
+        // This will also exit early and not run anything else
+        if self.list {
+            match find_lune_scripts().await {
+                Ok(scripts) => {
+                    let sorted = sort_lune_scripts(scripts);
+                    if sorted.is_empty() {
+                        println!("No scripts found.");
+                    } else {
+                        print!("Available scripts:");
+                        print_lune_scripts(sorted)?;
+                    }
+                    return Ok(ExitCode::SUCCESS);
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    return Ok(ExitCode::FAILURE);
+                }
+            }
+        }
         // Download definition files, if wanted
         let download_types_requested = self.download_selene_types || self.download_luau_types;
         if download_types_requested {
@@ -157,6 +192,14 @@ mod tests {
             },
             Err(e) => bail!("Failed to download selene definitions!\n{e}"),
         }
+    }
+
+    #[test]
+    fn list() -> Result<()> {
+        smol::block_on(async {
+            Cli::list().run().await?;
+            Ok(())
+        })
     }
 
     #[test]

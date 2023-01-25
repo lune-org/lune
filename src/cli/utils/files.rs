@@ -2,6 +2,8 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 
 use anyhow::{bail, Result};
 
+const LUNE_COMMENT_PREFIX: &str = "-->";
+
 pub fn find_luau_file_path(path: &str) -> Option<PathBuf> {
     let file_path = PathBuf::from(path);
     if let Some(ext) = file_path.extension() {
@@ -36,5 +38,29 @@ pub fn find_parse_file_path(path: &str) -> Result<PathBuf> {
         }
     } else {
         bail!("Invalid file path: '{}'", path)
+    }
+}
+
+pub fn parse_lune_description_from_file(contents: &str) -> Option<String> {
+    let mut comment_lines = Vec::new();
+    for line in contents.lines() {
+        if let Some(stripped) = line.strip_prefix(LUNE_COMMENT_PREFIX) {
+            comment_lines.push(stripped);
+        } else {
+            break;
+        }
+    }
+    if comment_lines.is_empty() {
+        None
+    } else {
+        let shortest_indent = comment_lines.iter().fold(usize::MAX, |acc, line| {
+            let first_alphanumeric = line.find(char::is_alphanumeric).unwrap();
+            acc.min(first_alphanumeric)
+        });
+        let unindented_lines = comment_lines
+            .iter()
+            .map(|line| &line[shortest_indent..])
+            .collect();
+        Some(unindented_lines)
     }
 }
