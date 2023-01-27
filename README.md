@@ -33,102 +33,15 @@ Check out the examples on how to write a script in the [.lune](.lune) folder ! <
 A great starting point and walkthrough of Lune can be found in the [Hello, Lune](.lune/hello_lune.luau) example.
 
 <details>
-<summary><b>🔎 Full list of APIs</b></summary>
+<summary><b>🔎 List of APIs</b></summary>
 
-<details>
-<summary><b>console</b> - Logging & formatting</summary>
+`console` - Logging & formatting <br />
+`fs` - Filesystem <br />
+`net` - Networking <br />
+`process` - Current process & child processes <br />
+`task` - Task scheduler & thread spawning <br />
 
-```lua
-type console = {
-	resetColor: () -> (),
-	setColor: (color: "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
-	resetStyle: () -> (),
-	setStyle: (color: "bold" | "dim") -> (),
-	format: (...any) -> (string),
-	log: (...any) -> (),
-	info: (...any) -> (),
-	warn: (...any) -> (),
-	error: (...any) -> (),
-}
-```
-
-</details>
-
-<details>
-<summary><b>fs</b> - Filesystem</summary>
-
-```lua
-type fs = {
-	readFile: (path: string) -> string,
-	readDir: (path: string) -> { string },
-	writeFile: (path: string, contents: string) -> (),
-	writeDir: (path: string) -> (),
-	removeFile: (path: string) -> (),
-	removeDir: (path: string) -> (),
-	isFile: (path: string) -> boolean,
-	isDir: (path: string) -> boolean,
-}
-```
-
-</details>
-
-<details>
-<summary><b>net</b> - Networking</summary>
-
-```lua
-type net = {
-	request: (config: string | {
-		url: string,
-		method: ("GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH")?,
-		headers: { [string]: string }?,
-		body: string?,
-	}) -> {
-		ok: boolean,
-		statusCode: number,
-		statusMessage: string,
-		headers: { [string]: string },
-		body: string,
-	},
-	jsonEncode: (value: any, pretty: boolean?) -> string,
-	jsonDecode: (encoded: string) -> any,
-}
-```
-
-</details>
-
-<details>
-<summary><b>process</b> - Current process & child processes</summary>
-
-```lua
-type process = {
-	args: { string },
-	env: { [string]: string? },
-	exit: (code: number?) -> (),
-	spawn: (program: string, params: { string }?) -> {
-		ok: boolean,
-		code: number,
-		stdout: string,
-		stderr: string,
-	},
-}
-```
-
-</details>
-
-<details>
-<summary><b>task</b> - Task scheduler & thread spawning</summary>
-
-```lua
-type task = {
-	cancel: (thread: thread) -> (),
-	defer: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
-	delay: <T...>(duration: number?, functionOrThread: thread | (T...) -> (...any), T...) -> thread,
-	spawn: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
-	wait: (duration: number?) -> (number),
-}
-```
-
-</details>
+Documentation for individual members and types can be found using your editor of choice and [Luau LSP](https://github.com/JohnnyMorganz/luau-lsp).
 
 </details>
 
@@ -174,9 +87,12 @@ Lune puts developer experience first, and as such provides type definitions and 
 <details>
 <summary>Luau LSP</summary>
 
-1. Use `lune --download-luau-types` to download Luau types (`luneTypes.d.luau`) to the current directory
-2. Set your definition files setting to include `luneTypes.d.luau`
-3. Set the require mode setting to `relativeToFile`
+1. Set the require mode setting to `relativeToFile`
+2. Use `lune --download-luau-types` to download Luau types (`luneTypes.d.luau`) to the current directory
+3. Set your definition files setting to include `luneTypes.d.luau`
+4. Generate the documentation file using `lune --generate-docs-file`
+   - NOTE: This is a temporary solution and a docs file separate from type definitions will not be necessary in the future
+5. Set your documentation files setting to include `luneDocs.json`
 
 An example of these settings can be found in the [.vscode](.vscode) folder in this repository
 

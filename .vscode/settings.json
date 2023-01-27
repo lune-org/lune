@@ -3,6 +3,7 @@
 	"luau-lsp.sourcemap.enabled": false,
 	"luau-lsp.types.roblox": false,
 	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"],
+	"luau-lsp.types.documentationFiles": ["luneDocs.json"],
 	"luau-lsp.require.mode": "relativeToFile",
 	// Rust
 	"rust-analyzer.check.command": "clippy",

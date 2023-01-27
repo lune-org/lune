@@ -1,22 +1,28 @@
-use std::{fs::read_to_string, process::ExitCode};
+use std::process::ExitCode;
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
 
 use lune::Lune;
+use smol::fs::{read_to_string, write};
 
-use crate::utils::{
-    files::find_parse_file_path,
-    github::Client as GithubClient,
-    listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
+use crate::{
+    gen::generate_docs_json_from_definitions,
+    utils::{
+        files::find_parse_file_path,
+        github::Client as GithubClient,
+        listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
+    },
 };
 
 const LUNE_SELENE_FILE_NAME: &str = "lune.yml";
 const LUNE_LUAU_FILE_NAME: &str = "luneTypes.d.luau";
+const LUNE_DOCS_FILE_NAME: &str = "luneDocs.json";
 
 /// Lune CLI
 #[derive(Parser, Debug, Default)]
 #[command(author, version, about, long_about = None)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Cli {
     /// Path to the file to run, or the name
     /// of a luau file in a lune directory
@@ -37,6 +43,10 @@ pub struct Cli {
     /// definitions file to the current directory
     #[clap(long)]
     download_luau_types: bool,
+    /// Pass this flag to generate the Lune documentation file
+    /// from a luau type definitions file in the current directory
+    #[clap(long)]
+    generate_docs_file: bool,
 }
 
 #[allow(dead_code)]
@@ -123,10 +133,18 @@ impl Cli {
                     .await?;
             }
         }
+        // Generate docs file, if wanted
+        if self.generate_docs_file {
+            let defs_contents = read_to_string(LUNE_LUAU_FILE_NAME).await?;
+            let docs_root = generate_docs_json_from_definitions(&defs_contents, "roblox/global")?;
+            let docs_contents = serde_json::to_string_pretty(&docs_root)?;
+            write(LUNE_DOCS_FILE_NAME, &docs_contents).await?;
+        }
         if self.script_path.is_none() {
             // Only downloading types without running a script is completely
             // fine, and we should just exit the program normally afterwards
-            if download_types_requested {
+            // Same thing goes for generating the docs file
+            if download_types_requested || self.generate_docs_file {
                 return Ok(ExitCode::SUCCESS);
             }
             // HACK: We know that we didn't get any arguments here but since
@@ -138,7 +156,7 @@ impl Cli {
         }
         // Parse and read the wanted file
         let file_path = find_parse_file_path(&self.script_path.unwrap())?;
-        let file_contents = read_to_string(&file_path)?;
+        let file_contents = read_to_string(&file_path).await?;
         // Display the file path relative to cwd with no extensions in stack traces
         let file_display_name = file_path.with_extension("").display().to_string();
         // Create a new lune object with all globals & run the script
