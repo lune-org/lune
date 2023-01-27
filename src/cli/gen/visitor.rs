@@ -20,7 +20,7 @@ pub struct DocumentationVisitor {
 
 impl DocumentationVisitor {
     pub fn new() -> Self {
-        let tag_regex = Regex::new(r#"^@(\w+)\s+(\w+)(.*)$"#).unwrap();
+        let tag_regex = Regex::new(r#"^@(\S+)\s+(\S+)(.*)$"#).unwrap();
         Self {
             globals: vec![],
             functions: vec![],

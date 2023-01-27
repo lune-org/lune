@@ -16,6 +16,8 @@ declare console: {
 		@within console
 
 		Sets the current persistent output color.
+
+		@param color The color to set
 	]=]
 	setColor: (color: "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
 	--[=[
@@ -28,18 +30,25 @@ declare console: {
 		@within console
 
 		Sets the current persistent output style.
+
+		@param style The style to set
 	]=]
 	setStyle: (style: "bold" | "dim") -> (),
 	--[=[
 		@within console
 
 		Formats arguments into a human-readable string with syntax highlighting for tables.
+
+		@param ... The values to format
+		@return The formatted string
 	]=]
 	format: (...any) -> (string),
 	--[=[
 		@within console
 
 		Prints arguments as a human-readable string with syntax highlighting for tables to stdout.
+
+		@param ... The values to print out
 	]=]
 	log: (...any) -> (),
 	--[=[
@@ -48,6 +57,8 @@ declare console: {
 		Prints arguments as a human-readable string with syntax highlighting for tables to stdout.
 
 		This will also prepend an [INFO] tag at the beginning of the message.
+
+		@param ... The values to print out
 	]=]
 	info: (...any) -> (),
 	--[=[
@@ -56,6 +67,8 @@ declare console: {
 		Prints arguments as a human-readable string with syntax highlighting for tables to stdout.
 
 		This will also prepend an [INFO] tag at the beginning of the message.
+
+		@param ... The values to print out
 	]=]
 	warn: (...any) -> (),
 	--[=[
@@ -67,6 +80,8 @@ declare console: {
 
 		Using this function will automatically set the exit code of the process
 		to 1, unless it gets manually specified afterwards using `process.exit`.
+
+		@param ... The values to print out to stderr
 	]=]
 	error: (...any) -> (),
 }
@@ -88,6 +103,9 @@ declare fs: {
 		* The current process lacks permissions to read the file.
 		* The contents of the file cannot be read as a UTF-8 string.
 		* Some other I/O error occurred.
+
+		@param path The path to the file to read
+		@return The contents of the file
 	]=]
 	readFile: (path: string) -> string,
 	--[=[
@@ -100,6 +118,9 @@ declare fs: {
 		* `path` does not point to an existing directory.
 		* The current process lacks permissions to read the contents of the directory.
 		* Some other I/O error occurred.
+
+		@param path The directory path to search in
+		@return A list of files & directories found
 	]=]
 	readDir: (path: string) -> { string },
 	--[=[
@@ -112,6 +133,9 @@ declare fs: {
 		* The file's parent directory does not exist.
 		* The current process lacks permissions to write to the file.
 		* Some other I/O error occurred.
+
+		@param path The path of the file
+		@param contents The contents of the file
 	]=]
 	writeFile: (path: string, contents: string) -> (),
 	--[=[
@@ -124,6 +148,8 @@ declare fs: {
 		* `path` already points to an existing file or directory.
 		* The current process lacks permissions to create the directory or its missing parents.
 		* Some other I/O error occurred.
+
+		@param path The directory to create
 	]=]
 	writeDir: (path: string) -> (),
 	--[=[
@@ -136,6 +162,8 @@ declare fs: {
 		* `path` does not point to an existing file.
 		* The current process lacks permissions to remove the file.
 		* Some other I/O error occurred.
+
+		@param path The file to remove
 	]=]
 	removeFile: (path: string) -> (),
 	--[=[
@@ -148,6 +176,8 @@ declare fs: {
 		* `path` is not an existing and empty directory.
 		* The current process lacks permissions to remove the directory.
 		* Some other I/O error occurred.
+
+		@param path The directory to remove
 	]=]
 	removeDir: (path: string) -> (),
 	--[=[
@@ -159,6 +189,9 @@ declare fs: {
 
 		* The current process lacks permissions to read at `path`.
 		* Some other I/O error occurred.
+
+		@param path The file path to check
+		@return If the path is a file or not
 	]=]
 	isFile: (path: string) -> boolean,
 	--[=[
@@ -170,6 +203,9 @@ declare fs: {
 
 		* The current process lacks permissions to read at `path`.
 		* Some other I/O error occurred.
+
+		@param path The directory path to check
+		@return If the path is a directory or not
 	]=]
 	isDir: (path: string) -> boolean,
 }
@@ -186,6 +222,9 @@ declare net: {
 		Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.
 		
 		Only throws an error if a miscellaneous network or I/O error occurs, never for unsuccessful status codes.
+
+		@param config The URL or request config to use
+		@return A dictionary representing the response for the request
 	]=]
 	request: (config: string | {
 		url: string,
@@ -203,12 +242,19 @@ declare net: {
 		@within net
 
 		Encodes the given value as JSON.
+
+		@param value The value to encode as JSON
+		@param pretty If the encoded JSON string should include newlines and spaces. Defaults to false
+		@return The encoded JSON string
 	]=]
 	jsonEncode: (value: any, pretty: boolean?) -> string,
 	--[=[
 		@within net
 
 		Decodes the given JSON string into a lua value.
+
+		@param encoded The JSON string to decode
+		@return The decoded lua value
 	]=]
 	jsonDecode: (encoded: string) -> any,
 }
@@ -241,12 +287,18 @@ declare process: {
 		Exit code 0 is treated as a successful exit, any other value is treated as an error.
 
 		Setting the exit code using this function will override any otherwise automatic exit code.
+		
+		@param code The exit code to set
 	]=]
 	exit: (code: number?) -> (),
 	--[=[
 		@within process
 		
 		Spawns a child process that will run the program `program` with the given `params` as arguments, and returns a dictionary that describes the final status and ouput of the child process.
+
+		@param program The program to spawn as a child process
+		@param params Additional parameters to pass to the program
+		@return A dictionary representing the result of the child process
 	]=]
 	spawn: (program: string, params: { string }?) -> {
 		ok: boolean,

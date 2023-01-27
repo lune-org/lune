@@ -11,29 +11,66 @@
     "code_sample": "",
     "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stderr.\n\nThis will also prepend an [ERROR] tag at the beginning of the message.\n\nUsing this function will automatically set the exit code of the process\nto 1, unless it gets manually specified afterwards using `process.exit`.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/console.error/param/0",
+        "name": "..."
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/console.error/param/0": {
+    "documentation": "The values to print out to stderr"
   },
   "@roblox/global/console.format": {
     "code_sample": "",
     "documentation": "Formats arguments into a human-readable string with syntax highlighting for tables.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/console.format/param/0",
+        "name": "..."
+      }
+    ],
+    "returns": [
+      "@roblox/global/console.format/return/0"
+    ]
+  },
+  "@roblox/global/console.format/param/0": {
+    "documentation": "The values to format"
+  },
+  "@roblox/global/console.format/return/0": {
+    "documentation": "The formatted string"
   },
   "@roblox/global/console.info": {
     "code_sample": "",
     "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stdout.\n\nThis will also prepend an [INFO] tag at the beginning of the message.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/console.info/param/0",
+        "name": "..."
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/console.info/param/0": {
+    "documentation": "The values to print out"
   },
   "@roblox/global/console.log": {
     "code_sample": "",
     "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stdout.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/console.log/param/0",
+        "name": "..."
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/console.log/param/0": {
+    "documentation": "The values to print out"
   },
   "@roblox/global/console.resetColor": {
     "code_sample": "",
@@ -53,22 +90,46 @@
     "code_sample": "",
     "documentation": "Sets the current persistent output color.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/console.setColor/param/0",
+        "name": "color"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/console.setColor/param/0": {
+    "documentation": "The color to set"
   },
   "@roblox/global/console.setStyle": {
     "code_sample": "",
     "documentation": "Sets the current persistent output style.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/console.setStyle/param/0",
+        "name": "style"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/console.setStyle/param/0": {
+    "documentation": "The style to set"
   },
   "@roblox/global/console.warn": {
     "code_sample": "",
     "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stdout.\n\nThis will also prepend an [INFO] tag at the beginning of the message.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/console.warn/param/0",
+        "name": "..."
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/console.warn/param/0": {
+    "documentation": "The values to print out"
   },
   "@roblox/global/fs": {
     "code_sample": "",
@@ -82,57 +143,148 @@
     "code_sample": "",
     "documentation": "Checks if a given path is a directory.\n\nAn error will be thrown in the following situations:\n\n* The current process lacks permissions to read at `path`.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.isDir/param/0",
+        "name": "path"
+      }
+    ],
+    "returns": [
+      "@roblox/global/fs.isDir/return/0"
+    ]
+  },
+  "@roblox/global/fs.isDir/param/0": {
+    "documentation": "The directory path to check"
+  },
+  "@roblox/global/fs.isDir/return/0": {
+    "documentation": "If the path is a directory or not"
   },
   "@roblox/global/fs.isFile": {
     "code_sample": "",
     "documentation": "Checks if a given path is a file.\n\nAn error will be thrown in the following situations:\n\n* The current process lacks permissions to read at `path`.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.isFile/param/0",
+        "name": "path"
+      }
+    ],
+    "returns": [
+      "@roblox/global/fs.isFile/return/0"
+    ]
+  },
+  "@roblox/global/fs.isFile/param/0": {
+    "documentation": "The file path to check"
+  },
+  "@roblox/global/fs.isFile/return/0": {
+    "documentation": "If the path is a file or not"
   },
   "@roblox/global/fs.readDir": {
     "code_sample": "",
     "documentation": "Reads entries in a directory at `path`.\n\nAn error will be thrown in the following situations:\n\n* `path` does not point to an existing directory.\n* The current process lacks permissions to read the contents of the directory.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.readDir/param/0",
+        "name": "path"
+      }
+    ],
+    "returns": [
+      "@roblox/global/fs.readDir/return/0"
+    ]
+  },
+  "@roblox/global/fs.readDir/param/0": {
+    "documentation": "The directory path to search in"
+  },
+  "@roblox/global/fs.readDir/return/0": {
+    "documentation": "A list of files & directories found"
   },
   "@roblox/global/fs.readFile": {
     "code_sample": "",
     "documentation": "Reads a file at `path`.\n\nAn error will be thrown in the following situations:\n\n* `path` does not point to an existing file.\n* The current process lacks permissions to read the file.\n* The contents of the file cannot be read as a UTF-8 string.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.readFile/param/0",
+        "name": "path"
+      }
+    ],
+    "returns": [
+      "@roblox/global/fs.readFile/return/0"
+    ]
+  },
+  "@roblox/global/fs.readFile/param/0": {
+    "documentation": "The path to the file to read"
+  },
+  "@roblox/global/fs.readFile/return/0": {
+    "documentation": "The contents of the file"
   },
   "@roblox/global/fs.removeDir": {
     "code_sample": "",
     "documentation": "Removes a directory and all of its contents.\n\nAn error will be thrown in the following situations:\n\n* `path` is not an existing and empty directory.\n* The current process lacks permissions to remove the directory.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.removeDir/param/0",
+        "name": "path"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/fs.removeDir/param/0": {
+    "documentation": "The directory to remove"
   },
   "@roblox/global/fs.removeFile": {
     "code_sample": "",
     "documentation": "Removes a file.\n\nAn error will be thrown in the following situations:\n\n* `path` does not point to an existing file.\n* The current process lacks permissions to remove the file.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.removeFile/param/0",
+        "name": "path"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/fs.removeFile/param/0": {
+    "documentation": "The file to remove"
   },
   "@roblox/global/fs.writeDir": {
     "code_sample": "",
     "documentation": "Creates a directory and its parent directories if they are missing.\n\nAn error will be thrown in the following situations:\n\n* `path` already points to an existing file or directory.\n* The current process lacks permissions to create the directory or its missing parents.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.writeDir/param/0",
+        "name": "path"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/fs.writeDir/param/0": {
+    "documentation": "The directory to create"
   },
   "@roblox/global/fs.writeFile": {
     "code_sample": "",
     "documentation": "Writes to a file at `path`.\n\nAn error will be thrown in the following situations:\n\n* The file's parent directory does not exist.\n* The current process lacks permissions to write to the file.\n* Some other I/O error occurred.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/fs.writeFile/param/0",
+        "name": "path"
+      },
+      {
+        "documentation": "@roblox/global/fs.writeFile/param/1",
+        "name": "contents"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/fs.writeFile/param/0": {
+    "documentation": "The path of the file"
+  },
+  "@roblox/global/fs.writeFile/param/1": {
+    "documentation": "The contents of the file"
   },
   "@roblox/global/net": {
     "code_sample": "",
@@ -146,22 +298,68 @@
     "code_sample": "",
     "documentation": "Decodes the given JSON string into a lua value.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/net.jsonDecode/param/0",
+        "name": "encoded"
+      }
+    ],
+    "returns": [
+      "@roblox/global/net.jsonDecode/return/0"
+    ]
+  },
+  "@roblox/global/net.jsonDecode/param/0": {
+    "documentation": "The JSON string to decode"
+  },
+  "@roblox/global/net.jsonDecode/return/0": {
+    "documentation": "The decoded lua value"
   },
   "@roblox/global/net.jsonEncode": {
     "code_sample": "",
     "documentation": "Encodes the given value as JSON.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/net.jsonEncode/param/0",
+        "name": "value"
+      },
+      {
+        "documentation": "@roblox/global/net.jsonEncode/param/1",
+        "name": "pretty"
+      }
+    ],
+    "returns": [
+      "@roblox/global/net.jsonEncode/return/0"
+    ]
+  },
+  "@roblox/global/net.jsonEncode/param/0": {
+    "documentation": "The value to encode as JSON"
+  },
+  "@roblox/global/net.jsonEncode/param/1": {
+    "documentation": "If the encoded JSON string should include newlines and spaces. Defaults to false"
+  },
+  "@roblox/global/net.jsonEncode/return/0": {
+    "documentation": "The encoded JSON string"
   },
   "@roblox/global/net.request": {
     "code_sample": "",
     "documentation": "Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.\n\nOnly throws an error if a miscellaneous network or I/O error occurs, never for unsuccessful status codes.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/net.request/param/0",
+        "name": "config"
+      }
+    ],
+    "returns": [
+      "@roblox/global/net.request/return/0"
+    ]
+  },
+  "@roblox/global/net.request/param/0": {
+    "documentation": "The URL or request config to use"
+  },
+  "@roblox/global/net.request/return/0": {
+    "documentation": "A dictionary representing the response for the request"
   },
   "@roblox/global/process": {
     "code_sample": "",
@@ -189,15 +387,43 @@
     "code_sample": "",
     "documentation": "Exits the currently running script as soon as possible with the given exit code.\n\nExit code 0 is treated as a successful exit, any other value is treated as an error.\n\nSetting the exit code using this function will override any otherwise automatic exit code.",
     "learn_more_link": "",
-    "params": [],
+    "params": [
+      {
+        "documentation": "@roblox/global/process.exit/param/0",
+        "name": "code"
+      }
+    ],
     "returns": []
+  },
+  "@roblox/global/process.exit/param/0": {
+    "documentation": "The exit code to set"
   },
   "@roblox/global/process.spawn": {
     "code_sample": "",
     "documentation": "Spawns a child process that will run the program `program` with the given `params` as arguments, and returns a dictionary that describes the final status and ouput of the child process.",
     "learn_more_link": "",
-    "params": [],
-    "returns": []
+    "params": [
+      {
+        "documentation": "@roblox/global/process.spawn/param/0",
+        "name": "program"
+      },
+      {
+        "documentation": "@roblox/global/process.spawn/param/1",
+        "name": "params"
+      }
+    ],
+    "returns": [
+      "@roblox/global/process.spawn/return/0"
+    ]
+  },
+  "@roblox/global/process.spawn/param/0": {
+    "documentation": "The program to spawn as a child process"
+  },
+  "@roblox/global/process.spawn/param/1": {
+    "documentation": "Additional parameters to pass to the program"
+  },
+  "@roblox/global/process.spawn/return/0": {
+    "documentation": "A dictionary representing the result of the child process"
   },
   "@roblox/global/task": {
     "code_sample": "",
