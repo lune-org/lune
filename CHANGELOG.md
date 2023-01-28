@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `cwd` - The current working directory for the process
   - `env` - Extra environment variables to give to the process
   - `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
-  - `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
+  - `stdio` - How to treat output and error streams from the child process - set to `"inherit"` to pass output and error streams to the current process
 
 - Added `process.cwd`, the path to the current working directory in which the Lune script is running
 
