@@ -322,7 +322,7 @@ declare process: {
 		options: {
 			cwd: string?,
 			env: { [string]: string }?,
-			shell: boolean | string,
+			shell: (boolean | string)?,
 			stdio: ("inherit" | "default")?,
 		}?
 	) -> {

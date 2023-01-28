@@ -219,6 +219,7 @@ mod tests {
         net_json_decode: "net/json/decode",
         net_json_encode: "net/json/encode",
         process_args: "process/args",
+        process_cwd: "process/cwd",
         process_env: "process/env",
         process_exit: "process/exit",
         process_spawn: "process/spawn",

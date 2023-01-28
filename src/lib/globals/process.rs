@@ -1,12 +1,26 @@
-use std::{env, process::Stdio, sync::Weak};
+use std::{
+    collections::HashMap,
+    env,
+    path::PathBuf,
+    process::{Command, Stdio},
+    sync::Weak,
+};
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use smol::{channel::Sender, process::Command};
+use smol::channel::Sender;
 
-use crate::{utils::table::TableBuilder, LuneMessage};
+use crate::{
+    utils::{process::pipe_and_inherit_child_process_stdio, table::TableBuilder},
+    LuneMessage,
+};
 
 pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
+    let cwd = env::current_dir()?.canonicalize()?;
+    let mut cwd_str = cwd.to_string_lossy().to_string();
+    if !cwd_str.ends_with('/') {
+        cwd_str = format!("{}/", cwd_str);
+    }
     // Create readonly args array
     let args_tab = TableBuilder::new(lua)?
         .with_sequential_values(args_vec)?
@@ -26,9 +40,10 @@ pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
         "process",
         TableBuilder::new(lua)?
             .with_value("args", args_tab)?
+            .with_value("cwd", cwd_str)?
             .with_value("env", env_tab)?
             .with_async_function("exit", process_exit)?
-            .with_async_function("spawn", process_spawn)?
+            .with_function("spawn", process_spawn)?
             .build_readonly()?,
     )
 }
@@ -112,37 +127,141 @@ async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
     Ok(())
 }
 
-async fn process_spawn(
-    lua: &Lua,
-    (program, args): (String, Option<Vec<String>>),
-) -> LuaResult<LuaTable> {
-    // Create and spawn our child process
-    let pwd = env::current_dir()?;
-    let mut cmd = Command::new(program);
-    if let Some(args) = args {
-        cmd.args(args);
-    }
-    let output = cmd
-        .current_dir(pwd)
+fn process_spawn<'a>(
+    lua: &'a Lua,
+    (mut program, args, options): (String, Option<Vec<String>>, Option<LuaTable<'a>>),
+) -> LuaResult<LuaTable<'a>> {
+    // Parse any given options or create defaults
+    let (child_cwd, child_envs, child_shell, child_stdio_inherit) = match options {
+        Some(options) => {
+            let mut cwd = env::current_dir()?;
+            let mut envs = HashMap::new();
+            let mut shell = None;
+            let mut inherit = false;
+            match options.raw_get("cwd")? {
+                LuaValue::Nil => {}
+                LuaValue::String(s) => {
+                    cwd = PathBuf::from(s.to_string_lossy().to_string());
+                    if !cwd.exists() {
+                        return Err(LuaError::RuntimeError(
+                            "Invalid value for option 'cwd' - path does not exist".to_string(),
+                        ));
+                    }
+                }
+                value => {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Invalid type for option 'cwd' - expected 'string', got '{}'",
+                        value.type_name()
+                    )))
+                }
+            }
+            match options.raw_get("env")? {
+                LuaValue::Nil => {}
+                LuaValue::Table(t) => {
+                    for pair in t.pairs::<String, String>() {
+                        let (k, v) = pair?;
+                        envs.insert(k, v);
+                    }
+                }
+                value => {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Invalid type for option 'env' - expected 'table', got '{}'",
+                        value.type_name()
+                    )))
+                }
+            }
+            match options.raw_get("shell")? {
+                LuaValue::Nil => {}
+                LuaValue::String(s) => shell = Some(s.to_string_lossy().to_string()),
+                LuaValue::Boolean(true) => {
+                    shell = match env::consts::FAMILY {
+                        "unix" => Some("/bin/sh".to_string()),
+                        "windows" => Some("/bin/sh".to_string()),
+                        _ => None,
+                    };
+                }
+                value => {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Invalid type for option 'shell' - expected 'true' or 'string', got '{}'",
+                        value.type_name()
+                    )))
+                }
+            }
+            match options.raw_get("stdio")? {
+                LuaValue::Nil => {}
+                LuaValue::String(s) => {
+                    match s.to_str()? {
+                        "inherit" => {
+                            inherit = true;
+                        },
+                        "default" => {
+                            inherit = false;
+                        }
+                        _ => return Err(LuaError::RuntimeError(
+                            format!("Invalid value for option 'stdio' - expected 'inherit' or 'default', got '{}'", s.to_string_lossy()),
+                        ))
+                    }
+                }
+                value => {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Invalid type for option 'stdio' - expected 'string', got '{}'",
+                        value.type_name()
+                    )))
+                }
+            }
+            Ok::<_, LuaError>((cwd, envs, shell, inherit))
+        }
+        None => Ok((env::current_dir()?, HashMap::new(), None, false)),
+    }?;
+    // Run a shell using the command param if wanted
+    let child_args = if let Some(shell) = child_shell {
+        let shell_args = match args {
+            Some(args) => vec!["-c".to_string(), format!("{} {}", program, args.join(" "))],
+            None => vec!["-c".to_string(), program],
+        };
+        program = shell;
+        Some(shell_args)
+    } else {
+        args
+    };
+    // Create command with the wanted options
+    let mut cmd = match child_args {
+        None => Command::new(program),
+        Some(args) => {
+            let mut cmd = Command::new(program);
+            cmd.args(args);
+            cmd
+        }
+    };
+    // FUTURE: Implement and test for tilde (~) to home dir substitution in child_cwd
+    cmd.current_dir(child_cwd);
+    cmd.envs(child_envs);
+    // Spawn the child process
+    let child = cmd
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .output()
-        .await?;
+        .spawn()?;
+    // Inherit the output and stderr if wanted
+    let result = if child_stdio_inherit {
+        pipe_and_inherit_child_process_stdio(child)
+    } else {
+        let output = child.wait_with_output()?;
+        Ok((output.status, output.stdout, output.stderr))
+    };
+    // Extract result
+    let (status, stdout, stderr) = result?;
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
-    let code = output
-        .status
-        .code()
-        .unwrap_or(match output.stderr.is_empty() {
-            true => 0,
-            false => 1,
-        });
+    let code = status.code().unwrap_or(match stderr.is_empty() {
+        true => 0,
+        false => 1,
+    });
     // Construct and return a readonly lua table with results
     TableBuilder::new(lua)?
         .with_value("ok", code == 0)?
         .with_value("code", code)?
-        .with_value("stdout", lua.create_string(&output.stdout)?)?
-        .with_value("stderr", lua.create_string(&output.stderr)?)?
+        .with_value("stdout", lua.create_string(&stdout)?)?
+        .with_value("stderr", lua.create_string(&stderr)?)?
         .build_readonly()
 }
