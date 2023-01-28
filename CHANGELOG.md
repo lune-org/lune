@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added full documentation for all global APIs provided by Lune! This includes over 200 lines of pure documentation about behavior, error cases, and more for all of the current 35 global functions, parameters, return values, and more. Check out the [README](/README.md) to find out how to enable documentation in your editor.
+
+- Added a third argument `options` for `process.spawn`:
+
+  - `cwd` - The current working directory for the process
+  - `env` - Extra environment variables to give to the process
+  - `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
+  - `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
+
+- Added `process.cwd`, the path to the current working directory in which the Lune script is running
+
 ## `0.1.3` - January 25th, 2023
 
 ### Added

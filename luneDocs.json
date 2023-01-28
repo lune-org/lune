@@ -376,6 +376,13 @@
     "params": [],
     "returns": []
   },
+  "@roblox/global/process.cwd": {
+    "code_sample": "",
+    "documentation": "The current working directory in which the Lune script is running.",
+    "learn_more_link": "",
+    "params": [],
+    "returns": []
+  },
   "@roblox/global/process.env": {
     "code_sample": "",
     "documentation": "Current environment variables for this process.\n\nSetting a value on this table will set the corresponding environment variable.",
@@ -400,7 +407,7 @@
   },
   "@roblox/global/process.spawn": {
     "code_sample": "",
-    "documentation": "Spawns a child process that will run the program `program` with the given `params` as arguments, and returns a dictionary that describes the final status and ouput of the child process.",
+    "documentation": "Spawns a child process that will run the program `program`, and returns a dictionary that describes the final status and ouput of the child process.\n\nThe second argument, `params`, can be passed as a list of string parameters to give to the program.\n\nThe third argument, `options`, can be passed as a dictionary of options to give to the child process.\nThe available options inside of the `options` dictionary are:\n* `cwd` - The current working directory for the process\n* `env` - Extra environment variables to give to the process\n* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell\n* `stdio` - How to treat output and error streams from the child process - set to \"inherit\" to pass output and error streams to the current process",
     "learn_more_link": "",
     "params": [
       {
@@ -410,6 +417,10 @@
       {
         "documentation": "@roblox/global/process.spawn/param/1",
         "name": "params"
+      },
+      {
+        "documentation": "@roblox/global/process.spawn/param/2",
+        "name": "options"
       }
     ],
     "returns": [
@@ -421,6 +432,9 @@
   },
   "@roblox/global/process.spawn/param/1": {
     "documentation": "Additional parameters to pass to the program"
+  },
+  "@roblox/global/process.spawn/param/2": {
+    "documentation": "A dictionary of options for the child process"
   },
   "@roblox/global/process.spawn/return/0": {
     "documentation": "A dictionary representing the result of the child process"

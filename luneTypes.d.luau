@@ -274,6 +274,12 @@ declare process: {
 	--[=[
 		@within process
 
+		The current working directory in which the Lune script is running.
+	]=]
+	cwd: string,
+	--[=[
+		@within process
+
 		Current environment variables for this process.
 
 		Setting a value on this table will set the corresponding environment variable.
@@ -294,13 +300,32 @@ declare process: {
 	--[=[
 		@within process
 		
-		Spawns a child process that will run the program `program` with the given `params` as arguments, and returns a dictionary that describes the final status and ouput of the child process.
+		Spawns a child process that will run the program `program`, and returns a dictionary that describes the final status and ouput of the child process.
+
+		The second argument, `params`, can be passed as a list of string parameters to give to the program.
+
+		The third argument, `options`, can be passed as a dictionary of options to give to the child process.
+		The available options inside of the `options` dictionary are:
+		* `cwd` - The current working directory for the process
+		* `env` - Extra environment variables to give to the process
+		* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
+		* `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
 
 		@param program The program to spawn as a child process
 		@param params Additional parameters to pass to the program
+		@param options A dictionary of options for the child process
 		@return A dictionary representing the result of the child process
 	]=]
-	spawn: (program: string, params: { string }?) -> {
+	spawn: (
+		program: string,
+		params: { string }?,
+		options: {
+			cwd: string?,
+			env: { [string]: string }?,
+			shell: boolean | string,
+			stdio: ("inherit" | "default")?,
+		}?
+	) -> {
 		ok: boolean,
 		code: number,
 		stdout: string,
