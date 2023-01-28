@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.2.0` - January 28th, 2023
 
 ### Added
 
-- Added full documentation for all global APIs provided by Lune! This includes over 200 lines of pure documentation about behavior, error cases, and more for all of the current 35 global functions, parameters, return values, and more. Check out the [README](/README.md) to find out how to enable documentation in your editor.
+- Added full documentation for all global APIs provided by Lune! This includes over 200 lines of pure documentation about behavior & error cases for all of the current 35 constants & functions. Check the [README](/README.md) to find out how to enable documentation in your editor.
 
 - Added a third argument `options` for `process.spawn`:
 
