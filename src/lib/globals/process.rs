@@ -4,11 +4,12 @@ use std::{
     path::PathBuf,
     process::{Command, Stdio},
     sync::Weak,
+    time::Duration,
 };
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use smol::channel::Sender;
+use smol::{channel::Sender, Timer};
 
 use crate::{
     utils::{process::pipe_and_inherit_child_process_stdio, table::TableBuilder},
@@ -120,10 +121,15 @@ async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
         .unwrap()
         .upgrade()
         .unwrap();
+    // Send an exit signal to the main thread, which
+    // will try to exit safely and as soon as possible
     sender
         .send(LuneMessage::Exit(exit_code.unwrap_or(0)))
         .await
         .map_err(LuaError::external)?;
+    // Make sure to block the rest of this thread indefinitely since
+    // the main thread may not register the exit signal right away
+    Timer::after(Duration::MAX).await;
     Ok(())
 }
 
