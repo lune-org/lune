@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Improved type definitions file for Selene, now including constants like `process.env` + tags such as `readonly` and `mustuse` wherever applicable
+
+### Fixed
+
+- Fixed type definitions file for Selene not including all API members and parameters
+- Fixed `process.exit` exiting at the first yield instead of exiting instantly as it should
+
 ## `0.2.0` - January 28th, 2023
 
 ### Added

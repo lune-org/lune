@@ -3,14 +3,17 @@
 globals:
   # Console
   console.resetColor:
+    args: []
   console.setColor:
     args:
       - type: string
   console.resetStyle:
+    args: []
   console.setStyle:
     args:
       - type: string
   console.format:
+    must_use: true
     args:
       - type: "..."
   console.log:
@@ -27,9 +30,11 @@ globals:
       - type: "..."
   # FS (filesystem)
   fs.readFile:
+    must_use: true
     args:
       - type: string
   fs.readDir:
+    must_use: true
     args:
       - type: string
   fs.writeFile:
@@ -46,24 +51,34 @@ globals:
     args:
       - type: string
   fs.isFile:
+    must_use: true
     args:
       - type: string
   fs.isDir:
+    must_use: true
     args:
       - type: string
   # Net (networking)
   net.jsonEncode:
+    must_use: true
     args:
       - type: any
       - required: false
         type: boolean
   net.jsonDecode:
+    must_use: true
     args:
       - type: string
   net.request:
     args:
       - type: any
   # Processs
+  process.args:
+    property: read-only
+  process.cwd:
+    property: read-only
+  process.env:
+    property: new-fields
   process.exit:
     args:
       - required: false
@@ -73,8 +88,12 @@ globals:
       - type: string
       - required: false
         type: table
+      - required: false
+        type: table
   # Task
   task.cancel:
+    args:
+      - type: thread
   task.defer:
     args:
       - type: thread | function
