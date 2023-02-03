@@ -1,6 +1,7 @@
-use std::env::current_dir;
+use std::{env::current_dir, str::FromStr};
 
 use anyhow::{bail, Context, Result};
+use reqwest::header::{HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 
 use lune::utils::net::{get_github_owner_and_repo, get_request_user_agent_header};
@@ -41,15 +42,17 @@ impl Client {
         }
     }
 
-    async fn get(&self, url: &str, headers: &[(&str, &str)]) -> Result<String> {
-        let mut request = ureq::get(url)
-            .set("User-Agent", &get_request_user_agent_header())
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", "2022-11-28");
+    async fn get(&self, url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>> {
+        let mut request = reqwest::ClientBuilder::new()
+            .build()?
+            .request(reqwest::Method::GET, url)
+            .header("User-Agent", &get_request_user_agent_header())
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28");
         for (header, value) in headers {
-            request = request.set(header, value);
+            request = request.header(HeaderName::from_str(header)?, HeaderValue::from_str(value)?);
         }
-        tokio::task::spawn_blocking(|| Ok(request.send_string("")?.into_string()?)).await?
+        Ok(request.send().await?.bytes().await?.to_vec())
     }
 
     pub async fn fetch_releases(&self) -> Result<Vec<Release>> {
@@ -57,8 +60,8 @@ impl Client {
             "https://api.github.com/repos/{}/{}/releases",
             &self.github_owner, &self.github_repo
         );
-        let response_string = self.get(&release_api_url, &[]).await?;
-        Ok(serde_json::from_str(&response_string)?)
+        let response_bytes = self.get(&release_api_url, &[]).await?;
+        Ok(serde_json::from_slice(&response_bytes)?)
     }
 
     pub async fn fetch_release_for_this_version(&self) -> Result<Release> {
@@ -78,10 +81,10 @@ impl Client {
             .find(|asset| matches!(&asset.name, Some(name) if name == asset_name))
         {
             let file_path = current_dir()?.join(asset_name);
-            let file_string = self
+            let file_bytes = self
                 .get(&asset.url, &[("Accept", "application/octet-stream")])
                 .await?;
-            tokio::fs::write(&file_path, &file_string)
+            tokio::fs::write(&file_path, &file_bytes)
                 .await
                 .with_context(|| {
                     format!("Failed to write file at path '{}'", &file_path.display())
