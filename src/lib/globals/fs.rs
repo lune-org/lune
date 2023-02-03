@@ -1,7 +1,7 @@
 use std::path::{PathBuf, MAIN_SEPARATOR};
 
 use mlua::prelude::*;
-use smol::{fs, prelude::*};
+use tokio::fs;
 
 use crate::utils::table::TableBuilder;
 
@@ -28,7 +28,7 @@ async fn fs_read_file(_: &Lua, path: String) -> LuaResult<String> {
 async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
     let mut dir = fs::read_dir(&path).await.map_err(LuaError::external)?;
-    while let Some(dir_entry) = dir.try_next().await.map_err(LuaError::external)? {
+    while let Some(dir_entry) = dir.next_entry().await.map_err(LuaError::external)? {
         if let Some(dir_path_str) = dir_entry.path().to_str() {
             dir_strings.push(dir_path_str.to_owned());
         } else {

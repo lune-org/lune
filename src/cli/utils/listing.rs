@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, fmt::Write as _};
 
 use anyhow::{bail, Result};
-use smol::{fs, io, prelude::*};
+use tokio::{fs, io};
 
 use super::files::parse_lune_description_from_file;
 
@@ -20,7 +20,7 @@ pub async fn find_lune_scripts() -> Result<Vec<(String, String)>> {
     match lune_dir {
         Ok(mut dir) => {
             let mut files = Vec::new();
-            while let Some(entry) = dir.next().await.transpose()? {
+            while let Some(entry) = dir.next_entry().await? {
                 let meta = entry.metadata().await?;
                 if meta.is_file() {
                     let contents = fs::read_to_string(entry.path()).await?;

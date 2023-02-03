@@ -4,7 +4,7 @@ use std::{
 };
 
 use mlua::prelude::*;
-use smol::Timer;
+use tokio::time;
 
 use crate::utils::{
     table::TableBuilder,
@@ -132,7 +132,7 @@ async fn task_spawn<'a>(
 async fn task_wait(lua: &Lua, duration: Option<f32>) -> LuaResult<f32> {
     let start = Instant::now();
     run_registered_task(lua, TaskRunMode::Blocking, async move {
-        Timer::after(Duration::from_secs_f32(
+        time::sleep(Duration::from_secs_f32(
             duration
                 .map(|d| d.max(MINIMUM_WAIT_OR_DELAY_DURATION))
                 .unwrap_or(MINIMUM_WAIT_OR_DELAY_DURATION),

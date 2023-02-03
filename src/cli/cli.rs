@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{CommandFactory, Parser};
 
 use lune::Lune;
-use smol::fs::{read_to_string, write};
+use tokio::fs::{read_to_string, write};
 
 use crate::{
     gen::generate_docs_json_from_definitions,
@@ -178,7 +178,7 @@ mod tests {
 
     use anyhow::{bail, Context, Result};
     use serde_json::Value;
-    use smol::fs::{create_dir_all, read_to_string, remove_file};
+    use tokio::fs::{create_dir_all, read_to_string, remove_file};
 
     use super::{Cli, LUNE_LUAU_FILE_NAME, LUNE_SELENE_FILE_NAME};
 
@@ -212,29 +212,23 @@ mod tests {
         }
     }
 
-    #[test]
-    fn list() -> Result<()> {
-        smol::block_on(async {
-            Cli::list().run().await?;
-            Ok(())
-        })
+    #[tokio::test]
+    async fn list() -> Result<()> {
+        Cli::list().run().await?;
+        Ok(())
     }
 
-    #[test]
-    fn download_selene_types() -> Result<()> {
-        smol::block_on(async {
-            run_cli(Cli::download_selene_types()).await?;
-            ensure_file_exists_and_is_not_json(LUNE_SELENE_FILE_NAME).await?;
-            Ok(())
-        })
+    #[tokio::test]
+    async fn download_selene_types() -> Result<()> {
+        run_cli(Cli::download_selene_types()).await?;
+        ensure_file_exists_and_is_not_json(LUNE_SELENE_FILE_NAME).await?;
+        Ok(())
     }
 
-    #[test]
-    fn download_luau_types() -> Result<()> {
-        smol::block_on(async {
-            run_cli(Cli::download_luau_types()).await?;
-            ensure_file_exists_and_is_not_json(LUNE_LUAU_FILE_NAME).await?;
-            Ok(())
-        })
+    #[tokio::test]
+    async fn download_luau_types() -> Result<()> {
+        run_cli(Cli::download_luau_types()).await?;
+        ensure_file_exists_and_is_not_json(LUNE_LUAU_FILE_NAME).await?;
+        Ok(())
     }
 }

@@ -2,7 +2,7 @@ use std::{collections::HashSet, process::ExitCode, sync::Arc};
 
 use anyhow::{bail, Result};
 use mlua::prelude::*;
-use smol::LocalExecutor;
+use tokio::{sync::mpsc, task};
 
 pub mod globals;
 pub mod utils;
@@ -72,15 +72,12 @@ impl Lune {
     }
 
     pub async fn run(&self, name: &str, chunk: &str) -> Result<ExitCode> {
-        let (s, r) = smol::channel::unbounded::<LuneMessage>();
+        let task_set = task::LocalSet::new();
+        let (sender, mut receiver) = mpsc::channel::<LuneMessage>(64);
         let lua = Arc::new(mlua::Lua::new());
-        let exec = Arc::new(LocalExecutor::new());
-        let sender = Arc::new(s);
-        let receiver = Arc::new(r);
+        let snd = Arc::new(sender);
         lua.set_app_data(Arc::downgrade(&lua));
-        lua.set_app_data(Arc::downgrade(&exec));
-        lua.set_app_data(Arc::downgrade(&sender));
-        lua.set_app_data(Arc::downgrade(&receiver));
+        lua.set_app_data(Arc::downgrade(&snd));
         // Add in wanted lune globals
         for global in &self.globals {
             match &global {
@@ -96,8 +93,9 @@ impl Lune {
         let script_lua = lua.clone();
         let script_name = name.to_string();
         let script_chunk = chunk.to_string();
-        sender.send(LuneMessage::Spawned).await?;
-        exec.spawn(async move {
+        let script_sender = snd.clone();
+        script_sender.send(LuneMessage::Spawned).await?;
+        task_set.spawn_local(async move {
             let result = script_lua
                 .load(&script_chunk)
                 .set_name(&format!("={}", script_name))
@@ -105,20 +103,19 @@ impl Lune {
                 .eval_async::<LuaValue>()
                 .await;
             match result {
-                Err(e) => sender.send(LuneMessage::LuaError(e)).await,
-                Ok(_) => sender.send(LuneMessage::Finished).await,
+                Err(e) => script_sender.send(LuneMessage::LuaError(e)).await,
+                Ok(_) => script_sender.send(LuneMessage::Finished).await,
             }
-        })
-        .detach();
+        });
         // Run the executor until there are no tasks left,
         // taking care to not exit right away for errors
-        let (got_code, got_error, exit_code) = exec
-            .run(async {
+        let (got_code, got_error, exit_code) = task_set
+            .run_until(async {
                 let mut task_count = 0;
                 let mut got_error = false;
                 let mut got_code = false;
                 let mut exit_code = 0;
-                while let Ok(message) = receiver.recv().await {
+                while let Some(message) = receiver.recv().await {
                     // Make sure our task-count-modifying messages are sent correctly, one
                     // task spawned must always correspond to one task finished / errored
                     match &message {
@@ -174,7 +171,7 @@ mod tests {
     use std::process::ExitCode;
 
     use anyhow::Result;
-    use smol::fs::read_to_string;
+    use tokio::fs::read_to_string;
 
     use crate::Lune;
 
@@ -183,25 +180,23 @@ mod tests {
     macro_rules! run_tests {
         ($($name:ident: $value:expr,)*) => {
             $(
-                #[test]
-                fn $name() -> Result<ExitCode> {
-                    smol::block_on(async {
-                        let full_name = format!("src/tests/{}.luau", $value);
-                        let script = read_to_string(&full_name)
-                            .await
-                            .unwrap();
-                        let lune = Lune::new()
-                            .with_args(
-                                ARGS
-                                    .clone()
-                                    .iter()
-                                    .map(ToString::to_string)
-                                    .collect()
-                            )
-                            .with_all_globals();
-                        let script_name = full_name.strip_suffix(".luau").unwrap();
-                        lune.run(&script_name, &script).await
-                    })
+                #[tokio::test]
+                async fn $name() -> Result<ExitCode> {
+                    let full_name = format!("src/tests/{}.luau", $value);
+                    let script = read_to_string(&full_name)
+                        .await
+                        .unwrap();
+                    let lune = Lune::new()
+                        .with_args(
+                            ARGS
+                                .clone()
+                                .iter()
+                                .map(ToString::to_string)
+                                .collect()
+                        )
+                        .with_all_globals();
+                    let script_name = full_name.strip_suffix(".luau").unwrap();
+                    lune.run(&script_name, &script).await
                 }
             )*
         }

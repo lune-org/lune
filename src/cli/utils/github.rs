@@ -4,7 +4,6 @@ use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
 use lune::utils::net::{get_github_owner_and_repo, get_request_user_agent_header};
-use smol::unblock;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ReleaseAsset {
@@ -50,7 +49,7 @@ impl Client {
         for (header, value) in headers {
             request = request.set(header, value);
         }
-        unblock(|| Ok(request.send_string("")?.into_string()?)).await
+        tokio::task::spawn_blocking(|| Ok(request.send_string("")?.into_string()?)).await?
     }
 
     pub async fn fetch_releases(&self) -> Result<Vec<Release>> {
@@ -82,7 +81,7 @@ impl Client {
             let file_string = self
                 .get(&asset.url, &[("Accept", "application/octet-stream")])
                 .await?;
-            smol::fs::write(&file_path, &file_string)
+            tokio::fs::write(&file_path, &file_string)
                 .await
                 .with_context(|| {
                     format!("Failed to write file at path '{}'", &file_path.display())

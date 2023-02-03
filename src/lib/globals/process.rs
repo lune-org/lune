@@ -9,7 +9,7 @@ use std::{
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use smol::{channel::Sender, Timer};
+use tokio::{sync::mpsc::Sender, time};
 
 use crate::{
     utils::{process::pipe_and_inherit_child_process_stdio, table::TableBuilder},
@@ -129,7 +129,7 @@ async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
         .map_err(LuaError::external)?;
     // Make sure to block the rest of this thread indefinitely since
     // the main thread may not register the exit signal right away
-    Timer::after(Duration::MAX).await;
+    time::sleep(Duration::MAX).await;
     Ok(())
 }
 
