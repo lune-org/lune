@@ -213,6 +213,7 @@ mod tests {
         net_request_redirect: "net/request/redirect",
         net_json_decode: "net/json/decode",
         net_json_encode: "net/json/encode",
+        net_serve: "net/serve",
         process_args: "process/args",
         process_cwd: "process/cwd",
         process_env: "process/env",

@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
@@ -36,6 +36,7 @@ mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.24.2", features = ["full"] }
 
-reqwest = { version = "0.11.14", default-features = false, features = [
-    "rustls-tls",
-] }
+[dependencies.reqwest]
+version = "0.11.14"
+default-features = false
+features = ["rustls-tls"]
