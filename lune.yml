@@ -72,6 +72,10 @@ globals:
   net.request:
     args:
       - type: any
+  net.serve:
+    args:
+      - type: number
+      - type: function
   # Processs
   process.args:
     property: read-only

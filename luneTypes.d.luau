@@ -241,6 +241,29 @@ declare net: {
 	--[=[
 		@within net
 
+		Creates an HTTP server that listens on the given `port`.
+
+		The call to this function will block indefinitely and if
+		put inside `task.spawn` will not be cancellable using `task.cancel`, to
+		stop the script from running it must be terminated manually or using `process.exit`.
+
+		@param port The port to use for the server
+		@param handler The handler function to use for the server
+	]=]
+	serve: (port: number, handler: (request: {
+		path: string,
+		query: string,
+		method: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH",
+		headers: { [string]: string }?,
+		body: string?,
+	}) -> (string | {
+		status: number?,
+		headers: { [string]: string }?,
+		body: string?,
+	})) -> (),
+	--[=[
+		@within net
+
 		Encodes the given value as JSON.
 
 		@param value The value to encode as JSON

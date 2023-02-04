@@ -361,6 +361,28 @@
   "@roblox/global/net.request/return/0": {
     "documentation": "A dictionary representing the response for the request"
   },
+  "@roblox/global/net.serve": {
+    "code_sample": "",
+    "documentation": "Creates an HTTP server that listens on the given `port`.\n\nThe call to this function will block indefinitely and if\nput inside `task.spawn` will not be cancellable using `task.cancel`, to\nstop the script from running it must be terminated manually or using `process.exit`.",
+    "learn_more_link": "",
+    "params": [
+      {
+        "documentation": "@roblox/global/net.serve/param/0",
+        "name": "port"
+      },
+      {
+        "documentation": "@roblox/global/net.serve/param/1",
+        "name": "handler"
+      }
+    ],
+    "returns": []
+  },
+  "@roblox/global/net.serve/param/0": {
+    "documentation": "The port to use for the server"
+  },
+  "@roblox/global/net.serve/param/1": {
+    "documentation": "The handler function to use for the server"
+  },
   "@roblox/global/process": {
     "code_sample": "",
     "documentation": "Current process & child processes",

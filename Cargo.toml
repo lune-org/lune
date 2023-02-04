@@ -31,11 +31,11 @@ serde_json = "1.0.91"
 
 clap = { version = "4.1.1", features = ["derive"] }
 full_moon = { version = "0.17.0", features = ["roblox"] }
+hyper = { version = "0.14.24", features = ["full"] }
 mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.24.2", features = ["full"] }
 
 reqwest = { version = "0.11.14", default-features = false, features = [
     "rustls-tls",
-    "gzip",
 ] }

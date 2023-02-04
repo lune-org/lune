@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added support for string interpolation syntax (update to Luau 0.561)
+- Added network server functionality using `net.serve`
+
+  Example usage:
+
+  ```lua
+  net.serve(8080, function(request)
+      print(`Got a {request.method} request at {request.path}!`)
+
+      local data = net.jsonDecode(request.body)
+
+      -- For simple text responses with a 200 status
+      return "OK"
+
+      -- For anything else
+      return {
+          status = 203,
+          headers = { ["Content-Type"] = "application/json" },
+          body = net.jsonEncode({
+              message = "echo",
+              data = data,
+          })
+      }
+  end)
+  ```
+
 ### Changed
 
 - Improved type definitions file for Selene, now including constants like `process.env` + tags such as `readonly` and `mustuse` wherever applicable
