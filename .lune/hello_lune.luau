@@ -8,7 +8,7 @@ print("Hello, lune! 🌙")
 	Using a function from another module
 ]==]
 
-local module = require("./module")
+local module = require("./modules/module")
 module.sayHello()
 
 --[==[

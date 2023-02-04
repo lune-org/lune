@@ -29,8 +29,8 @@ You can also download pre-built binaries for most systems directly from the GitH
 
 ## ✏️ Writing Lune Scripts
 
-Check out the examples on how to write a script in the [.lune](.lune) folder ! <br />
-A great starting point and walkthrough of Lune can be found in the [Hello, Lune](.lune/hello_lune.luau) example.
+A great starting point and walkthrough of Lune can be found in [Hello, Lune](.lune/hello_lune.luau). <br />
+More examples of how to write Lune scripts can be found in the [examples](.lune/examples/) folder.
 
 <details>
 <summary><b>🔎 List of APIs</b></summary>

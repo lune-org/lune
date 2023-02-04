@@ -210,6 +210,35 @@ declare fs: {
 	isDir: (path: string) -> boolean,
 }
 
+type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
+
+export type NetFetchParams = {
+	url: string,
+	method: NetMethod?,
+	headers: { [string]: string }?,
+	body: string?,
+}
+export type NetFetchResponse = {
+	ok: boolean,
+	statusCode: number,
+	statusMessage: string,
+	headers: { [string]: string },
+	body: string,
+}
+
+export type NetRequest = {
+	path: string,
+	query: string,
+	method: NetMethod,
+	headers: { [string]: string },
+	body: string,
+}
+export type NetResponse = {
+	status: number?,
+	headers: { [string]: string }?,
+	body: string?,
+}
+
 --[=[
 	@class net
 
@@ -226,18 +255,7 @@ declare net: {
 		@param config The URL or request config to use
 		@return A dictionary representing the response for the request
 	]=]
-	request: (config: string | {
-		url: string,
-		method: ("GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH")?,
-		headers: { [string]: string }?,
-		body: string?,
-	}) -> {
-		ok: boolean,
-		statusCode: number,
-		statusMessage: string,
-		headers: { [string]: string },
-		body: string,
-	},
+	request: (config: string | NetFetchParams) -> NetFetchResponse,
 	--[=[
 		@within net
 
@@ -250,17 +268,7 @@ declare net: {
 		@param port The port to use for the server
 		@param handler The handler function to use for the server
 	]=]
-	serve: (port: number, handler: (request: {
-		path: string,
-		query: string,
-		method: "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH",
-		headers: { [string]: string }?,
-		body: string?,
-	}) -> (string | {
-		status: number?,
-		headers: { [string]: string }?,
-		body: string?,
-	})) -> (),
+	serve: (port: number, handler: (request: NetRequest) -> (string | NetResponse)) -> (),
 	--[=[
 		@within net
 
@@ -280,6 +288,15 @@ declare net: {
 		@return The decoded lua value
 	]=]
 	jsonDecode: (encoded: string) -> any,
+}
+
+type ProcessSpawnOptionsStdio = "inherit" | "default"
+
+export type ProcessSpawnOptions = {
+	cwd: string?,
+	env: { [string]: string }?,
+	shell: (boolean | string)?,
+	stdio: ProcessSpawnOptionsStdio?,
 }
 
 --[=[
@@ -342,12 +359,7 @@ declare process: {
 	spawn: (
 		program: string,
 		params: { string }?,
-		options: {
-			cwd: string?,
-			env: { [string]: string }?,
-			shell: (boolean | string)?,
-			stdio: ("inherit" | "default")?,
-		}?
+		options: ProcessSpawnOptions?
 	) -> {
 		ok: boolean,
 		code: number,
