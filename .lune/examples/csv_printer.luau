@@ -10,50 +10,49 @@ assert(path ~= nil and #path > 0, "No input file path was given")
 assert(not fs.isDir(path), "Input file path was a dir, not a file")
 assert(fs.isFile(path), "Input file path does not exist")
 
--- Read all the lines of the wanted file
-local rawLines = string.split(fs.readFile(path), LINE_SEPARATOR)
+-- Read all the lines of the wanted file, and then split
+-- out the raw lines containing comma-separated values
 
--- Split the raw lines into header and table of data
-local csvHeader = string.split(rawLines[1], COMMA_SEPARATOR)
 local csvTable = {}
-for index = 2, #rawLines, 1 do -- NOTE: We skip the first line here, that's the header
-	csvTable[index - 1] = string.split(rawLines[index], COMMA_SEPARATOR)
+for index, rawLine in string.split(fs.readFile(path), LINE_SEPARATOR) do
+	csvTable[index] = string.split(rawLine, COMMA_SEPARATOR)
 end
 
--- Gather the maximum widths of strings for alignment
+-- Gather the maximum widths of strings
+-- for alignment & spacing in advance
+
 local maxWidths = {}
-
-for index, header in csvHeader do
-	maxWidths[index] = #header
-end
-
 for _, row in csvTable do
 	for index, value in row do
-		maxWidths[index] = math.max(maxWidths[index], #value)
+		maxWidths[index] = math.max(maxWidths[index] or 0, #value)
 	end
 end
 
 local totalWidth = 0
+local totalColumns = 0
 for _, width in maxWidths do
 	totalWidth += width
+	totalColumns += 1
 end
 
--- Print it all out
+-- We have everything we need, print it out with
+-- the help of some unicode box drawing characters
 
-local function printRow(row: { string })
-	local paddedValues = {}
-	for index, value in row do
-		local spacing = string.rep(" ", maxWidths[index] - #value)
-		table.insert(paddedValues, string.format(" %s%s ", value, spacing))
-	end
-	print(string.format("┃ %s ┃", table.concat(paddedValues, "┃")))
-end
+local thiccLine = string.rep("━", totalWidth + totalColumns * 3 - 1)
 
-local thiccLine = string.rep("━", totalWidth + #csvHeader * 3 + 1)
 print(string.format("┏%s┓", thiccLine))
-printRow(csvHeader)
-print(string.format("┣%s┫", thiccLine))
-for _, row in csvTable do
-	printRow(row)
+
+for rowIndex, row in csvTable do
+	local paddedValues = {}
+	for valueIndex, value in row do
+		local spacing = string.rep(" ", maxWidths[valueIndex] - #value)
+		table.insert(paddedValues, value .. spacing)
+	end
+	print(string.format("┃ %s ┃", table.concat(paddedValues, " ┃ ")))
+	-- The first line is the header, we should
+	-- print out an extra separator below it
+	if rowIndex == 1 then
+		print(string.format("┣%s┫", thiccLine))
+	end
 end
 print(string.format("┗%s┛", thiccLine))
