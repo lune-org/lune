@@ -1,7 +1,6 @@
-use std::{env::current_dir, str::FromStr};
+use std::env::current_dir;
 
 use anyhow::{bail, Context, Result};
-use reqwest::header::{HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 
 use lune::utils::net::{get_github_owner_and_repo, get_request_user_agent_header};
@@ -42,16 +41,13 @@ impl Client {
         }
     }
 
-    async fn get(&self, url: &str, headers: &[(&str, &str)]) -> Result<Vec<u8>> {
-        let mut request = reqwest::ClientBuilder::new()
+    async fn get(&self, url: &str, accept: Option<&str>) -> Result<Vec<u8>> {
+        let request = reqwest::ClientBuilder::new()
             .build()?
             .request(reqwest::Method::GET, url)
             .header("User-Agent", &get_request_user_agent_header())
-            .header("Accept", "application/vnd.github+json")
+            .header("Accept", accept.unwrap_or("application/vnd.github+json"))
             .header("X-GitHub-Api-Version", "2022-11-28");
-        for (header, value) in headers {
-            request = request.header(HeaderName::from_str(header)?, HeaderValue::from_str(value)?);
-        }
         Ok(request.send().await?.bytes().await?.to_vec())
     }
 
@@ -60,7 +56,7 @@ impl Client {
             "https://api.github.com/repos/{}/{}/releases",
             &self.github_owner, &self.github_repo
         );
-        let response_bytes = self.get(&release_api_url, &[]).await?;
+        let response_bytes = self.get(&release_api_url, None).await?;
         Ok(serde_json::from_slice(&response_bytes)?)
     }
 
@@ -82,7 +78,7 @@ impl Client {
         {
             let file_path = current_dir()?.join(asset_name);
             let file_bytes = self
-                .get(&asset.url, &[("Accept", "application/octet-stream")])
+                .get(&asset.url, Some("application/octet-stream"))
                 .await?;
             tokio::fs::write(&file_path, &file_bytes)
                 .await
