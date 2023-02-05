@@ -1,4 +1,4 @@
---> A basic webserver that echoes the given request
+--> A basic http server that echoes the given request
 --> body at /ping and otherwise responds 404 "Not Found"
 
 local PORT = if process.env.PORT ~= nil and #process.env.PORT > 0
