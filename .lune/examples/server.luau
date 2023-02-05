@@ -9,7 +9,7 @@ local PORT = if process.env.PORT ~= nil and #process.env.PORT > 0
 
 local function pong(request: NetRequest): NetResponse
 	return {
-		body = `Pong!\n{request.path}\n{request.body}"`,
+		body = `Pong!\n{request.path}\n{request.body}`,
 	}
 end
 
