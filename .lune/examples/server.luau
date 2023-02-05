@@ -7,9 +7,14 @@ local PORT = if process.env.PORT ~= nil and #process.env.PORT > 0
 
 -- Create our responder functions
 
-local function pong(request: NetRequest): NetResponse
+local function pong(request: NetRequest): string
+	return `Pong!\n{request.path}\n{request.body}`
+end
+
+local function teapot(request: NetRequest): NetResponse
 	return {
-		body = `Pong!\n{request.path}\n{request.body}`,
+		status = 418,
+		body = "🫖",
 	}
 end
 
@@ -33,8 +38,10 @@ end)
 
 print(`Listening on port {PORT} 🚀`)
 net.serve(PORT, function(request)
-	if string.sub(request.path, 1, 6) == "/ping" then
+	if string.sub(request.path, 1, 5) == "/ping" then
 		return pong(request)
+	elseif string.sub(request.path, 1, 7) == "/teapot" then
+		return teapot(request)
 	else
 		return notFound(request)
 	end
