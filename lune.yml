@@ -1,19 +1,6 @@
 # Lune v0.2.2
 ---
 globals:
-  # Console
-  console.resetStyle:
-    args: []
-  console.setStyle:
-    args:
-      - required: false
-        type: string
-      - required: false
-        type: string
-  console.format:
-    must_use: true
-    args:
-      - type: "..."
   # FS (filesystem)
   fs.readFile:
     must_use: true
@@ -80,6 +67,25 @@ globals:
         type: table
       - required: false
         type: table
+  # Stdio
+  stdio.color:
+    must_use: true
+    args:
+      - type: string
+  stdio.style:
+    must_use: true
+    args:
+      - type: string
+  console.format:
+    must_use: true
+    args:
+      - type: "..."
+  stdio.write:
+    args:
+      - type: string
+  stdio.ewrite:
+    args:
+      - type: string
   # Task
   task.cancel:
     args:

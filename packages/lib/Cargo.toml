@@ -20,6 +20,8 @@ serde.workspace = true
 tokio.workspace = true
 reqwest.workspace = true
 
+console = "0.15.5"
+lazy_static = "1.4.0"
 os_str_bytes = "6.4.1"
 
 hyper = { version = "0.14.24", features = ["full"] }

@@ -35,10 +35,10 @@ More examples of how to write Lune scripts can be found in the [examples](.lune/
 <details>
 <summary><b>🔎 List of APIs</b></summary>
 
-`console` - Logging & formatting <br />
 `fs` - Filesystem <br />
 `net` - Networking <br />
 `process` - Current process & child processes <br />
+`stdio` - Standard input / output & utility functions <br />
 `task` - Task scheduler & thread spawning <br />
 
 Documentation for individual members and types can be found using your editor of choice and [Luau LSP](https://github.com/JohnnyMorganz/luau-lsp).

@@ -7,13 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added a new global `stdio` which replaces `console` and adds a couple new functions:
+  - `write` writes a string directly to stdout, without any newlines
+  - `ewrite` writes a string directly to stderr, without any newlines
+
 ### Changed
 
+- Migrated `console.setColor/resetColor` and `console.setStyle/resetStyle` to `stdio.color` and `stdio.style` to allow for more flexibility in custom printing using ANSI color codes. Check the documentation for new usage and behavior.
 - Migrated the pretty-printing and formatting behavior of `console.log/info/warn/error` to the standard Luau printing functions.
 
 ### Removed
 
 - Removed printing functions `console.log/info/warn/error` in favor of regular global functions for printing.
+
+### Fixed
+
+- Fixed scripts hanging indefinitely on error
 
 ## `0.2.2` - February 5th, 2023
 

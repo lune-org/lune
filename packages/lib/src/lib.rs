@@ -8,7 +8,7 @@ pub(crate) mod utils;
 
 use crate::{
     globals::{
-        create_console, create_fs, create_net, create_process, create_require, create_task,
+        create_fs, create_net, create_process, create_require, create_stdio, create_task,
         create_top_level,
     },
     utils::formatting::pretty_format_luau_error,
@@ -16,11 +16,11 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LuneGlobal {
-    Console,
     Fs,
     Net,
     Process,
     Require,
+    Stdio,
     Task,
     TopLevel,
 }
@@ -28,11 +28,11 @@ pub enum LuneGlobal {
 impl LuneGlobal {
     pub fn get_all() -> Vec<Self> {
         vec![
-            Self::Console,
             Self::Fs,
             Self::Net,
             Self::Process,
             Self::Require,
+            Self::Stdio,
             Self::Task,
             Self::TopLevel,
         ]
@@ -85,11 +85,11 @@ impl Lune {
         // Add in wanted lune globals
         for global in &self.globals {
             match &global {
-                LuneGlobal::Console => create_console(&lua)?,
                 LuneGlobal::Fs => create_fs(&lua)?,
                 LuneGlobal::Net => create_net(&lua)?,
                 LuneGlobal::Process => create_process(&lua, self.args.clone())?,
                 LuneGlobal::Require => create_require(&lua)?,
+                LuneGlobal::Stdio => create_stdio(&lua)?,
                 LuneGlobal::Task => create_task(&lua)?,
                 LuneGlobal::TopLevel => create_top_level(&lua)?,
             }
@@ -150,7 +150,7 @@ impl Lune {
                         LuneMessage::LuaError(e) => {
                             eprintln!("{}", pretty_format_luau_error(&e));
                             got_error = true;
-                            task_count += 1;
+                            task_count -= 1;
                         }
                     };
                     // If there are no tasks left running, it is now
@@ -180,6 +180,8 @@ mod tests {
     use std::{env::set_current_dir, path::PathBuf, process::ExitCode};
 
     use anyhow::Result;
+    use console::set_colors_enabled;
+    use console::set_colors_enabled_stderr;
     use tokio::fs::read_to_string;
 
     use crate::Lune;
@@ -191,6 +193,10 @@ mod tests {
             $(
                 #[tokio::test]
                 async fn $name() -> Result<ExitCode> {
+                    // Disable styling for stdout and stderr since
+                    // some tests rely on output not being styled
+                    set_colors_enabled(false);
+                    set_colors_enabled_stderr(false);
                     // NOTE: This path is relative to the lib
                     // package, not the cwd or workspace root,
                     // so we need to cd to the repo root first
@@ -218,8 +224,6 @@ mod tests {
     }
 
     run_tests! {
-        console_format: "console/format",
-        console_set_style: "console/set_style",
         fs_files: "fs/files",
         fs_dirs: "fs/dirs",
         net_request_codes: "net/request/codes",
@@ -238,6 +242,11 @@ mod tests {
         require_nested: "require/tests/nested",
         require_parents: "require/tests/parents",
         require_siblings: "require/tests/siblings",
+        stdio_format: "stdio/format",
+        stdio_color: "stdio/color",
+        stdio_style: "stdio/style",
+        stdio_write: "stdio/write",
+        stdio_ewrite: "stdio/ewrite",
         task_cancel: "task/cancel",
         task_defer: "task/defer",
         task_delay: "task/delay",

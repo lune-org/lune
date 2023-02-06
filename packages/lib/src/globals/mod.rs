@@ -1,24 +1,24 @@
-mod console;
 mod fs;
 mod net;
 mod process;
 mod require;
+mod stdio;
 mod task;
 
 // Global tables
 
-pub use console::create as create_console;
 pub use fs::create as create_fs;
 pub use net::create as create_net;
 pub use process::create as create_process;
 pub use require::create as create_require;
+pub use stdio::create as create_stdio;
 pub use task::create as create_task;
 
 // Individual top-level global values
 
 use mlua::prelude::*;
 
-use crate::utils::formatting::pretty_format_multi_value;
+use crate::utils::formatting::{format_label, pretty_format_multi_value};
 
 pub fn create_top_level(lua: &Lua) -> LuaResult<()> {
     let globals = lua.globals();
@@ -42,28 +42,40 @@ pub fn create_top_level(lua: &Lua) -> LuaResult<()> {
     globals.raw_set(
         "info",
         lua.create_function(|lua, args: LuaMultiValue| {
-            let formatted = pretty_format_multi_value(&args)?;
             let print: LuaFunction = lua.named_registry_value("print")?;
-            print.call(formatted)?;
+            print.call(format!(
+                "{}\n{}",
+                format_label("info"),
+                pretty_format_multi_value(&args)?
+            ))?;
             Ok(())
         })?,
     )?;
     globals.raw_set(
         "warn",
         lua.create_function(|lua, args: LuaMultiValue| {
-            let formatted = pretty_format_multi_value(&args)?;
             let print: LuaFunction = lua.named_registry_value("print")?;
-            print.call(formatted)?;
+            print.call(format!(
+                "{}\n{}",
+                format_label("warn"),
+                pretty_format_multi_value(&args)?
+            ))?;
             Ok(())
         })?,
     )?;
     globals.raw_set(
         "error",
         lua.create_function(|lua, (arg, level): (LuaValue, Option<u32>)| {
-            let multi = arg.to_lua_multi(lua)?;
-            let formatted = pretty_format_multi_value(&multi)?;
             let error: LuaFunction = lua.named_registry_value("error")?;
-            error.call((formatted, level))?;
+            let multi = arg.to_lua_multi(lua)?;
+            error.call((
+                format!(
+                    "{}\n{}",
+                    format_label("error"),
+                    pretty_format_multi_value(&multi)?
+                ),
+                level,
+            ))?;
             Ok(())
         })?,
     )?;

@@ -1,40 +1,5 @@
 -- Lune v0.2.2
 
-type ConsoleColor = "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white"
-type ConsoleStyle = "bold" | "dim"
-
---[=[
-	@class console
-
-	Logging & formatting
-]=]
-declare console: {
-	--[=[
-		@within console
-
-		Resets the current persistent output color and style.
-	]=]
-	resetStyle: () -> (),
-	--[=[
-		@within console
-
-		Sets the current persistent output color and / or style.
-
-		@param color The color to set
-		@param style The style to set
-	]=]
-	setStyle: (color: ConsoleColor?, style: ConsoleStyle?) -> (),
-	--[=[
-		@within console
-
-		Formats arguments into a human-readable string with syntax highlighting for tables.
-
-		@param ... The values to format
-		@return The formatted string
-	]=]
-	format: (...any) -> (string),
-}
-
 --[=[
 	@class fs
 	
@@ -315,6 +280,77 @@ declare process: {
 		stdout: string,
 		stderr: string,
 	},
+}
+
+--[=[
+	@class stdio
+
+	Standard input / output & utility functions 
+]=]
+declare stdio: {
+	--[=[
+		@within stdio
+
+		Return an ANSI string that can be used to modify the persistent output color.
+
+		Pass `"reset"` to get a string that can reset the persistent output color.
+		
+		### Example usage
+		
+		```lua
+		stdio.write(stdio.color("red"))
+		print("This text will be red")
+		stdio.write(stdio.color("reset"))
+		print("This text will be normal")
+		```
+
+		@param color The color to use
+	]=]
+	color: (color: "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
+	--[=[
+		@within stdio
+
+		Return an ANSI string that can be used to modify the persistent output style.
+
+		Pass `"reset"` to get a string that can reset the persistent output style.
+		
+		### Example usage
+		
+		```lua
+		stdio.write(stdio.style("bold"))
+		print("This text will be bold")
+		stdio.write(stdio.style("reset"))
+		print("This text will be normal")
+		```
+
+		@param style The style to use
+	]=]
+	style: (style: "reset" | "bold" | "dim") -> (),
+	--[=[
+		@within stdio
+
+		Formats arguments into a human-readable string with syntax highlighting for tables.
+
+		@param ... The values to format
+		@return The formatted string
+	]=]
+	format: (...any) -> (string),
+	--[=[
+		@within stdio
+
+		Writes a string directly to stdout, without any newline.
+
+		@param s The string to write to stdout
+	]=]
+	write: (s: string) -> (),
+	--[=[
+		@within stdio
+
+		Writes a string directly to stderr, without any newline.
+
+		@param s The string to write to stderr
+	]=]
+	ewrite: (s: string) -> (),
 }
 
 --[=[

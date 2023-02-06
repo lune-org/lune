@@ -1,32 +1,28 @@
-use std::{
-    fmt::Write as _,
-    io::{self, Write as _},
-};
+use std::fmt::Write;
 
+use console::{style, Style};
+use lazy_static::lazy_static;
 use mlua::prelude::*;
 
 const MAX_FORMAT_DEPTH: usize = 4;
 
 const INDENT: &str = "    ";
 
-// TODO: Use some crate for this instead
+pub const STYLE_RESET_STR: &str = "\x1b[0m";
 
-pub const COLOR_RESET: &str = if cfg!(test) { "" } else { "\x1B[0m" };
-pub const COLOR_BLACK: &str = if cfg!(test) { "" } else { "\x1B[30m" };
-pub const COLOR_RED: &str = if cfg!(test) { "" } else { "\x1B[31m" };
-pub const COLOR_GREEN: &str = if cfg!(test) { "" } else { "\x1B[32m" };
-pub const COLOR_YELLOW: &str = if cfg!(test) { "" } else { "\x1B[33m" };
-pub const COLOR_BLUE: &str = if cfg!(test) { "" } else { "\x1B[34m" };
-pub const COLOR_PURPLE: &str = if cfg!(test) { "" } else { "\x1B[35m" };
-pub const COLOR_CYAN: &str = if cfg!(test) { "" } else { "\x1B[36m" };
-pub const COLOR_WHITE: &str = if cfg!(test) { "" } else { "\x1B[37m" };
-
-pub const STYLE_RESET: &str = if cfg!(test) { "" } else { "\x1B[22m" };
-pub const STYLE_BOLD: &str = if cfg!(test) { "" } else { "\x1B[1m" };
-pub const STYLE_DIM: &str = if cfg!(test) { "" } else { "\x1B[2m" };
-
-pub fn flush_stdout() -> LuaResult<()> {
-    io::stdout().flush().map_err(LuaError::external)
+lazy_static! {
+    // Colors
+    pub static ref COLOR_BLACK: Style = Style::new().black();
+    pub static ref COLOR_RED: Style = Style::new().red();
+    pub static ref COLOR_GREEN: Style = Style::new().green();
+    pub static ref COLOR_YELLOW: Style = Style::new().yellow();
+    pub static ref COLOR_BLUE: Style = Style::new().blue();
+    pub static ref COLOR_PURPLE: Style = Style::new().magenta();
+    pub static ref COLOR_CYAN: Style = Style::new().cyan();
+    pub static ref COLOR_WHITE: Style = Style::new().white();
+    // Styles
+    pub static ref STYLE_BOLD: Style = Style::new().bold();
+    pub static ref STYLE_DIM: Style = Style::new().dim();
 }
 
 fn can_be_plain_lua_table_key(s: &LuaString) -> bool {
@@ -41,74 +37,68 @@ fn can_be_plain_lua_table_key(s: &LuaString) -> bool {
 
 pub fn format_label<S: AsRef<str>>(s: S) -> String {
     format!(
-        "{}[{}{}{}{}]{} ",
-        STYLE_BOLD,
+        "{}{}{} ",
+        style("[").bold(),
         match s.as_ref().to_ascii_lowercase().as_str() {
-            "info" => COLOR_BLUE,
-            "warn" => COLOR_YELLOW,
-            "error" => COLOR_RED,
-            _ => COLOR_WHITE,
+            "info" => style("INFO").blue(),
+            "warn" => style("WARN").yellow(),
+            "error" => style("ERROR").red(),
+            _ => style(""),
         },
-        s.as_ref().to_ascii_uppercase(),
-        COLOR_RESET,
-        STYLE_BOLD,
-        STYLE_RESET
+        style("]").bold()
     )
 }
 
-pub fn print_label<S: AsRef<str>>(s: S) -> LuaResult<()> {
-    print!("{}", format_label(s));
-    flush_stdout()?;
-    Ok(())
+pub fn format_style(style: Option<&'static Style>) -> String {
+    if cfg!(test) {
+        "".to_string()
+    } else if let Some(style) = style {
+        // HACK: We have no direct way of referencing the ansi color code
+        // of the style that console::Style provides, and we also know for
+        // sure that styles always include the reset sequence at the end
+        style
+            .apply_to("")
+            .to_string()
+            .strip_suffix(STYLE_RESET_STR)
+            .unwrap()
+            .to_string()
+    } else {
+        STYLE_RESET_STR.to_string()
+    }
 }
 
-pub fn print_style<S: AsRef<str>>(s: S) -> LuaResult<()> {
-    print!(
-        "{}",
-        match s.as_ref() {
-            "reset" => STYLE_RESET,
-            "bold" => STYLE_BOLD,
-            "dim" => STYLE_DIM,
-            _ => {
-                return Err(LuaError::RuntimeError(format!(
-                    "The style '{}' is not a valid style name",
-                    s.as_ref()
-                )));
-            }
+pub fn style_from_color_str<S: AsRef<str>>(s: S) -> LuaResult<Option<&'static Style>> {
+    Ok(match s.as_ref() {
+        "reset" => None,
+        "black" => Some(&COLOR_BLACK),
+        "red" => Some(&COLOR_RED),
+        "green" => Some(&COLOR_GREEN),
+        "yellow" => Some(&COLOR_YELLOW),
+        "blue" => Some(&COLOR_BLUE),
+        "purple" => Some(&COLOR_PURPLE),
+        "cyan" => Some(&COLOR_CYAN),
+        "white" => Some(&COLOR_WHITE),
+        _ => {
+            return Err(LuaError::RuntimeError(format!(
+                "The color '{}' is not a valid color name",
+                s.as_ref()
+            )));
         }
-    );
-    flush_stdout()?;
-    Ok(())
+    })
 }
 
-pub fn print_reset() -> LuaResult<()> {
-    print_style("reset")?;
-    Ok(())
-}
-
-pub fn print_color<S: AsRef<str>>(s: S) -> LuaResult<()> {
-    print!(
-        "{}",
-        match s.as_ref() {
-            "reset" => COLOR_RESET,
-            "black" => COLOR_BLACK,
-            "red" => COLOR_RED,
-            "green" => COLOR_GREEN,
-            "yellow" => COLOR_YELLOW,
-            "blue" => COLOR_BLUE,
-            "purple" => COLOR_PURPLE,
-            "cyan" => COLOR_CYAN,
-            "white" => COLOR_WHITE,
-            _ => {
-                return Err(LuaError::RuntimeError(format!(
-                    "The color '{}' is not a valid color name",
-                    s.as_ref()
-                )));
-            }
+pub fn style_from_style_str<S: AsRef<str>>(s: S) -> LuaResult<Option<&'static Style>> {
+    Ok(match s.as_ref() {
+        "reset" => None,
+        "bold" => Some(&STYLE_BOLD),
+        "dim" => Some(&STYLE_DIM),
+        _ => {
+            return Err(LuaError::RuntimeError(format!(
+                "The style '{}' is not a valid style name",
+                s.as_ref()
+            )));
         }
-    );
-    flush_stdout()?;
-    Ok(())
+    })
 }
 
 pub fn pretty_format_value(
@@ -119,65 +109,66 @@ pub fn pretty_format_value(
     // TODO: Handle tables with cyclic references
     match &value {
         LuaValue::Nil => write!(buffer, "nil")?,
-        LuaValue::Boolean(true) => write!(buffer, "{COLOR_YELLOW}true{COLOR_RESET}")?,
-        LuaValue::Boolean(false) => write!(buffer, "{COLOR_YELLOW}false{COLOR_RESET}")?,
-        LuaValue::Number(n) => write!(buffer, "{COLOR_CYAN}{n}{COLOR_RESET}")?,
-        LuaValue::Integer(i) => write!(buffer, "{COLOR_CYAN}{i}{COLOR_RESET}")?,
+        LuaValue::Boolean(true) => write!(buffer, "{}", COLOR_YELLOW.apply_to("true"))?,
+        LuaValue::Boolean(false) => write!(buffer, "{}", COLOR_YELLOW.apply_to("false"))?,
+        LuaValue::Number(n) => write!(buffer, "{}", COLOR_CYAN.apply_to(format!("{n}")))?,
+        LuaValue::Integer(i) => write!(buffer, "{}", COLOR_CYAN.apply_to(format!("{i}")))?,
         LuaValue::String(s) => write!(
             buffer,
-            "{}\"{}\"{}",
-            COLOR_GREEN,
-            s.to_string_lossy()
-                .replace('"', r#"\""#)
-                .replace('\r', r#"\r"#)
-                .replace('\n', r#"\n"#),
-            COLOR_RESET
+            "\"{}\"",
+            COLOR_GREEN.apply_to(
+                s.to_string_lossy()
+                    .replace('"', r#"\""#)
+                    .replace('\r', r#"\r"#)
+                    .replace('\n', r#"\n"#)
+            )
         )?,
         LuaValue::Table(ref tab) => {
             if depth >= MAX_FORMAT_DEPTH {
-                write!(buffer, "{STYLE_DIM}{{ ... }}{STYLE_RESET}")?;
+                write!(buffer, "{}", STYLE_DIM.apply_to("{ ... }"))?;
             } else {
                 let mut is_empty = false;
                 let depth_indent = INDENT.repeat(depth);
-                write!(buffer, "{STYLE_DIM}{{{STYLE_RESET}")?;
+                write!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
                 for pair in tab.clone().pairs::<LuaValue, LuaValue>() {
                     let (key, value) = pair.unwrap();
                     match &key {
                         LuaValue::String(s) if can_be_plain_lua_table_key(s) => write!(
                             buffer,
-                            "\n{}{}{} {}={} ",
+                            "\n{}{}{} {} ",
                             depth_indent,
                             INDENT,
                             s.to_string_lossy(),
-                            STYLE_DIM,
-                            STYLE_RESET
+                            STYLE_DIM.apply_to("=")
                         )?,
                         _ => {
                             write!(buffer, "\n{depth_indent}{INDENT}[")?;
                             pretty_format_value(buffer, &key, depth)?;
-                            write!(buffer, "] {STYLE_DIM}={STYLE_RESET} ")?;
+                            write!(buffer, "] {} ", STYLE_DIM.apply_to("="))?;
                         }
                     }
                     pretty_format_value(buffer, &value, depth + 1)?;
-                    write!(buffer, "{STYLE_DIM},{STYLE_RESET}")?;
+                    write!(buffer, "{}", STYLE_DIM.apply_to(","))?;
                     is_empty = false;
                 }
                 if is_empty {
-                    write!(buffer, " {STYLE_DIM}}}{STYLE_RESET}")?;
+                    write!(buffer, "{}", STYLE_DIM.apply_to(" }"))?;
                 } else {
-                    write!(buffer, "\n{depth_indent}{STYLE_DIM}}}{STYLE_RESET}")?;
+                    write!(buffer, "\n{}", STYLE_DIM.apply_to("}"))?;
                 }
             }
         }
-        LuaValue::Vector(x, y, z) => {
-            write!(buffer, "{COLOR_PURPLE}<vector({x}, {y}, {z})>{COLOR_RESET}",)?
-        }
-        LuaValue::Thread(_) => write!(buffer, "{COLOR_PURPLE}<thread>{COLOR_RESET}")?,
-        LuaValue::Function(_) => write!(buffer, "{COLOR_PURPLE}<function>{COLOR_RESET}")?,
+        LuaValue::Vector(x, y, z) => write!(
+            buffer,
+            "{}",
+            COLOR_PURPLE.apply_to(format!("<vector({x}, {y}, {z})>"))
+        )?,
+        LuaValue::Thread(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<thread>"))?,
+        LuaValue::Function(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<function>"))?,
         LuaValue::UserData(_) | LuaValue::LightUserData(_) => {
-            write!(buffer, "{COLOR_PURPLE}<userdata>{COLOR_RESET}")?
+            write!(buffer, "{}", COLOR_PURPLE.apply_to("<userdata>"))?
         }
-        _ => write!(buffer, "?")?,
+        _ => write!(buffer, "{}", STYLE_DIM.apply_to("?"))?,
     }
     Ok(())
 }
@@ -200,8 +191,8 @@ pub fn pretty_format_multi_value(multi: &LuaMultiValue) -> LuaResult<String> {
 }
 
 pub fn pretty_format_luau_error(e: &LuaError) -> String {
-    let stack_begin = format!("[{}Stack Begin{}]", COLOR_BLUE, COLOR_RESET);
-    let stack_end = format!("[{}Stack End{}]", COLOR_BLUE, COLOR_RESET);
+    let stack_begin = format!("[{}]", COLOR_BLUE.apply_to("Stack Begin"));
+    let stack_end = format!("[{}]", COLOR_BLUE.apply_to("Stack End"));
     let err_string = match e {
         LuaError::RuntimeError(e) => {
             // Remove unnecessary prefix
