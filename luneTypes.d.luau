@@ -1,4 +1,4 @@
--- Lune v0.2.1
+-- Lune v0.2.2
 
 --[=[
 	@class console

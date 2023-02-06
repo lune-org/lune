@@ -4,7 +4,7 @@ members = ["packages/cli", "packages/lib"]
 default-members = ["packages/cli"]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
