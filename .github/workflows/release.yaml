@@ -22,7 +22,7 @@ jobs:
         id: get_version
         with:
           file: Cargo.toml
-          field: package.version
+          field: workspace.package.version
 
       - name: Create release
         id: create_release
