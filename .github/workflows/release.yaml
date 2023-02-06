@@ -73,7 +73,7 @@ jobs:
           asset_content_type: application/json
 
   release:
-    needs: ["init", "create-release"]
+    needs: ["create-release"]
     strategy:
       matrix:
         include:
