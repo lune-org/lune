@@ -347,10 +347,15 @@
         "name": "color"
       }
     ],
-    "returns": []
+    "returns": [
+      "@roblox/global/stdio.color/return/0"
+    ]
   },
   "@roblox/global/stdio.color/param/0": {
     "documentation": "The color to use"
+  },
+  "@roblox/global/stdio.color/return/0": {
+    "documentation": "A printable ANSI string"
   },
   "@roblox/global/stdio.ewrite": {
     "code_sample": "",
@@ -426,10 +431,15 @@
         "name": "style"
       }
     ],
-    "returns": []
+    "returns": [
+      "@roblox/global/stdio.style/return/0"
+    ]
   },
   "@roblox/global/stdio.style/param/0": {
     "documentation": "The style to use"
+  },
+  "@roblox/global/stdio.style/return/0": {
+    "documentation": "A printable ANSI string"
   },
   "@roblox/global/stdio.write": {
     "code_sample": "",

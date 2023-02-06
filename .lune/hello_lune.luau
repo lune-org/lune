@@ -14,19 +14,35 @@ module.sayHello()
 --[==[
 	EXAMPLE #2
 
+	Using the stdio library to prompt for input
+]==]
+
+local text = stdio.prompt("text", "Please write some text")
+print("You wrote '" .. text .. "'!\n")
+
+local confirmed = stdio.prompt("confirm", "Please confirm that you wrote some text")
+if confirmed == false then
+	error("You didn't confirm!")
+else
+	print("Confirmed!")
+end
+
+--[==[
+	EXAMPLE #3
+
 	Using arguments given to the program
 ]==]
 
 if #process.args > 0 then
 	print("\nGot arguments while running hello_lune:")
-	console.log(process.args)
+	print(process.args)
 	if #process.args > 3 then
 		error("Too many arguments!")
 	end
 end
 
 --[==[
-	EXAMPLE #3
+	EXAMPLE #4
 
 	Spawning tasks
 ]==]
@@ -46,7 +62,7 @@ task.delay(5, function()
 end)
 
 --[==[
-	EXAMPLE #4
+	EXAMPLE #5
 
 	Get & set environment variables
 
@@ -67,7 +83,7 @@ for key, value in process.env do
 end
 
 --[==[
-	EXAMPLE #5
+	EXAMPLE #6
 
 	Read files in the current directory
 
@@ -110,7 +126,7 @@ end
 -- since the ping command does not work in azure
 if not process.env.GITHUB_ACTIONS then
 	--[==[
-		EXAMPLE #6
+		EXAMPLE #7
 
 		Call out to another program / executable
 
@@ -125,7 +141,7 @@ if not process.env.GITHUB_ACTIONS then
 	})
 
 	--[==[
-		EXAMPLE #7
+		EXAMPLE #8
 
 		Using the result of a spawned process, exiting the process
 
@@ -152,7 +168,7 @@ if not process.env.GITHUB_ACTIONS then
 end
 
 --[==[
-	EXAMPLE #8
+	EXAMPLE #9
 
 	Using the built-in networking library
 ]==]
@@ -189,19 +205,17 @@ assert(apiResponse.body == "bar", "Invalid json response")
 print("Got valid JSON response with changes applied")
 
 --[==[
-	EXAMPLE #9
+	EXAMPLE #10
 
-	Using the console library to print pretty
+	Using the stdio library to print pretty
 ]==]
 
 print("\nPrinting with pretty colors and auto-formatting 🎨")
 
-console.setColor("blue")
-print(string.rep("—", 22))
-console.resetColor()
+print(stdio.color("blue") .. string.rep("—", 22) .. stdio.color("reset"))
 
-console.info("API response:", apiResponse)
-console.warn({
+info("API response:", apiResponse)
+warn({
 	Oh = {
 		No = {
 			TooMuch = {
@@ -213,12 +227,10 @@ console.warn({
 	},
 })
 
-console.setColor("blue")
-print(string.rep("—", 22))
-console.resetColor()
+print(stdio.color("blue") .. string.rep("—", 22) .. stdio.color("reset"))
 
 --[==[
-	EXAMPLE #10
+	EXAMPLE #11
 
 	Saying goodbye 😔
 ]==]

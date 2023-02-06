@@ -305,8 +305,9 @@ declare stdio: {
 		```
 
 		@param color The color to use
+		@return A printable ANSI string
 	]=]
-	color: (color: "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
+	color: (color: "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> string,
 	--[=[
 		@within stdio
 
@@ -324,8 +325,9 @@ declare stdio: {
 		```
 
 		@param style The style to use
+		@return A printable ANSI string
 	]=]
-	style: (style: "reset" | "bold" | "dim") -> (),
+	style: (style: "reset" | "bold" | "dim") -> string,
 	--[=[
 		@within stdio
 
