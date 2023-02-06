@@ -3,17 +3,14 @@ use std::{
     env,
     path::PathBuf,
     process::{Command, Stdio},
-    sync::Weak,
-    time::Duration,
 };
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use tokio::{sync::mpsc::Sender, time};
 
-use crate::{
-    utils::{process::pipe_and_inherit_child_process_stdio, table::TableBuilder},
-    LuneMessage,
+use crate::utils::{
+    process::{exit_and_yield_forever, pipe_and_inherit_child_process_stdio},
+    table::TableBuilder,
 };
 
 pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
@@ -116,21 +113,7 @@ fn process_env_iter<'lua>(
 }
 
 async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
-    let sender = lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    // Send an exit signal to the main thread, which
-    // will try to exit safely and as soon as possible
-    sender
-        .send(LuneMessage::Exit(exit_code.unwrap_or(0)))
-        .await
-        .map_err(LuaError::external)?;
-    // Make sure to block the rest of this thread indefinitely since
-    // the main thread may not register the exit signal right away
-    time::sleep(Duration::MAX).await;
-    Ok(())
+    exit_and_yield_forever(lua, exit_code).await
 }
 
 fn process_spawn<'a>(

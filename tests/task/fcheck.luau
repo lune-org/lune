@@ -1,6 +1,6 @@
 return function(index: number, type: string, value: any)
 	if typeof(value) ~= type then
-		console.error(
+		error(
 			string.format(
 				"Expected argument #%d to be of type %s, got %s",
 				index,
@@ -8,6 +8,5 @@ return function(index: number, type: string, value: any)
 				console.format(value)
 			)
 		)
-		process.exit(1)
 	end
 end

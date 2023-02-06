@@ -1,6 +1,6 @@
 local function assert(condition, err)
 	if not condition then
-		console.error(err)
+		task.spawn(error, err)
 		process.exit(0)
 	end
 end

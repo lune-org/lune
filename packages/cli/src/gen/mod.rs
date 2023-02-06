@@ -14,8 +14,8 @@ use self::{doc::DocsFunctionParamLink, visitor::DocumentationVisitor};
 
 fn parse_definitions(contents: &str) -> Result<DocumentationVisitor> {
     let (regex, replacement) = (
-        Regex::new(r#"declare (?P<n>\w+): \{"#).unwrap(),
-        r#"export type $n = {"#,
+        Regex::new(r#"declare (?P<n>\w+): "#).unwrap(),
+        r#"export type $n = "#,
     );
     let defs_ast = parse_luau_ast(&regex.replace_all(contents, replacement))?;
     let mut visitor = DocumentationVisitor::new();

@@ -1,5 +1,8 @@
 -- Lune v0.2.2
 
+type ConsoleColor = "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white"
+type ConsoleStyle = "bold" | "dim"
+
 --[=[
 	@class console
 
@@ -9,31 +12,18 @@ declare console: {
 	--[=[
 		@within console
 
-		Resets the current persistent output color.
-	]=]
-	resetColor: () -> (),
-	--[=[
-		@within console
-
-		Sets the current persistent output color.
-
-		@param color The color to set
-	]=]
-	setColor: (color: "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> (),
-	--[=[
-		@within console
-
-		Resets the current persistent output style.
+		Resets the current persistent output color and style.
 	]=]
 	resetStyle: () -> (),
 	--[=[
 		@within console
 
-		Sets the current persistent output style.
+		Sets the current persistent output color and / or style.
 
+		@param color The color to set
 		@param style The style to set
 	]=]
-	setStyle: (style: "bold" | "dim") -> (),
+	setStyle: (color: ConsoleColor?, style: ConsoleStyle?) -> (),
 	--[=[
 		@within console
 
@@ -43,47 +33,6 @@ declare console: {
 		@return The formatted string
 	]=]
 	format: (...any) -> (string),
-	--[=[
-		@within console
-
-		Prints arguments as a human-readable string with syntax highlighting for tables to stdout.
-
-		@param ... The values to print out
-	]=]
-	log: (...any) -> (),
-	--[=[
-		@within console
-
-		Prints arguments as a human-readable string with syntax highlighting for tables to stdout.
-
-		This will also prepend an [INFO] tag at the beginning of the message.
-
-		@param ... The values to print out
-	]=]
-	info: (...any) -> (),
-	--[=[
-		@within console
-
-		Prints arguments as a human-readable string with syntax highlighting for tables to stdout.
-
-		This will also prepend an [INFO] tag at the beginning of the message.
-
-		@param ... The values to print out
-	]=]
-	warn: (...any) -> (),
-	--[=[
-		@within console
-
-		Prints arguments as a human-readable string with syntax highlighting for tables to stderr.
-
-		This will also prepend an [ERROR] tag at the beginning of the message.
-
-		Using this function will automatically set the exit code of the process
-		to 1, unless it gets manually specified afterwards using `process.exit`.
-
-		@param ... The values to print out to stderr
-	]=]
-	error: (...any) -> (),
 }
 
 --[=[
@@ -422,3 +371,10 @@ declare task: {
 	]=]
 	wait: (duration: number?) -> (number),
 }
+
+-- TODO: Write docs for these and include them in docs gen
+
+declare print: <T...>(T...) -> ()
+declare info: <T...>(T...) -> ()
+declare warn: <T...>(T...) -> ()
+declare error: <T>(message: T, level: number?) -> never

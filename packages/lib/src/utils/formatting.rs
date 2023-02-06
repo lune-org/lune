@@ -81,6 +81,11 @@ pub fn print_style<S: AsRef<str>>(s: S) -> LuaResult<()> {
     Ok(())
 }
 
+pub fn print_reset() -> LuaResult<()> {
+    print_style("reset")?;
+    Ok(())
+}
+
 pub fn print_color<S: AsRef<str>>(s: S) -> LuaResult<()> {
     print!(
         "{}",
@@ -124,6 +129,7 @@ pub fn pretty_format_value(
             COLOR_GREEN,
             s.to_string_lossy()
                 .replace('"', r#"\""#)
+                .replace('\r', r#"\r"#)
                 .replace('\n', r#"\n"#),
             COLOR_RESET
         )?,

@@ -2,30 +2,16 @@
 ---
 globals:
   # Console
-  console.resetColor:
-    args: []
-  console.setColor:
-    args:
-      - type: string
   console.resetStyle:
     args: []
   console.setStyle:
     args:
-      - type: string
+      - required: false
+        type: string
+      - required: false
+        type: string
   console.format:
     must_use: true
-    args:
-      - type: "..."
-  console.log:
-    args:
-      - type: "..."
-  console.info:
-    args:
-      - type: "..."
-  console.warn:
-    args:
-      - type: "..."
-  console.error:
     args:
       - type: "..."
   # FS (filesystem)
@@ -114,5 +100,20 @@ globals:
       - type: "..."
   task.wait:
     args:
+      - required: false
+        type: number
+  # Misc
+  print:
+    args:
+      - type: "..."
+  info:
+    args:
+      - type: "..."
+  warn:
+    args:
+      - type: "..."
+  error:
+    args:
+      - type: any
       - required: false
         type: number

@@ -2,8 +2,8 @@ local RESPONSE = "Hello, lune!"
 
 task.spawn(function()
 	net.serve(8080, function(request)
-		console.info("Request:", request)
-		console.info("Responding with", RESPONSE)
+		-- info("Request:", request)
+		-- info("Responding with", RESPONSE)
 		return RESPONSE
 	end)
 end)
@@ -16,6 +16,5 @@ task.delay(1, function()
 end)
 
 task.delay(2, function()
-	console.error("Process did not exit")
-	process.exit(1)
+	error("Process did not exit")
 end)

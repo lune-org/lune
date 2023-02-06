@@ -7,7 +7,10 @@ pub mod globals;
 pub mod utils;
 
 use crate::{
-    globals::{create_console, create_fs, create_net, create_process, create_require, create_task},
+    globals::{
+        create_console, create_fs, create_net, create_process, create_require, create_task,
+        create_top_level,
+    },
     utils::formatting::pretty_format_luau_error,
 };
 
@@ -19,6 +22,7 @@ pub enum LuneGlobal {
     Process,
     Require,
     Task,
+    TopLevel,
 }
 
 impl LuneGlobal {
@@ -30,6 +34,7 @@ impl LuneGlobal {
             Self::Process,
             Self::Require,
             Self::Task,
+            Self::TopLevel,
         ]
     }
 }
@@ -39,7 +44,7 @@ pub(crate) enum LuneMessage {
     Exit(u8),
     Spawned,
     Finished,
-    LuaError(mlua::Error),
+    LuaError(LuaError),
 }
 
 #[derive(Clone, Debug, Default)]
@@ -86,6 +91,7 @@ impl Lune {
                 LuneGlobal::Process => create_process(&lua, self.args.clone())?,
                 LuneGlobal::Require => create_require(&lua)?,
                 LuneGlobal::Task => create_task(&lua)?,
+                LuneGlobal::TopLevel => create_top_level(&lua)?,
             }
         }
         // Spawn the main thread from our entrypoint script
@@ -213,7 +219,6 @@ mod tests {
 
     run_tests! {
         console_format: "console/format",
-        console_set_color: "console/set_color",
         console_set_style: "console/set_style",
         fs_files: "fs/files",
         fs_dirs: "fs/dirs",

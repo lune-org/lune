@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Migrated the pretty-printing and formatting behavior of `console.log/info/warn/error` to the standard Luau printing functions.
+
+### Removed
+
+- Removed printing functions `console.log/info/warn/error` in favor of regular global functions for printing.
+
 ## `0.2.2` - February 5th, 2023
 
 ### Added

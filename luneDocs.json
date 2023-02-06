@@ -7,21 +7,6 @@
     },
     "learn_more_link": ""
   },
-  "@roblox/global/console.error": {
-    "code_sample": "",
-    "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stderr.\n\nThis will also prepend an [ERROR] tag at the beginning of the message.\n\nUsing this function will automatically set the exit code of the process\nto 1, unless it gets manually specified afterwards using `process.exit`.",
-    "learn_more_link": "",
-    "params": [
-      {
-        "documentation": "@roblox/global/console.error/param/0",
-        "name": "..."
-      }
-    ],
-    "returns": []
-  },
-  "@roblox/global/console.error/param/0": {
-    "documentation": "The values to print out to stderr"
-  },
   "@roblox/global/console.format": {
     "code_sample": "",
     "documentation": "Formats arguments into a human-readable string with syntax highlighting for tables.",
@@ -42,94 +27,34 @@
   "@roblox/global/console.format/return/0": {
     "documentation": "The formatted string"
   },
-  "@roblox/global/console.info": {
-    "code_sample": "",
-    "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stdout.\n\nThis will also prepend an [INFO] tag at the beginning of the message.",
-    "learn_more_link": "",
-    "params": [
-      {
-        "documentation": "@roblox/global/console.info/param/0",
-        "name": "..."
-      }
-    ],
-    "returns": []
-  },
-  "@roblox/global/console.info/param/0": {
-    "documentation": "The values to print out"
-  },
-  "@roblox/global/console.log": {
-    "code_sample": "",
-    "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stdout.",
-    "learn_more_link": "",
-    "params": [
-      {
-        "documentation": "@roblox/global/console.log/param/0",
-        "name": "..."
-      }
-    ],
-    "returns": []
-  },
-  "@roblox/global/console.log/param/0": {
-    "documentation": "The values to print out"
-  },
-  "@roblox/global/console.resetColor": {
-    "code_sample": "",
-    "documentation": "Resets the current persistent output color.",
-    "learn_more_link": "",
-    "params": [],
-    "returns": []
-  },
   "@roblox/global/console.resetStyle": {
     "code_sample": "",
-    "documentation": "Resets the current persistent output style.",
+    "documentation": "Resets the current persistent output color and style.",
     "learn_more_link": "",
     "params": [],
     "returns": []
-  },
-  "@roblox/global/console.setColor": {
-    "code_sample": "",
-    "documentation": "Sets the current persistent output color.",
-    "learn_more_link": "",
-    "params": [
-      {
-        "documentation": "@roblox/global/console.setColor/param/0",
-        "name": "color"
-      }
-    ],
-    "returns": []
-  },
-  "@roblox/global/console.setColor/param/0": {
-    "documentation": "The color to set"
   },
   "@roblox/global/console.setStyle": {
     "code_sample": "",
-    "documentation": "Sets the current persistent output style.",
+    "documentation": "Sets the current persistent output color and / or style.",
     "learn_more_link": "",
     "params": [
       {
         "documentation": "@roblox/global/console.setStyle/param/0",
+        "name": "color"
+      },
+      {
+        "documentation": "@roblox/global/console.setStyle/param/1",
         "name": "style"
       }
     ],
     "returns": []
   },
   "@roblox/global/console.setStyle/param/0": {
+    "documentation": "The color to set"
+  },
+  "@roblox/global/console.setStyle/param/1": {
     "documentation": "The style to set"
-  },
-  "@roblox/global/console.warn": {
-    "code_sample": "",
-    "documentation": "Prints arguments as a human-readable string with syntax highlighting for tables to stdout.\n\nThis will also prepend an [INFO] tag at the beginning of the message.",
-    "learn_more_link": "",
-    "params": [
-      {
-        "documentation": "@roblox/global/console.warn/param/0",
-        "name": "..."
-      }
-    ],
-    "returns": []
-  },
-  "@roblox/global/console.warn/param/0": {
-    "documentation": "The values to print out"
   },
   "@roblox/global/fs": {
     "code_sample": "",

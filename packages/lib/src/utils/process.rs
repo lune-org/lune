@@ -4,9 +4,14 @@ use std::{
     io,
     io::Write,
     process::{Child, ExitStatus},
+    sync::Weak,
+    time::Duration,
 };
 
 use mlua::prelude::*;
+use tokio::{sync::mpsc::Sender, time};
+
+use crate::LuneMessage;
 
 pub struct TeeWriter<'a, W0: Write, W1: Write> {
     w0: &'a mut W0,
@@ -71,4 +76,22 @@ pub fn pipe_and_inherit_child_process_stdio(
 
         Ok::<_, LuaError>((status, stdout_log?, stderr_log?))
     })
+}
+
+pub async fn exit_and_yield_forever(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
+    let sender = lua
+        .app_data_ref::<Weak<Sender<LuneMessage>>>()
+        .unwrap()
+        .upgrade()
+        .unwrap();
+    // Send an exit signal to the main thread, which
+    // will try to exit safely and as soon as possible
+    sender
+        .send(LuneMessage::Exit(exit_code.unwrap_or(0)))
+        .await
+        .map_err(LuaError::external)?;
+    // Make sure to block the rest of this thread indefinitely since
+    // the main thread may not register the exit signal right away
+    time::sleep(Duration::MAX).await;
+    Ok(())
 }
