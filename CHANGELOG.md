@@ -9,9 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a new global `stdio` which replaces `console` and adds a couple new functions:
-  - `write` writes a string directly to stdout, without any newlines
-  - `ewrite` writes a string directly to stderr, without any newlines
+- Added a new global `stdio` which replaces `console`
+- Added `stdio.write` which writes a string directly to stdout, without any newlines
+- Added `stdio.ewrite` which writes a string directly to stderr, without any newlines
+- Added `stdio.prompt` which will prompt the user for different kinds of input
+
+  Example usage:
+
+  ```lua
+  local text = stdio.prompt()
+
+  local text2 = stdio.prompt("text", "Please write some text")
+
+  local didConfirm = stdio.prompt("confirm", "Please confirm this action")
+
+  local optionIndex = stdio.prompt("select", "Please select an option", { "one", "two", "three" })
+
+  local optionIndices = stdio.prompt(
+      "multiselect",
+      "Please select one or more options",
+      { "one", "two", "three", "four", "five" }
+  )
+  ```
 
 ### Changed
 

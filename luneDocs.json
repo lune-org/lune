@@ -387,6 +387,35 @@
   "@roblox/global/stdio.format/return/0": {
     "documentation": "The formatted string"
   },
+  "@roblox/global/stdio.prompt": {
+    "code_sample": "",
+    "documentation": "Prompts for user input using the wanted kind of prompt:\n\n* `\"text\"` - Prompts for a plain text string from the user\n* `\"confirm\"` - Prompts the user to confirm with y / n\n* `\"select\"` - Prompts the user to select *one* value from a list\n* `\"multiselect\"` - Prompts the user to select *one or more* values from a list\n* `nil` - Equivalent to `\"text\"` with no extra arguments",
+    "learn_more_link": "",
+    "params": [
+      {
+        "documentation": "@roblox/global/stdio.prompt/param/0",
+        "name": "kind"
+      },
+      {
+        "documentation": "@roblox/global/stdio.prompt/param/1",
+        "name": "message"
+      },
+      {
+        "documentation": "@roblox/global/stdio.prompt/param/2",
+        "name": "defaultOrOptions"
+      }
+    ],
+    "returns": []
+  },
+  "@roblox/global/stdio.prompt/param/0": {
+    "documentation": "The kind of prompt to use"
+  },
+  "@roblox/global/stdio.prompt/param/1": {
+    "documentation": "The message to show the user"
+  },
+  "@roblox/global/stdio.prompt/param/2": {
+    "documentation": "The default value for the prompt, or options to choose from for selection prompts"
+  },
   "@roblox/global/stdio.style": {
     "code_sample": "",
     "documentation": "Return an ANSI string that can be used to modify the persistent output style.\n\nPass `\"reset\"` to get a string that can reset the persistent output style.\n\n### Example usage\n\n```lua\nstdio.write(stdio.style(\"bold\"))\nprint(\"This text will be bold\")\nstdio.write(stdio.style(\"reset\"))\nprint(\"This text will be normal\")\n```",

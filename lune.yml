@@ -86,6 +86,15 @@ globals:
   stdio.ewrite:
     args:
       - type: string
+  stdio.prompt:
+    must_use: true
+    args:
+      - required: false
+        type: string
+      - required: false
+        type: string
+      - required: false
+        type: string | boolean | table
   # Task
   task.cancel:
     args:

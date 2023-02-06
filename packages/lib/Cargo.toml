@@ -21,6 +21,7 @@ tokio.workspace = true
 reqwest.workspace = true
 
 console = "0.15.5"
+dialoguer = "0.10.3"
 lazy_static = "1.4.0"
 os_str_bytes = "6.4.1"
 

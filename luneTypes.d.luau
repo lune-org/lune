@@ -351,6 +351,28 @@ declare stdio: {
 		@param s The string to write to stderr
 	]=]
 	ewrite: (s: string) -> (),
+	--[=[
+		@within stdio
+
+		Prompts for user input using the wanted kind of prompt:
+
+		* `"text"` - Prompts for a plain text string from the user
+		* `"confirm"` - Prompts the user to confirm with y / n
+		* `"select"` - Prompts the user to select *one* value from a list
+		* `"multiselect"` - Prompts the user to select *one or more* values from a list
+		* `nil` - Equivalent to `"text"` with no extra arguments
+
+		@param kind The kind of prompt to use
+		@param message The message to show the user
+		@param defaultOrOptions The default value for the prompt, or options to choose from for selection prompts
+	]=]
+	prompt: (
+		(() -> string)
+		& ((kind: "text", message: string?, defaultOrOptions: string?) -> string)
+		& ((kind: "confirm", message: string, defaultOrOptions: boolean?) -> boolean)
+		& ((kind: "select", message: string?, defaultOrOptions: { string }) -> number?)
+		& ((kind: "multiselect", message: string?, defaultOrOptions: { string }) -> { number }?)
+	),
 }
 
 --[=[
