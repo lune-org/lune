@@ -3,7 +3,7 @@ use std::env::current_dir;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
-use lune::utils::net::{get_github_owner_and_repo, get_request_user_agent_header};
+use super::net::{get_github_owner_and_repo, get_request_user_agent_header};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ReleaseAsset {

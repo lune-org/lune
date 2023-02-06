@@ -3,8 +3,8 @@ use std::{collections::HashSet, process::ExitCode, sync::Arc};
 use mlua::prelude::*;
 use tokio::{sync::mpsc, task};
 
-pub mod globals;
-pub mod utils;
+pub(crate) mod globals;
+pub(crate) mod utils;
 
 use crate::{
     globals::{

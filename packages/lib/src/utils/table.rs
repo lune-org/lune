@@ -7,6 +7,7 @@ pub struct TableBuilder<'lua> {
     tab: LuaTable<'lua>,
 }
 
+#[allow(dead_code)]
 impl<'lua> TableBuilder<'lua> {
     pub fn new(lua: &'lua Lua) -> LuaResult<Self> {
         let tab = lua.create_table()?;
