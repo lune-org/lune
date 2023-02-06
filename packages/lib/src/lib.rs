@@ -1,6 +1,5 @@
 use std::{collections::HashSet, process::ExitCode, sync::Arc};
 
-use anyhow::{bail, Result};
 use mlua::prelude::*;
 use tokio::{sync::mpsc, task};
 
@@ -71,7 +70,7 @@ impl Lune {
         self
     }
 
-    pub async fn run(&self, name: &str, chunk: &str) -> Result<ExitCode> {
+    pub async fn run(&self, name: &str, chunk: &str) -> Result<ExitCode, LuaError> {
         let task_set = task::LocalSet::new();
         let (sender, mut receiver) = mpsc::channel::<LuneMessage>(64);
         let lua = Arc::new(mlua::Lua::new());
@@ -94,7 +93,10 @@ impl Lune {
         let script_name = name.to_string();
         let script_chunk = chunk.to_string();
         let script_sender = snd.clone();
-        script_sender.send(LuneMessage::Spawned).await?;
+        script_sender
+            .send(LuneMessage::Spawned)
+            .await
+            .map_err(LuaError::external)?;
         task_set.spawn_local(async move {
             let result = script_lua
                 .load(&script_chunk)
@@ -123,10 +125,10 @@ impl Lune {
                         LuneMessage::Spawned => {}
                         message => {
                             if task_count == 0 {
-                                bail!(
+                                return Err(format!(
                                     "Got message while task count was 0!\nMessage: {:#?}",
                                     message
-                                )
+                                ));
                             }
                         }
                     }
@@ -153,7 +155,8 @@ impl Lune {
                 }
                 Ok((got_code, got_error, exit_code))
             })
-            .await?;
+            .await
+            .map_err(LuaError::external)?;
         // If we got an error, we will default to exiting
         // with code 1, unless a code was manually given
         if got_code {
@@ -168,7 +171,7 @@ impl Lune {
 
 #[cfg(test)]
 mod tests {
-    use std::process::ExitCode;
+    use std::{env::set_current_dir, path::PathBuf, process::ExitCode};
 
     use anyhow::Result;
     use tokio::fs::read_to_string;
@@ -182,10 +185,15 @@ mod tests {
             $(
                 #[tokio::test]
                 async fn $name() -> Result<ExitCode> {
-                    let full_name = format!("src/tests/{}.luau", $value);
-                    let script = read_to_string(&full_name)
-                        .await
-                        .unwrap();
+                    // NOTE: This path is relative to the lib
+                    // package, not the cwd or workspace root,
+                    // so we need to cd to the repo root first
+                    let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+                    let root_dir = crate_dir.join("../../").canonicalize()?;
+                    set_current_dir(root_dir)?;
+                    // The rest of the test logic can continue as normal
+                    let full_name = format!("tests/{}.luau", $value);
+                    let script = read_to_string(&full_name).await?;
                     let lune = Lune::new()
                         .with_args(
                             ARGS
@@ -196,7 +204,8 @@ mod tests {
                         )
                         .with_all_globals();
                     let script_name = full_name.strip_suffix(".luau").unwrap();
-                    lune.run(&script_name, &script).await
+                    let exit_code = lune.run(&script_name, &script).await?;
+                    Ok(exit_code)
                 }
             )*
         }

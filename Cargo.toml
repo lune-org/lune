@@ -1,20 +1,17 @@
-[package]
-name = "lune"
+[workspace]
+
+members = ["packages/cli", "packages/lib"]
+default-members = ["packages/cli"]
+
+[workspace.package]
 version = "0.2.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
 description = "A Luau script runner"
+readme = "README.md"
 keywords = ["cli", "lua", "luau", "scripts"]
 categories = ["command-line-interface"]
-
-[[bin]]
-name = "lune"
-path = "src/cli/main.rs"
-
-[lib]
-name = "lune"
-path = "src/lib/lib.rs"
 
 [profile.release]
 strip = true # Automatically strip symbols from the binary.
@@ -22,21 +19,14 @@ opt-level = "z" # Optimize for size.
 lto = true # Enable link-time optimization
 panic = "abort" # Remove extra panic info
 
-[dependencies]
+[workspace.dependencies]
 
-anyhow = "1.0.68"
-os_str_bytes = "6.4.1"
-regex = "1.7.1"
 serde_json = "1.0.91"
 
-clap = { version = "4.1.1", features = ["derive"] }
-full_moon = { version = "0.17.0", features = ["roblox"] }
-hyper = { version = "0.14.24", features = ["full"] }
-mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.24.2", features = ["full"] }
 
-[dependencies.reqwest]
+[workspace.dependencies.reqwest]
 version = "0.11.14"
 default-features = false
 features = ["rustls-tls"]

@@ -1,0 +1,29 @@
+[package]
+name = "lune-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "lune"
+path = "src/main.rs"
+
+[dependencies]
+
+lune = { path = "../lib" }
+
+serde_json.workspace = true
+serde.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+
+anyhow = "1.0.68"
+regex = "1.7.1"
+
+clap = { version = "4.1.1", features = ["derive"] }
+full_moon = { version = "0.17.0", features = ["roblox"] }

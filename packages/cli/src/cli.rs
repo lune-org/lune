@@ -165,7 +165,7 @@ impl Cli {
         Ok(match result {
             Err(e) => {
                 eprintln!("{e}");
-                ExitCode::from(1)
+                ExitCode::FAILURE
             }
             Ok(code) => code,
         })

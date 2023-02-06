@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![warn(clippy::cargo, clippy::pedantic)]
 #![allow(
+    clippy::cargo_common_metadata,
     clippy::match_bool,
     clippy::module_name_repetitions,
     clippy::multiple_crate_versions,

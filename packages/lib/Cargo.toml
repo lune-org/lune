@@ -1,0 +1,29 @@
+[package]
+name = "lune"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+name = "lune"
+path = "src/lib.rs"
+
+[dependencies]
+
+serde_json.workspace = true
+serde.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+
+os_str_bytes = "6.4.1"
+
+hyper = { version = "0.14.24", features = ["full"] }
+mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }
+
+[dev-dependencies]
+anyhow = "1.0.69"

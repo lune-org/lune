@@ -7,22 +7,15 @@ permissions:
   contents: write
 
 jobs:
-  init:
-    name: Init
+  create-release:
+    name: Create release
     runs-on: ubuntu-latest
     outputs:
-      manifest_name: ${{ steps.get_name.outputs.value }}
       manifest_version: ${{ steps.get_version.outputs.value }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Get name from manifest
-        uses: SebRollen/toml-action@0ad94c4a52c402aaa76e14e8a43551163b6cedf9
-        id: get_name
-        with:
-          file: Cargo.toml
-          field: package.name
 
       - name: Get version from manifest
         uses: SebRollen/toml-action@0ad94c4a52c402aaa76e14e8a43551163b6cedf9
@@ -31,28 +24,18 @@ jobs:
           file: Cargo.toml
           field: package.version
 
-  create-release:
-    needs: ["init"]
-    name: Create release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ needs.init.outputs.manifest_version }}
-          release_name: ${{ needs.init.outputs.manifest_version }}
+          tag_name: v${{ steps.get_version.outputs.value }}
+          release_name: ${{ steps.get_version.outputs.value }}
           draft: true
 
   upload-assets:
-    needs: ["init", "create-release"]
+    needs: ["create-release"]
     name: Upload assets
     runs-on: ubuntu-latest
     steps:
@@ -96,15 +79,15 @@ jobs:
         include:
           - name: Windows x86_64
             runner-os: windows-latest
-            artifact-name: ${{ needs.init.outputs.manifest_name }}-${{ needs.init.outputs.manifest_version }}-windows-x86_64
+            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-x86_64
             cargo-target: x86_64-pc-windows-msvc
           - name: Linux x86_64
             runner-os: ubuntu-latest
-            artifact-name: ${{ needs.init.outputs.manifest_name }}-${{ needs.init.outputs.manifest_version }}-linux-x86_64
+            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-x86_64
             cargo-target: x86_64-unknown-linux-gnu
           - name: macOS x86_64
             runner-os: macos-latest
-            artifact-name: ${{ needs.init.outputs.manifest_name }}-${{ needs.init.outputs.manifest_version }}-macos-x86_64
+            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-x86_64
             cargo-target: x86_64-apple-darwin
 
     name: Build - ${{ matrix.name }}
@@ -122,21 +105,20 @@ jobs:
           profile: minimal
 
       - name: Build binary
-        run: cargo build --locked --release --all-features --target ${{ matrix.cargo-target }}
+        run: cargo build --package lune-cli --locked --release --all-features --target ${{ matrix.cargo-target }}
         env:
           CARGO_TARGET_DIR: output
-          OPENSSL_STATIC: 1
 
       - name: Create binary archive
         shell: bash
         run: |
           mkdir -p staging
           if [ "${{ matrix.runner-os }}" = "windows-latest" ]; then
-            cp "output/${{ matrix.cargo-target }}/release/${{ needs.init.outputs.manifest_name }}.exe" staging/
+            cp "output/${{ matrix.cargo-target }}/release/lune.exe" staging/
             cd staging
             7z a ../release.zip *
           else
-            cp "output/${{ matrix.cargo-target }}/release/${{ needs.init.outputs.manifest_name }}" staging/
+            cp "output/${{ matrix.cargo-target }}/release/lune" staging/
             cd staging
             zip ../release.zip *
           fi

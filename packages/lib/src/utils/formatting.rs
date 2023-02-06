@@ -110,7 +110,7 @@ pub fn pretty_format_value(
     buffer: &mut String,
     value: &LuaValue,
     depth: usize,
-) -> anyhow::Result<()> {
+) -> std::fmt::Result {
     // TODO: Handle tables with cyclic references
     match &value {
         LuaValue::Nil => write!(buffer, "nil")?,
@@ -135,7 +135,7 @@ pub fn pretty_format_value(
                 let depth_indent = INDENT.repeat(depth);
                 write!(buffer, "{STYLE_DIM}{{{STYLE_RESET}")?;
                 for pair in tab.clone().pairs::<LuaValue, LuaValue>() {
-                    let (key, value) = pair?;
+                    let (key, value) = pair.unwrap();
                     match &key {
                         LuaValue::String(s) if can_be_plain_lua_table_key(s) => write!(
                             buffer,

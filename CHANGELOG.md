@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `net.serve` gets `NetRequest` and `NetResponse` for the handler function argument and return value
   - `process.spawn` gets `ProcessSpawnOptions` for its third and optional parameter
 
+### Changed
+
+- Reorganize repository structure to take advantage of cargo workspaces, improves compile times
+
 ## `0.2.1` - February 3rd, 2023
 
 ### Added
