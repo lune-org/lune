@@ -142,7 +142,7 @@ export type NetFetchResponse = {
 
 export type NetRequest = {
 	path: string,
-	query: string,
+	query: { [string]: string? },
 	method: NetMethod,
 	headers: { [string]: string },
 	body: string,
@@ -437,4 +437,4 @@ declare task: {
 declare print: <T...>(T...) -> ()
 declare info: <T...>(T...) -> ()
 declare warn: <T...>(T...) -> ()
-declare error: <T>(message: T, level: number?) -> never
+declare error: <T>(message: T, level: number?) -> ()

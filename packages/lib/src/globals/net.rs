@@ -194,21 +194,36 @@ impl Service<Request<Body>> for NetService {
                 .unwrap()
                 .upgrade()
                 .unwrap();
-            // Create a readonly table with request info to pass to the handler
-            let request = TableBuilder::new(&lua)?
-                .with_value("path", parts.uri.path())?
-                .with_value("query", parts.uri.query().unwrap_or_default())?
-                .with_value("method", parts.method.as_str())?
-                .with_value(
-                    "headers",
+            // Create a readonly table for the request query params
+            let query_params = TableBuilder::new(&lua)?
+                .with_values(
+                    parts
+                        .uri
+                        .query()
+                        .unwrap_or_default()
+                        .split('&')
+                        .filter_map(|q| q.split_once('='))
+                        .collect(),
+                )?
+                .build_readonly()?;
+            // Do the same for headers
+            let header_map = TableBuilder::new(&lua)?
+                .with_values(
                     parts
                         .headers
                         .iter()
                         .map(|(name, value)| {
                             (name.to_string(), value.to_str().unwrap().to_string())
                         })
-                        .collect::<HashMap<String, String>>(),
+                        .collect(),
                 )?
+                .build_readonly()?;
+            // Create a readonly table with request info to pass to the handler
+            let request = TableBuilder::new(&lua)?
+                .with_value("path", parts.uri.path())?
+                .with_value("query", query_params)?
+                .with_value("method", parts.method.as_str())?
+                .with_value("headers", header_map)?
                 .with_value("body", lua.create_string(&bytes)?)?
                 .build_readonly()?;
             match handler.call_async(request).await {
