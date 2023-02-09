@@ -242,19 +242,13 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            format!(
-                "Failed to convert Rust type '{}' into Luau type '{}'!{}",
-                from, to, msg
-            )
+            format!("Failed to convert Rust type '{from}' into Luau type '{to}'!{msg}")
         }
         LuaError::FromLuaConversionError { from, to, message } => {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            format!(
-                "Failed to convert Luau type '{}' into Rust type '{}'!{}",
-                from, to, msg
-            )
+            format!("Failed to convert Luau type '{from}' into Rust type '{to}'!{msg}")
         }
         e => format!("{e}"),
     };

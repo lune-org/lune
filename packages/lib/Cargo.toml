@@ -24,6 +24,7 @@ console = "0.15.5"
 dialoguer = "0.10.3"
 lazy_static = "1.4.0"
 os_str_bytes = "6.4.1"
+tokio-pipe = "0.2.12"
 
 hyper = { version = "0.14.24", features = ["full"] }
 mlua = { version = "0.8.7", features = ["luau", "async", "serialize"] }

@@ -106,7 +106,7 @@ impl Lune {
         task_set.spawn_local(async move {
             let result = script_lua
                 .load(&script_chunk)
-                .set_name(&format!("={}", script_name))
+                .set_name(&format!("={script_name}"))
                 .unwrap()
                 .eval_async::<LuaValue>()
                 .await;
@@ -132,8 +132,7 @@ impl Lune {
                         message => {
                             if task_count == 0 {
                                 return Err(format!(
-                                    "Got message while task count was 0!\nMessage: {:#?}",
-                                    message
+                                    "Got message while task count was 0!\nMessage: {message:#?}"
                                 ));
                             }
                         }

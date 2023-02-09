@@ -1,12 +1,8 @@
-use std::{
-    collections::HashMap,
-    env,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{collections::HashMap, env, path::PathBuf, process::Stdio};
 
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
+use tokio::process::Command;
 
 use crate::utils::{
     process::{exit_and_yield_forever, pipe_and_inherit_child_process_stdio},
@@ -17,7 +13,7 @@ pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
     let cwd = env::current_dir()?.canonicalize()?;
     let mut cwd_str = cwd.to_string_lossy().to_string();
     if !cwd_str.ends_with('/') {
-        cwd_str = format!("{}/", cwd_str);
+        cwd_str = format!("{cwd_str}/");
     }
     // Create readonly args array
     let args_tab = TableBuilder::new(lua)?
@@ -41,7 +37,7 @@ pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
             .with_value("cwd", cwd_str)?
             .with_value("env", env_tab)?
             .with_async_function("exit", process_exit)?
-            .with_function("spawn", process_spawn)?
+            .with_async_function("spawn", process_spawn)?
             .build_readonly()?,
     )
 }
@@ -116,7 +112,7 @@ async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
     exit_and_yield_forever(lua, exit_code).await
 }
 
-fn process_spawn<'a>(
+async fn process_spawn<'a>(
     lua: &'a Lua,
     (mut program, args, options): (String, Option<Vec<String>>, Option<LuaTable<'a>>),
 ) -> LuaResult<LuaTable<'a>> {
@@ -233,9 +229,9 @@ fn process_spawn<'a>(
         .spawn()?;
     // Inherit the output and stderr if wanted
     let result = if child_stdio_inherit {
-        pipe_and_inherit_child_process_stdio(child)
+        pipe_and_inherit_child_process_stdio(child).await
     } else {
-        let output = child.wait_with_output()?;
+        let output = child.wait_with_output().await?;
         Ok((output.status, output.stdout, output.stderr))
     };
     // Extract result
