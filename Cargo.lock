@@ -624,7 +624,9 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "clap",
+ "console",
  "full_moon",
+ "lazy_static",
  "lune",
  "regex",
  "reqwest",

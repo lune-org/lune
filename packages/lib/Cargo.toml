@@ -15,15 +15,15 @@ path = "src/lib.rs"
 
 [dependencies]
 
+console.workspace = true
+lazy_static.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 tokio.workspace = true
 reqwest.workspace = true
 
-console = "0.15.5"
 dialoguer = "0.10.3"
 directories = "4.0.1"
-lazy_static = "1.4.0"
 pin-project = "1.0.12"
 os_str_bytes = "6.4.1"
 

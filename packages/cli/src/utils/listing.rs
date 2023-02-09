@@ -1,16 +1,16 @@
 use std::{cmp::Ordering, fmt::Write as _};
 
 use anyhow::{bail, Result};
+use console::Style;
+use lazy_static::lazy_static;
 use tokio::{fs, io};
 
 use super::files::parse_lune_description_from_file;
 
-// TODO: Use some crate for this instead
-pub const COLOR_RESET: &str = if cfg!(test) { "" } else { "\x1B[0m" };
-pub const COLOR_BLUE: &str = if cfg!(test) { "" } else { "\x1B[34m" };
-
-pub const STYLE_RESET: &str = if cfg!(test) { "" } else { "\x1B[22m" };
-pub const STYLE_DIM: &str = if cfg!(test) { "" } else { "\x1B[2m" };
+lazy_static! {
+    pub static ref COLOR_BLUE: Style = Style::new().blue();
+    pub static ref STYLE_DIM: Style = Style::new().dim();
+}
 
 pub async fn find_lune_scripts() -> Result<Vec<(String, String)>> {
     let mut lune_dir = fs::read_dir("lune").await;
@@ -72,8 +72,8 @@ pub fn print_lune_scripts(scripts: Vec<(String, String)>) -> Result<()> {
         .fold(0, |acc, (file_name, _)| acc.max(file_name.len()));
     let script_with_description_exists = scripts.iter().any(|(_, desc)| !desc.is_empty());
     // Pre-calculate some strings that will be used often
-    let prefix = format!("{STYLE_DIM}>{STYLE_RESET}  ");
-    let separator = format!("{STYLE_DIM}-{STYLE_RESET}");
+    let prefix = format!("{}  ", COLOR_BLUE.apply_to('>'));
+    let separator = format!("{}", STYLE_DIM.apply_to('-'));
     // Write the entire output to a buffer, doing this instead of using individual
     // println! calls will ensure that no output get mixed up in between these lines
     let mut buffer = String::new();
@@ -87,13 +87,15 @@ pub fn print_lune_scripts(scripts: Vec<(String, String)>) -> Result<()> {
                 let file_spacing = " ".repeat(file_name.len());
                 let line_spacing = " ".repeat(longest_file_name_len - file_name.len());
                 write!(
-                        &mut buffer,
-                        "\n{prefix}{file_name}{line_spacing}  {separator} {COLOR_BLUE}{first_line}{COLOR_RESET}"
-                    )?;
+                    &mut buffer,
+                    "\n{prefix}{file_name}{line_spacing}  {separator} {}",
+                    COLOR_BLUE.apply_to(first_line)
+                )?;
                 for line in lines {
                     write!(
                         &mut buffer,
-                        "\n{prefix}{file_spacing}{line_spacing}    {COLOR_BLUE}{line}{COLOR_RESET}"
+                        "\n{prefix}{file_spacing}{line_spacing}    {}",
+                        COLOR_BLUE.apply_to(line)
                     )?;
                 }
             }

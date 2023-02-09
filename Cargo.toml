@@ -21,6 +21,8 @@ panic = "abort" # Remove extra panic info
 
 [workspace.dependencies]
 
+console = "0.15.5"
+lazy_static = "1.4.0"
 serde_json = "1.0.91"
 
 serde = { version = "1.0.152", features = ["derive"] }
