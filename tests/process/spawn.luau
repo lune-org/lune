@@ -46,27 +46,54 @@ end
 
 -- Setting cwd should not change the cwd of this process
 
-local before = process.spawn("pwd").stdout
+local pwdBefore = process.spawn("pwd").stdout
 process.spawn("ls", {}, {
 	cwd = "/",
 	shell = true,
 })
-local after = process.spawn("pwd").stdout
-assert(before == after, "Current working directory changed after running child process")
+local pwdAfter = process.spawn("pwd").stdout
+assert(pwdBefore == pwdAfter, "Current working directory changed after running child process")
 
 -- Inheriting stdio & environment variables should work
 
-task.delay(2, function()
-	local message = "Hello from child process!"
-	local result = process.spawn("echo", {
-		'"$TEST_VAR"',
-	}, {
-		env = { TEST_VAR = message },
-		shell = "bash",
-		stdio = "inherit",
-	})
-	assert(
-		result.stdout == (message .. "\n"), -- Note that echo adds a newline
-		"Inheriting stdio did not return proper output"
-	)
-end)
+local echoMessage = "Hello from child process!"
+local echoResult = process.spawn("echo", {
+	'"$TEST_VAR"',
+}, {
+	env = { TEST_VAR = echoMessage },
+	shell = "bash",
+	stdio = "inherit",
+})
+assert(
+	echoResult.stdout == (echoMessage .. "\n"), -- Note that echo adds a newline
+	"Inheriting stdio did not return proper output"
+)
+
+--[[
+	Spawning a process should not block any lua thread(s)
+
+	We test this by sleeping more than once concurrently
+	and then ensuring that the total time slept is more
+	than a single sleep but also less than 1.5 sleeps
+]]
+
+local SLEEP_DURATION = 1 / 4
+local SLEEP_SAMPLES = 2
+
+local sleepStart = os.clock()
+local sleepCounter = 0
+for i = 1, SLEEP_SAMPLES, 1 do
+	task.spawn(function()
+		process.spawn("sleep", { tostring(SLEEP_DURATION) })
+		sleepCounter += 1
+	end)
+end
+while sleepCounter < SLEEP_SAMPLES do
+	task.wait()
+end
+
+local sleepElapsed = os.clock() - sleepStart
+assert(
+	(sleepElapsed >= SLEEP_DURATION) and (sleepElapsed < SLEEP_DURATION * 1.5),
+	"Coroutine yielded the main lua thread during process yield"
+)
