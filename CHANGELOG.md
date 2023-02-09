@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Setting `cwd` in the options for `process.spawn` to a path starting with a tilde (`~`) will now use a path relative to the platform-specific home / user directory.
+
 ### Changed
 
 - `NetRequest` query parameters value has been changed to be a table of key-value pairs similar to `process.env`.
   If any query parameter is specified more than once in the request url, the value chosen will be the last one that was specified.
+
+### Fixed
+
+- Fixed `process.spawn` blocking all lua threads if the spawned child process yields.
 
 ## `0.3.0` - February 6th, 2023
 

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, env, path::PathBuf, process::Stdio};
 
+use directories::UserDirs;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
@@ -127,6 +128,12 @@ async fn process_spawn<'a>(
                 LuaValue::Nil => {}
                 LuaValue::String(s) => {
                     cwd = PathBuf::from(s.to_string_lossy().to_string());
+                    // Substitute leading tilde (~) for the actual home dir
+                    if cwd.starts_with("~") {
+                        if let Some(user_dirs) = UserDirs::new() {
+                            cwd = user_dirs.home_dir().join(cwd.strip_prefix("~").unwrap())
+                        }
+                    };
                     if !cwd.exists() {
                         return Err(LuaError::RuntimeError(
                             "Invalid value for option 'cwd' - path does not exist".to_string(),
@@ -218,7 +225,7 @@ async fn process_spawn<'a>(
             cmd
         }
     };
-    // FUTURE: Implement and test for tilde (~) to home dir substitution in child_cwd
+    // Set dir to run in and env variables
     cmd.current_dir(child_cwd);
     cmd.envs(child_envs);
     // Spawn the child process

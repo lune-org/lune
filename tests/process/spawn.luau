@@ -54,20 +54,22 @@ process.spawn("ls", {}, {
 local pwdAfter = process.spawn("pwd").stdout
 assert(pwdBefore == pwdAfter, "Current working directory changed after running child process")
 
--- Inheriting stdio & environment variables should work
+--[[
+	Setting the cwd on a child process should properly
+	replace any leading ~ with the users real home dir
+]]
 
-local echoMessage = "Hello from child process!"
-local echoResult = process.spawn("echo", {
-	'"$TEST_VAR"',
-}, {
-	env = { TEST_VAR = echoMessage },
-	shell = "bash",
-	stdio = "inherit",
-})
-assert(
-	echoResult.stdout == (echoMessage .. "\n"), -- Note that echo adds a newline
-	"Inheriting stdio did not return proper output"
-)
+local homeDir1 = process.spawn("echo $HOME", nil, {
+	shell = true,
+}).stdout
+local homeDir2 = process.spawn("pwd", nil, {
+	shell = true,
+	cwd = "~",
+}).stdout
+
+assert(#homeDir1 > 0, "Home dir from echo was empty")
+assert(#homeDir2 > 0, "Home dir from pwd was empty")
+assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde substitution")
 
 --[[
 	Spawning a process should not block any lua thread(s)
@@ -96,4 +98,19 @@ local sleepElapsed = os.clock() - sleepStart
 assert(
 	(sleepElapsed >= SLEEP_DURATION) and (sleepElapsed < SLEEP_DURATION * 1.5),
 	"Coroutine yielded the main lua thread during process yield"
+)
+
+-- Inheriting stdio & environment variables should work
+
+local echoMessage = "Hello from child process!"
+local echoResult = process.spawn("echo", {
+	'"$TEST_VAR"',
+}, {
+	env = { TEST_VAR = echoMessage },
+	shell = "bash",
+	stdio = "inherit",
+})
+assert(
+	echoResult.stdout == (echoMessage .. "\n"), -- Note that echo adds a newline
+	"Inheriting stdio did not return proper output"
 )
