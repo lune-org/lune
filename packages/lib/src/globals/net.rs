@@ -14,10 +14,10 @@ use reqwest::{ClientBuilder, Method};
 use tokio::{sync::mpsc::Sender, task};
 
 use crate::utils::{
+    message::LuneMessage,
     net::{get_request_user_agent_header, NetClient},
     table::TableBuilder,
 };
-use crate::LuneMessage;
 
 pub fn create(lua: &Lua) -> LuaResult<()> {
     // Create a reusable client for performing our

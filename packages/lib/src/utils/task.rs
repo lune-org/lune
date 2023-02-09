@@ -6,7 +6,7 @@ use mlua::prelude::*;
 use tokio::sync::mpsc::Sender;
 use tokio::task;
 
-use crate::LuneMessage;
+use crate::utils::message::LuneMessage;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TaskRunMode {

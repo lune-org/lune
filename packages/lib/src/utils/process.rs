@@ -3,9 +3,7 @@ use std::{process::ExitStatus, sync::Weak, time::Duration};
 use mlua::prelude::*;
 use tokio::{io, process::Child, sync::mpsc::Sender, task::spawn, time::sleep};
 
-use crate::LuneMessage;
-
-use super::futures::AsyncTeeWriter;
+use crate::utils::{futures::AsyncTeeWriter, message::LuneMessage};
 
 pub async fn pipe_and_inherit_child_process_stdio(
     mut child: Child,

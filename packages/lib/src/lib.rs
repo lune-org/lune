@@ -11,7 +11,7 @@ use crate::{
         create_fs, create_net, create_process, create_require, create_stdio, create_task,
         create_top_level,
     },
-    utils::formatting::pretty_format_luau_error,
+    utils::{formatting::pretty_format_luau_error, message::LuneMessage},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -37,14 +37,6 @@ impl LuneGlobal {
             Self::TopLevel,
         ]
     }
-}
-
-#[derive(Debug)]
-pub(crate) enum LuneMessage {
-    Exit(u8),
-    Spawned,
-    Finished,
-    LuaError(LuaError),
 }
 
 #[derive(Clone, Debug, Default)]
