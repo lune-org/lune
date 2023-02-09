@@ -213,6 +213,13 @@ export type ProcessSpawnOptions = {
 	stdio: ProcessSpawnOptionsStdio?,
 }
 
+export type ProcessSpawnResult = {
+	ok: boolean,
+	code: number,
+	stdout: string,
+	stderr: string,
+}
+
 --[=[
 	@class process
 
@@ -274,12 +281,7 @@ declare process: {
 		program: string,
 		params: { string }?,
 		options: ProcessSpawnOptions?
-	) -> {
-		ok: boolean,
-		code: number,
-		stdout: string,
-		stderr: string,
-	},
+	) -> ProcessSpawnResult,
 }
 
 --[=[

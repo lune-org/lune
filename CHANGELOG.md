@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Setting `cwd` in the options for `process.spawn` to a path starting with a tilde (`~`) will now use a path relative to the platform-specific home / user directory.
+- Added a global type `ProcessSpawnOptions` for the return type of `process.spawn`
 
 ### Changed
 
