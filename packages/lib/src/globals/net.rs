@@ -1,24 +1,40 @@
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::{Arc, Weak};
-use std::task::{Context, Poll};
+use std::{
+    collections::HashMap,
+    future::Future,
+    pin::Pin,
+    sync::{Arc, Weak},
+    task::{Context, Poll},
+};
 
-use hyper::body::to_bytes;
-use hyper::http::HeaderValue;
-use hyper::server::conn::AddrStream;
 use mlua::prelude::*;
 
-use hyper::service::Service;
+use hyper::{body::to_bytes, http::HeaderValue, server::conn::AddrStream, service::Service};
 use hyper::{Body, HeaderMap, Request, Response, Server};
 use reqwest::{ClientBuilder, Method};
-use tokio::sync::mpsc::Sender;
-use tokio::task;
+use tokio::{sync::mpsc::Sender, task};
 
-use crate::utils::{net::get_request_user_agent_header, table::TableBuilder};
+use crate::utils::{
+    net::{get_request_user_agent_header, NetClient},
+    table::TableBuilder,
+};
 use crate::LuneMessage;
 
 pub fn create(lua: &Lua) -> LuaResult<()> {
+    // Create a reusable client for performing our
+    // web requests and store it in the lua registry
+    let mut default_headers = HeaderMap::new();
+    default_headers.insert(
+        "User-Agent",
+        HeaderValue::from_str(&get_request_user_agent_header()).map_err(LuaError::external)?,
+    );
+    let client = NetClient::new(
+        ClientBuilder::new()
+            .default_headers(default_headers)
+            .build()
+            .map_err(LuaError::external)?,
+    );
+    lua.set_named_registry_value("NetClient", client)?;
+    // Create the global table for net
     lua.globals().raw_set(
         "net",
         TableBuilder::new(lua)?
@@ -44,6 +60,7 @@ fn net_json_decode(lua: &Lua, json: String) -> LuaResult<LuaValue> {
 }
 
 async fn net_request<'lua>(lua: &'lua Lua, config: LuaValue<'lua>) -> LuaResult<LuaTable<'lua>> {
+    let client: NetClient = lua.named_registry_value("NetClient")?;
     // Extract stuff from config and make sure its all valid
     let (url, method, headers, body) = match config {
         LuaValue::String(s) => {
@@ -103,16 +120,6 @@ async fn net_request<'lua>(lua: &'lua Lua, config: LuaValue<'lua>) -> LuaResult<
             &method
         ))),
     }?;
-    // TODO: Figure out how to reuse this client
-    let mut default_headers = HeaderMap::new();
-    default_headers.insert(
-        "User-Agent",
-        HeaderValue::from_str(&get_request_user_agent_header()).map_err(LuaError::external)?,
-    );
-    let client = ClientBuilder::new()
-        .default_headers(default_headers)
-        .build()
-        .map_err(LuaError::external)?;
     // Create and send the request
     let mut request = client.request(method, &url);
     for (header, value) in headers {

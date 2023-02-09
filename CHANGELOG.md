@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `NetRequest` query parameters value has been changed to be a table of key-value pairs similar to `process.env`.
   If any query parameter is specified more than once in the request url, the value chosen will be the last one that was specified.
+- The internal http client for `net.request` now reuses headers and connections for more efficient requests.
 
 ### Fixed
 
