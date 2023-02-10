@@ -10,7 +10,7 @@ use crate::utils::{
     table::TableBuilder,
 };
 
-pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
+pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
     let cwd = env::current_dir()?.canonicalize()?;
     let mut cwd_str = cwd.to_string_lossy().to_string();
     if !cwd_str.ends_with('/') {
@@ -31,16 +31,13 @@ pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<()> {
         )?
         .build_readonly()?;
     // Create the full process table
-    lua.globals().raw_set(
-        "process",
-        TableBuilder::new(lua)?
-            .with_value("args", args_tab)?
-            .with_value("cwd", cwd_str)?
-            .with_value("env", env_tab)?
-            .with_async_function("exit", process_exit)?
-            .with_async_function("spawn", process_spawn)?
-            .build_readonly()?,
-    )
+    TableBuilder::new(lua)?
+        .with_value("args", args_tab)?
+        .with_value("cwd", cwd_str)?
+        .with_value("env", env_tab)?
+        .with_async_function("exit", process_exit)?
+        .with_async_function("spawn", process_spawn)?
+        .build_readonly()
 }
 
 fn process_env_get<'lua>(

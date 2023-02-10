@@ -6,68 +6,82 @@ use tokio::{sync::mpsc, task};
 pub(crate) mod globals;
 pub(crate) mod utils;
 
-use crate::{
-    globals::{
-        create_fs, create_net, create_process, create_require, create_stdio, create_task,
-        create_top_level,
-    },
-    utils::{formatting::pretty_format_luau_error, message::LuneMessage},
-};
+#[cfg(test)]
+mod tests;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum LuneGlobal {
-    Fs,
-    Net,
-    Process,
-    Require,
-    Stdio,
-    Task,
-    TopLevel,
-}
+use crate::utils::{formatting::pretty_format_luau_error, message::LuneMessage};
 
-impl LuneGlobal {
-    pub fn get_all() -> Vec<Self> {
-        vec![
-            Self::Fs,
-            Self::Net,
-            Self::Process,
-            Self::Require,
-            Self::Stdio,
-            Self::Task,
-            Self::TopLevel,
-        ]
-    }
-}
+pub use globals::LuneGlobal;
 
 #[derive(Clone, Debug, Default)]
 pub struct Lune {
-    globals: HashSet<LuneGlobal>,
-    args: Vec<String>,
+    includes: HashSet<LuneGlobal>,
+    excludes: HashSet<LuneGlobal>,
 }
 
 impl Lune {
+    /**
+        Creates a new Lune script runner.
+    */
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn with_args(mut self, args: Vec<String>) -> Self {
-        self.args = args;
-        self
-    }
-
+    /**
+        Include a global in the lua environment created for running a Lune script.
+    */
     pub fn with_global(mut self, global: LuneGlobal) -> Self {
-        self.globals.insert(global);
+        self.includes.insert(global);
         self
     }
 
+    /**
+        Include all globals in the lua environment created for running a Lune script.
+    */
     pub fn with_all_globals(mut self) -> Self {
-        for global in LuneGlobal::get_all() {
-            self.globals.insert(global);
+        for global in LuneGlobal::all::<String>(&[]) {
+            self.includes.insert(global);
         }
         self
     }
 
-    pub async fn run(&self, name: &str, chunk: &str) -> Result<ExitCode, LuaError> {
+    /**
+        Include all globals in the lua environment created for running a
+        Lune script, as well as supplying args for [`LuneGlobal::Process`].
+    */
+    pub fn with_all_globals_and_args(mut self, args: Vec<String>) -> Self {
+        for global in LuneGlobal::all(&args) {
+            self.includes.insert(global);
+        }
+        self
+    }
+
+    /**
+        Exclude a global from the lua environment created for running a Lune script.
+
+        This should be preferred over manually iterating and filtering
+        which Lune globals to add to the global environment.
+    */
+    pub fn without_global(mut self, global: LuneGlobal) -> Self {
+        self.excludes.insert(global);
+        self
+    }
+
+    /**
+        Runs a Lune script.
+
+        This will create a new sandboxed Luau environment with the configured
+        globals and arguments, running inside of a [`tokio::task::LocalSet`].
+
+        Some Lune globals such as [`LuneGlobal::Process`] may spawn
+        separate tokio tasks on other threads, but the Luau environment
+        itself is guaranteed to run on a single thread in the local set.
+    */
+    pub async fn run(
+        &self,
+        script_name: &str,
+        script_contents: &str,
+    ) -> Result<ExitCode, LuaError> {
         let task_set = task::LocalSet::new();
         let (sender, mut receiver) = mpsc::channel::<LuneMessage>(64);
         let lua = Arc::new(mlua::Lua::new());
@@ -75,21 +89,15 @@ impl Lune {
         lua.set_app_data(Arc::downgrade(&lua));
         lua.set_app_data(Arc::downgrade(&snd));
         // Add in wanted lune globals
-        for global in &self.globals {
-            match &global {
-                LuneGlobal::Fs => create_fs(&lua)?,
-                LuneGlobal::Net => create_net(&lua)?,
-                LuneGlobal::Process => create_process(&lua, self.args.clone())?,
-                LuneGlobal::Require => create_require(&lua)?,
-                LuneGlobal::Stdio => create_stdio(&lua)?,
-                LuneGlobal::Task => create_task(&lua)?,
-                LuneGlobal::TopLevel => create_top_level(&lua)?,
+        for global in self.includes.clone() {
+            if !self.excludes.contains(&global) {
+                global.inject(&lua)?;
             }
         }
         // Spawn the main thread from our entrypoint script
         let script_lua = lua.clone();
-        let script_name = name.to_string();
-        let script_chunk = chunk.to_string();
+        let script_name = script_name.to_string();
+        let script_chunk = script_contents.to_string();
         let script_sender = snd.clone();
         script_sender
             .send(LuneMessage::Spawned)
@@ -163,85 +171,5 @@ impl Lune {
         } else {
             Ok(ExitCode::SUCCESS)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{env::set_current_dir, path::PathBuf, process::ExitCode};
-
-    use anyhow::Result;
-    use console::set_colors_enabled;
-    use console::set_colors_enabled_stderr;
-    use tokio::fs::read_to_string;
-
-    use crate::Lune;
-
-    const ARGS: &[&str] = &["Foo", "Bar"];
-
-    macro_rules! run_tests {
-        ($($name:ident: $value:expr,)*) => {
-            $(
-                #[tokio::test]
-                async fn $name() -> Result<ExitCode> {
-                    // Disable styling for stdout and stderr since
-                    // some tests rely on output not being styled
-                    set_colors_enabled(false);
-                    set_colors_enabled_stderr(false);
-                    // NOTE: This path is relative to the lib
-                    // package, not the cwd or workspace root,
-                    // so we need to cd to the repo root first
-                    let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-                    let root_dir = crate_dir.join("../../").canonicalize()?;
-                    set_current_dir(root_dir)?;
-                    // The rest of the test logic can continue as normal
-                    let full_name = format!("tests/{}.luau", $value);
-                    let script = read_to_string(&full_name).await?;
-                    let lune = Lune::new()
-                        .with_args(
-                            ARGS
-                                .clone()
-                                .iter()
-                                .map(ToString::to_string)
-                                .collect()
-                        )
-                        .with_all_globals();
-                    let script_name = full_name.strip_suffix(".luau").unwrap();
-                    let exit_code = lune.run(&script_name, &script).await?;
-                    Ok(exit_code)
-                }
-            )*
-        }
-    }
-
-    run_tests! {
-        fs_files: "fs/files",
-        fs_dirs: "fs/dirs",
-        net_request_codes: "net/request/codes",
-        net_request_methods: "net/request/methods",
-        net_request_redirect: "net/request/redirect",
-        net_json_decode: "net/json/decode",
-        net_json_encode: "net/json/encode",
-        net_serve: "net/serve",
-        process_args: "process/args",
-        process_cwd: "process/cwd",
-        process_env: "process/env",
-        process_exit: "process/exit",
-        process_spawn: "process/spawn",
-        require_children: "require/tests/children",
-        require_invalid: "require/tests/invalid",
-        require_nested: "require/tests/nested",
-        require_parents: "require/tests/parents",
-        require_siblings: "require/tests/siblings",
-        stdio_format: "stdio/format",
-        stdio_color: "stdio/color",
-        stdio_style: "stdio/style",
-        stdio_write: "stdio/write",
-        stdio_ewrite: "stdio/ewrite",
-        task_cancel: "task/cancel",
-        task_defer: "task/defer",
-        task_delay: "task/delay",
-        task_spawn: "task/spawn",
-        task_wait: "task/wait",
     }
 }

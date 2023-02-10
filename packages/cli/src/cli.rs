@@ -15,9 +15,9 @@ use crate::{
     },
 };
 
-const LUNE_SELENE_FILE_NAME: &str = "lune.yml";
-const LUNE_LUAU_FILE_NAME: &str = "luneTypes.d.luau";
-const LUNE_DOCS_FILE_NAME: &str = "luneDocs.json";
+pub(crate) const LUNE_SELENE_FILE_NAME: &str = "lune.yml";
+pub(crate) const LUNE_LUAU_FILE_NAME: &str = "luneTypes.d.luau";
+pub(crate) const LUNE_DOCS_FILE_NAME: &str = "luneDocs.json";
 
 /// Lune CLI
 #[derive(Parser, Debug, Default)]
@@ -160,7 +160,7 @@ impl Cli {
         // Display the file path relative to cwd with no extensions in stack traces
         let file_display_name = file_path.with_extension("").display().to_string();
         // Create a new lune object with all globals & run the script
-        let lune = Lune::new().with_args(self.script_args).with_all_globals();
+        let lune = Lune::new().with_all_globals_and_args(self.script_args);
         let result = lune.run(&file_display_name, &file_contents).await;
         Ok(match result {
             Err(e) => {
@@ -169,66 +169,5 @@ impl Cli {
             }
             Ok(code) => code,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::env::{current_dir, set_current_dir};
-
-    use anyhow::{bail, Context, Result};
-    use serde_json::Value;
-    use tokio::fs::{create_dir_all, read_to_string, remove_file};
-
-    use super::{Cli, LUNE_LUAU_FILE_NAME, LUNE_SELENE_FILE_NAME};
-
-    async fn run_cli(cli: Cli) -> Result<()> {
-        let path = current_dir()
-            .context("Failed to get current dir")?
-            .join("bin");
-        create_dir_all(&path)
-            .await
-            .context("Failed to create bin dir")?;
-        set_current_dir(&path).context("Failed to set current dir")?;
-        cli.run().await?;
-        Ok(())
-    }
-
-    async fn ensure_file_exists_and_is_not_json(file_name: &str) -> Result<()> {
-        match read_to_string(file_name)
-            .await
-            .context("Failed to read definitions file")
-        {
-            Ok(file_contents) => match serde_json::from_str::<Value>(&file_contents) {
-                Err(_) => {
-                    remove_file(file_name)
-                        .await
-                        .context("Failed to remove definitions file")?;
-                    Ok(())
-                }
-                Ok(_) => bail!("Downloading selene definitions returned json, expected luau"),
-            },
-            Err(e) => bail!("Failed to download selene definitions!\n{e}"),
-        }
-    }
-
-    #[tokio::test]
-    async fn list() -> Result<()> {
-        Cli::list().run().await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn download_selene_types() -> Result<()> {
-        run_cli(Cli::download_selene_types()).await?;
-        ensure_file_exists_and_is_not_json(LUNE_SELENE_FILE_NAME).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn download_luau_types() -> Result<()> {
-        run_cli(Cli::download_luau_types()).await?;
-        ensure_file_exists_and_is_not_json(LUNE_LUAU_FILE_NAME).await?;
-        Ok(())
     }
 }

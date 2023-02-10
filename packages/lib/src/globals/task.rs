@@ -13,7 +13,7 @@ use crate::utils::{
 
 const MINIMUM_WAIT_OR_DELAY_DURATION: f32 = 10.0 / 1_000.0; // 10ms
 
-pub fn create(lua: &Lua) -> LuaResult<()> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     // HACK: There is no way to call coroutine.close directly from the mlua
     // crate, so we need to fetch the function and store it in the registry
     let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
@@ -24,16 +24,13 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
     // overwrite the original coroutine.resume function with it to fix that
     coroutine.raw_set("resume", lua.create_async_function(task_spawn)?)?;
     // Rest of the task library is normal, just async functions, no metatable
-    lua.globals().raw_set(
-        "task",
-        TableBuilder::new(lua)?
-            .with_async_function("cancel", task_cancel)?
-            .with_async_function("delay", task_delay)?
-            .with_async_function("defer", task_defer)?
-            .with_async_function("spawn", task_spawn)?
-            .with_async_function("wait", task_wait)?
-            .build_readonly()?,
-    )
+    TableBuilder::new(lua)?
+        .with_async_function("cancel", task_cancel)?
+        .with_async_function("delay", task_delay)?
+        .with_async_function("defer", task_defer)?
+        .with_async_function("spawn", task_spawn)?
+        .with_async_function("wait", task_wait)?
+        .build_readonly()
 }
 
 fn tof_to_thread<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {

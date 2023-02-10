@@ -5,20 +5,17 @@ use tokio::fs;
 
 use crate::utils::table::TableBuilder;
 
-pub fn create(lua: &Lua) -> LuaResult<()> {
-    lua.globals().raw_set(
-        "fs",
-        TableBuilder::new(lua)?
-            .with_async_function("readFile", fs_read_file)?
-            .with_async_function("readDir", fs_read_dir)?
-            .with_async_function("writeFile", fs_write_file)?
-            .with_async_function("writeDir", fs_write_dir)?
-            .with_async_function("removeFile", fs_remove_file)?
-            .with_async_function("removeDir", fs_remove_dir)?
-            .with_async_function("isFile", fs_is_file)?
-            .with_async_function("isDir", fs_is_dir)?
-            .build_readonly()?,
-    )
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+    TableBuilder::new(lua)?
+        .with_async_function("readFile", fs_read_file)?
+        .with_async_function("readDir", fs_read_dir)?
+        .with_async_function("writeFile", fs_write_file)?
+        .with_async_function("writeDir", fs_write_dir)?
+        .with_async_function("removeFile", fs_remove_file)?
+        .with_async_function("removeDir", fs_remove_dir)?
+        .with_async_function("isFile", fs_is_file)?
+        .with_async_function("isDir", fs_is_dir)?
+        .build_readonly()
 }
 
 async fn fs_read_file(_: &Lua, path: String) -> LuaResult<String> {

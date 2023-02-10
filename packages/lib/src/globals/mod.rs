@@ -1,83 +1,117 @@
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
+use mlua::prelude::*;
+
 mod fs;
 mod net;
 mod process;
 mod require;
 mod stdio;
 mod task;
+mod top_level;
 
-// Global tables
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum LuneGlobal {
+    Fs,
+    Net,
+    Process { args: Vec<String> },
+    Require,
+    Stdio,
+    Task,
+    TopLevel,
+}
 
-pub use fs::create as create_fs;
-pub use net::create as create_net;
-pub use process::create as create_process;
-pub use require::create as create_require;
-pub use stdio::create as create_stdio;
-pub use task::create as create_task;
+impl Display for LuneGlobal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Fs => "fs",
+                Self::Net => "net",
+                Self::Process { .. } => "process",
+                Self::Require => "require",
+                Self::Stdio => "stdio",
+                Self::Task => "task",
+                Self::TopLevel => "toplevel",
+            }
+        )
+    }
+}
 
-// Individual top-level global values
+impl LuneGlobal {
+    /**
+        Create a vector that contains all available Lune globals, with
+        the [`LuneGlobal::Process`] global containing the given args.
+    */
+    pub fn all<S: AsRef<str>>(args: &[S]) -> Vec<Self> {
+        vec![
+            Self::Fs,
+            Self::Net,
+            Self::Process {
+                args: args.iter().map(|s| s.as_ref().to_string()).collect(),
+            },
+            Self::Require,
+            Self::Stdio,
+            Self::Task,
+            Self::TopLevel,
+        ]
+    }
 
-use mlua::prelude::*;
+    /**
+        Checks if this Lune global is a proxy global.
 
-use crate::utils::formatting::{format_label, pretty_format_multi_value};
+        A proxy global is a global that re-implements or proxies functionality of one or
+        more existing lua globals, and may store internal references to the original global(s).
 
-pub fn create_top_level(lua: &Lua) -> LuaResult<()> {
-    let globals = lua.globals();
-    // HACK: We need to preserve the default behavior of the
-    // print and error functions, for pcall and such, which
-    // is really tricky to do from scratch so we will just
-    // proxy the default print and error functions here
-    let print_fn: LuaFunction = globals.raw_get("print")?;
-    let error_fn: LuaFunction = globals.raw_get("error")?;
-    lua.set_named_registry_value("print", print_fn)?;
-    lua.set_named_registry_value("error", error_fn)?;
-    globals.raw_set(
-        "print",
-        lua.create_function(|lua, args: LuaMultiValue| {
-            let formatted = pretty_format_multi_value(&args)?;
-            let print: LuaFunction = lua.named_registry_value("print")?;
-            print.call(formatted)?;
+        This means that proxy globals should only be injected into a lua global
+        environment once, since injecting twice or more will potentially break the
+        functionality of the proxy global and / or cause undefined behavior.
+    */
+    pub fn is_proxy(&self) -> bool {
+        matches!(self, Self::Require | Self::TopLevel)
+    }
+
+    /**
+        Creates the [`mlua::Table`] value for this Lune global.
+
+        Note that proxy globals should be handled with special care and that [`LuneGlobal::inject()`]
+        should be preferred over manually creating and manipulating the value(s) of any Lune global.
+    */
+    pub fn value<'a>(&'a self, lua: &'a Lua) -> LuaResult<LuaTable> {
+        match self {
+            LuneGlobal::Fs => fs::create(lua),
+            LuneGlobal::Net => net::create(lua),
+            LuneGlobal::Process { args } => process::create(lua, args.clone()),
+            LuneGlobal::Require => require::create(lua),
+            LuneGlobal::Stdio => stdio::create(lua),
+            LuneGlobal::Task => task::create(lua),
+            LuneGlobal::TopLevel => top_level::create(lua),
+        }
+    }
+
+    /**
+        Injects the Lune global into a lua global environment.
+
+        This takes ownership since proxy Lune globals should
+        only ever be injected into a lua global environment once.
+
+        Refer to [`LuneGlobal::is_top_level()`] for more info on proxy globals.
+    */
+    pub fn inject(self, lua: &Lua) -> LuaResult<()> {
+        let globals = lua.globals();
+        let table = self.value(lua)?;
+        // NOTE: Top level globals are special, the values
+        // *in* the table they return should be set directly,
+        // instead of setting the table itself as the global
+        if self.is_proxy() {
+            for pair in table.pairs::<LuaValue, LuaValue>() {
+                let (key, value) = pair?;
+                globals.raw_set(key, value)?;
+            }
             Ok(())
-        })?,
-    )?;
-    globals.raw_set(
-        "info",
-        lua.create_function(|lua, args: LuaMultiValue| {
-            let print: LuaFunction = lua.named_registry_value("print")?;
-            print.call(format!(
-                "{}\n{}",
-                format_label("info"),
-                pretty_format_multi_value(&args)?
-            ))?;
-            Ok(())
-        })?,
-    )?;
-    globals.raw_set(
-        "warn",
-        lua.create_function(|lua, args: LuaMultiValue| {
-            let print: LuaFunction = lua.named_registry_value("print")?;
-            print.call(format!(
-                "{}\n{}",
-                format_label("warn"),
-                pretty_format_multi_value(&args)?
-            ))?;
-            Ok(())
-        })?,
-    )?;
-    globals.raw_set(
-        "error",
-        lua.create_function(|lua, (arg, level): (LuaValue, Option<u32>)| {
-            let error: LuaFunction = lua.named_registry_value("error")?;
-            let multi = arg.to_lua_multi(lua)?;
-            error.call((
-                format!(
-                    "{}\n{}",
-                    format_label("error"),
-                    pretty_format_multi_value(&multi)?
-                ),
-                level,
-            ))?;
-            Ok(())
-        })?,
-    )?;
-    Ok(())
+        } else {
+            globals.raw_set(self.to_string(), table)
+        }
+    }
 }

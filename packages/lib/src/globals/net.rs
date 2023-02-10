@@ -19,7 +19,7 @@ use crate::utils::{
     table::TableBuilder,
 };
 
-pub fn create(lua: &Lua) -> LuaResult<()> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     // Create a reusable client for performing our
     // web requests and store it in the lua registry
     let mut default_headers = HeaderMap::new();
@@ -35,15 +35,12 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
     );
     lua.set_named_registry_value("NetClient", client)?;
     // Create the global table for net
-    lua.globals().raw_set(
-        "net",
-        TableBuilder::new(lua)?
-            .with_function("jsonEncode", net_json_encode)?
-            .with_function("jsonDecode", net_json_decode)?
-            .with_async_function("request", net_request)?
-            .with_async_function("serve", net_serve)?
-            .build_readonly()?,
-    )
+    TableBuilder::new(lua)?
+        .with_function("jsonEncode", net_json_encode)?
+        .with_function("jsonDecode", net_json_decode)?
+        .with_async_function("request", net_request)?
+        .with_async_function("serve", net_serve)?
+        .build_readonly()
 }
 
 fn net_json_encode(_: &Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<String> {

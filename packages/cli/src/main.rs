@@ -13,9 +13,12 @@ use std::process::ExitCode;
 use anyhow::Result;
 use clap::Parser;
 
-mod cli;
-mod gen;
-mod utils;
+pub(crate) mod cli;
+pub(crate) mod gen;
+pub(crate) mod utils;
+
+#[cfg(test)]
+mod tests;
 
 use cli::Cli;
 

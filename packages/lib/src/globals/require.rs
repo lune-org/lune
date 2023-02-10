@@ -7,10 +7,15 @@ use std::{
 use mlua::prelude::*;
 use os_str_bytes::{OsStrBytes, RawOsStr};
 
-pub fn create(lua: &Lua) -> LuaResult<()> {
+use crate::utils::table::TableBuilder;
+
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+    let require: LuaFunction = lua.globals().raw_get("require")?;
     // Preserve original require behavior if we have a special env var set
     if env::var_os("LUAU_PWD_REQUIRE").is_some() {
-        return Ok(());
+        return TableBuilder::new(lua)?
+            .with_value("require", require)?
+            .build_readonly();
     }
     /*
       Store the current working directory so that we can use it later
@@ -28,8 +33,7 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
     let debug: LuaTable = lua.globals().raw_get("debug")?;
     let info: LuaFunction = debug.raw_get("info")?;
     lua.set_named_registry_value("require_getinfo", info)?;
-    // Fetch the original require function and store it in the registry
-    let require: LuaFunction = lua.globals().raw_get("require")?;
+    // Store the original require function in the registry
     lua.set_named_registry_value("require_original", require)?;
     /*
       Create a new function that fetches the file name from the current thread,
@@ -90,6 +94,7 @@ pub fn create(lua: &Lua) -> LuaResult<()> {
         }
     })?;
     // Override the original require global with our monkey-patched one
-    lua.globals().raw_set("require", new_require)?;
-    Ok(())
+    TableBuilder::new(lua)?
+        .with_value("require", new_require)?
+        .build_readonly()
 }
