@@ -240,7 +240,7 @@
       },
       {
         "documentation": "@roblox/global/net.serve/param/1",
-        "name": "handler"
+        "name": "handlerOrConfig"
       }
     ],
     "returns": []
@@ -249,7 +249,27 @@
     "documentation": "The port to use for the server"
   },
   "@roblox/global/net.serve/param/1": {
-    "documentation": "The handler function to use for the server"
+    "documentation": "The handler function or config to use for the server"
+  },
+  "@roblox/global/net.socket": {
+    "code_sample": "",
+    "documentation": "Connects to a web socket at the given URL.\n\nThrows an error if the server at the given URL does not support\nweb sockets, or if a miscellaneous network or I/O error occurs.",
+    "learn_more_link": "",
+    "params": [
+      {
+        "documentation": "@roblox/global/net.socket/param/0",
+        "name": "url"
+      }
+    ],
+    "returns": [
+      "@roblox/global/net.socket/return/0"
+    ]
+  },
+  "@roblox/global/net.socket/param/0": {
+    "documentation": "The URL to connect to"
+  },
+  "@roblox/global/net.socket/return/0": {
+    "documentation": "A web socket handle"
   },
   "@roblox/global/process": {
     "code_sample": "",
