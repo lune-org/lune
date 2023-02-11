@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use mlua::prelude::*;
 
-use hyper::upgrade::Upgraded;
 use hyper_tungstenite::{tungstenite::Message as WsMessage, WebSocketStream};
 
 use futures_util::{SinkExt, StreamExt};
-use tokio::sync::Mutex;
+use tokio::{net::TcpStream, sync::Mutex};
+use tokio_tungstenite::MaybeTlsStream;
 
 #[derive(Debug, Clone)]
-pub struct NetWebSocketServer(Arc<Mutex<WebSocketStream<Upgraded>>>);
+pub struct NetWebSocketClient(Arc<Mutex<WebSocketStream<MaybeTlsStream<TcpStream>>>>);
 
-impl NetWebSocketServer {
+impl NetWebSocketClient {
     pub async fn close(&self) -> LuaResult<()> {
         let mut ws = self.0.lock().await;
         ws.close(None).await.map_err(LuaError::external)?;
@@ -60,7 +60,7 @@ impl NetWebSocketServer {
     }
 }
 
-impl LuaUserData for NetWebSocketServer {
+impl LuaUserData for NetWebSocketClient {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_async_method("close", |_, this, _: ()| async move { this.close().await });
         methods.add_async_method("send", |_, this, msg: String| async move {
@@ -79,8 +79,8 @@ impl LuaUserData for NetWebSocketServer {
     }
 }
 
-impl From<WebSocketStream<Upgraded>> for NetWebSocketServer {
-    fn from(value: WebSocketStream<Upgraded>) -> Self {
+impl From<WebSocketStream<MaybeTlsStream<TcpStream>>> for NetWebSocketClient {
+    fn from(value: WebSocketStream<MaybeTlsStream<TcpStream>>) -> Self {
         Self(Arc::new(Mutex::new(value)))
     }
 }

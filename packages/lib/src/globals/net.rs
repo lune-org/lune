@@ -19,7 +19,7 @@ use tokio::{
 };
 
 use crate::{
-    lua::net::{NetClient, NetClientBuilder, NetWebSocketServer, ServeConfig},
+    lua::net::{NetClient, NetClientBuilder, NetWebSocketClient, NetWebSocketServer, ServeConfig},
     utils::{message::LuneMessage, net::get_request_user_agent_header, table::TableBuilder},
 };
 
@@ -35,6 +35,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
         .with_async_function("request", net_request)?
+        .with_async_function("socket", net_socket)?
         .with_async_function("serve", net_serve)?
         .build_readonly()
 }
@@ -141,6 +142,15 @@ async fn net_request<'a>(lua: &'static Lua, config: LuaValue<'a>) -> LuaResult<L
         .with_value("headers", res_headers)?
         .with_value("body", lua.create_string(&res_bytes)?)?
         .build_readonly()
+}
+
+async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaAnyUserData> {
+    let (stream, _) = tokio_tungstenite::connect_async(url)
+        .await
+        .map_err(LuaError::external)?;
+    let ws_lua = NetWebSocketClient::from(stream);
+    let ws_proper = ws_lua.into_proper(lua).await?;
+    Ok(ws_proper)
 }
 
 async fn net_serve<'a>(

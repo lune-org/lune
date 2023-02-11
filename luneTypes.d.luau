@@ -168,6 +168,7 @@ export type NetServeHandle = {
 declare class NetWebSocket
 	close: () -> ()
 	send: (message: string) -> ()
+	next: () -> (string?)
 	function __iter(self): () -> string
 end
 
@@ -188,6 +189,18 @@ declare net: {
 		@return A dictionary representing the response for the request
 	]=]
 	request: (config: string | NetFetchParams) -> NetFetchResponse,
+	--[=[
+		@within net
+
+		Connects to a web socket at the given URL.
+		
+		Throws an error if the server at the given URL does not support
+		web sockets, or if a miscellaneous network or I/O error occurs.
+
+		@param url The URL to connect to
+		@return A web socket handle
+	]=]
+	socket: (url: string) -> NetWebSocket,
 	--[=[
 		@within net
 

@@ -1,3 +1,6 @@
+<!-- markdownlint-disable MD023 -->
+<!-- markdownlint-disable MD033 -->
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -9,7 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `net.serve` now supports web sockets in addition to normal http requests!
+- ### Web Sockets
+
+  `net` now supports web sockets for both clients and servers! <br />
+  Not that the web socket object is identical on both client and
+  server, but how you retrieve a web socket object is different.
+
+  #### Server API
+
+  The server web socket API is an extension of the existing `net.serve` function. <br />
+  This allows for serving both normal HTTP requests and web socket requests on the same port.
 
   Example usage:
 
@@ -23,16 +35,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
               socket.send("Timed out!")
               socket.close()
           end)
-          -- This will yield waiting for new messages, and will break
-          -- when the socket was closed by either the server or client
-          for message in socket do
-              if message == "Ping" then
+          -- The message will be nil when the socket has closed
+          repeat
+              local messageFromClient = socket.next()
+              if messageFromClient == "Ping" then
                   socket.send("Pong")
               end
-          end
+          until messageFromClient == nil
       end,
   })
   ```
+
+  #### Client API
+
+  Example usage:
+
+  ```lua
+  local socket = net.socket("ws://localhost:8080")
+
+  socket.send("Ping")
+
+  task.delay(5, function()
+      socket.close()
+  end)
+
+  -- The message will be nil when the socket has closed
+  repeat
+      local messageFromServer = socket.next()
+      if messageFromServer == "Ping" then
+          socket.send("Pong")
+      end
+  until messageFromServer == nil
+  ```
+
+### Changed
 
 - `net.serve` now returns a `NetServeHandle` which can be used to stop serving requests safely.
 
@@ -49,11 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   print("Shut down succesfully")
   ```
 
+- The third and optional argument of `process.spawn` is now a global type `ProcessSpawnOptions`.
 - Setting `cwd` in the options for `process.spawn` to a path starting with a tilde (`~`) will now use a path relative to the platform-specific home / user directory.
-- Added a global type `ProcessSpawnOptions` for the third and optional argument of `process.spawn`
-
-### Changed
-
 - `NetRequest` query parameters value has been changed to be a table of key-value pairs similar to `process.env`.
   If any query parameter is specified more than once in the request url, the value chosen will be the last one that was specified.
 - The internal http client for `net.request` now reuses headers and connections for more efficient requests.

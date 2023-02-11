@@ -1,4 +1,7 @@
 local PORT = 8080
+local URL = `http://127.0.0.1:{PORT}`
+local WS_URL = `ws://127.0.0.1:{PORT}`
+local REQUEST = "Hello from client!"
 local RESPONSE = "Hello, lune!"
 
 local handle = net.serve(PORT, function(request)
@@ -10,8 +13,7 @@ local handle = net.serve(PORT, function(request)
 	return RESPONSE
 end)
 
-local response =
-	net.request(`http://127.0.0.1:{PORT}/some/path?key=param1&key=param2&key2=param3`).body
+local response = net.request(URL .. "/some/path?key=param1&key=param2&key2=param3").body
 assert(response == RESPONSE, "Invalid response from server")
 
 handle.stop()
@@ -22,7 +24,7 @@ task.wait()
 
 -- Sending a net request may error if there was
 -- a connection issue, we should handle that here
-local success, response2 = pcall(net.request, `http://127.0.0.1:{PORT}/`)
+local success, response2 = pcall(net.request, URL)
 if not success then
 	local message = tostring(response2)
 	assert(
@@ -63,16 +65,37 @@ local handle2 = net.serve(PORT, {
 		return RESPONSE
 	end,
 	handleWebSocket = function(socket)
+		local socketMessage = socket.next()
+		assert(socketMessage == REQUEST, "Invalid web socket request from client")
+		socket.send(RESPONSE)
 		socket.close()
 	end,
 })
 
-local response3 = net.request(`http://127.0.0.1:{PORT}/`).body
+local response3 = net.request(URL).body
 assert(response3 == RESPONSE, "Invalid response from server")
 
--- TODO: Test web sockets properly when we have a web socket client
+-- Web socket client should work
+local socket = net.socket(WS_URL)
 
--- Stop the server and yield once more to end the test
+socket.send(REQUEST)
+
+local socketMessage = socket.next()
+assert(socketMessage ~= nil, "Got no web socket response from server")
+assert(socketMessage == RESPONSE, "Invalid web socket response from server")
+
+socket.close()
+
+-- Wait for the socket to close and make sure we can't send messages afterwards
+task.wait()
+local success3, err2 = (pcall :: any)(socket.send, "")
+assert(not success3, "Sending messages after the socket has been closed should error")
+local message2 = tostring(err2)
+assert(
+	string.find(message2, "close") or string.find(message2, "closing"),
+	"The error message for sending messages on a closed web socket should be descriptive"
+)
+
+-- Stop the server to end the test
 
 handle2.stop()
-task.wait()
