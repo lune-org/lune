@@ -153,7 +153,7 @@ export type NetResponse = {
 	body: string?,
 }
 
-type NetServeHttpHandler = (request: NetRequest) -> (string | NetResponse)
+type NetServeHttpHandler = (request: NetRequest) -> string | NetResponse
 type NetServeWebSocketHandler = (socket: NetWebSocket) -> ()
 
 export type NetServeConfig = {
@@ -168,7 +168,7 @@ export type NetServeHandle = {
 declare class NetWebSocket
 	close: () -> ()
 	send: (message: string) -> ()
-	next: () -> (string?)
+	next: () -> string?
 	function __iter(self): () -> string
 end
 
@@ -368,7 +368,7 @@ declare stdio: {
 		@param ... The values to format
 		@return The formatted string
 	]=]
-	format: (...any) -> (string),
+	format: (...any) -> string,
 	--[=[
 		@within stdio
 
@@ -461,7 +461,7 @@ declare task: {
 		@param duration The amount of time to wait
 		@return The exact amount of time waited
 	]=]
-	wait: (duration: number?) -> (number),
+	wait: (duration: number?) -> number,
 }
 
 -- TODO: Write docs for these and include them in docs gen
