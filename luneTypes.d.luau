@@ -153,6 +153,10 @@ export type NetResponse = {
 	body: string?,
 }
 
+export type NetServeHandle = {
+	stop: () -> (),
+}
+
 --[=[
 	@class net
 
@@ -175,14 +179,13 @@ declare net: {
 
 		Creates an HTTP server that listens on the given `port`.
 
-		The call to this function will block indefinitely and if
-		put inside `task.spawn` will not be cancellable using `task.cancel`, to
-		stop the script from running it must be terminated manually or using `process.exit`.
+		This will ***not*** block and will keep listening for requests on the given `port`
+		until the `stop` function on the returned `NetServeHandle` has been called.
 
 		@param port The port to use for the server
 		@param handler The handler function to use for the server
 	]=]
-	serve: (port: number, handler: (request: NetRequest) -> (string | NetResponse)) -> (),
+	serve: (port: number, handler: (request: NetRequest) -> (string | NetResponse)) -> NetServeHandle,
 	--[=[
 		@within net
 

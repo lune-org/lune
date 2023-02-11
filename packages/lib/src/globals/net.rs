@@ -11,7 +11,10 @@ use mlua::prelude::*;
 use hyper::{body::to_bytes, http::HeaderValue, server::conn::AddrStream, service::Service};
 use hyper::{Body, HeaderMap, Request, Response, Server};
 use reqwest::{ClientBuilder, Method};
-use tokio::{sync::mpsc::Sender, task};
+use tokio::{
+    sync::mpsc::{self, Sender},
+    task,
+};
 
 use crate::utils::{
     message::LuneMessage,
@@ -147,29 +150,62 @@ async fn net_request<'a>(lua: &'static Lua, config: LuaValue<'a>) -> LuaResult<L
         .build_readonly()
 }
 
-async fn net_serve(lua: &'static Lua, (port, callback): (u16, LuaFunction<'_>)) -> LuaResult<()> {
+async fn net_serve<'a>(
+    lua: &'static Lua,
+    (port, callback): (u16, LuaFunction<'a>), // TODO: Parse options as either callback or table with request callback + websocket callback
+) -> LuaResult<LuaTable<'a>> {
+    // Note that we need to use a mpsc here and not
+    // a oneshot channel since we move the sender
+    // into our table with the stop function
+    let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
+    let websocket_callback = Arc::new(None); // TODO: Store websocket callback, if given
+    let server_callback = Arc::new(lua.create_registry_value(callback)?);
+    let server = Server::bind(&([127, 0, 0, 1], port).into())
+        .executor(LocalExec)
+        .serve(MakeNetService(lua, server_callback, websocket_callback))
+        .with_graceful_shutdown(async move {
+            shutdown_rx.recv().await.unwrap();
+            shutdown_rx.close();
+        });
+    // Make sure we register the thread properly by sending messages
+    // when the server starts up and when it shuts down or errors
     let server_sender = lua
         .app_data_ref::<Weak<Sender<LuneMessage>>>()
         .unwrap()
         .upgrade()
         .unwrap();
-    let server_callback = lua.create_registry_value(callback)?;
-    let server = Server::bind(&([127, 0, 0, 1], port).into())
-        .executor(LocalExec)
-        .serve(MakeNetService(lua, server_callback.into()));
-    if let Err(err) = server.await.map_err(LuaError::external) {
-        server_sender
-            .send(LuneMessage::LuaError(err))
-            .await
-            .map_err(LuaError::external)?;
-    }
-    Ok(())
+    let _ = server_sender.send(LuneMessage::Spawned).await;
+    task::spawn_local(async move {
+        let res = server.await.map_err(LuaError::external);
+        let _ = match res {
+            Err(e) => server_sender.try_send(LuneMessage::LuaError(e)),
+            Ok(_) => server_sender.try_send(LuneMessage::Finished),
+        };
+    });
+    // Create a new read-only table that contains methods
+    // for manipulating server behavior and shutting it down
+    let handle_stop = move |_, _: ()| {
+        if shutdown_tx.try_send(()).is_err() {
+            Err(LuaError::RuntimeError(
+                "Server has already been stopped".to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    };
+    TableBuilder::new(lua)?
+        .with_function("stop", handle_stop)?
+        .build_readonly()
 }
 
 // Hyper service implementation for net, lots of boilerplate here
 // but make_svc and make_svc_function do not work for what we need
 
-pub struct NetService(&'static Lua, Arc<LuaRegistryKey>);
+pub struct NetService(
+    &'static Lua,
+    Arc<LuaRegistryKey>,
+    Arc<Option<LuaRegistryKey>>,
+);
 
 impl Service<Request<Body>> for NetService {
     type Response = Response<Body>;
@@ -182,13 +218,14 @@ impl Service<Request<Body>> for NetService {
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let lua = self.0;
-        let key = self.1.clone();
+        let key1 = self.1.clone();
+        let _key2 = self.2.clone(); // TODO: This is the web socket callback
         let (parts, body) = req.into_parts();
         Box::pin(async move {
             // Convert request body into bytes, extract handler
             // function & lune message sender to use later
             let bytes = to_bytes(body).await.map_err(LuaError::external)?;
-            let handler: LuaFunction = lua.registry_value(&key)?;
+            let handler: LuaFunction = lua.registry_value(&key1)?;
             let sender = lua
                 .app_data_ref::<Weak<Sender<LuneMessage>>>()
                 .unwrap()
@@ -283,7 +320,11 @@ impl Service<Request<Body>> for NetService {
     }
 }
 
-struct MakeNetService(&'static Lua, Arc<LuaRegistryKey>);
+struct MakeNetService(
+    &'static Lua,
+    Arc<LuaRegistryKey>,
+    Arc<Option<LuaRegistryKey>>,
+);
 
 impl Service<&AddrStream> for MakeNetService {
     type Response = NetService;
@@ -296,8 +337,9 @@ impl Service<&AddrStream> for MakeNetService {
 
     fn call(&mut self, _: &AddrStream) -> Self::Future {
         let lua = self.0;
-        let key = self.1.clone();
-        Box::pin(async move { Ok(NetService(lua, key)) })
+        let key1 = self.1.clone();
+        let key2 = self.2.clone();
+        Box::pin(async move { Ok(NetService(lua, key1, key2)) })
     }
 }
 

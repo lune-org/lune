@@ -9,8 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `net.serve` now returns a `NetServeHandle` which can be used to stop serving requests safely.
+
+  Example usage:
+
+  ```lua
+  local handle = net.serve(8080, function()
+      return "Hello, world!"
+  end)
+
+  print("Shutting down after 1 second...")
+  handle.stop()
+  print("Shut down succesfully")
+  ```
+
 - Setting `cwd` in the options for `process.spawn` to a path starting with a tilde (`~`) will now use a path relative to the platform-specific home / user directory.
-- Added a global type `ProcessSpawnOptions` for the return type of `process.spawn`
+- Added a global type `ProcessSpawnOptions` for the third and optional argument of `process.spawn`
 
 ### Changed
 

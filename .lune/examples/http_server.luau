@@ -25,19 +25,9 @@ local function notFound(request: NetRequest): NetResponse
 	}
 end
 
--- Exit our example after a small delay, if you copy this
--- example just remove this part to keep the server running
-
-task.delay(2, function()
-	print("Shutting down...")
-	task.wait(1)
-	process.exit(0)
-end)
-
 -- Run the server on port 8080
 
-print(`Listening on port {PORT} 🚀`)
-net.serve(PORT, function(request)
+local handle = net.serve(PORT, function(request)
 	if string.sub(request.path, 1, 5) == "/ping" then
 		return pong(request)
 	elseif string.sub(request.path, 1, 7) == "/teapot" then
@@ -45,4 +35,15 @@ net.serve(PORT, function(request)
 	else
 		return notFound(request)
 	end
+end)
+
+print(`Listening on port {PORT} 🚀`)
+
+-- Exit our example after a small delay, if you copy this
+-- example just remove this part to keep the server running
+
+task.delay(2, function()
+	print("Shutting down...")
+	task.wait(1)
+	handle.stop()
 end)

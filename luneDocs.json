@@ -231,7 +231,7 @@
   },
   "@roblox/global/net.serve": {
     "code_sample": "",
-    "documentation": "Creates an HTTP server that listens on the given `port`.\n\nThe call to this function will block indefinitely and if\nput inside `task.spawn` will not be cancellable using `task.cancel`, to\nstop the script from running it must be terminated manually or using `process.exit`.",
+    "documentation": "Creates an HTTP server that listens on the given `port`.\n\nThis will ***not*** block and will keep listening for requests on the given `port`\nuntil the `stop` function on the returned `NetServeHandle` has been called.",
     "learn_more_link": "",
     "params": [
       {
