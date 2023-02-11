@@ -8,7 +8,7 @@ use crate::utils::{
     table::TableBuilder,
 };
 
-pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("color", |_, color: String| {
             let ansi_string = format_style(style_from_color_str(&color)?);
@@ -38,7 +38,7 @@ fn prompt_theme() -> ColorfulTheme {
 }
 
 fn prompt<'a>(
-    lua: &'a Lua,
+    lua: &'static Lua,
     (kind, message, options): (Option<String>, Option<String>, LuaValue<'a>),
 ) -> LuaResult<LuaValue<'a>> {
     match kind.map(|k| k.trim().to_ascii_lowercase()).as_deref() {

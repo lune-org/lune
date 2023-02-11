@@ -5,7 +5,7 @@ use crate::utils::{
     table::TableBuilder,
 };
 
-pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     let globals = lua.globals();
     // HACK: We need to preserve the default behavior of the
     // print and error functions, for pcall and such, which

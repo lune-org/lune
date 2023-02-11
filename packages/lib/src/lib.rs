@@ -76,6 +76,10 @@ impl Lune {
         Some Lune globals such as [`LuneGlobal::Process`] may spawn
         separate tokio tasks on other threads, but the Luau environment
         itself is guaranteed to run on a single thread in the local set.
+
+        Note that this will create a static Lua instance that will live
+        for the remainer of the program, and that this leaks memory using
+        [`Box::leak`] that will then get deallocated when the program exits.
     */
     pub async fn run(
         &self,
@@ -84,18 +88,16 @@ impl Lune {
     ) -> Result<ExitCode, LuaError> {
         let task_set = task::LocalSet::new();
         let (sender, mut receiver) = mpsc::channel::<LuneMessage>(64);
-        let lua = Arc::new(mlua::Lua::new());
+        let lua = Lua::new().into_static();
         let snd = Arc::new(sender);
-        lua.set_app_data(Arc::downgrade(&lua));
         lua.set_app_data(Arc::downgrade(&snd));
         // Add in wanted lune globals
         for global in self.includes.clone() {
             if !self.excludes.contains(&global) {
-                global.inject(&lua)?;
+                global.inject(lua)?;
             }
         }
         // Spawn the main thread from our entrypoint script
-        let script_lua = lua.clone();
         let script_name = script_name.to_string();
         let script_chunk = script_contents.to_string();
         let script_sender = snd.clone();
@@ -104,7 +106,7 @@ impl Lune {
             .await
             .map_err(LuaError::external)?;
         task_set.spawn_local(async move {
-            let result = script_lua
+            let result = lua
                 .load(&script_chunk)
                 .set_name(&format!("={script_name}"))
                 .unwrap()

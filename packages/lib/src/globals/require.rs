@@ -9,7 +9,7 @@ use os_str_bytes::{OsStrBytes, RawOsStr};
 
 use crate::utils::table::TableBuilder;
 
-pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     let require: LuaFunction = lua.globals().raw_get("require")?;
     // Preserve original require behavior if we have a special env var set
     if env::var_os("LUAU_PWD_REQUIRE").is_some() {

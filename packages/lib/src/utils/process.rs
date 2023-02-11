@@ -41,7 +41,7 @@ pub async fn pipe_and_inherit_child_process_stdio(
     Ok::<_, LuaError>((status, stdout_buffer?, stderr_buffer?))
 }
 
-pub async fn exit_and_yield_forever(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
+pub async fn exit_and_yield_forever(lua: &'static Lua, exit_code: Option<u8>) -> LuaResult<()> {
     let sender = lua
         .app_data_ref::<Weak<Sender<LuneMessage>>>()
         .unwrap()

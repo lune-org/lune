@@ -5,7 +5,7 @@ use tokio::fs;
 
 use crate::utils::table::TableBuilder;
 
-pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_async_function("readFile", fs_read_file)?
         .with_async_function("readDir", fs_read_dir)?
@@ -18,11 +18,11 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn fs_read_file(_: &Lua, path: String) -> LuaResult<String> {
+async fn fs_read_file(_: &'static Lua, path: String) -> LuaResult<String> {
     fs::read_to_string(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
+async fn fs_read_dir(_: &'static Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
     let mut dir = fs::read_dir(&path).await.map_err(LuaError::external)?;
     while let Some(dir_entry) = dir.next_entry().await.map_err(LuaError::external)? {
@@ -52,25 +52,25 @@ async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     Ok(dir_strings_no_prefix)
 }
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, String)) -> LuaResult<()> {
+async fn fs_write_file(_: &'static Lua, (path, contents): (String, String)) -> LuaResult<()> {
     fs::write(&path, &contents)
         .await
         .map_err(LuaError::external)
 }
 
-async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {
+async fn fs_write_dir(_: &'static Lua, path: String) -> LuaResult<()> {
     fs::create_dir_all(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_remove_file(_: &Lua, path: String) -> LuaResult<()> {
+async fn fs_remove_file(_: &'static Lua, path: String) -> LuaResult<()> {
     fs::remove_file(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_remove_dir(_: &Lua, path: String) -> LuaResult<()> {
+async fn fs_remove_dir(_: &'static Lua, path: String) -> LuaResult<()> {
     fs::remove_dir_all(&path).await.map_err(LuaError::external)
 }
 
-async fn fs_is_file(_: &Lua, path: String) -> LuaResult<bool> {
+async fn fs_is_file(_: &'static Lua, path: String) -> LuaResult<bool> {
     let path = PathBuf::from(path);
     if path.exists() {
         Ok(fs::metadata(path)
@@ -82,7 +82,7 @@ async fn fs_is_file(_: &Lua, path: String) -> LuaResult<bool> {
     }
 }
 
-async fn fs_is_dir(_: &Lua, path: String) -> LuaResult<bool> {
+async fn fs_is_dir(_: &'static Lua, path: String) -> LuaResult<bool> {
     let path = PathBuf::from(path);
     if path.exists() {
         Ok(fs::metadata(path)

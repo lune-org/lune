@@ -10,7 +10,7 @@ use crate::utils::{
     table::TableBuilder,
 };
 
-pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
     let cwd = env::current_dir()?.canonicalize()?;
     let mut cwd_str = cwd.to_string_lossy().to_string();
     if !cwd_str.ends_with('/') {
@@ -40,10 +40,10 @@ pub fn create(lua: &Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn process_env_get<'lua>(
-    lua: &'lua Lua,
-    (_, key): (LuaValue<'lua>, String),
-) -> LuaResult<LuaValue<'lua>> {
+fn process_env_get<'a>(
+    lua: &'static Lua,
+    (_, key): (LuaValue<'a>, String),
+) -> LuaResult<LuaValue<'a>> {
     match env::var_os(key) {
         Some(value) => {
             let raw_value = RawOsString::new(value);
@@ -55,7 +55,10 @@ fn process_env_get<'lua>(
     }
 }
 
-fn process_env_set(_: &Lua, (_, key, value): (LuaValue, String, Option<String>)) -> LuaResult<()> {
+fn process_env_set(
+    _: &'static Lua,
+    (_, key, value): (LuaValue, String, Option<String>),
+) -> LuaResult<()> {
     // Make sure key is valid, otherwise set_var will panic
     if key.is_empty() {
         Err(LuaError::RuntimeError("Key must not be empty".to_string()))
@@ -106,12 +109,12 @@ fn process_env_iter<'lua>(
     })
 }
 
-async fn process_exit(lua: &Lua, exit_code: Option<u8>) -> LuaResult<()> {
+async fn process_exit(lua: &'static Lua, exit_code: Option<u8>) -> LuaResult<()> {
     exit_and_yield_forever(lua, exit_code).await
 }
 
 async fn process_spawn<'a>(
-    lua: &'a Lua,
+    lua: &'static Lua,
     (mut program, args, options): (String, Option<Vec<String>>, Option<LuaTable<'a>>),
 ) -> LuaResult<LuaTable<'a>> {
     // Parse any given options or create defaults

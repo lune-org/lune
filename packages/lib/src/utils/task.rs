@@ -26,7 +26,7 @@ impl fmt::Display for TaskRunMode {
 }
 
 pub async fn run_registered_task<T>(
-    lua: &Lua,
+    lua: &'static Lua,
     mode: TaskRunMode,
     to_run: impl Future<Output = LuaResult<T>> + 'static,
 ) -> LuaResult<()> {

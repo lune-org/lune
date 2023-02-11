@@ -1,7 +1,4 @@
-use std::{
-    sync::Weak,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use mlua::prelude::*;
 use tokio::time;
@@ -13,7 +10,7 @@ use crate::utils::{
 
 const MINIMUM_WAIT_OR_DELAY_DURATION: f32 = 10.0 / 1_000.0; // 10ms
 
-pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // HACK: There is no way to call coroutine.close directly from the mlua
     // crate, so we need to fetch the function and store it in the registry
     let coroutine: LuaTable = lua.globals().raw_get("coroutine")?;
@@ -33,8 +30,11 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn tof_to_thread<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>> {
-    match tof {
+fn tof_to_thread<'a>(
+    lua: &'static Lua,
+    thread_or_function: LuaValue<'a>,
+) -> LuaResult<LuaThread<'a>> {
+    match thread_or_function {
         LuaValue::Thread(t) => Ok(t),
         LuaValue::Function(f) => Ok(lua.create_thread(f)?),
         value => Err(LuaError::RuntimeError(format!(
@@ -44,31 +44,29 @@ fn tof_to_thread<'a>(lua: &'a Lua, tof: LuaValue<'a>) -> LuaResult<LuaThread<'a>
     }
 }
 
-async fn task_cancel<'a>(lua: &'a Lua, thread: LuaThread<'a>) -> LuaResult<()> {
+async fn task_cancel<'a>(lua: &'static Lua, thread: LuaThread<'a>) -> LuaResult<()> {
     let close: LuaFunction = lua.named_registry_value("coroutine.close")?;
     close.call_async::<_, LuaMultiValue>(thread).await?;
     Ok(())
 }
 
 async fn task_defer<'a>(
-    lua: &'a Lua,
+    lua: &'static Lua,
     (tof, args): (LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
-    // Spawn a new detached task using a lua reference that we can use inside of our task
-    let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
     run_registered_task(lua, TaskRunMode::Deferred, async move {
-        let thread: LuaThread = task_lua.registry_value(&task_thread_key)?;
-        let argsv: Vec<LuaValue> = task_lua.registry_value(&task_args_key)?;
+        let thread: LuaThread = lua.registry_value(&task_thread_key)?;
+        let argsv: Vec<LuaValue> = lua.registry_value(&task_args_key)?;
         let args = LuaMultiValue::from_vec(argsv);
         if thread.status() == LuaThreadStatus::Resumable {
             let _: LuaMultiValue = thread.into_async(args).await?;
         }
-        task_lua.remove_registry_value(task_thread_key)?;
-        task_lua.remove_registry_value(task_args_key)?;
+        lua.remove_registry_value(task_thread_key)?;
+        lua.remove_registry_value(task_args_key)?;
         Ok(())
     })
     .await?;
@@ -76,25 +74,23 @@ async fn task_defer<'a>(
 }
 
 async fn task_delay<'a>(
-    lua: &'a Lua,
+    lua: &'static Lua,
     (duration, tof, args): (Option<f32>, LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
-    // Spawn a new detached task using a lua reference that we can use inside of our task
-    let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
     run_registered_task(lua, TaskRunMode::Deferred, async move {
-        task_wait(&task_lua, duration).await?;
-        let thread: LuaThread = task_lua.registry_value(&task_thread_key)?;
-        let argsv: Vec<LuaValue> = task_lua.registry_value(&task_args_key)?;
+        task_wait(lua, duration).await?;
+        let thread: LuaThread = lua.registry_value(&task_thread_key)?;
+        let argsv: Vec<LuaValue> = lua.registry_value(&task_args_key)?;
         let args = LuaMultiValue::from_vec(argsv);
         if thread.status() == LuaThreadStatus::Resumable {
             let _: LuaMultiValue = thread.into_async(args).await?;
         }
-        task_lua.remove_registry_value(task_thread_key)?;
-        task_lua.remove_registry_value(task_args_key)?;
+        lua.remove_registry_value(task_thread_key)?;
+        lua.remove_registry_value(task_args_key)?;
         Ok(())
     })
     .await?;
@@ -102,31 +98,29 @@ async fn task_delay<'a>(
 }
 
 async fn task_spawn<'a>(
-    lua: &'a Lua,
+    lua: &'static Lua,
     (tof, args): (LuaValue<'a>, LuaMultiValue<'a>),
 ) -> LuaResult<LuaThread<'a>> {
-    // Spawn a new detached task using a lua reference that we can use inside of our task
-    let task_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
     let task_thread = tof_to_thread(lua, tof)?;
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
     run_registered_task(lua, TaskRunMode::Instant, async move {
-        let thread: LuaThread = task_lua.registry_value(&task_thread_key)?;
-        let argsv: Vec<LuaValue> = task_lua.registry_value(&task_args_key)?;
+        let thread: LuaThread = lua.registry_value(&task_thread_key)?;
+        let argsv: Vec<LuaValue> = lua.registry_value(&task_args_key)?;
         let args = LuaMultiValue::from_vec(argsv);
         if thread.status() == LuaThreadStatus::Resumable {
             let _: LuaMultiValue = thread.into_async(args).await?;
         }
-        task_lua.remove_registry_value(task_thread_key)?;
-        task_lua.remove_registry_value(task_args_key)?;
+        lua.remove_registry_value(task_thread_key)?;
+        lua.remove_registry_value(task_args_key)?;
         Ok(())
     })
     .await?;
     Ok(lua_thread_to_return)
 }
 
-async fn task_wait(lua: &Lua, duration: Option<f32>) -> LuaResult<f32> {
+async fn task_wait(lua: &'static Lua, duration: Option<f32>) -> LuaResult<f32> {
     let start = Instant::now();
     run_registered_task(lua, TaskRunMode::Blocking, async move {
         time::sleep(Duration::from_secs_f32(

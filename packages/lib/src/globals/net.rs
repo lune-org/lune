@@ -19,7 +19,7 @@ use crate::utils::{
     table::TableBuilder,
 };
 
-pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // Create a reusable client for performing our
     // web requests and store it in the lua registry
     let mut default_headers = HeaderMap::new();
@@ -43,7 +43,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn net_json_encode(_: &Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<String> {
+fn net_json_encode(_: &'static Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<String> {
     if let Some(true) = pretty {
         serde_json::to_string_pretty(&val).map_err(LuaError::external)
     } else {
@@ -51,12 +51,12 @@ fn net_json_encode(_: &Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResul
     }
 }
 
-fn net_json_decode(lua: &Lua, json: String) -> LuaResult<LuaValue> {
+fn net_json_decode(lua: &'static Lua, json: String) -> LuaResult<LuaValue> {
     let json: serde_json::Value = serde_json::from_str(&json).map_err(LuaError::external)?;
     lua.to_value(&json)
 }
 
-async fn net_request<'lua>(lua: &'lua Lua, config: LuaValue<'lua>) -> LuaResult<LuaTable<'lua>> {
+async fn net_request<'a>(lua: &'static Lua, config: LuaValue<'a>) -> LuaResult<LuaTable<'a>> {
     let client: NetClient = lua.named_registry_value("NetClient")?;
     // Extract stuff from config and make sure its all valid
     let (url, method, headers, body) = match config {
@@ -147,20 +147,16 @@ async fn net_request<'lua>(lua: &'lua Lua, config: LuaValue<'lua>) -> LuaResult<
         .build_readonly()
 }
 
-async fn net_serve<'lua>(
-    lua: &'lua Lua,
-    (port, callback): (u16, LuaFunction<'lua>),
-) -> LuaResult<()> {
-    let server_lua = lua.app_data_ref::<Weak<Lua>>().unwrap().upgrade().unwrap();
+async fn net_serve(lua: &'static Lua, (port, callback): (u16, LuaFunction<'_>)) -> LuaResult<()> {
     let server_sender = lua
         .app_data_ref::<Weak<Sender<LuneMessage>>>()
         .unwrap()
         .upgrade()
         .unwrap();
-    let server_callback = server_lua.create_registry_value(callback)?;
+    let server_callback = lua.create_registry_value(callback)?;
     let server = Server::bind(&([127, 0, 0, 1], port).into())
         .executor(LocalExec)
-        .serve(MakeNetService(server_lua, server_callback.into()));
+        .serve(MakeNetService(lua, server_callback.into()));
     if let Err(err) = server.await.map_err(LuaError::external) {
         server_sender
             .send(LuneMessage::LuaError(err))
@@ -173,7 +169,7 @@ async fn net_serve<'lua>(
 // Hyper service implementation for net, lots of boilerplate here
 // but make_svc and make_svc_function do not work for what we need
 
-pub struct NetService(Arc<Lua>, Arc<LuaRegistryKey>);
+pub struct NetService(&'static Lua, Arc<LuaRegistryKey>);
 
 impl Service<Request<Body>> for NetService {
     type Response = Response<Body>;
@@ -185,7 +181,7 @@ impl Service<Request<Body>> for NetService {
     }
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
-        let lua = self.0.clone();
+        let lua = self.0;
         let key = self.1.clone();
         let (parts, body) = req.into_parts();
         Box::pin(async move {
@@ -199,7 +195,7 @@ impl Service<Request<Body>> for NetService {
                 .upgrade()
                 .unwrap();
             // Create a readonly table for the request query params
-            let query_params = TableBuilder::new(&lua)?
+            let query_params = TableBuilder::new(lua)?
                 .with_values(
                     parts
                         .uri
@@ -211,7 +207,7 @@ impl Service<Request<Body>> for NetService {
                 )?
                 .build_readonly()?;
             // Do the same for headers
-            let header_map = TableBuilder::new(&lua)?
+            let header_map = TableBuilder::new(lua)?
                 .with_values(
                     parts
                         .headers
@@ -223,7 +219,7 @@ impl Service<Request<Body>> for NetService {
                 )?
                 .build_readonly()?;
             // Create a readonly table with request info to pass to the handler
-            let request = TableBuilder::new(&lua)?
+            let request = TableBuilder::new(lua)?
                 .with_value("path", parts.uri.path())?
                 .with_value("query", query_params)?
                 .with_value("method", parts.method.as_str())?
@@ -287,7 +283,7 @@ impl Service<Request<Body>> for NetService {
     }
 }
 
-struct MakeNetService(Arc<Lua>, Arc<LuaRegistryKey>);
+struct MakeNetService(&'static Lua, Arc<LuaRegistryKey>);
 
 impl Service<&AddrStream> for MakeNetService {
     type Response = NetService;
@@ -299,7 +295,7 @@ impl Service<&AddrStream> for MakeNetService {
     }
 
     fn call(&mut self, _: &AddrStream) -> Self::Future {
-        let lua = self.0.clone();
+        let lua = self.0;
         let key = self.1.clone();
         Box::pin(async move { Ok(NetService(lua, key)) })
     }
