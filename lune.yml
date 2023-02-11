@@ -48,7 +48,7 @@ globals:
   net.serve:
     args:
       - type: number
-      - type: function
+      - type: function | table
   # Processs
   process.args:
     property: read-only

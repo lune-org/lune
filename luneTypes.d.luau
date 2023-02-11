@@ -153,9 +153,23 @@ export type NetResponse = {
 	body: string?,
 }
 
+type NetServeHttpHandler = (request: NetRequest) -> (string | NetResponse)
+type NetServeWebSocketHandler = (socket: NetWebSocket) -> ()
+
+export type NetServeConfig = {
+	handleRequest: NetServeHttpHandler?,
+	handleWebSocket: NetServeWebSocketHandler?,
+}
+
 export type NetServeHandle = {
 	stop: () -> (),
 }
+
+declare class NetWebSocket
+	close: () -> ()
+	send: (message: string) -> ()
+	function __iter(self): () -> string
+end
 
 --[=[
 	@class net
@@ -183,9 +197,9 @@ declare net: {
 		until the `stop` function on the returned `NetServeHandle` has been called.
 
 		@param port The port to use for the server
-		@param handler The handler function to use for the server
+		@param handlerOrConfig The handler function or config to use for the server
 	]=]
-	serve: (port: number, handler: (request: NetRequest) -> (string | NetResponse)) -> NetServeHandle,
+	serve: (port: number, handlerOrConfig: NetServeHttpHandler | NetServeConfig) -> NetServeHandle,
 	--[=[
 		@within net
 

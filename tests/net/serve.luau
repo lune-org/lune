@@ -1,6 +1,7 @@
+local PORT = 8080
 local RESPONSE = "Hello, lune!"
 
-local handle = net.serve(8080, function(request)
+local handle = net.serve(PORT, function(request)
 	-- info("Request:", request)
 	-- info("Responding with", RESPONSE)
 	assert(request.path == "/some/path")
@@ -10,7 +11,7 @@ local handle = net.serve(8080, function(request)
 end)
 
 local response =
-	net.request("http://127.0.0.1:8080/some/path?key=param1&key=param2&key2=param3").body
+	net.request(`http://127.0.0.1:{PORT}/some/path?key=param1&key=param2&key2=param3`).body
 assert(response == RESPONSE, "Invalid response from server")
 
 handle.stop()
@@ -21,7 +22,7 @@ task.wait()
 
 -- Sending a net request may error if there was
 -- a connection issue, we should handle that here
-local success, response2 = pcall(net.request, "http://127.0.0.1:8080/")
+local success, response2 = pcall(net.request, `http://127.0.0.1:{PORT}/`)
 if not success then
 	local message = tostring(response2)
 	assert(
@@ -51,3 +52,27 @@ assert(
 		or string.find(message, "shut down"),
 	"The error message for calling stop twice on the net serve handle should be descriptive"
 )
+
+--[[
+	Serve should also take a full config with handler functions
+
+	A server should also be able to start on the previously closed port
+]]
+local handle2 = net.serve(PORT, {
+	handleRequest = function()
+		return RESPONSE
+	end,
+	handleWebSocket = function(socket)
+		socket.close()
+	end,
+})
+
+local response3 = net.request(`http://127.0.0.1:{PORT}/`).body
+assert(response3 == RESPONSE, "Invalid response from server")
+
+-- TODO: Test web sockets properly when we have a web socket client
+
+-- Stop the server and yield once more to end the test
+
+handle2.stop()
+task.wait()

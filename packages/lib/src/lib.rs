@@ -4,6 +4,7 @@ use mlua::prelude::*;
 use tokio::{sync::mpsc, task};
 
 pub(crate) mod globals;
+pub(crate) mod lua;
 pub(crate) mod utils;
 
 #[cfg(test)]

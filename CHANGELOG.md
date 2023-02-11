@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `net.serve` now supports web sockets in addition to normal http requests!
+
+  Example usage:
+
+  ```lua
+  net.serve(8080, {
+      handleRequest = function(request)
+          return "Hello, world!"
+      end,
+      handleWebSocket = function(socket)
+          task.delay(10, function()
+              socket.send("Timed out!")
+              socket.close()
+          end)
+          -- This will yield waiting for new messages, and will break
+          -- when the socket was closed by either the server or client
+          for message in socket do
+              if message == "Ping" then
+                  socket.send("Pong")
+              end
+          end
+      end,
+  })
+  ```
+
 - `net.serve` now returns a `NetServeHandle` which can be used to stop serving requests safely.
 
   Example usage:
@@ -19,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   end)
 
   print("Shutting down after 1 second...")
+  task.wait(1)
   handle.stop()
   print("Shut down succesfully")
   ```

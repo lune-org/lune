@@ -8,40 +8,27 @@ use std::{
 
 use mlua::prelude::*;
 
-use hyper::{body::to_bytes, http::HeaderValue, server::conn::AddrStream, service::Service};
-use hyper::{Body, HeaderMap, Request, Response, Server};
-use hyper_tungstenite::{
-    is_upgrade_request as is_ws_upgrade_request, tungstenite::Message as WsMessage,
-    upgrade as ws_upgrade,
-};
+use hyper::{body::to_bytes, server::conn::AddrStream, service::Service};
+use hyper::{Body, Request, Response, Server};
+use hyper_tungstenite::{is_upgrade_request as is_ws_upgrade_request, upgrade as ws_upgrade};
 
-use futures_util::{SinkExt, StreamExt};
-use reqwest::{ClientBuilder, Method};
+use reqwest::Method;
 use tokio::{
     sync::mpsc::{self, Sender},
     task,
 };
 
-use crate::utils::{
-    message::LuneMessage,
-    net::{get_request_user_agent_header, NetClient},
-    table::TableBuilder,
+use crate::{
+    lua::net::{NetClient, NetClientBuilder, NetWebSocketServer, ServeConfig},
+    utils::{message::LuneMessage, net::get_request_user_agent_header, table::TableBuilder},
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // Create a reusable client for performing our
     // web requests and store it in the lua registry
-    let mut default_headers = HeaderMap::new();
-    default_headers.insert(
-        "User-Agent",
-        HeaderValue::from_str(&get_request_user_agent_header()).map_err(LuaError::external)?,
-    );
-    let client = NetClient::new(
-        ClientBuilder::new()
-            .default_headers(default_headers)
-            .build()
-            .map_err(LuaError::external)?,
-    );
+    let client = NetClientBuilder::new()
+        .headers(&[("User-Agent", get_request_user_agent_header())])?
+        .build()?;
     lua.set_named_registry_value("NetClient", client)?;
     // Create the global table for net
     TableBuilder::new(lua)?
@@ -158,17 +145,24 @@ async fn net_request<'a>(lua: &'static Lua, config: LuaValue<'a>) -> LuaResult<L
 
 async fn net_serve<'a>(
     lua: &'static Lua,
-    (port, callback): (u16, LuaFunction<'a>), // TODO: Parse options as either callback or table with request callback + websocket callback
+    (port, config): (u16, ServeConfig<'a>),
 ) -> LuaResult<LuaTable<'a>> {
     // Note that we need to use a mpsc here and not
     // a oneshot channel since we move the sender
     // into our table with the stop function
     let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
-    let websocket_callback = Arc::new(None); // TODO: Store websocket callback, if given
-    let server_callback = Arc::new(lua.create_registry_value(callback)?);
+    let server_request_callback = Arc::new(lua.create_registry_value(config.handle_request)?);
+    let server_websocket_callback = Arc::new(config.handle_web_socket.map(|handler| {
+        lua.create_registry_value(handler)
+            .expect("Failed to store websocket handler")
+    }));
     let server = Server::bind(&([127, 0, 0, 1], port).into())
         .executor(LocalExec)
-        .serve(MakeNetService(lua, server_callback, websocket_callback))
+        .serve(MakeNetService(
+            lua,
+            server_request_callback,
+            server_websocket_callback,
+        ))
         .with_graceful_shutdown(async move {
             shutdown_rx.recv().await.unwrap();
             shutdown_rx.close();
@@ -225,40 +219,25 @@ impl Service<Request<Body>> for NetService {
     fn call(&mut self, mut req: Request<Body>) -> Self::Future {
         let lua = self.0;
         if self.2.is_some() && is_ws_upgrade_request(&req) {
-            // Websocket request + websocket handler exists,
-            // we should upgrade this connection to a websocket
-            // and then pass a socket object to our lua handler
+            // Websocket upgrade request + websocket handler exists,
+            // we should now upgrade this connection to a websocket
+            // and then call our handler with a new socket object
             let kopt = self.2.clone();
             let key = kopt.as_ref().as_ref().unwrap();
             let handler: LuaFunction = lua.registry_value(key).expect("Missing websocket handler");
             let (response, ws) = ws_upgrade(&mut req, None).expect("Failed to upgrade websocket");
             task::spawn_local(async move {
-                if let Ok(mut websocket) = ws.await {
-                    // TODO: Create lua userdata websocket object
-                    // with methods for interacting with the websocket
-                    // TODO: Start waiting for messages when we know
-                    // for sure that we have gotten a message handler
-                    // and move the following logic into there instead
-                    while let Some(message) = websocket.next().await {
-                        // Create lua strings from websocket messages
-                        if let Some(handler_str) = match message.map_err(LuaError::external)? {
-                            WsMessage::Text(msg) => Some(lua.create_string(&msg)?),
-                            WsMessage::Binary(msg) => Some(lua.create_string(&msg)?),
-                            // Tungstenite takes care of these messages
-                            WsMessage::Ping(_) => None,
-                            WsMessage::Pong(_) => None,
-                            WsMessage::Close(_) => None,
-                            WsMessage::Frame(_) => None,
-                        } {
-                            // TODO: Call whatever lua handler we have registered, with our message string
-                        }
-                    }
-                }
-                Ok::<_, LuaError>(())
+                // Create our new full websocket object
+                let ws = ws.await.map_err(LuaError::external)?;
+                let ws_lua = NetWebSocketServer::from(ws);
+                let ws_proper = ws_lua.into_proper(lua).await?;
+                // Call our handler with it
+                handler.call_async::<_, ()>(ws_proper).await
             });
             Box::pin(async move { Ok(response) })
         } else {
-            // Normal http request or no websocket handler exists, call the http request handler
+            // Got a normal http request or no websocket handler
+            // exists, just call the http request handler
             let key = self.1.clone();
             let (parts, body) = req.into_parts();
             Box::pin(async move {
