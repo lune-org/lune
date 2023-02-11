@@ -10,6 +10,12 @@ use mlua::prelude::*;
 
 use hyper::{body::to_bytes, http::HeaderValue, server::conn::AddrStream, service::Service};
 use hyper::{Body, HeaderMap, Request, Response, Server};
+use hyper_tungstenite::{
+    is_upgrade_request as is_ws_upgrade_request, tungstenite::Message as WsMessage,
+    upgrade as ws_upgrade,
+};
+
+use futures_util::{SinkExt, StreamExt};
 use reqwest::{ClientBuilder, Method};
 use tokio::{
     sync::mpsc::{self, Sender},
@@ -216,107 +222,142 @@ impl Service<Request<Body>> for NetService {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: Request<Body>) -> Self::Future {
+    fn call(&mut self, mut req: Request<Body>) -> Self::Future {
         let lua = self.0;
-        let key1 = self.1.clone();
-        let _key2 = self.2.clone(); // TODO: This is the web socket callback
-        let (parts, body) = req.into_parts();
-        Box::pin(async move {
-            // Convert request body into bytes, extract handler
-            // function & lune message sender to use later
-            let bytes = to_bytes(body).await.map_err(LuaError::external)?;
-            let handler: LuaFunction = lua.registry_value(&key1)?;
-            let sender = lua
-                .app_data_ref::<Weak<Sender<LuneMessage>>>()
-                .unwrap()
-                .upgrade()
-                .unwrap();
-            // Create a readonly table for the request query params
-            let query_params = TableBuilder::new(lua)?
-                .with_values(
-                    parts
-                        .uri
-                        .query()
-                        .unwrap_or_default()
-                        .split('&')
-                        .filter_map(|q| q.split_once('='))
-                        .collect(),
-                )?
-                .build_readonly()?;
-            // Do the same for headers
-            let header_map = TableBuilder::new(lua)?
-                .with_values(
-                    parts
-                        .headers
-                        .iter()
-                        .map(|(name, value)| {
-                            (name.to_string(), value.to_str().unwrap().to_string())
-                        })
-                        .collect(),
-                )?
-                .build_readonly()?;
-            // Create a readonly table with request info to pass to the handler
-            let request = TableBuilder::new(lua)?
-                .with_value("path", parts.uri.path())?
-                .with_value("query", query_params)?
-                .with_value("method", parts.method.as_str())?
-                .with_value("headers", header_map)?
-                .with_value("body", lua.create_string(&bytes)?)?
-                .build_readonly()?;
-            match handler.call_async(request).await {
-                // Plain strings from the handler are plaintext responses
-                Ok(LuaValue::String(s)) => Ok(Response::builder()
-                    .status(200)
-                    .header("Content-Type", "text/plain")
-                    .body(Body::from(s.as_bytes().to_vec()))
-                    .unwrap()),
-                // Tables are more detailed responses with potential status, headers, body
-                Ok(LuaValue::Table(t)) => {
-                    let status = t.get::<_, Option<u16>>("status")?.unwrap_or(200);
-                    let mut resp = Response::builder().status(status);
-
-                    if let Some(headers) = t.get::<_, Option<LuaTable>>("headers")? {
-                        for pair in headers.pairs::<String, LuaString>() {
-                            let (h, v) = pair?;
-                            resp = resp.header(&h, v.as_bytes());
+        if self.2.is_some() && is_ws_upgrade_request(&req) {
+            // Websocket request + websocket handler exists,
+            // we should upgrade this connection to a websocket
+            // and then pass a socket object to our lua handler
+            let kopt = self.2.clone();
+            let key = kopt.as_ref().as_ref().unwrap();
+            let handler: LuaFunction = lua.registry_value(key).expect("Missing websocket handler");
+            let (response, ws) = ws_upgrade(&mut req, None).expect("Failed to upgrade websocket");
+            task::spawn_local(async move {
+                if let Ok(mut websocket) = ws.await {
+                    // TODO: Create lua userdata websocket object
+                    // with methods for interacting with the websocket
+                    // TODO: Start waiting for messages when we know
+                    // for sure that we have gotten a message handler
+                    // and move the following logic into there instead
+                    while let Some(message) = websocket.next().await {
+                        // Create lua strings from websocket messages
+                        if let Some(handler_str) = match message.map_err(LuaError::external)? {
+                            WsMessage::Text(msg) => Some(lua.create_string(&msg)?),
+                            WsMessage::Binary(msg) => Some(lua.create_string(&msg)?),
+                            // Tungstenite takes care of these messages
+                            WsMessage::Ping(_) => None,
+                            WsMessage::Pong(_) => None,
+                            WsMessage::Close(_) => None,
+                            WsMessage::Frame(_) => None,
+                        } {
+                            // TODO: Call whatever lua handler we have registered, with our message string
                         }
                     }
-
-                    let body = t
-                        .get::<_, Option<LuaString>>("body")?
-                        .map(|b| Body::from(b.as_bytes().to_vec()))
-                        .unwrap_or_else(Body::empty);
-
-                    Ok(resp.body(body).unwrap())
                 }
-                // If the handler returns an error, generate a 5xx response
-                Err(err) => {
-                    sender
-                        .send(LuneMessage::LuaError(err.to_lua_err()))
-                        .await
-                        .map_err(LuaError::external)?;
-                    Ok(Response::builder()
-                        .status(500)
-                        .body(Body::from("Internal Server Error"))
-                        .unwrap())
-                }
-                // If the handler returns a value that is of an invalid type,
-                // this should also be an error, so generate a 5xx response
-                Ok(value) => {
-                    sender
+                Ok::<_, LuaError>(())
+            });
+            Box::pin(async move { Ok(response) })
+        } else {
+            // Normal http request or no websocket handler exists, call the http request handler
+            let key = self.1.clone();
+            let (parts, body) = req.into_parts();
+            Box::pin(async move {
+                // Convert request body into bytes, extract handler
+                // function & lune message sender to use later
+                let bytes = to_bytes(body).await.map_err(LuaError::external)?;
+                let handler: LuaFunction = lua.registry_value(&key)?;
+                let sender = lua
+                    .app_data_ref::<Weak<Sender<LuneMessage>>>()
+                    .unwrap()
+                    .upgrade()
+                    .unwrap();
+                // Create a readonly table for the request query params
+                let query_params = TableBuilder::new(lua)?
+                    .with_values(
+                        parts
+                            .uri
+                            .query()
+                            .unwrap_or_default()
+                            .split('&')
+                            .filter_map(|q| q.split_once('='))
+                            .collect(),
+                    )?
+                    .build_readonly()?;
+                // Do the same for headers
+                let header_map = TableBuilder::new(lua)?
+                    .with_values(
+                        parts
+                            .headers
+                            .iter()
+                            .map(|(name, value)| {
+                                (name.to_string(), value.to_str().unwrap().to_string())
+                            })
+                            .collect(),
+                    )?
+                    .build_readonly()?;
+                // Create a readonly table with request info to pass to the handler
+                let request = TableBuilder::new(lua)?
+                    .with_value("path", parts.uri.path())?
+                    .with_value("query", query_params)?
+                    .with_value("method", parts.method.as_str())?
+                    .with_value("headers", header_map)?
+                    .with_value("body", lua.create_string(&bytes)?)?
+                    .build_readonly()?;
+                match handler.call_async(request).await {
+                    // Plain strings from the handler are plaintext responses
+                    Ok(LuaValue::String(s)) => Ok(Response::builder()
+                        .status(200)
+                        .header("Content-Type", "text/plain")
+                        .body(Body::from(s.as_bytes().to_vec()))
+                        .unwrap()),
+                    // Tables are more detailed responses with potential status, headers, body
+                    Ok(LuaValue::Table(t)) => {
+                        let status = t.get::<_, Option<u16>>("status")?.unwrap_or(200);
+                        let mut resp = Response::builder().status(status);
+
+                        if let Some(headers) = t.get::<_, Option<LuaTable>>("headers")? {
+                            for pair in headers.pairs::<String, LuaString>() {
+                                let (h, v) = pair?;
+                                resp = resp.header(&h, v.as_bytes());
+                            }
+                        }
+
+                        let body = t
+                            .get::<_, Option<LuaString>>("body")?
+                            .map(|b| Body::from(b.as_bytes().to_vec()))
+                            .unwrap_or_else(Body::empty);
+
+                        Ok(resp.body(body).unwrap())
+                    }
+                    // If the handler returns an error, generate a 5xx response
+                    Err(err) => {
+                        sender
+                            .send(LuneMessage::LuaError(err.to_lua_err()))
+                            .await
+                            .map_err(LuaError::external)?;
+                        Ok(Response::builder()
+                            .status(500)
+                            .body(Body::from("Internal Server Error"))
+                            .unwrap())
+                    }
+                    // If the handler returns a value that is of an invalid type,
+                    // this should also be an error, so generate a 5xx response
+                    Ok(value) => {
+                        sender
                         .send(LuneMessage::LuaError(LuaError::RuntimeError(format!(
                             "Expected net serve handler to return a value of type 'string' or 'table', got '{}'",
                             value.type_name()
                         ))))
                         .await
                         .map_err(LuaError::external)?;
-                    Ok(Response::builder()
-                        .status(500)
-                        .body(Body::from("Internal Server Error"))
-                        .unwrap())
+                        Ok(Response::builder()
+                            .status(500)
+                            .body(Body::from("Internal Server Error"))
+                            .unwrap())
+                    }
                 }
-            }
-        })
+            })
+        }
     }
 }
 
