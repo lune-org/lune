@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ### Web Sockets
 
   `net` now supports web sockets for both clients and servers! <br />
-  Not that the web socket object is identical on both client and
+  Note that the web socket object is identical on both client and
   server, but how you retrieve a web socket object is different.
 
   #### Server API
