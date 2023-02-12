@@ -169,6 +169,7 @@ declare class NetWebSocket
 	close: () -> ()
 	send: (message: string) -> ()
 	next: () -> string?
+	iter: () -> () -> string
 	function __iter(self): () -> string
 end
 

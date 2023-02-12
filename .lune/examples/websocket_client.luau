@@ -1,6 +1,10 @@
---> A basic web socket client communicates with an echo server
+--> A basic web socket client that communicates with an echo server
 
-local URL = "wss://demo.piesocket.com/v3/"
+local PORT = if process.env.PORT ~= nil and #process.env.PORT > 0
+	then assert(tonumber(process.env.PORT), "Failed to parse port from env")
+	else 8080
+
+local URL = `ws://127.0.0.1:{PORT}`
 
 -- Connect to our web socket server
 
@@ -11,7 +15,7 @@ print("Sending a message every second for 5 seconds...")
 
 -- Force exit after 10 seconds in case the server is not responding well
 
-task.delay(10, function()
+local forceExit = task.delay(10, function()
 	warn("Example did not complete in time, exiting...")
 	process.exit(1)
 end)
@@ -32,4 +36,5 @@ end
 print("Closing web socket...")
 socket.close()
 
+task.cancel(forceExit)
 print("Done! 🌙")

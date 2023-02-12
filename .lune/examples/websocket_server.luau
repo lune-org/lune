@@ -13,7 +13,7 @@ local handle = net.serve(PORT, {
 		repeat
 			local message = socket.next()
 			if message ~= nil then
-				socket.send("Echo\n" .. message)
+				socket.send("Echo - " .. message)
 			end
 		until message == nil
 		print("Web socket disconnected.")
@@ -25,8 +25,9 @@ print(`Listening on port {PORT} 🚀`)
 -- Exit our example after a small delay, if you copy this
 -- example just remove this part to keep the server running
 
-task.delay(2, function()
+task.delay(10, function()
 	print("Shutting down...")
 	task.wait(1)
 	handle.stop()
+	task.wait(1)
 end)

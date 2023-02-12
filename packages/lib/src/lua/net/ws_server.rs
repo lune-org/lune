@@ -39,15 +39,9 @@ impl NetWebSocketServer {
         local proxy = newproxy(true)
         local meta = getmetatable(proxy)
         meta.__index = {
-            close = function()
-                return ws:close()
-            end,
-            send = function(...)
-                return ws:send(...)
-            end,
-            next = function()
-                return ws:next()
-            end,
+            close = function()    return ws:close()   end,
+            send  = function(...) return ws:send(...) end,
+            next  = function()    return ws:next()    end,
         }
         meta.__iter = function()
             return function()
@@ -75,7 +69,7 @@ impl LuaUserData for NetWebSocketServer {
                 }),
                 None => Ok(LuaValue::Nil),
             }
-        })
+        });
     }
 }
 
