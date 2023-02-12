@@ -4,7 +4,8 @@ local PORT = if process.env.PORT ~= nil and #process.env.PORT > 0
 	then assert(tonumber(process.env.PORT), "Failed to parse port from env")
 	else 8080
 
--- Run the server on port 8080
+-- Run the server on port 8080, if we get a normal http request on
+-- the port this will respond with 426 Upgrade Required by default
 
 local handle = net.serve(PORT, {
 	handleWebSocket = function(socket)
