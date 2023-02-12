@@ -10,6 +10,9 @@ use crate::utils::{
 
 const MINIMUM_WAIT_OR_DELAY_DURATION: f32 = 10.0 / 1_000.0; // 10ms
 
+// TODO: We should probably keep track of all threads in a scheduler userdata
+// that takes care of scheduling in a better way, and it should keep resuming
+// threads until it encounters a delayed / waiting thread, then task:sleep
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // HACK: There is no way to call coroutine.close directly from the mlua
     // crate, so we need to fetch the function and store it in the registry
@@ -81,12 +84,22 @@ async fn task_delay<'a>(
     let task_thread_key = lua.create_registry_value(task_thread)?;
     let task_args_key = lua.create_registry_value(args.into_vec())?;
     let lua_thread_to_return = lua.registry_value(&task_thread_key)?;
-    run_registered_task(lua, TaskRunMode::Deferred, async move {
-        task_wait(lua, duration).await?;
+    let start = Instant::now();
+    let dur = Duration::from_secs_f32(
+        duration
+            .map(|d| d.max(MINIMUM_WAIT_OR_DELAY_DURATION))
+            .unwrap_or(MINIMUM_WAIT_OR_DELAY_DURATION),
+    );
+    run_registered_task(lua, TaskRunMode::Instant, async move {
         let thread: LuaThread = lua.registry_value(&task_thread_key)?;
-        let argsv: Vec<LuaValue> = lua.registry_value(&task_args_key)?;
-        let args = LuaMultiValue::from_vec(argsv);
+        // NOTE: We are somewhat busy-waiting here, but we have to do this to make sure
+        // that delayed+cancelled threads do not prevent the tokio runtime from finishing
+        while thread.status() == LuaThreadStatus::Resumable && start.elapsed() < dur {
+            time::sleep(Duration::from_millis(1)).await;
+        }
         if thread.status() == LuaThreadStatus::Resumable {
+            let argsv: Vec<LuaValue> = lua.registry_value(&task_args_key)?;
+            let args = LuaMultiValue::from_vec(argsv);
             let _: LuaMultiValue = thread.into_async(args).await?;
         }
         lua.remove_registry_value(task_thread_key)?;

@@ -2,6 +2,7 @@ use std::{collections::HashSet, process::ExitCode, sync::Arc};
 
 use mlua::prelude::*;
 use tokio::{sync::mpsc, task};
+use utils::task::send_message;
 
 pub(crate) mod globals;
 pub(crate) mod lua;
@@ -101,11 +102,7 @@ impl Lune {
         // Spawn the main thread from our entrypoint script
         let script_name = script_name.to_string();
         let script_chunk = script_contents.to_string();
-        let script_sender = snd.clone();
-        script_sender
-            .send(LuneMessage::Spawned)
-            .await
-            .map_err(LuaError::external)?;
+        send_message(lua, LuneMessage::Spawned).await?;
         task_set.spawn_local(async move {
             let result = lua
                 .load(&script_chunk)
@@ -113,10 +110,14 @@ impl Lune {
                 .unwrap()
                 .eval_async::<LuaValue>()
                 .await;
-            match result {
-                Err(e) => script_sender.send(LuneMessage::LuaError(e)).await,
-                Ok(_) => script_sender.send(LuneMessage::Finished).await,
-            }
+            send_message(
+                lua,
+                match result {
+                    Err(e) => LuneMessage::LuaError(e),
+                    Ok(_) => LuneMessage::Finished,
+                },
+            )
+            .await
         });
         // Run the executor until there are no tasks left,
         // taking care to not exit right away for errors

@@ -25,24 +25,23 @@ impl fmt::Display for TaskRunMode {
     }
 }
 
-pub async fn run_registered_task<T>(
-    lua: &'static Lua,
-    mode: TaskRunMode,
-    to_run: impl Future<Output = LuaResult<T>> + 'static,
-) -> LuaResult<()> {
-    // Fetch global reference to message sender
+pub async fn send_message(lua: &'static Lua, message: LuneMessage) -> LuaResult<()> {
     let sender = lua
         .app_data_ref::<Weak<Sender<LuneMessage>>>()
         .unwrap()
         .upgrade()
         .unwrap();
+    sender.send(message).await.map_err(LuaError::external)
+}
+
+pub async fn run_registered_task<T>(
+    lua: &'static Lua,
+    mode: TaskRunMode,
+    to_run: impl Future<Output = LuaResult<T>> + 'static,
+) -> LuaResult<()> {
     // Send a message that we have started our task
-    sender
-        .send(LuneMessage::Spawned)
-        .await
-        .map_err(LuaError::external)?;
+    send_message(lua, LuneMessage::Spawned).await?;
     // Run the new task separately from the current one using the executor
-    let sender = sender.clone();
     let task = task::spawn_local(async move {
         // HACK: For deferred tasks we yield a bunch of times to try and ensure
         // we run our task at the very end of the async queue, this can fail if
@@ -52,13 +51,15 @@ pub async fn run_registered_task<T>(
                 task::yield_now().await;
             }
         }
-        sender
-            .send(match to_run.await {
+        send_message(
+            lua,
+            match to_run.await {
                 Ok(_) => LuneMessage::Finished,
                 Err(LuaError::CoroutineInactive) => LuneMessage::Finished, // Task was canceled
                 Err(e) => LuneMessage::LuaError(e),
-            })
-            .await
+            },
+        )
+        .await
     });
     // Wait for the task to complete if we want this call to be blocking
     // Any lua errors will be sent through the message channel back

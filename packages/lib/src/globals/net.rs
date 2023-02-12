@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     future::Future,
     pin::Pin,
-    sync::{Arc, Weak},
+    sync::Arc,
     task::{Context, Poll},
 };
 
@@ -13,14 +13,14 @@ use hyper::{Body, Request, Response, Server};
 use hyper_tungstenite::{is_upgrade_request as is_ws_upgrade_request, upgrade as ws_upgrade};
 
 use reqwest::Method;
-use tokio::{
-    sync::mpsc::{self, Sender},
-    task,
-};
+use tokio::{sync::mpsc, task};
 
 use crate::{
     lua::net::{NetClient, NetClientBuilder, NetWebSocketClient, NetWebSocketServer, ServeConfig},
-    utils::{message::LuneMessage, net::get_request_user_agent_header, table::TableBuilder},
+    utils::{
+        message::LuneMessage, net::get_request_user_agent_header, table::TableBuilder,
+        task::send_message,
+    },
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -179,18 +179,17 @@ async fn net_serve<'a>(
         });
     // Make sure we register the thread properly by sending messages
     // when the server starts up and when it shuts down or errors
-    let server_sender = lua
-        .app_data_ref::<Weak<Sender<LuneMessage>>>()
-        .unwrap()
-        .upgrade()
-        .unwrap();
-    let _ = server_sender.send(LuneMessage::Spawned).await;
+    send_message(lua, LuneMessage::Spawned).await?;
     task::spawn_local(async move {
         let res = server.await.map_err(LuaError::external);
-        let _ = match res {
-            Err(e) => server_sender.try_send(LuneMessage::LuaError(e)),
-            Ok(_) => server_sender.try_send(LuneMessage::Finished),
-        };
+        let _ = send_message(
+            lua,
+            match res {
+                Err(e) => LuneMessage::LuaError(e),
+                Ok(_) => LuneMessage::Finished,
+            },
+        )
+        .await;
     });
     // Create a new read-only table that contains methods
     // for manipulating server behavior and shutting it down
@@ -255,11 +254,6 @@ impl Service<Request<Body>> for NetService {
                 // function & lune message sender to use later
                 let bytes = to_bytes(body).await.map_err(LuaError::external)?;
                 let handler: LuaFunction = lua.registry_value(&key)?;
-                let sender = lua
-                    .app_data_ref::<Weak<Sender<LuneMessage>>>()
-                    .unwrap()
-                    .upgrade()
-                    .unwrap();
                 // Create a readonly table for the request query params
                 let query_params = TableBuilder::new(lua)?
                     .with_values(
@@ -320,10 +314,7 @@ impl Service<Request<Body>> for NetService {
                     }
                     // If the handler returns an error, generate a 5xx response
                     Err(err) => {
-                        sender
-                            .send(LuneMessage::LuaError(err.to_lua_err()))
-                            .await
-                            .map_err(LuaError::external)?;
+                        send_message(lua, LuneMessage::LuaError(err.to_lua_err())).await?;
                         Ok(Response::builder()
                             .status(500)
                             .body(Body::from("Internal Server Error"))
@@ -332,13 +323,10 @@ impl Service<Request<Body>> for NetService {
                     // If the handler returns a value that is of an invalid type,
                     // this should also be an error, so generate a 5xx response
                     Ok(value) => {
-                        sender
-                        .send(LuneMessage::LuaError(LuaError::RuntimeError(format!(
+                        send_message(lua, LuneMessage::LuaError(LuaError::RuntimeError(format!(
                             "Expected net serve handler to return a value of type 'string' or 'table', got '{}'",
                             value.type_name()
-                        ))))
-                        .await
-                        .map_err(LuaError::external)?;
+                        )))).await?;
                         Ok(Response::builder()
                             .status(500)
                             .body(Body::from("Internal Server Error"))
