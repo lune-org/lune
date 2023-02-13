@@ -10,20 +10,20 @@ task.delay(0, function()
 	flag = true
 end)
 assert(not flag, "Delay should not run instantly or block")
-task.wait(1 / 60)
+task.wait(0.05)
 assert(flag, "Delay should run after the wanted duration")
 
 -- Delayed functions should work with yielding
 
 local flag2: boolean = false
-task.delay(0.2, function()
+task.delay(0.05, function()
 	flag2 = true
-	task.wait(0.4)
+	task.wait(0.1)
 	flag2 = false
 end)
-task.wait(0.4)
+task.wait(0.1)
 assert(flag, "Delay should work with yielding (1)")
-task.wait(0.4)
+task.wait(0.1)
 assert(not flag2, "Delay should work with yielding (2)")
 
 -- Varargs should get passed correctly

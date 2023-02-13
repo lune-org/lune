@@ -10,12 +10,10 @@ use os_str_bytes::{OsStrBytes, RawOsStr};
 use crate::utils::table::TableBuilder;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
-    let require: LuaFunction = lua.globals().raw_get("require")?;
     // Preserve original require behavior if we have a special env var set
     if env::var_os("LUAU_PWD_REQUIRE").is_some() {
-        return TableBuilder::new(lua)?
-            .with_value("require", require)?
-            .build_readonly();
+        // Return an empty table since there are no globals to overwrite
+        return TableBuilder::new(lua)?.build_readonly();
     }
     /*
       Store the current working directory so that we can use it later
@@ -27,24 +25,17 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
       just in case someone out there uses luau with non-utf8 string requires
     */
     let pwd = lua.create_string(&current_dir()?.to_raw_bytes())?;
-    lua.set_named_registry_value("require_pwd", pwd)?;
-    // Fetch the debug info function and store it in the registry
-    // - we will use it to fetch the current scripts file name
-    let debug: LuaTable = lua.globals().raw_get("debug")?;
-    let info: LuaFunction = debug.raw_get("info")?;
-    lua.set_named_registry_value("require_getinfo", info)?;
-    // Store the original require function in the registry
-    lua.set_named_registry_value("require_original", require)?;
+    lua.set_named_registry_value("pwd", pwd)?;
     /*
       Create a new function that fetches the file name from the current thread,
       sets the luau module lookup path to be the exact script we are looking
       for, and then runs the original require function with the wanted path
     */
     let new_require = lua.create_function(|lua, require_path: LuaString| {
-        let require_pwd: LuaString = lua.named_registry_value("require_pwd")?;
-        let require_original: LuaFunction = lua.named_registry_value("require_original")?;
-        let require_getinfo: LuaFunction = lua.named_registry_value("require_getinfo")?;
-        let require_source: LuaString = require_getinfo.call((2, "s"))?;
+        let require_pwd: LuaString = lua.named_registry_value("pwd")?;
+        let require_fn: LuaFunction = lua.named_registry_value("require")?;
+        let require_info: LuaFunction = lua.named_registry_value("dbg.info")?;
+        let require_source: LuaString = require_info.call((2, "s"))?;
         /*
           Combine the require caller source with the wanted path
           string to get a final path relative to pwd - it is definitely
@@ -53,10 +44,15 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         let raw_pwd_str = RawOsStr::assert_from_raw_bytes(require_pwd.as_bytes());
         let raw_source = RawOsStr::assert_from_raw_bytes(require_source.as_bytes());
         let raw_path = RawOsStr::assert_from_raw_bytes(require_path.as_bytes());
-        let mut path_relative_to_pwd = PathBuf::from(&raw_source.to_os_str())
-            .parent()
-            .unwrap()
-            .join(raw_path.to_os_str());
+        let mut path_relative_to_pwd = PathBuf::from(
+            &raw_source
+                .trim_start_matches("[string \"")
+                .trim_end_matches("\"]")
+                .to_os_str(),
+        )
+        .parent()
+        .unwrap()
+        .join(raw_path.to_os_str());
         // Try to normalize and resolve relative path segments such as './' and '../'
         if let Ok(canonicalized) = path_relative_to_pwd.with_extension("luau").canonicalize() {
             path_relative_to_pwd = canonicalized.with_extension("");
@@ -72,7 +68,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         let lua_path_str = lua.create_string(raw_path_str.as_raw_bytes());
         // If the require call errors then we should also replace
         // the path in the error message to improve user experience
-        let result: LuaResult<_> = require_original.call::<_, LuaValue>(lua_path_str);
+        let result: LuaResult<_> = require_fn.call::<_, LuaValue>(lua_path_str);
         match result {
             Err(LuaError::CallbackError { traceback, cause }) => {
                 let before = format!(

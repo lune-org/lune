@@ -10,18 +10,18 @@ task.defer(function()
 	flag = true
 end)
 assert(not flag, "Defer should not run instantly or block")
-task.wait(0.1)
+task.wait(0.05)
 assert(flag, "Defer should run")
 
 -- Deferred functions should work with yielding
 
 local flag2: boolean = false
 task.defer(function()
-	task.wait(0.1)
+	task.wait(0.05)
 	flag2 = true
 end)
 assert(not flag2, "Defer should work with yielding (1)")
-task.wait(0.2)
+task.wait(0.1)
 assert(flag2, "Defer should work with yielding (2)")
 
 -- Deferred functions should run after other spawned threads

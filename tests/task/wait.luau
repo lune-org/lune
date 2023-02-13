@@ -5,18 +5,28 @@ local EPSILON = 1 / 100
 local function test(expected: number)
 	local start = os.clock()
 	local returned = task.wait(expected)
+	if typeof(returned) ~= "number" then
+		error(
+			string.format(
+				"Expected task.wait to return a number, got %s %s",
+				typeof(returned),
+				stdio.format(returned)
+			),
+			2
+		)
+	end
 	local elapsed = (os.clock() - start)
-	local difference = math.abs(elapsed - returned)
+	local difference = math.abs(elapsed - expected)
 	if difference > EPSILON then
 		error(
 			string.format(
 				"Elapsed time diverged too much from argument!"
-					.. "\nGot argument of %.3fs and elapsed time of %.3fs"
-					.. "\nGot maximum difference of %.3fs and real difference of %.3fs",
-				expected,
-				elapsed,
-				EPSILON,
-				difference
+					.. "\nGot argument of %.3fms and elapsed time of %.3fms"
+					.. "\nGot maximum difference of %.3fms and real difference of %.3fms",
+				expected * 1_000,
+				elapsed * 1_000,
+				EPSILON * 1_000,
+				difference * 1_000
 			)
 		)
 	end

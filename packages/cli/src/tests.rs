@@ -36,20 +36,20 @@ async fn ensure_file_exists_and_is_not_json(file_name: &str) -> Result<()> {
     }
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn list() -> Result<()> {
     Cli::list().run().await?;
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn download_selene_types() -> Result<()> {
     run_cli(Cli::download_selene_types()).await?;
     ensure_file_exists_and_is_not_json(LUNE_SELENE_FILE_NAME).await?;
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn download_luau_types() -> Result<()> {
     run_cli(Cli::download_luau_types()).await?;
     ensure_file_exists_and_is_not_json(LUNE_LUAU_FILE_NAME).await?;

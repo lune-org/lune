@@ -1,21 +1,35 @@
-use std::{collections::HashMap, env, path::PathBuf, process::Stdio};
+use std::{
+    collections::HashMap,
+    env,
+    path::PathBuf,
+    process::{ExitCode, Stdio},
+};
 
 use directories::UserDirs;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
-use crate::utils::{
-    process::{exit_and_yield_forever, pipe_and_inherit_child_process_stdio},
-    table::TableBuilder,
+use crate::{
+    lua::task::TaskScheduler,
+    utils::{process::pipe_and_inherit_child_process_stdio, table::TableBuilder},
 };
 
+const PROCESS_EXIT_IMPL_LUA: &str = r#"
+exit(...)
+yield()
+"#;
+
 pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
-    let cwd = env::current_dir()?.canonicalize()?;
-    let mut cwd_str = cwd.to_string_lossy().to_string();
-    if !cwd_str.ends_with('/') {
-        cwd_str = format!("{cwd_str}/");
-    }
+    let cwd_str = {
+        let cwd = env::current_dir()?.canonicalize()?;
+        let cwd_str = cwd.to_string_lossy().to_string();
+        if !cwd_str.ends_with('/') {
+            format!("{cwd_str}/")
+        } else {
+            cwd_str
+        }
+    };
     // Create readonly args array
     let args_tab = TableBuilder::new(lua)?
         .with_sequential_values(args_vec)?
@@ -30,12 +44,31 @@ pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
                 .build_readonly()?,
         )?
         .build_readonly()?;
+    // Create our process exit function, this is a bit involved since
+    // we have no way to yield from c / rust, we need to load a lua
+    // chunk that will set the exit code and yield for us instead
+    let process_exit_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
+    let process_exit_env_exit: LuaFunction = lua.create_function(|lua, code: Option<u8>| {
+        let exit_code = code.map_or(ExitCode::SUCCESS, ExitCode::from);
+        let sched = &mut lua.app_data_mut::<&TaskScheduler>().unwrap();
+        sched.set_exit_code(exit_code);
+        Ok(())
+    })?;
+    let process_exit = lua
+        .load(PROCESS_EXIT_IMPL_LUA)
+        .set_environment(
+            TableBuilder::new(lua)?
+                .with_value("yield", process_exit_env_yield)?
+                .with_value("exit", process_exit_env_exit)?
+                .build_readonly()?,
+        )?
+        .into_function()?;
     // Create the full process table
     TableBuilder::new(lua)?
         .with_value("args", args_tab)?
         .with_value("cwd", cwd_str)?
         .with_value("env", env_tab)?
-        .with_async_function("exit", process_exit)?
+        .with_value("exit", process_exit)?
         .with_async_function("spawn", process_spawn)?
         .build_readonly()
 }
@@ -107,10 +140,6 @@ fn process_env_iter<'lua>(
         }
         None => Ok((LuaValue::Nil, LuaValue::Nil)),
     })
-}
-
-async fn process_exit(lua: &'static Lua, exit_code: Option<u8>) -> LuaResult<()> {
-    exit_and_yield_forever(lua, exit_code).await
 }
 
 async fn process_spawn<'a>(

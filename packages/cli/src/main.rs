@@ -22,7 +22,7 @@ mod tests;
 
 use cli::Cli;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<ExitCode> {
     Cli::parse().run().await
 }

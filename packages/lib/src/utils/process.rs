@@ -1,11 +1,9 @@
-use std::{process::ExitStatus, time::Duration};
+use std::process::ExitStatus;
 
 use mlua::prelude::*;
-use tokio::{io, process::Child, task::spawn, time::sleep};
+use tokio::{io, process::Child, task::spawn};
 
-use crate::utils::{futures::AsyncTeeWriter, message::LuneMessage};
-
-use super::task::send_message;
+use crate::utils::futures::AsyncTeeWriter;
 
 pub async fn pipe_and_inherit_child_process_stdio(
     mut child: Child,
@@ -41,14 +39,4 @@ pub async fn pipe_and_inherit_child_process_stdio(
     let stderr_buffer = stderr_thread.await.expect("Tee writer for stderr errored");
 
     Ok::<_, LuaError>((status, stdout_buffer?, stderr_buffer?))
-}
-
-pub async fn exit_and_yield_forever(lua: &'static Lua, exit_code: Option<u8>) -> LuaResult<()> {
-    // Send an exit signal to the main thread, which
-    // will try to exit safely and as soon as possible
-    send_message(lua, LuneMessage::Exit(exit_code.unwrap_or(0))).await?;
-    // Make sure to block the rest of this thread indefinitely since
-    // the main thread may not register the exit signal right away
-    sleep(Duration::MAX).await;
-    Ok(())
 }

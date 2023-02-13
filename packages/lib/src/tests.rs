@@ -11,7 +11,7 @@ const ARGS: &[&str] = &["Foo", "Bar"];
 
 macro_rules! create_tests {
     ($($name:ident: $value:expr,)*) => { $(
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn $name() -> Result<ExitCode> {
             // Disable styling for stdout and stderr since
             // some tests rely on output not being styled

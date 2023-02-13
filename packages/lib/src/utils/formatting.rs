@@ -4,6 +4,8 @@ use console::{style, Style};
 use lazy_static::lazy_static;
 use mlua::prelude::*;
 
+use crate::lua::task::TaskReference;
+
 const MAX_FORMAT_DEPTH: usize = 4;
 
 const INDENT: &str = "    ";
@@ -165,9 +167,17 @@ pub fn pretty_format_value(
         )?,
         LuaValue::Thread(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<thread>"))?,
         LuaValue::Function(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<function>"))?,
-        LuaValue::UserData(_) | LuaValue::LightUserData(_) => {
-            write!(buffer, "{}", COLOR_PURPLE.apply_to("<userdata>"))?
+        LuaValue::UserData(u) => {
+            if u.is::<TaskReference>() {
+                // Task references must be transparent
+                // to lua and pretend to be normal lua
+                // threads for compatibility purposes
+                write!(buffer, "{}", COLOR_PURPLE.apply_to("<thread>"))?
+            } else {
+                write!(buffer, "{}", COLOR_PURPLE.apply_to("<userdata>"))?
+            }
         }
+        LuaValue::LightUserData(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<userdata>"))?,
         _ => write!(buffer, "{}", STYLE_DIM.apply_to("?"))?,
     }
     Ok(())
@@ -220,23 +230,30 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
             err_lines.join("\n")
         }
         LuaError::CallbackError { traceback, cause } => {
-            // Find the best traceback (longest) and the root error message
+            // Find the best traceback (most lines) and the root error message
             let mut best_trace = traceback;
             let mut root_cause = cause.as_ref();
             while let LuaError::CallbackError { cause, traceback } = root_cause {
-                if traceback.len() > best_trace.len() {
+                if traceback.lines().count() > best_trace.len() {
                     best_trace = traceback;
                 }
                 root_cause = cause;
             }
-            // Same error formatting as above
-            format!(
-                "{}\n{}\n{}\n{}",
-                pretty_format_luau_error(root_cause),
-                stack_begin,
-                best_trace.strip_prefix("stack traceback:\n").unwrap(),
-                stack_end
-            )
+            // If we got a runtime error with an embedded traceback, we should
+            // use that instead since it generally contains more information
+            if matches!(root_cause, LuaError::RuntimeError(e) if e.contains("stack traceback:")) {
+                pretty_format_luau_error(root_cause)
+            } else {
+                // Otherwise we format whatever root error we got using
+                // the same error formatting as for above runtime errors
+                format!(
+                    "{}\n{}\n{}\n{}",
+                    pretty_format_luau_error(root_cause),
+                    stack_begin,
+                    best_trace.strip_prefix("stack traceback:\n").unwrap(),
+                    stack_end
+                )
+            }
         }
         LuaError::ToLuaConversionError { from, to, message } => {
             let msg = message

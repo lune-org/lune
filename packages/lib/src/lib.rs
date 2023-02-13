@@ -1,8 +1,8 @@
-use std::{collections::HashSet, process::ExitCode, sync::Arc};
+use std::{collections::HashSet, process::ExitCode};
 
+use lua::task::TaskScheduler;
 use mlua::prelude::*;
-use tokio::{sync::mpsc, task};
-use utils::task::send_message;
+use tokio::task::LocalSet;
 
 pub(crate) mod globals;
 pub(crate) mod lua;
@@ -11,7 +11,7 @@ pub(crate) mod utils;
 #[cfg(test)]
 mod tests;
 
-use crate::utils::{formatting::pretty_format_luau_error, message::LuneMessage};
+use crate::utils::formatting::pretty_format_luau_error;
 
 pub use globals::LuneGlobal;
 
@@ -75,12 +75,12 @@ impl Lune {
         This will create a new sandboxed Luau environment with the configured
         globals and arguments, running inside of a [`tokio::task::LocalSet`].
 
-        Some Lune globals such as [`LuneGlobal::Process`] may spawn
-        separate tokio tasks on other threads, but the Luau environment
+        Some Lune globals such as [`LuneGlobal::Process`] and [`LuneGlobal::Net`]
+        may spawn separate tokio tasks on other threads, but the Luau environment
         itself is guaranteed to run on a single thread in the local set.
 
-        Note that this will create a static Lua instance that will live
-        for the remainer of the program, and that this leaks memory using
+        Note that this will create a static Lua instance and task scheduler which both
+        will live for the remainer of the program, and that this leaks memory using
         [`Box::leak`] that will then get deallocated when the program exits.
     */
     pub async fn run(
@@ -88,92 +88,64 @@ impl Lune {
         script_name: &str,
         script_contents: &str,
     ) -> Result<ExitCode, LuaError> {
-        let task_set = task::LocalSet::new();
-        let (sender, mut receiver) = mpsc::channel::<LuneMessage>(64);
+        let set = LocalSet::new();
         let lua = Lua::new().into_static();
-        let snd = Arc::new(sender);
-        lua.set_app_data(Arc::downgrade(&snd));
+        let sched = TaskScheduler::new(lua)?.into_static();
+        lua.set_app_data(sched);
+        // Store original lua global functions in the registry so we can use
+        // them later without passing them around and dealing with lifetimes
+        lua.set_named_registry_value("require", lua.globals().get::<_, LuaFunction>("require")?)?;
+        lua.set_named_registry_value("print", lua.globals().get::<_, LuaFunction>("print")?)?;
+        lua.set_named_registry_value("error", lua.globals().get::<_, LuaFunction>("error")?)?;
+        let coroutine: LuaTable = lua.globals().get("coroutine")?;
+        lua.set_named_registry_value("co.thread", coroutine.get::<_, LuaFunction>("running")?)?;
+        lua.set_named_registry_value("co.yield", coroutine.get::<_, LuaFunction>("yield")?)?;
+        let debug: LuaTable = lua.globals().raw_get("debug")?;
+        lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
         // Add in wanted lune globals
         for global in self.includes.clone() {
             if !self.excludes.contains(&global) {
-                global.inject(lua)?;
+                global.inject(lua, sched)?;
             }
         }
-        // Spawn the main thread from our entrypoint script
-        let script_name = script_name.to_string();
-        let script_chunk = script_contents.to_string();
-        send_message(lua, LuneMessage::Spawned).await?;
-        task_set.spawn_local(async move {
-            let result = lua
-                .load(&script_chunk)
-                .set_name(&format!("={script_name}"))
-                .unwrap()
-                .eval_async::<LuaValue>()
-                .await;
-            send_message(
-                lua,
-                match result {
-                    Err(e) => LuneMessage::LuaError(e),
-                    Ok(_) => LuneMessage::Finished,
-                },
-            )
-            .await
-        });
-        // Run the executor until there are no tasks left,
-        // taking care to not exit right away for errors
-        let (got_code, got_error, exit_code) = task_set
+        // Schedule the main thread on the task scheduler
+        sched.schedule_instant(
+            LuaValue::Function(
+                lua.load(script_contents)
+                    .set_name(script_name)
+                    .unwrap()
+                    .into_function()
+                    .unwrap(),
+            ),
+            LuaValue::Nil.to_lua_multi(lua)?,
+        )?;
+        // Keep running the scheduler until there are either no tasks
+        // left to run, or until some task requests to exit the process
+        let exit_code = set
             .run_until(async {
-                let mut task_count = 0;
                 let mut got_error = false;
-                let mut got_code = false;
-                let mut exit_code = 0;
-                while let Some(message) = receiver.recv().await {
-                    // Make sure our task-count-modifying messages are sent correctly, one
-                    // task spawned must always correspond to one task finished / errored
-                    match &message {
-                        LuneMessage::Exit(_) => {}
-                        LuneMessage::Spawned => {}
-                        message => {
-                            if task_count == 0 {
-                                return Err(format!(
-                                    "Got message while task count was 0!\nMessage: {message:#?}"
-                                ));
+                while let Some(result) = sched.resume_queue().await {
+                    match result {
+                        Err(e) => {
+                            eprintln!("{}", pretty_format_luau_error(&e));
+                            got_error = true;
+                        }
+                        Ok(status) => {
+                            if let Some(exit_code) = status.exit_code {
+                                return exit_code;
+                            } else if status.num_total == 0 {
+                                return ExitCode::SUCCESS;
                             }
                         }
                     }
-                    // Handle whatever message we got
-                    match message {
-                        LuneMessage::Exit(code) => {
-                            exit_code = code;
-                            got_code = true;
-                            break;
-                        }
-                        LuneMessage::Spawned => task_count += 1,
-                        LuneMessage::Finished => task_count -= 1,
-                        LuneMessage::LuaError(e) => {
-                            eprintln!("{}", pretty_format_luau_error(&e));
-                            got_error = true;
-                            task_count -= 1;
-                        }
-                    };
-                    // If there are no tasks left running, it is now
-                    // safe to close the receiver and end execution
-                    if task_count == 0 {
-                        receiver.close();
-                    }
                 }
-                Ok((got_code, got_error, exit_code))
+                if got_error {
+                    ExitCode::FAILURE
+                } else {
+                    ExitCode::SUCCESS
+                }
             })
-            .await
-            .map_err(LuaError::external)?;
-        // If we got an error, we will default to exiting
-        // with code 1, unless a code was manually given
-        if got_code {
-            Ok(ExitCode::from(exit_code))
-        } else if got_error {
-            Ok(ExitCode::FAILURE)
-        } else {
-            Ok(ExitCode::SUCCESS)
-        }
+            .await;
+        Ok(exit_code)
     }
 }

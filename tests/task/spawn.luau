@@ -15,11 +15,11 @@ assert(flag, "Spawn should run instantly")
 
 local flag2: boolean = false
 task.spawn(function()
-	task.wait(0.1)
+	task.wait(0.05)
 	flag2 = true
 end)
 assert(not flag2, "Spawn should work with yielding (1)")
-task.wait(0.2)
+task.wait(0.1)
 assert(flag2, "Spawn should work with yielding (2)")
 
 -- Spawned functions should be able to run threads created with the coroutine global

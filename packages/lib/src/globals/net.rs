@@ -17,10 +17,7 @@ use tokio::{sync::mpsc, task};
 
 use crate::{
     lua::net::{NetClient, NetClientBuilder, NetWebSocketClient, NetWebSocketServer, ServeConfig},
-    utils::{
-        message::LuneMessage, net::get_request_user_agent_header, table::TableBuilder,
-        task::send_message,
-    },
+    utils::{net::get_request_user_agent_header, table::TableBuilder},
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -29,7 +26,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     let client = NetClientBuilder::new()
         .headers(&[("User-Agent", get_request_user_agent_header())])?
         .build()?;
-    lua.set_named_registry_value("NetClient", client)?;
+    lua.set_named_registry_value("net.client", client)?;
     // Create the global table for net
     TableBuilder::new(lua)?
         .with_function("jsonEncode", net_json_encode)?
@@ -54,7 +51,7 @@ fn net_json_decode(lua: &'static Lua, json: String) -> LuaResult<LuaValue> {
 }
 
 async fn net_request<'a>(lua: &'static Lua, config: LuaValue<'a>) -> LuaResult<LuaTable<'a>> {
-    let client: NetClient = lua.named_registry_value("NetClient")?;
+    let client: NetClient = lua.named_registry_value("net.client")?;
     // Extract stuff from config and make sure its all valid
     let (url, method, headers, body) = match config {
         LuaValue::String(s) => {
@@ -177,20 +174,9 @@ async fn net_serve<'a>(
             shutdown_rx.recv().await.unwrap();
             shutdown_rx.close();
         });
-    // Make sure we register the thread properly by sending messages
-    // when the server starts up and when it shuts down or errors
-    send_message(lua, LuneMessage::Spawned).await?;
-    task::spawn_local(async move {
-        let res = server.await.map_err(LuaError::external);
-        let _ = send_message(
-            lua,
-            match res {
-                Err(e) => LuneMessage::LuaError(e),
-                Ok(_) => LuneMessage::Finished,
-            },
-        )
-        .await;
-    });
+    // TODO: Spawn a new scheduler future with this so we don't block
+    // and make sure that we register it properly to prevent shutdown
+    server.await.map_err(LuaError::external)?;
     // Create a new read-only table that contains methods
     // for manipulating server behavior and shutting it down
     let handle_stop = move |_, _: ()| {
@@ -313,8 +299,8 @@ impl Service<Request<Body>> for NetService {
                         Ok(resp.body(body).unwrap())
                     }
                     // If the handler returns an error, generate a 5xx response
-                    Err(err) => {
-                        send_message(lua, LuneMessage::LuaError(err.to_lua_err())).await?;
+                    Err(_) => {
+                        // TODO: Send above error to task scheduler so that it can emit properly
                         Ok(Response::builder()
                             .status(500)
                             .body(Body::from("Internal Server Error"))
@@ -323,10 +309,11 @@ impl Service<Request<Body>> for NetService {
                     // If the handler returns a value that is of an invalid type,
                     // this should also be an error, so generate a 5xx response
                     Ok(value) => {
-                        send_message(lua, LuneMessage::LuaError(LuaError::RuntimeError(format!(
+                        // TODO: Send below error to task scheduler so that it can emit properly
+                        let _ = LuaError::RuntimeError(format!(
                             "Expected net serve handler to return a value of type 'string' or 'table', got '{}'",
                             value.type_name()
-                        )))).await?;
+                        ));
                         Ok(Response::builder()
                             .status(500)
                             .body(Body::from("Internal Server Error"))

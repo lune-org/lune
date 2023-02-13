@@ -6,15 +6,10 @@ use crate::utils::{
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
-    let globals = lua.globals();
     // HACK: We need to preserve the default behavior of the
     // print and error functions, for pcall and such, which
     // is really tricky to do from scratch so we will just
     // proxy the default print and error functions here
-    let print_fn: LuaFunction = globals.raw_get("print")?;
-    let error_fn: LuaFunction = globals.raw_get("error")?;
-    lua.set_named_registry_value("print", print_fn)?;
-    lua.set_named_registry_value("error", error_fn)?;
     TableBuilder::new(lua)?
         .with_function("print", |lua, args: LuaMultiValue| {
             let formatted = pretty_format_multi_value(&args)?;
