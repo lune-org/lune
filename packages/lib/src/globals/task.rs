@@ -21,7 +21,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     // Create task spawning functions that add tasks to the scheduler
     let task_cancel = lua.create_function(|lua, task: TaskReference| {
         let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
-        sched.cancel_task(task)?;
+        sched.remove_task(task)?;
         Ok(())
     })?;
     let task_defer = lua.create_function(|lua, (tof, args): (LuaValue, LuaMultiValue)| {

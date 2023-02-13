@@ -21,13 +21,10 @@ assert(not flag2, "Cancel should handle delayed threads")
 
 local flag3: number = 1
 local thread3 = task.spawn(function()
-	print("1")
 	task.wait(0.1)
 	flag3 = 2
-	print("2")
 	task.wait(0.2)
 	flag3 = 3
-	print("3")
 end)
 task.wait(0.2)
 task.cancel(thread3)

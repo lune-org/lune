@@ -97,6 +97,7 @@ impl Lune {
         let coroutine: LuaTable = lua.globals().get("coroutine")?;
         lua.set_named_registry_value("co.thread", coroutine.get::<_, LuaFunction>("running")?)?;
         lua.set_named_registry_value("co.yield", coroutine.get::<_, LuaFunction>("yield")?)?;
+        lua.set_named_registry_value("co.close", coroutine.get::<_, LuaFunction>("close")?)?;
         let debug: LuaTable = lua.globals().raw_get("debug")?;
         lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
         // Add in wanted lune globals
