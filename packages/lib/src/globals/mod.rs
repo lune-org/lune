@@ -2,8 +2,6 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use mlua::prelude::*;
 
-use crate::lua::task::TaskScheduler;
-
 mod fs;
 mod net;
 mod process;
@@ -80,18 +78,14 @@ impl LuneGlobal {
         Note that proxy globals should be handled with special care and that [`LuneGlobal::inject()`]
         should be preferred over manually creating and manipulating the value(s) of any Lune global.
     */
-    pub fn value(
-        &self,
-        lua: &'static Lua,
-        scheduler: &'static TaskScheduler,
-    ) -> LuaResult<LuaTable> {
+    pub fn value(&self, lua: &'static Lua) -> LuaResult<LuaTable> {
         match self {
             LuneGlobal::Fs => fs::create(lua),
             LuneGlobal::Net => net::create(lua),
             LuneGlobal::Process { args } => process::create(lua, args.clone()),
             LuneGlobal::Require => require::create(lua),
             LuneGlobal::Stdio => stdio::create(lua),
-            LuneGlobal::Task => task::create(lua, scheduler),
+            LuneGlobal::Task => task::create(lua),
             LuneGlobal::TopLevel => top_level::create(lua),
         }
     }
@@ -104,9 +98,9 @@ impl LuneGlobal {
 
         Refer to [`LuneGlobal::is_top_level()`] for more info on proxy globals.
     */
-    pub fn inject(self, lua: &'static Lua, scheduler: &'static TaskScheduler) -> LuaResult<()> {
+    pub fn inject(self, lua: &'static Lua) -> LuaResult<()> {
         let globals = lua.globals();
-        let table = self.value(lua, scheduler)?;
+        let table = self.value(lua)?;
         // NOTE: Top level globals are special, the values
         // *in* the table they return should be set directly,
         // instead of setting the table itself as the global

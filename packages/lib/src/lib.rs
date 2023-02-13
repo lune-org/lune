@@ -1,6 +1,6 @@
 use std::{collections::HashSet, process::ExitCode};
 
-use lua::task::TaskScheduler;
+use lua::task::{TaskScheduler, TaskSchedulerResult};
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
@@ -88,10 +88,7 @@ impl Lune {
         script_name: &str,
         script_contents: &str,
     ) -> Result<ExitCode, LuaError> {
-        let set = LocalSet::new();
         let lua = Lua::new().into_static();
-        let sched = TaskScheduler::new(lua)?.into_static();
-        lua.set_app_data(sched);
         // Store original lua global functions in the registry so we can use
         // them later without passing them around and dealing with lifetimes
         lua.set_named_registry_value("require", lua.globals().get::<_, LuaFunction>("require")?)?;
@@ -105,11 +102,13 @@ impl Lune {
         // Add in wanted lune globals
         for global in self.includes.clone() {
             if !self.excludes.contains(&global) {
-                global.inject(lua, sched)?;
+                global.inject(lua)?;
             }
         }
-        // Schedule the main thread on the task scheduler
-        sched.schedule_instant(
+        // Create our task scheduler and schedule the main thread on it
+        let sched = TaskScheduler::new(lua)?.into_static();
+        lua.set_app_data(sched);
+        sched.schedule_current_resume(
             LuaValue::Function(
                 lua.load(script_contents)
                     .set_name(script_name)
@@ -120,29 +119,29 @@ impl Lune {
             LuaValue::Nil.to_lua_multi(lua)?,
         )?;
         // Keep running the scheduler until there are either no tasks
-        // left to run, or until some task requests to exit the process
-        let exit_code = set
-            .run_until(async {
-                let mut got_error = false;
-                while let Some(result) = sched.resume_queue().await {
-                    match result {
-                        Err(e) => {
-                            eprintln!("{}", pretty_format_luau_error(&e));
+        // left to run, or until a task requests to exit the process
+        let exit_code = LocalSet::new()
+            .run_until(async move {
+                loop {
+                    let mut got_error = false;
+                    let state = match sched.resume_queue().await {
+                        TaskSchedulerResult::TaskSuccessful { state } => state,
+                        TaskSchedulerResult::TaskErrored { state, error } => {
+                            eprintln!("{}", pretty_format_luau_error(&error));
                             got_error = true;
+                            state
                         }
-                        Ok(status) => {
-                            if let Some(exit_code) = status.exit_code {
-                                return exit_code;
-                            } else if status.num_total == 0 {
-                                return ExitCode::SUCCESS;
-                            }
+                        TaskSchedulerResult::Finished { state } => state,
+                    };
+                    if let Some(exit_code) = state.exit_code {
+                        return exit_code;
+                    } else if state.num_total == 0 {
+                        if got_error {
+                            return ExitCode::FAILURE;
+                        } else {
+                            return ExitCode::SUCCESS;
                         }
                     }
-                }
-                if got_error {
-                    ExitCode::FAILURE
-                } else {
-                    ExitCode::SUCCESS
                 }
             })
             .await;

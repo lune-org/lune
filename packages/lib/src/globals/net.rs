@@ -164,6 +164,8 @@ async fn net_serve<'a>(
             .expect("Failed to store websocket handler")
     }));
     let server = Server::bind(&([127, 0, 0, 1], port).into())
+        .http1_only(true)
+        .http1_keepalive(true)
         .executor(LocalExec)
         .serve(MakeNetService(
             lua,

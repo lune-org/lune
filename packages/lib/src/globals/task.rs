@@ -10,23 +10,27 @@ resume_after(thread(), ...)
 return yield()
 "#;
 
-pub fn create(
-    lua: &'static Lua,
-    scheduler: &'static TaskScheduler,
-) -> LuaResult<LuaTable<'static>> {
-    lua.set_app_data(scheduler);
+const TASK_SPAWN_IMPL_LUA: &str = r#"
+local task = resume_first(...)
+resume_second(thread())
+yield()
+return task
+"#;
+
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     // Create task spawning functions that add tasks to the scheduler
-    let task_spawn = lua.create_function(|lua, (tof, args): (LuaValue, LuaMultiValue)| {
-        let sched = &mut lua.app_data_mut::<&TaskScheduler>().unwrap();
-        sched.schedule_instant(tof, args)
+    let task_cancel = lua.create_function(|lua, task: TaskReference| {
+        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+        sched.cancel_task(task)?;
+        Ok(())
     })?;
     let task_defer = lua.create_function(|lua, (tof, args): (LuaValue, LuaMultiValue)| {
-        let sched = &mut lua.app_data_mut::<&TaskScheduler>().unwrap();
+        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
         sched.schedule_deferred(tof, args)
     })?;
     let task_delay =
         lua.create_function(|lua, (secs, tof, args): (f64, LuaValue, LuaMultiValue)| {
-            let sched = &mut lua.app_data_mut::<&TaskScheduler>().unwrap();
+            let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
             sched.schedule_delayed(secs, tof, args)
         })?;
     // Create our task wait function, this is a bit different since
@@ -43,10 +47,38 @@ pub fn create(
                 .with_function(
                     "resume_after",
                     |lua, (thread, secs): (LuaThread, Option<f64>)| {
-                        let sched = &mut lua.app_data_mut::<&TaskScheduler>().unwrap();
-                        sched.resume_after(secs.unwrap_or(0f64), thread)
+                        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                        sched.schedule_wait(secs.unwrap_or(0f64), LuaValue::Thread(thread))
                     },
                 )?
+                .build_readonly()?,
+        )?
+        .into_function()?;
+    // The spawn function also needs special treatment,
+    // we need to yield right away to allow the
+    // spawned task to run until first yield
+    let task_spawn_env_thread: LuaFunction = lua.named_registry_value("co.thread")?;
+    let task_spawn_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
+    let task_spawn = lua
+        .load(TASK_SPAWN_IMPL_LUA)
+        .set_environment(
+            TableBuilder::new(lua)?
+                .with_value("thread", task_spawn_env_thread)?
+                .with_value("yield", task_spawn_env_yield)?
+                .with_function(
+                    "resume_first",
+                    |lua, (tof, args): (LuaValue, LuaMultiValue)| {
+                        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                        sched.schedule_current_resume(tof, args)
+                    },
+                )?
+                .with_function("resume_second", |lua, thread: LuaThread| {
+                    let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                    sched.schedule_after_current_resume(
+                        LuaValue::Thread(thread),
+                        LuaMultiValue::new(),
+                    )
+                })?
                 .build_readonly()?,
         )?
         .into_function()?;
@@ -76,6 +108,7 @@ pub fn create(
     globals.set("typeof", typeof_proxy)?;
     // All good, return the task scheduler lib
     TableBuilder::new(lua)?
+        .with_value("cancel", task_cancel)?
         .with_value("spawn", task_spawn)?
         .with_value("defer", task_defer)?
         .with_value("delay", task_delay)?
