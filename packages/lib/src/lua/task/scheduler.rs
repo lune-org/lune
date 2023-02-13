@@ -191,11 +191,11 @@ impl<'fut> TaskScheduler<'fut> {
         for it, as well as the arguments to give the
         thread on resumption, in the Lua registry.
     */
-    fn create_task<'a>(
+    fn create_task(
         &self,
         kind: TaskKind,
-        thread_or_function: LuaValue<'a>,
-        thread_args: Option<LuaMultiValue<'a>>,
+        thread_or_function: LuaValue<'_>,
+        thread_args: Option<LuaMultiValue<'_>>,
     ) -> LuaResult<TaskReference> {
         // Get or create a thread from the given argument
         let task_thread = match thread_or_function {
@@ -244,11 +244,11 @@ impl<'fut> TaskScheduler<'fut> {
         -- Here we have either yielded or finished the above task
         ```
     */
-    fn schedule<'a>(
+    fn schedule(
         &self,
         kind: TaskKind,
-        thread_or_function: LuaValue<'a>,
-        thread_args: Option<LuaMultiValue<'a>>,
+        thread_or_function: LuaValue<'_>,
+        thread_args: Option<LuaMultiValue<'_>>,
         after_current_resume: bool,
     ) -> LuaResult<TaskReference> {
         if kind == TaskKind::Future {
@@ -278,10 +278,10 @@ impl<'fut> TaskScheduler<'fut> {
         Ok(task_ref)
     }
 
-    pub fn schedule_current_resume<'a>(
+    pub fn schedule_current_resume(
         &self,
-        thread_or_function: LuaValue<'a>,
-        thread_args: LuaMultiValue<'a>,
+        thread_or_function: LuaValue<'_>,
+        thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
         self.schedule(
             TaskKind::Instant,
@@ -291,10 +291,10 @@ impl<'fut> TaskScheduler<'fut> {
         )
     }
 
-    pub fn schedule_after_current_resume<'a>(
+    pub fn schedule_after_current_resume(
         &self,
-        thread_or_function: LuaValue<'a>,
-        thread_args: LuaMultiValue<'a>,
+        thread_or_function: LuaValue<'_>,
+        thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
         self.schedule(
             TaskKind::Instant,
@@ -304,10 +304,10 @@ impl<'fut> TaskScheduler<'fut> {
         )
     }
 
-    pub fn schedule_deferred<'a>(
+    pub fn schedule_deferred(
         &self,
-        thread_or_function: LuaValue<'a>,
-        thread_args: LuaMultiValue<'a>,
+        thread_or_function: LuaValue<'_>,
+        thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
         self.schedule(
             TaskKind::Deferred,
@@ -317,11 +317,11 @@ impl<'fut> TaskScheduler<'fut> {
         )
     }
 
-    pub fn schedule_delayed<'a>(
+    pub fn schedule_delayed(
         &self,
         after_secs: f64,
-        thread_or_function: LuaValue<'a>,
-        thread_args: LuaMultiValue<'a>,
+        thread_or_function: LuaValue<'_>,
+        thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
         let task_ref = self.create_task(TaskKind::Future, thread_or_function, Some(thread_args))?;
         let futs = self
