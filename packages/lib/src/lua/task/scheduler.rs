@@ -278,6 +278,13 @@ impl<'fut> TaskScheduler<'fut> {
         Ok(task_ref)
     }
 
+    /**
+        Schedules a lua thread or function to resume ***first*** during this
+        resumption point, ***skipping ahead*** of any other currently queued tasks.
+
+        The given lua thread or function will be resumed
+        using the given `thread_args` as its argument(s).
+    */
     pub fn schedule_current_resume(
         &self,
         thread_or_function: LuaValue<'_>,
@@ -291,6 +298,13 @@ impl<'fut> TaskScheduler<'fut> {
         )
     }
 
+    /**
+        Schedules a lua thread or function to resume ***after the first***
+        currently resuming task, during this resumption point.
+
+        The given lua thread or function will be resumed
+        using the given `thread_args` as its argument(s).
+    */
     pub fn schedule_after_current_resume(
         &self,
         thread_or_function: LuaValue<'_>,
@@ -304,6 +318,13 @@ impl<'fut> TaskScheduler<'fut> {
         )
     }
 
+    /**
+        Schedules a lua thread or function to resume ***after all***
+        currently resuming tasks, during this resumption point.
+
+        The given lua thread or function will be resumed
+        using the given `thread_args` as its argument(s).
+    */
     pub fn schedule_deferred(
         &self,
         thread_or_function: LuaValue<'_>,
@@ -317,6 +338,13 @@ impl<'fut> TaskScheduler<'fut> {
         )
     }
 
+    /**
+        Schedules a lua thread or function to
+        be resumed after waiting asynchronously.
+
+        The given lua thread or function will be resumed
+        using the given `thread_args` as its argument(s).
+    */
     pub fn schedule_delayed(
         &self,
         after_secs: f64,
@@ -335,6 +363,13 @@ impl<'fut> TaskScheduler<'fut> {
         Ok(task_ref)
     }
 
+    /**
+        Schedules a lua thread or function to
+        be resumed after waiting asynchronously.
+
+        The given lua thread or function will be resumed
+        using the elapsed time as its one and only argument.
+    */
     pub fn schedule_wait(
         &self,
         after_secs: f64,
