@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Improve error messages when `net.serve` fails
+
 ### Fixed
 
 - Fixed `task.delay` keeping the script running even if it was cancelled using `task.cancel`

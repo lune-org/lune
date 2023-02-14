@@ -6,6 +6,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use console::style;
 use mlua::prelude::*;
 
 use hyper::{body::to_bytes, server::conn::AddrStream, service::Service};
@@ -175,11 +176,24 @@ async fn net_serve<'a>(
         lua.create_registry_value(handler)
             .expect("Failed to store websocket handler")
     }));
+    let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+    // Bind first to make sure that we can bind to this address
+    let bound = match Server::try_bind(&([127, 0, 0, 1], port).into()) {
+        Err(e) => {
+            return Err(LuaError::external(format!(
+                "Failed to bind to localhost on port {port}\n{}",
+                format!("{e}").replace(
+                    "error creating server listener: ",
+                    &format!("{}", style("> ").dim())
+                )
+            )));
+        }
+        Ok(bound) => bound,
+    };
     // Register a background task to prevent
     // the task scheduler from exiting early
-    let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
     let task = sched.register_background_task();
-    let server = Server::bind(&([127, 0, 0, 1], port).into())
+    let server = bound
         .http1_only(true)
         .http1_keepalive(true)
         .executor(LocalExec)
@@ -189,12 +203,12 @@ async fn net_serve<'a>(
             server_websocket_callback,
         ))
         .with_graceful_shutdown(async move {
+            task.unregister(Ok(()));
             shutdown_rx
                 .recv()
                 .await
                 .expect("Server was stopped instantly");
             shutdown_rx.close();
-            task.unregister(Ok(()));
         });
     // Spawn a new tokio task so we don't block
     task::spawn_local(server);

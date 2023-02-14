@@ -90,11 +90,20 @@ pub struct Task {
 #[must_use = "Background tasks must be unregistered"]
 #[derive(Debug)]
 pub struct TaskSchedulerBackgroundTaskHandle {
+    unregistered: bool,
     sender: mpsc::UnboundedSender<TaskSchedulerRegistrationMessage>,
 }
 
 impl TaskSchedulerBackgroundTaskHandle {
-    pub fn unregister(self, result: LuaResult<()>) {
+    pub fn new(sender: mpsc::UnboundedSender<TaskSchedulerRegistrationMessage>) -> Self {
+        Self {
+            unregistered: false,
+            sender,
+        }
+    }
+
+    pub fn unregister(mut self, result: LuaResult<()>) {
+        self.unregistered = true;
         self.sender
             .send(TaskSchedulerRegistrationMessage::Terminated(result))
             .unwrap_or_else(|_| {
@@ -770,7 +779,7 @@ impl<'fut> TaskScheduler<'fut> {
                     env!("CARGO_PKG_REPOSITORY")
                 )
             });
-        TaskSchedulerBackgroundTaskHandle { sender }
+        TaskSchedulerBackgroundTaskHandle::new(sender)
     }
 
     /**
