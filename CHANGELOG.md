@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Improve error messages when `net.serve` fails
+- Improve error handling and messages for `net.serve`
+- Improve error handling and messages for `stdio.prompt`
 
 ### Fixed
 
+- Fixed `stdio.prompt` blocking all other lua threads while prompting for input
 - Fixed `task.delay` keeping the script running even if it was cancelled using `task.cancel`
 
 ## `0.4.0` - February 11th, 2023
