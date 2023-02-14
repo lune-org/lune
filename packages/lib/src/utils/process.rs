@@ -1,7 +1,7 @@
 use std::process::ExitStatus;
 
 use mlua::prelude::*;
-use tokio::{io, process::Child, task::spawn};
+use tokio::{io, process::Child, task};
 
 use crate::utils::futures::AsyncTeeWriter;
 
@@ -11,7 +11,15 @@ pub async fn pipe_and_inherit_child_process_stdio(
     let mut child_stdout = child.stdout.take().unwrap();
     let mut child_stderr = child.stderr.take().unwrap();
 
-    let stdout_thread = spawn(async move {
+    /*
+        NOTE: We do not need to register these
+        independent tasks spawning in the scheduler
+
+        This function is only used by `process.spawn` which in
+        turn registers a task with the scheduler that awaits this
+    */
+
+    let stdout_thread = task::spawn(async move {
         let mut stdout = io::stdout();
         let mut tee = AsyncTeeWriter::new(&mut stdout);
 
@@ -22,7 +30,7 @@ pub async fn pipe_and_inherit_child_process_stdio(
         Ok::<_, LuaError>(tee.into_vec())
     });
 
-    let stderr_thread = spawn(async move {
+    let stderr_thread = task::spawn(async move {
         let mut stderr = io::stderr();
         let mut tee = AsyncTeeWriter::new(&mut stderr);
 

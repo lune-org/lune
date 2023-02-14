@@ -2,6 +2,8 @@ use std::future::Future;
 
 use mlua::prelude::*;
 
+use crate::lua::task::TaskScheduler;
+
 pub struct TableBuilder {
     lua: &'static Lua,
     tab: LuaTable<'static>,
@@ -76,8 +78,9 @@ impl TableBuilder {
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        let f = self.lua.create_async_function(func)?;
-        self.with_value(key, LuaValue::Function(f))
+        let sched = self.lua.app_data_mut::<&TaskScheduler>().unwrap();
+        let func = sched.make_scheduled_async_fn(func)?;
+        self.with_value(key, LuaValue::Function(func))
     }
 
     pub fn build_readonly(self) -> LuaResult<LuaTable<'static>> {

@@ -16,7 +16,11 @@ use reqwest::Method;
 use tokio::{sync::mpsc, task};
 
 use crate::{
-    lua::net::{NetClient, NetClientBuilder, NetWebSocketClient, NetWebSocketServer, ServeConfig},
+    lua::{
+        // net::{NetWebSocketClient, NetWebSocketServer},
+        net::{NetClient, NetClientBuilder, ServeConfig},
+        task::TaskScheduler,
+    },
     utils::{net::get_request_user_agent_header, table::TableBuilder},
 };
 
@@ -141,13 +145,14 @@ async fn net_request<'a>(lua: &'static Lua, config: LuaValue<'a>) -> LuaResult<L
         .build_readonly()
 }
 
-async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaAnyUserData> {
-    let (stream, _) = tokio_tungstenite::connect_async(url)
+async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
+    let (ws, _) = tokio_tungstenite::connect_async(url)
         .await
         .map_err(LuaError::external)?;
-    let ws_lua = NetWebSocketClient::from(stream);
-    let ws_proper = ws_lua.into_proper(lua).await?;
-    Ok(ws_proper)
+    todo!()
+    // let sock = NetWebSocketClient::from(ws);
+    // let table = sock.into_lua_table(lua)?;
+    // Ok(table)
 }
 
 async fn net_serve<'a>(
@@ -223,13 +228,21 @@ impl Service<Request<Body>> for NetService {
             let key = kopt.as_ref().as_ref().unwrap();
             let handler: LuaFunction = lua.registry_value(key).expect("Missing websocket handler");
             let (response, ws) = ws_upgrade(&mut req, None).expect("Failed to upgrade websocket");
+            // TODO: This should be spawned as part of the scheduler,
+            // the scheduler may exit early and cancel this even though what
+            // we want here is a long-running task that keeps the program alive
             task::spawn_local(async move {
-                // Create our new full websocket object
+                // Create our new full websocket object, then
+                // schedule our handler to get called asap
                 let ws = ws.await.map_err(LuaError::external)?;
-                let ws_lua = NetWebSocketServer::from(ws);
-                let ws_proper = ws_lua.into_proper(lua).await?;
-                // Call our handler with it
-                handler.call_async::<_, ()>(ws_proper).await
+                // let sock = NetWebSocketServer::from(ws);
+                // let table = sock.into_lua_table(lua)?;
+                // let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                // sched.schedule_current_resume(
+                //     LuaValue::Function(handler),
+                //     LuaMultiValue::from_vec(vec![LuaValue::Table(table)]),
+                // )
+                Ok::<_, LuaError>(())
             });
             Box::pin(async move { Ok(response) })
         } else {
@@ -274,7 +287,7 @@ impl Service<Request<Body>> for NetService {
                     .with_value("headers", header_map)?
                     .with_value("body", lua.create_string(&bytes)?)?
                     .build_readonly()?;
-                match handler.call_async(request).await {
+                match handler.call(request) {
                     // Plain strings from the handler are plaintext responses
                     Ok(LuaValue::String(s)) => Ok(Response::builder()
                         .status(200)

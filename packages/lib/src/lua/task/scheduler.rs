@@ -18,11 +18,18 @@ use tokio::{
     time::{sleep, Instant},
 };
 
+use crate::utils::table::TableBuilder;
+
 type TaskSchedulerQueue = Arc<Mutex<VecDeque<TaskReference>>>;
 
 type TaskFutureArgsOverride<'fut> = Option<Vec<LuaValue<'fut>>>;
 type TaskFutureReturns<'fut> = LuaResult<TaskFutureArgsOverride<'fut>>;
 type TaskFuture<'fut> = LocalBoxFuture<'fut, (TaskReference, TaskFutureReturns<'fut>)>;
+
+const TASK_ASYNC_IMPL_LUA: &str = r#"
+resume_async(thread(), ...)
+return yield()
+"#;
 
 /// An enum representing different kinds of tasks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -441,13 +448,48 @@ impl<'fut> TaskScheduler<'fut> {
         The given lua thread or function will be resumed
         using the optional arguments returned by the future.
     */
-    #[allow(dead_code)]
     pub fn schedule_async(
         &self,
         thread_or_function: LuaValue<'_>,
         fut: impl Future<Output = TaskFutureReturns<'fut>> + 'fut,
     ) -> LuaResult<TaskReference> {
         self.queue_async(thread_or_function, None, None, fut)
+    }
+
+    /**
+        Creates a function callable from Lua that runs an async
+        closure and returns the results of it to the call site.
+    */
+    pub fn make_scheduled_async_fn<A, R, F, FR>(&self, func: F) -> LuaResult<LuaFunction>
+    where
+        A: FromLuaMulti<'static>,
+        R: ToLuaMulti<'static>,
+        F: 'static + Fn(&'static Lua, A) -> FR,
+        FR: 'static + Future<Output = LuaResult<R>>,
+    {
+        let async_env_thread: LuaFunction = self.lua.named_registry_value("co.thread")?;
+        let async_env_yield: LuaFunction = self.lua.named_registry_value("co.yield")?;
+        self.lua
+            .load(TASK_ASYNC_IMPL_LUA)
+            .set_environment(
+                TableBuilder::new(self.lua)?
+                    .with_value("thread", async_env_thread)?
+                    .with_value("yield", async_env_yield)?
+                    .with_function(
+                        "resume_async",
+                        move |lua: &Lua, (thread, args): (LuaThread, A)| {
+                            let fut = func(lua, args);
+                            let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                            sched.schedule_async(LuaValue::Thread(thread), async {
+                                let rets = fut.await?;
+                                let mult = rets.to_lua_multi(lua)?;
+                                Ok(Some(mult.into_vec()))
+                            })
+                        },
+                    )?
+                    .build_readonly()?,
+            )?
+            .into_function()
     }
 
     /**

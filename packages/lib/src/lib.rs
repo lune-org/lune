@@ -100,12 +100,6 @@ impl Lune {
         lua.set_named_registry_value("co.close", coroutine.get::<_, LuaFunction>("close")?)?;
         let debug: LuaTable = lua.globals().raw_get("debug")?;
         lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
-        // Add in wanted lune globals
-        for global in self.includes.clone() {
-            if !self.excludes.contains(&global) {
-                global.inject(lua)?;
-            }
-        }
         // Create our task scheduler and schedule the main thread on it
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);
@@ -119,6 +113,13 @@ impl Lune {
             ),
             LuaValue::Nil.to_lua_multi(lua)?,
         )?;
+        // Create our wanted lune globals, some of these need
+        // the task scheduler be available during construction
+        for global in self.includes.clone() {
+            if !self.excludes.contains(&global) {
+                global.inject(lua)?;
+            }
+        }
         // Keep running the scheduler until there are either no tasks
         // left to run, or until a task requests to exit the process
         let exit_code = LocalSet::new()
