@@ -14,7 +14,7 @@ use futures_util::{future::LocalBoxFuture, stream::FuturesUnordered, Future, Str
 use mlua::prelude::*;
 
 use tokio::{
-    sync::Mutex as AsyncMutex,
+    sync::{mpsc, Mutex as AsyncMutex},
     time::{sleep, Instant},
 };
 
@@ -50,7 +50,7 @@ impl fmt::Display for TaskKind {
     }
 }
 
-/// A lightweight, clonable struct that represents a
+/// A lightweight, copyable struct that represents a
 /// task in the scheduler and is accessible from Lua
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TaskReference {
@@ -80,38 +80,121 @@ pub struct Task {
     queued_at: Instant,
 }
 
-/// A struct representing the current status of the task scheduler
-#[derive(Debug, Clone, Copy)]
-pub struct TaskSchedulerState {
-    pub exit_code: Option<ExitCode>,
-    pub num_instant: usize,
-    pub num_deferred: usize,
-    pub num_future: usize,
-    pub num_total: usize,
+/**
+    A handle to a registered background task.
+
+    [`TaskSchedulerUnregistrar::unregister`] must be
+    called upon completion of the background task to
+    prevent the task scheduler from running indefinitely.
+*/
+#[must_use = "Background tasks must be unregistered"]
+#[derive(Debug)]
+pub struct TaskSchedulerBackgroundTaskHandle {
+    sender: mpsc::UnboundedSender<TaskSchedulerRegistrationMessage>,
 }
 
-impl fmt::Display for TaskSchedulerState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "TaskSchedulerStatus(\nInstant: {}\nDeferred: {}\nYielded: {}\nTotal: {})",
-            self.num_instant, self.num_deferred, self.num_future, self.num_total
-        )
+impl TaskSchedulerBackgroundTaskHandle {
+    pub fn unregister(self, result: LuaResult<()>) {
+        self.sender
+            .send(TaskSchedulerRegistrationMessage::Terminated(result))
+            .unwrap_or_else(|_| {
+                panic!(
+                    "\
+                    \nFailed to unregister background task - this is an internal error! \
+                    \nPlease report it at {} \
+                    \nDetails: Manual \
+                    ",
+                    env!("CARGO_PKG_REPOSITORY")
+                )
+            });
+    }
+}
+
+/// A struct representing the current state of the task scheduler
+#[derive(Debug, Clone)]
+pub struct TaskSchedulerResult {
+    lua_error: Option<LuaError>,
+    exit_code: Option<ExitCode>,
+    num_instant: usize,
+    num_deferred: usize,
+    num_futures: usize,
+    num_spawned: usize,
+    num_total: usize,
+}
+
+impl TaskSchedulerResult {
+    fn new(sched: &TaskScheduler) -> Self {
+        const MESSAGE: &str =
+            "Failed to get lock - make sure not to call during task scheduler resumption";
+        Self {
+            lua_error: None,
+            exit_code: if sched.exit_code_set.load(Ordering::Relaxed) {
+                Some(*sched.exit_code.try_lock().expect(MESSAGE))
+            } else {
+                None
+            },
+            num_instant: sched.task_queue_instant.try_lock().expect(MESSAGE).len(),
+            num_deferred: sched.task_queue_deferred.try_lock().expect(MESSAGE).len(),
+            num_futures: sched.futures.try_lock().expect(MESSAGE).len(),
+            num_spawned: sched.futures_counter.load(Ordering::Relaxed),
+            num_total: sched.tasks.try_lock().expect(MESSAGE).len(),
+        }
+    }
+
+    fn err(sched: &TaskScheduler, err: LuaError) -> Self {
+        let mut this = Self::new(sched);
+        this.lua_error = Some(err);
+        this
+    }
+
+    /**
+        Returns a clone of the error from
+        this task scheduler result, if any.
+    */
+    pub fn get_lua_error(&self) -> Option<LuaError> {
+        self.lua_error.clone()
+    }
+
+    /**
+        Returns a clone of the exit code from
+        this task scheduler result, if any.
+    */
+    pub fn get_exit_code(&self) -> Option<ExitCode> {
+        self.exit_code
+    }
+
+    /**
+        Returns `true` if the task scheduler is still busy,
+        meaning it still has lua threads left to run.
+    */
+    #[allow(dead_code)]
+    pub fn is_busy(&self) -> bool {
+        self.num_total > 0
+    }
+
+    /**
+        Returns `true` if the task scheduler is done,
+        meaning it has no lua threads left to run, and
+        no spawned tasks are running in the background.
+    */
+    pub fn is_done(&self) -> bool {
+        self.num_total == 0 && self.num_spawned == 0
+    }
+
+    /**
+        Returns `true` if the task scheduler has finished all
+        lua threads, but still has background tasks running.
+    */
+    #[allow(dead_code)]
+    pub fn is_background(&self) -> bool {
+        self.num_total == 0 && self.num_spawned > 0
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum TaskSchedulerResult {
-    Finished {
-        state: TaskSchedulerState,
-    },
-    TaskErrored {
-        error: LuaError,
-        state: TaskSchedulerState,
-    },
-    TaskSuccessful {
-        state: TaskSchedulerState,
-    },
+pub enum TaskSchedulerRegistrationMessage {
+    Spawned,
+    Terminated(LuaResult<()>),
 }
 
 /// A task scheduler that implements task queues
@@ -121,6 +204,9 @@ pub struct TaskScheduler<'fut> {
     lua: &'static Lua,
     tasks: Arc<Mutex<HashMap<TaskReference, Task>>>,
     futures: Arc<AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>>,
+    futures_tx: mpsc::UnboundedSender<TaskSchedulerRegistrationMessage>,
+    futures_rx: Arc<AsyncMutex<mpsc::UnboundedReceiver<TaskSchedulerRegistrationMessage>>>,
+    futures_counter: AtomicUsize,
     task_queue_instant: TaskSchedulerQueue,
     task_queue_deferred: TaskSchedulerQueue,
     exit_code_set: AtomicBool,
@@ -134,10 +220,14 @@ impl<'fut> TaskScheduler<'fut> {
         Creates a new task scheduler.
     */
     pub fn new(lua: &'static Lua) -> LuaResult<Self> {
+        let (tx, rx) = mpsc::unbounded_channel();
         Ok(Self {
             lua,
             tasks: Arc::new(Mutex::new(HashMap::new())),
             futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
+            futures_tx: tx,
+            futures_rx: Arc::new(AsyncMutex::new(rx)),
+            futures_counter: AtomicUsize::new(0),
             task_queue_instant: Arc::new(Mutex::new(VecDeque::new())),
             task_queue_deferred: Arc::new(Mutex::new(VecDeque::new())),
             exit_code_set: AtomicBool::new(false),
@@ -160,27 +250,6 @@ impl<'fut> TaskScheduler<'fut> {
     */
     pub fn into_static(self) -> &'static Self {
         Box::leak(Box::new(self))
-    }
-
-    /**
-        Gets the current state of the task scheduler.
-
-        Panics if called during any of the task scheduler resumption phases.
-    */
-    pub fn state(&self) -> TaskSchedulerState {
-        const MESSAGE: &str =
-            "Failed to get lock - make sure not to call during task scheduler resumption";
-        TaskSchedulerState {
-            exit_code: if self.exit_code_set.load(Ordering::Relaxed) {
-                Some(*self.exit_code.try_lock().expect(MESSAGE))
-            } else {
-                None
-            },
-            num_instant: self.task_queue_instant.try_lock().expect(MESSAGE).len(),
-            num_deferred: self.task_queue_deferred.try_lock().expect(MESSAGE).len(),
-            num_future: self.futures.try_lock().expect(MESSAGE).len(),
-            num_total: self.tasks.try_lock().expect(MESSAGE).len(),
-        }
     }
 
     /**
@@ -594,6 +663,33 @@ impl<'fut> TaskScheduler<'fut> {
     }
 
     /**
+        Registers a new background task with the task scheduler.
+
+        This will ensure that the task scheduler keeps running until a
+        call to [`TaskScheduler::deregister_background_task`] is made.
+
+        The returned [`TaskSchedulerUnregistrar::unregister`]
+        must be called upon completion of the background task to
+        prevent the task scheduler from running indefinitely.
+    */
+    pub fn register_background_task(&self) -> TaskSchedulerBackgroundTaskHandle {
+        let sender = self.futures_tx.clone();
+        sender
+            .send(TaskSchedulerRegistrationMessage::Spawned)
+            .unwrap_or_else(|e| {
+                panic!(
+                    "\
+                    \nFailed to unregister background task - this is an internal error! \
+                    \nPlease report it at {} \
+                    \nDetails: {e} \
+                    ",
+                    env!("CARGO_PKG_REPOSITORY")
+                )
+            });
+        TaskSchedulerBackgroundTaskHandle { sender }
+    }
+
+    /**
         Retrieves the queue for a specific kind of task.
 
         Panics for [`TaskKind::Future`] since
@@ -610,18 +706,6 @@ impl<'fut> TaskScheduler<'fut> {
     }
 
     /**
-        Checks if a future exists in the task queue.
-
-        Panics if called during resumption of the futures task queue.
-    */
-    fn next_queue_future_exists(&self) -> bool {
-        let futs = self.futures.try_lock().expect(
-            "Failed to get lock on futures - make sure not to call during futures resumption",
-        );
-        !futs.is_empty()
-    }
-
-    /**
         Resumes the next queued Lua task, if one exists, blocking
         the current thread until it either yields or finishes.
     */
@@ -634,26 +718,10 @@ impl<'fut> TaskScheduler<'fut> {
             let mut queue_guard = self.get_queue(kind).lock().unwrap();
             queue_guard.pop_front()
         } {
-            None => {
-                let status = self.state();
-                if status.num_total > 0 {
-                    TaskSchedulerResult::TaskSuccessful {
-                        state: self.state(),
-                    }
-                } else {
-                    TaskSchedulerResult::Finished {
-                        state: self.state(),
-                    }
-                }
-            }
+            None => TaskSchedulerResult::new(self),
             Some(task) => match self.resume_task(task, override_args) {
-                Ok(()) => TaskSchedulerResult::TaskSuccessful {
-                    state: self.state(),
-                },
-                Err(task_err) => TaskSchedulerResult::TaskErrored {
-                    error: task_err,
-                    state: self.state(),
-                },
+                Ok(()) => TaskSchedulerResult::new(self),
+                Err(task_err) => TaskSchedulerResult::err(self, task_err),
             },
         }
     }
@@ -680,15 +748,15 @@ impl<'fut> TaskScheduler<'fut> {
         match result {
             (task, Err(fut_err)) => {
                 // Future errored, don't resume its associated task
-                // and make sure to cancel / remove it completely
-                let error_prefer_cancel = match self.remove_task(task) {
-                    Err(cancel_err) => cancel_err,
-                    Ok(_) => fut_err,
-                };
-                TaskSchedulerResult::TaskErrored {
-                    error: error_prefer_cancel,
-                    state: self.state(),
-                }
+                // and make sure to cancel / remove it completely, if removal
+                // also errors then we send that error back instead of the future's error
+                TaskSchedulerResult::err(
+                    self,
+                    match self.remove_task(task) {
+                        Err(cancel_err) => cancel_err,
+                        Ok(_) => fut_err,
+                    },
+                )
             }
             (task, Ok(args)) => {
                 // Promote this future task to an instant task
@@ -703,6 +771,46 @@ impl<'fut> TaskScheduler<'fut> {
     }
 
     /**
+        Awaits the next background task registration
+        message, if any messages exist in the queue.
+
+        This is a no-op if there are no messages.
+    */
+    async fn receive_next_message(&self) -> TaskSchedulerResult {
+        let message_opt = {
+            let mut rx = self.futures_rx.lock().await;
+            rx.recv().await
+        };
+        if let Some(message) = message_opt {
+            match message {
+                TaskSchedulerRegistrationMessage::Spawned => {
+                    self.futures_counter.fetch_add(1, Ordering::Relaxed);
+                    TaskSchedulerResult::new(self)
+                }
+                TaskSchedulerRegistrationMessage::Terminated(result) => {
+                    let prev = self.futures_counter.fetch_sub(1, Ordering::Relaxed);
+                    if prev == 0 {
+                        panic!(
+                            r#"
+                            Terminated a background task without it running - this is an internal error!
+                            Please report it at {}
+                            "#,
+                            env!("CARGO_PKG_REPOSITORY")
+                        )
+                    }
+                    if let Err(e) = result {
+                        TaskSchedulerResult::err(self, e)
+                    } else {
+                        TaskSchedulerResult::new(self)
+                    }
+                }
+            }
+        } else {
+            TaskSchedulerResult::new(self)
+        }
+    }
+
+    /**
         Resumes the task scheduler queue.
 
         This will run any spawned or deferred Lua tasks in a blocking manner.
@@ -712,27 +820,36 @@ impl<'fut> TaskScheduler<'fut> {
         futures concurrently, awaiting the first one to be ready for resumption.
     */
     pub async fn resume_queue(&self) -> TaskSchedulerResult {
-        let status = self.state();
+        let current = TaskSchedulerResult::new(self);
         /*
             Resume tasks in the internal queue, in this order:
 
-            1. Tasks from task.spawn, this includes the main thread
-            2. Tasks from task.defer
-            3. Tasks from task.delay / task.wait / native futures, first ready first resumed
+            * 🛑 = blocking - lua tasks, in order
+            * ⏳ = async - first come, first serve
+
+            1. 🛑 Tasks from task.spawn and the main thread
+            2. 🛑 Tasks from task.defer
+            3. ⏳ Tasks from task.delay / task.wait, spawned background tasks
         */
-        if status.num_instant > 0 {
+        if current.num_instant > 0 {
             self.resume_next_queue_task(TaskKind::Instant, None)
-        } else if status.num_deferred > 0 {
+        } else if current.num_deferred > 0 {
             self.resume_next_queue_task(TaskKind::Deferred, None)
-        } else {
-            // 3. Threads from task.delay or task.wait, futures
-            if self.next_queue_future_exists() {
-                self.resume_next_queue_future().await
-            } else {
-                TaskSchedulerResult::Finished {
-                    state: self.state(),
-                }
+        } else if current.num_futures > 0 && current.num_spawned > 0 {
+            // Futures, spawned background tasks
+            tokio::select! {
+                result = self.resume_next_queue_future() => result,
+                result = self.receive_next_message() => result,
             }
+        } else if current.num_futures > 0 {
+            // Futures
+            self.resume_next_queue_future().await
+        } else if current.num_spawned > 0 {
+            // Only spawned background tasks, these may then
+            // spawn new lua tasks and "wake up" the scheduler
+            self.receive_next_message().await
+        } else {
+            TaskSchedulerResult::new(self)
         }
     }
 }

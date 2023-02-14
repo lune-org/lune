@@ -60,5 +60,4 @@ assert(
 )
 
 -- Stop the server to end the test
-
 handle2.stop()

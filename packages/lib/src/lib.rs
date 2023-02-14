@@ -1,6 +1,6 @@
 use std::{collections::HashSet, process::ExitCode};
 
-use lua::task::{TaskScheduler, TaskSchedulerResult};
+use lua::task::TaskScheduler;
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
@@ -124,26 +124,21 @@ impl Lune {
         // left to run, or until a task requests to exit the process
         let exit_code = LocalSet::new()
             .run_until(async move {
-                loop {
-                    let mut got_error = false;
-                    let state = match sched.resume_queue().await {
-                        TaskSchedulerResult::TaskSuccessful { state } => state,
-                        TaskSchedulerResult::TaskErrored { state, error } => {
-                            eprintln!("{}", pretty_format_luau_error(&error));
-                            got_error = true;
-                            state
-                        }
-                        TaskSchedulerResult::Finished { state } => state,
-                    };
-                    if let Some(exit_code) = state.exit_code {
-                        return exit_code;
-                    } else if state.num_total == 0 {
-                        if got_error {
-                            return ExitCode::FAILURE;
-                        } else {
-                            return ExitCode::SUCCESS;
-                        }
+                let mut got_error = false;
+                let mut result = sched.resume_queue().await;
+                while !result.is_done() {
+                    if let Some(err) = result.get_lua_error() {
+                        eprintln!("{}", pretty_format_luau_error(&err));
+                        got_error = true;
                     }
+                    result = sched.resume_queue().await;
+                }
+                if let Some(exit_code) = result.get_exit_code() {
+                    exit_code
+                } else if got_error {
+                    ExitCode::FAILURE
+                } else {
+                    ExitCode::SUCCESS
                 }
             })
             .await;

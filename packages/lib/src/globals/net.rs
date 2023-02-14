@@ -149,7 +149,9 @@ async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
     let (ws, _) = tokio_tungstenite::connect_async(url)
         .await
         .map_err(LuaError::external)?;
-    todo!()
+    Err(LuaError::RuntimeError(
+        "Client websockets are not yet implemented".to_string(),
+    ))
     // let sock = NetWebSocketClient::from(ws);
     // let table = sock.into_lua_table(lua)?;
     // Ok(table)
@@ -159,6 +161,11 @@ async fn net_serve<'a>(
     lua: &'static Lua,
     (port, config): (u16, ServeConfig<'a>),
 ) -> LuaResult<LuaTable<'a>> {
+    if config.handle_web_socket.is_some() {
+        return Err(LuaError::RuntimeError(
+            "Server websockets are not yet implemented".to_string(),
+        ));
+    }
     // Note that we need to use a mpsc here and not
     // a oneshot channel since we move the sender
     // into our table with the stop function
@@ -168,6 +175,10 @@ async fn net_serve<'a>(
         lua.create_registry_value(handler)
             .expect("Failed to store websocket handler")
     }));
+    // Register a background task to prevent
+    // the task scheduler from exiting early
+    let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+    let task = sched.register_background_task();
     let server = Server::bind(&([127, 0, 0, 1], port).into())
         .http1_only(true)
         .http1_keepalive(true)
@@ -178,12 +189,15 @@ async fn net_serve<'a>(
             server_websocket_callback,
         ))
         .with_graceful_shutdown(async move {
-            shutdown_rx.recv().await.unwrap();
+            shutdown_rx
+                .recv()
+                .await
+                .expect("Server was stopped instantly");
             shutdown_rx.close();
+            task.unregister(Ok(()));
         });
-    // TODO: Spawn a new scheduler future with this so we don't block
-    // and make sure that we register it properly to prevent shutdown
-    server.await.map_err(LuaError::external)?;
+    // Spawn a new tokio task so we don't block
+    task::spawn_local(server);
     // Create a new read-only table that contains methods
     // for manipulating server behavior and shutting it down
     let handle_stop = move |_, _: ()| {
