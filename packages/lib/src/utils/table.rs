@@ -78,7 +78,7 @@ impl TableBuilder {
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        let sched = self.lua.app_data_mut::<&TaskScheduler>().unwrap();
+        let sched = self.lua.app_data_ref::<&TaskScheduler>().unwrap();
         let func = sched.make_scheduled_async_fn(func)?;
         self.with_value(key, LuaValue::Function(func))
     }

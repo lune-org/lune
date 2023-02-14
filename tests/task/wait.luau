@@ -44,7 +44,8 @@ measure(1 / 30)
 measure(1 / 20)
 measure(1 / 10)
 
--- Wait should work in other threads, too
+-- Wait should work in other threads, including
+-- ones created by the built-in coroutine library
 
 local flag: boolean = false
 task.spawn(function()
@@ -63,3 +64,12 @@ end))
 assert(not flag2, "Wait failed while inside coroutine (1)")
 task.wait(0.2)
 assert(flag2, "Wait failed while inside coroutine (2)")
+
+local flag3: boolean = false
+coroutine.wrap(function()
+	task.wait(0.1)
+	flag3 = true
+end)()
+assert(not flag3, "Wait failed while inside wrap (1)")
+task.wait(0.2)
+assert(flag3, "Wait failed while inside wrap (2)")

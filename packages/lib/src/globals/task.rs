@@ -1,7 +1,7 @@
 use mlua::prelude::*;
 
 use crate::{
-    lua::task::{TaskReference, TaskScheduler},
+    lua::task::{TaskKind, TaskReference, TaskScheduler},
     utils::table::TableBuilder,
 };
 
@@ -18,19 +18,20 @@ return task
 "#;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
-    // Create task spawning functions that add tasks to the scheduler
+    // Create a user-accessible function cancel tasks
     let task_cancel = lua.create_function(|lua, task: TaskReference| {
-        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+        let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
         sched.remove_task(task)?;
         Ok(())
     })?;
+    // Create functions that manipulate non-blocking tasks in the scheduler
     let task_defer = lua.create_function(|lua, (tof, args): (LuaValue, LuaMultiValue)| {
-        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+        let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
         sched.schedule_deferred(tof, args)
     })?;
     let task_delay =
         lua.create_function(|lua, (secs, tof, args): (f64, LuaValue, LuaMultiValue)| {
-            let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+            let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
             sched.schedule_delayed(secs, tof, args)
         })?;
     // Create our task wait function, this is a bit different since
@@ -47,7 +48,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                 .with_function(
                     "resume_after",
                     |lua, (thread, secs): (LuaThread, Option<f64>)| {
-                        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                        let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
                         sched.schedule_wait(secs.unwrap_or(0f64), LuaValue::Thread(thread))
                     },
                 )?
@@ -68,12 +69,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                 .with_function(
                     "resume_first",
                     |lua, (tof, args): (LuaValue, LuaMultiValue)| {
-                        let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                        let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
                         sched.schedule_current_resume(tof, args)
                     },
                 )?
                 .with_function("resume_second", |lua, thread: LuaThread| {
-                    let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                    let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
                     sched.schedule_after_current_resume(
                         LuaValue::Thread(thread),
                         LuaMultiValue::new(),
@@ -106,6 +107,41 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     })?;
     globals.set("type", type_proxy)?;
     globals.set("typeof", typeof_proxy)?;
+    // Functions in the built-in coroutine library also need to be
+    // replaced, these are a bit different than the ones above because
+    // calling resume or the function that wrap returns must return
+    // whatever lua value(s) that the thread or task yielded back
+    let coroutine = globals.get::<_, LuaTable>("coroutine")?;
+    coroutine.set(
+        "resume",
+        lua.create_function(|lua, value: LuaValue| {
+            if let LuaValue::Thread(thread) = value {
+                let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+                let task =
+                    sched.create_task(TaskKind::Instant, LuaValue::Thread(thread), None, None)?;
+                sched.resume_task(task, None)
+            } else if let Ok(task) = TaskReference::from_lua(value, lua) {
+                let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+                sched.resume_task(task, None)
+            } else {
+                Err(LuaError::RuntimeError(
+                    "Argument #1 must be a thread".to_string(),
+                ))
+            }
+        })?,
+    )?;
+    coroutine.set(
+        "wrap",
+        lua.create_function(|lua, func: LuaFunction| {
+            let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+            let task =
+                sched.create_task(TaskKind::Instant, LuaValue::Function(func), None, None)?;
+            lua.create_function(move |lua, args: LuaMultiValue| {
+                let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+                sched.resume_task(task, Some(args.into_vec()))
+            })
+        })?,
+    )?;
     // All good, return the task scheduler lib
     TableBuilder::new(lua)?
         .with_value("cancel", task_cancel)?

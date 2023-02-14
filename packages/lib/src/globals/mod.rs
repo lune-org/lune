@@ -73,6 +73,17 @@ impl LuneGlobal {
     }
 
     /**
+        Checks if this Lune global is an injector.
+
+        An injector is similar to a proxy global but will inject
+        value(s) into the global lua environment during creation,
+        to ensure correct usage and compatibility with base Luau.
+    */
+    pub fn is_injector(&self) -> bool {
+        matches!(self, Self::Task)
+    }
+
+    /**
         Creates the [`mlua::Table`] value for this Lune global.
 
         Note that proxy globals should be handled with special care and that [`LuneGlobal::inject()`]

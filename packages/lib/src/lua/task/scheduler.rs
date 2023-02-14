@@ -135,6 +135,9 @@ impl TaskSchedulerResult {
     fn new(sched: &TaskScheduler) -> Self {
         const MESSAGE: &str =
             "Failed to get lock - make sure not to call during task scheduler resumption";
+        let num_instant = sched.task_queue_instant.try_lock().expect(MESSAGE).len();
+        let num_deferred = sched.task_queue_deferred.try_lock().expect(MESSAGE).len();
+        let num_active = num_instant + num_deferred;
         Self {
             lua_error: None,
             exit_code: if sched.exit_code_set.load(Ordering::Relaxed) {
@@ -142,11 +145,11 @@ impl TaskSchedulerResult {
             } else {
                 None
             },
-            num_instant: sched.task_queue_instant.try_lock().expect(MESSAGE).len(),
-            num_deferred: sched.task_queue_deferred.try_lock().expect(MESSAGE).len(),
+            num_instant,
+            num_deferred,
             num_futures: sched.futures.try_lock().expect(MESSAGE).len(),
             num_background: sched.futures_in_background.load(Ordering::Relaxed),
-            num_active: sched.tasks.try_lock().expect(MESSAGE).len(),
+            num_active,
         }
     }
 
@@ -176,18 +179,24 @@ impl TaskSchedulerResult {
         Returns `true` if the task scheduler is still busy,
         meaning it still has lua threads left to run.
     */
-    #[allow(dead_code)]
     pub fn is_busy(&self) -> bool {
         self.num_active > 0
     }
 
     /**
         Returns `true` if the task scheduler has finished all
+        blocking lua tasks, but still has yielding tasks running.
+    */
+    pub fn is_yielding(&self) -> bool {
+        self.num_active == 0 && self.num_futures > 0
+    }
+
+    /**
+        Returns `true` if the task scheduler has finished all
         lua threads, but still has background tasks running.
     */
-    #[allow(dead_code)]
     pub fn is_background(&self) -> bool {
-        self.num_active == 0 && self.num_background > 0
+        self.num_active == 0 && self.num_futures == 0 && self.num_background > 0
     }
 
     /**
@@ -196,7 +205,7 @@ impl TaskSchedulerResult {
         no spawned tasks are running in the background.
     */
     pub fn is_done(&self) -> bool {
-        self.num_active == 0 && self.num_background == 0
+        self.num_active == 0 && self.num_futures == 0 && self.num_background == 0
     }
 }
 
@@ -204,6 +213,8 @@ impl fmt::Display for TaskSchedulerResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let status = if self.is_busy() {
             "Busy"
+        } else if self.is_yielding() {
+            "Yielding"
         } else if self.is_background() {
             "Background"
         } else {
@@ -361,11 +372,27 @@ impl<'fut> TaskScheduler<'fut> {
     }
 
     /**
+        Checks if a task still exists in the scheduler.
+
+        A task may no longer exist in the scheduler if it has been manually
+        cancelled and removed by calling [`TaskScheduler::cancel_task()`].
+    */
+    #[allow(dead_code)]
+    pub fn contains_task(&self, reference: TaskReference) -> bool {
+        let tasks = self.tasks.lock().unwrap();
+        tasks.contains_key(&reference)
+    }
+
+    /**
         Creates a new task, storing a new Lua thread
         for it, as well as the arguments to give the
         thread on resumption, in the Lua registry.
+
+        Note that this task will ***not*** resume on its
+        own, it needs to be used together with either the
+        scheduling functions or [`TaskScheduler::resume_task`].
     */
-    fn create_task(
+    pub fn create_task(
         &self,
         kind: TaskKind,
         thread_or_function: LuaValue<'_>,
@@ -407,6 +434,95 @@ impl<'fut> TaskScheduler<'fut> {
             tasks.insert(task_ref, task);
         }
         Ok(task_ref)
+    }
+
+    /**
+        Cancels a task, if the task still exists in the scheduler.
+
+        It is possible to hold one or more task references that point
+        to a task that no longer exists in the scheduler, and calling
+        this method with one of those references will return `false`.
+    */
+    pub fn remove_task(&self, reference: TaskReference) -> LuaResult<bool> {
+        /*
+            Remove the task from the task list and the Lua registry
+
+            This is all we need to do since resume_task will always
+            ignore resumption of any task that no longer exists there
+
+            This does lead to having some amount of "junk" futures that will
+            build up in the queue but these will get cleaned up and not block
+            the program from exiting since the scheduler only runs until there
+            are no tasks left in the task list, the futures do not matter there
+        */
+        let mut found = false;
+        let mut tasks = self.tasks.lock().unwrap();
+        // Unfortunately we have to loop through to find which task
+        // references to remove instead of removing directly since
+        // tasks can switch kinds between instant, deferred, future
+        let tasks_to_remove: Vec<_> = tasks
+            .keys()
+            .filter(|task_ref| task_ref.guid == reference.guid)
+            .copied()
+            .collect();
+        for task_ref in tasks_to_remove {
+            if let Some(task) = tasks.remove(&task_ref) {
+                self.lua.remove_registry_value(task.thread)?;
+                self.lua.remove_registry_value(task.args)?;
+                found = true;
+            }
+        }
+        Ok(found)
+    }
+
+    /**
+        Resumes a task, if the task still exists in the scheduler.
+
+        A task may no longer exist in the scheduler if it has been manually
+        cancelled and removed by calling [`TaskScheduler::cancel_task()`].
+
+        This will be a no-op if the task no longer exists.
+    */
+    pub fn resume_task<'a>(
+        &self,
+        reference: TaskReference,
+        override_args: Option<Vec<LuaValue<'a>>>,
+    ) -> LuaResult<LuaMultiValue<'a>> {
+        self.guid_running_task
+            .store(reference.guid, Ordering::Relaxed);
+        let task = {
+            let mut tasks = self.tasks.lock().unwrap();
+            match tasks.remove(&reference) {
+                Some(task) => task,
+                None => return Ok(LuaMultiValue::new()), // Task was removed
+            }
+        };
+        let thread: LuaThread = self.lua.registry_value(&task.thread)?;
+        let args_vec_opt = override_args.or_else(|| {
+            self.lua
+                .registry_value::<Option<Vec<LuaValue>>>(&task.args)
+                .expect("Failed to get stored args for task")
+        });
+        self.lua.remove_registry_value(task.thread)?;
+        self.lua.remove_registry_value(task.args)?;
+        let rets = if let Some(args) = args_vec_opt {
+            thread.resume::<_, LuaMultiValue>(LuaMultiValue::from_vec(args))
+        } else {
+            /*
+                The tasks did not get any arguments from either:
+
+                - Providing arguments at the call site for creating the task
+                - Returning arguments from a future that created this task
+
+                The only tasks that do not get any arguments from either
+                of those sources are waiting tasks, and waiting tasks
+                want the amount of time waited returned to them.
+            */
+            let elapsed = task.queued_at.elapsed().as_secs_f64();
+            thread.resume::<_, LuaMultiValue>(elapsed)
+        };
+        self.guid_running_task.store(0, Ordering::Relaxed);
+        rets
     }
 
     /**
@@ -618,7 +734,12 @@ impl<'fut> TaskScheduler<'fut> {
             // which ensures that the TaskReference is identical and
             // that any waits inside of spawned tasks will also cancel
             match self.guid_running_task.load(Ordering::Relaxed) {
-                0 => panic!("Tried to schedule waiting task with no task running"),
+                0 => {
+                    // NOTE: We had this here to verify the behavior of our task scheduler during development,
+                    // but for re-implementing coroutine.resume (which is not registered) we must not panic here
+                    // panic!("Tried to schedule waiting task with no registered task running")
+                    None
+                }
                 guid => Some(guid),
             },
             async move {
@@ -666,7 +787,7 @@ impl<'fut> TaskScheduler<'fut> {
                         "resume_async",
                         move |lua: &Lua, (thread, args): (LuaThread, A)| {
                             let fut = func(lua, args);
-                            let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                            let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
                             sched.schedule_async(LuaValue::Thread(thread), async {
                                 let rets = fut.await?;
                                 let mult = rets.to_lua_multi(lua)?;
@@ -677,107 +798,6 @@ impl<'fut> TaskScheduler<'fut> {
                     .build_readonly()?,
             )?
             .into_function()
-    }
-
-    /**
-        Checks if a task still exists in the scheduler.
-
-        A task may no longer exist in the scheduler if it has been manually
-        cancelled and removed by calling [`TaskScheduler::cancel_task()`].
-    */
-    #[allow(dead_code)]
-    pub fn contains_task(&self, reference: TaskReference) -> bool {
-        let tasks = self.tasks.lock().unwrap();
-        tasks.contains_key(&reference)
-    }
-
-    /**
-        Cancels a task, if the task still exists in the scheduler.
-
-        It is possible to hold one or more task references that point
-        to a task that no longer exists in the scheduler, and calling
-        this method with one of those references will return `false`.
-    */
-    pub fn remove_task(&self, reference: TaskReference) -> LuaResult<bool> {
-        /*
-            Remove the task from the task list and the Lua registry
-
-            This is all we need to do since resume_task will always
-            ignore resumption of any task that no longer exists there
-
-            This does lead to having some amount of "junk" futures that will
-            build up in the queue but these will get cleaned up and not block
-            the program from exiting since the scheduler only runs until there
-            are no tasks left in the task list, the futures do not matter there
-        */
-        let mut found = false;
-        let mut tasks = self.tasks.lock().unwrap();
-        // Unfortunately we have to loop through to find which task
-        // references to remove instead of removing directly since
-        // tasks can switch kinds between instant, deferred, future
-        let tasks_to_remove: Vec<_> = tasks
-            .keys()
-            .filter(|task_ref| task_ref.guid == reference.guid)
-            .copied()
-            .collect();
-        for task_ref in tasks_to_remove {
-            if let Some(task) = tasks.remove(&task_ref) {
-                self.lua.remove_registry_value(task.thread)?;
-                self.lua.remove_registry_value(task.args)?;
-                found = true;
-            }
-        }
-        Ok(found)
-    }
-
-    /**
-        Resumes a task, if the task still exists in the scheduler.
-
-        A task may no longer exist in the scheduler if it has been manually
-        cancelled and removed by calling [`TaskScheduler::cancel_task()`].
-
-        This will be a no-op if the task no longer exists.
-    */
-    pub fn resume_task(
-        &self,
-        reference: TaskReference,
-        override_args: Option<Vec<LuaValue>>,
-    ) -> LuaResult<()> {
-        self.guid_running_task
-            .store(reference.guid, Ordering::Relaxed);
-        let task = {
-            let mut tasks = self.tasks.lock().unwrap();
-            match tasks.remove(&reference) {
-                Some(task) => task,
-                None => return Ok(()), // Task was removed
-            }
-        };
-        let thread: LuaThread = self.lua.registry_value(&task.thread)?;
-        let args_vec_opt = override_args.or_else(|| {
-            self.lua
-                .registry_value::<Option<Vec<LuaValue>>>(&task.args)
-                .expect("Failed to get stored args for task")
-        });
-        self.lua.remove_registry_value(task.thread)?;
-        self.lua.remove_registry_value(task.args)?;
-        if let Some(args) = args_vec_opt {
-            thread.resume::<_, LuaMultiValue>(LuaMultiValue::from_vec(args))?;
-        } else {
-            /*
-                The tasks did not get any arguments from either:
-
-                - Providing arguments at the call site for creating the task
-                - Returning arguments from a future that created this task
-
-                The only tasks that do not get any arguments from either
-                of those sources are waiting tasks, and waiting tasks
-                want the amount of time waited returned to them.
-            */
-            let elapsed = task.queued_at.elapsed().as_secs_f64();
-            thread.resume::<_, LuaMultiValue>(elapsed)?;
-        }
-        self.guid_running_task.store(0, Ordering::Relaxed);
-        Ok(())
     }
 
     /**
@@ -838,7 +858,7 @@ impl<'fut> TaskScheduler<'fut> {
         } {
             None => TaskSchedulerResult::new(self),
             Some(task) => match self.resume_task(task, override_args) {
-                Ok(()) => TaskSchedulerResult::new(self),
+                Ok(_) => TaskSchedulerResult::new(self),
                 Err(task_err) => TaskSchedulerResult::err(self, task_err),
             },
         }

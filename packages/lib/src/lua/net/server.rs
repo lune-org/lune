@@ -51,7 +51,7 @@ impl Service<Request<Body>> for NetServiceInner {
                 let _ws = ws.await.map_err(LuaError::external)?;
                 // let sock = NetWebSocketServer::from(ws);
                 // let table = sock.into_lua_table(lua)?;
-                // let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+                // let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
                 // sched.schedule_current_resume(
                 //     LuaValue::Function(handler),
                 //     LuaMultiValue::from_vec(vec![LuaValue::Table(table)]),

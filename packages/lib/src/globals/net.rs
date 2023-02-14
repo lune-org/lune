@@ -108,7 +108,7 @@ async fn net_serve<'a>(
         lua.create_registry_value(handler)
             .expect("Failed to store websocket handler")
     });
-    let sched = lua.app_data_mut::<&TaskScheduler>().unwrap();
+    let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
     // Bind first to make sure that we can bind to this address
     let bound = match Server::try_bind(&([127, 0, 0, 1], port).into()) {
         Err(e) => {
