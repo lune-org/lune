@@ -125,20 +125,22 @@ impl Lune {
         let exit_code = LocalSet::new()
             .run_until(async move {
                 let mut got_error = false;
-                let mut result = sched.resume_queue().await;
-                while !result.is_done() {
+                loop {
+                    let result = sched.resume_queue().await;
+                    // println!("{result}");
                     if let Some(err) = result.get_lua_error() {
                         eprintln!("{}", pretty_format_luau_error(&err));
                         got_error = true;
                     }
-                    result = sched.resume_queue().await;
-                }
-                if let Some(exit_code) = result.get_exit_code() {
-                    exit_code
-                } else if got_error {
-                    ExitCode::FAILURE
-                } else {
-                    ExitCode::SUCCESS
+                    if result.is_done() {
+                        if let Some(exit_code) = result.get_exit_code() {
+                            break exit_code;
+                        } else if got_error {
+                            break ExitCode::FAILURE;
+                        } else {
+                            break ExitCode::SUCCESS;
+                        }
+                    }
                 }
             })
             .await;
