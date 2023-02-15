@@ -84,17 +84,22 @@ end
 
 Lune puts developer experience first, and as such provides type definitions and configurations for several tools out of the box.
 
+These steps assume you have already installed Lune and that it is available to run in the current directory.
+
 <details>
 <summary>Luau LSP</summary>
 
-1. Set the require mode setting to `relativeToFile`
-2. Use `lune --download-luau-types` to download Luau types (`luneTypes.d.luau`) to the current directory
-3. Set your definition files setting to include `luneTypes.d.luau`
-4. Generate the documentation file using `lune --generate-docs-file`
-   - NOTE: This is a temporary solution and a docs file separate from type definitions will not be necessary in the future
-5. Set your documentation files setting to include `luneDocs.json`
+1. Run `lune --generate-luau-types` to generate a Luau type definitions file (`luneTypes.d.luau`) in the current directory
+2. Run `lune --generate-docs-file` to generate a Luau LSP documentation file (`luneDocs.json`) in the current directory
+3. Modify your VSCode settings, either by using the settings menu or in `settings.json`:
 
-An example of these settings can be found in the [.vscode](.vscode) folder in this repository
+   ```json
+   {
+   	"luau-lsp.require.mode": "relativeToFile", // Set the require mode to work with Lune
+   	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"], // Add type definitions for Lune globals
+   	"luau-lsp.types.documentationFiles": ["luneDocs.json"] // Add documentation for Lune globals
+   }
+   ```
 
 </details>
 
@@ -102,13 +107,22 @@ An example of these settings can be found in the [.vscode](.vscode) folder in th
 
 <summary>Selene</summary>
 
-1. Use `lune --download-selene-types` to download Selene types (`lune.yml`) to the current directory
-2. Use either `std = "luau+lune"`, or `std = "roblox+lune"` if your project also contains Roblox-specific code, in your `selene.toml` configuration file
+1. Run `lune --generate-selene-types` to generate a Selene type definitions file (`lune.yml`) in the current directory
+2. Modify your Selene settings in `selene.toml`:
+
+   ```yaml
+   # Use this if Lune is the only thing you use Luau files with:
+   std = "luau+lune"
+   # OR use this if your project also contains Roblox-specific Luau code:
+   std = "roblox+lune"
+   # If you are also using the Luau type definitions file, it may cause issues, and can be safely ignored:
+   exclude = ["luneTypes.d.luau"]
+   ```
 
 </details>
 <br />
 
-**_NOTE:_** _It is highly recommended to add any type definition files to your `.gitignore` and to only download them using these commands, since this guarantees that you have type definitions compatible with your installed version of Lune._
+**_NOTE:_** _It is highly recommended to add any generated files to your `.gitignore` and to only generate them using these commands, since this guarantees that you have type definitions compatible with your installed version of Lune._
 
 </details>
 
