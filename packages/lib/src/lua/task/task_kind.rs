@@ -1,6 +1,6 @@
 use std::fmt;
 
-/// An enum representing different kinds of tasks
+/// Enum representing different kinds of tasks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TaskKind {
     Instant,

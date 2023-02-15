@@ -1,6 +1,6 @@
 use std::{collections::HashSet, process::ExitCode};
 
-use lua::task::TaskScheduler;
+use lua::task::{TaskScheduler, TaskSchedulerResumeExt, TaskSchedulerScheduleExt};
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
@@ -103,7 +103,7 @@ impl Lune {
         // Create our task scheduler and schedule the main thread on it
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);
-        sched.schedule_next(
+        sched.schedule_blocking(
             LuaValue::Function(
                 lua.load(script_contents)
                     .set_name(script_name)

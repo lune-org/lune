@@ -10,7 +10,7 @@ use crate::{
     lua::{
         // net::{NetWebSocketClient, NetWebSocketServer},
         net::{NetClient, NetClientBuilder, NetLocalExec, NetService, RequestConfig, ServeConfig},
-        task::TaskScheduler,
+        task::{TaskScheduler, TaskSchedulerAsyncExt},
     },
     utils::{net::get_request_user_agent_header, table::TableBuilder},
 };
@@ -108,7 +108,9 @@ async fn net_serve<'a>(
         lua.create_registry_value(handler)
             .expect("Failed to store websocket handler")
     });
-    let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+    let sched = lua
+        .app_data_ref::<&TaskScheduler>()
+        .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
     // Bind first to make sure that we can bind to this address
     let bound = match Server::try_bind(&([127, 0, 0, 1], port).into()) {
         Err(e) => {

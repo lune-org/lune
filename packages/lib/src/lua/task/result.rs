@@ -2,9 +2,9 @@ use std::{fmt, process::ExitCode};
 
 use mlua::prelude::*;
 
-use super::TaskScheduler;
+use super::scheduler::TaskScheduler;
 
-/// A struct representing the current state of the task scheduler
+/// Struct representing the current state of the task scheduler
 #[derive(Debug, Clone)]
 pub struct TaskSchedulerState {
     lua_error: Option<LuaError>,

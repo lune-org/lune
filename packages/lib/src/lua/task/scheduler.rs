@@ -3,31 +3,21 @@ use std::{
     cell::{Cell, RefCell},
     collections::{HashMap, VecDeque},
     process::ExitCode,
-    time::Duration,
 };
 
-use futures_util::{future::LocalBoxFuture, stream::FuturesUnordered, Future, StreamExt};
+use futures_util::{future::LocalBoxFuture, stream::FuturesUnordered, Future};
 use mlua::prelude::*;
 
 use tokio::{
     sync::{mpsc, Mutex as AsyncMutex},
-    time::{sleep, Instant},
+    time::Instant,
 };
 
-use crate::utils::table::TableBuilder;
-
-use super::{
-    async_handle::TaskSchedulerAsyncHandle, message::TaskSchedulerMessage,
-    result::TaskSchedulerState, task_kind::TaskKind, task_reference::TaskReference,
-};
+use super::message::TaskSchedulerMessage;
+pub use super::{task_kind::TaskKind, task_reference::TaskReference};
 
 type TaskFutureRets<'fut> = LuaResult<Option<LuaMultiValue<'fut>>>;
 type TaskFuture<'fut> = LocalBoxFuture<'fut, (TaskReference, TaskFutureRets<'fut>)>;
-
-const TASK_ASYNC_IMPL_LUA: &str = r#"
-resumeAsync(thread(), ...)
-return yield()
-"#;
 
 /// A struct representing a task contained in the task scheduler
 #[derive(Debug)]
@@ -52,9 +42,9 @@ pub struct TaskScheduler<'fut> {
         which must use async-aware mutexes to be cancellation safe across await points.
     */
     // Internal state & flags
-    lua: &'static Lua,
-    guid: Cell<usize>,
-    guid_running: Cell<Option<usize>>,
+    pub(super) lua: &'static Lua,
+    pub(super) guid: Cell<usize>,
+    pub(super) guid_running: Cell<Option<usize>>,
     pub(super) exit_code: Cell<Option<ExitCode>>,
     // Blocking tasks
     pub(super) tasks: RefCell<HashMap<TaskReference, Task>>,
@@ -62,8 +52,8 @@ pub struct TaskScheduler<'fut> {
     // Future tasks & objects for waking
     pub(super) futures: AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>,
     pub(super) futures_registered_count: Cell<usize>,
-    futures_tx: mpsc::UnboundedSender<TaskSchedulerMessage>,
-    futures_rx: AsyncMutex<mpsc::UnboundedReceiver<TaskSchedulerMessage>>,
+    pub(super) futures_tx: mpsc::UnboundedSender<TaskSchedulerMessage>,
+    pub(super) futures_rx: AsyncMutex<mpsc::UnboundedReceiver<TaskSchedulerMessage>>,
 }
 
 impl<'fut> TaskScheduler<'fut> {
@@ -356,317 +346,5 @@ impl<'fut> TaskScheduler<'fut> {
             (task_ref, result)
         }));
         Ok(task_ref)
-    }
-
-    /**
-        Schedules a lua thread or function to resume ***first*** during this
-        resumption point, ***skipping ahead*** of any other currently queued tasks.
-
-        The given lua thread or function will be resumed
-        using the given `thread_args` as its argument(s).
-    */
-    pub fn schedule_next(
-        &self,
-        thread_or_function: LuaValue<'_>,
-        thread_args: LuaMultiValue<'_>,
-    ) -> LuaResult<TaskReference> {
-        self.queue_blocking_task(
-            TaskKind::Instant,
-            thread_or_function,
-            Some(thread_args),
-            None,
-        )
-    }
-
-    /**
-        Schedules a lua thread or function to resume ***after all***
-        currently resuming tasks, during this resumption point.
-
-        The given lua thread or function will be resumed
-        using the given `thread_args` as its argument(s).
-    */
-    pub fn schedule_deferred(
-        &self,
-        thread_or_function: LuaValue<'_>,
-        thread_args: LuaMultiValue<'_>,
-    ) -> LuaResult<TaskReference> {
-        self.queue_blocking_task(
-            TaskKind::Deferred,
-            thread_or_function,
-            Some(thread_args),
-            None,
-        )
-    }
-
-    /**
-        Schedules a lua thread or function to
-        be resumed after waiting asynchronously.
-
-        The given lua thread or function will be resumed
-        using the given `thread_args` as its argument(s).
-    */
-    pub fn schedule_delayed(
-        &self,
-        after_secs: f64,
-        thread_or_function: LuaValue<'_>,
-        thread_args: LuaMultiValue<'_>,
-    ) -> LuaResult<TaskReference> {
-        self.queue_async_task(thread_or_function, Some(thread_args), None, async move {
-            sleep(Duration::from_secs_f64(after_secs)).await;
-            Ok(None)
-        })
-    }
-
-    /**
-        Schedules a lua thread or function to
-        be resumed after waiting asynchronously.
-
-        The given lua thread or function will be resumed
-        using the elapsed time as its one and only argument.
-    */
-    pub fn schedule_wait(
-        &self,
-        after_secs: f64,
-        thread_or_function: LuaValue<'_>,
-    ) -> LuaResult<TaskReference> {
-        self.queue_async_task(
-            thread_or_function,
-            None,
-            // Wait should recycle the guid of the current task,
-            // which ensures that the TaskReference is identical and
-            // that any waits inside of spawned tasks will also cancel
-            self.guid_running.get(),
-            async move {
-                sleep(Duration::from_secs_f64(after_secs)).await;
-                Ok(None)
-            },
-        )
-    }
-
-    /**
-        Schedules a lua thread or function
-        to be resumed after running a future.
-
-        The given lua thread or function will be resumed
-        using the optional arguments returned by the future.
-    */
-    #[allow(dead_code)]
-    pub fn schedule_async<'sched, R, F, FR>(
-        &'sched self,
-        thread_or_function: LuaValue<'_>,
-        func: F,
-    ) -> LuaResult<TaskReference>
-    where
-        'sched: 'fut, // Scheduler must live at least as long as the future
-        R: ToLuaMulti<'static>,
-        F: 'static + Fn(&'static Lua) -> FR,
-        FR: 'static + Future<Output = LuaResult<R>>,
-    {
-        self.queue_async_task(thread_or_function, None, None, async move {
-            match func(self.lua).await {
-                Ok(res) => match res.to_lua_multi(self.lua) {
-                    Ok(multi) => Ok(Some(multi)),
-                    Err(e) => Err(e),
-                },
-                Err(e) => Err(e),
-            }
-        })
-    }
-
-    /**
-        Creates a function callable from Lua that runs an async
-        closure and returns the results of it to the call site.
-    */
-    pub fn make_scheduled_async_fn<A, R, F, FR>(&self, func: F) -> LuaResult<LuaFunction>
-    where
-        A: FromLuaMulti<'static>,
-        R: ToLuaMulti<'static>,
-        F: 'static + Fn(&'static Lua, A) -> FR,
-        FR: 'static + Future<Output = LuaResult<R>>,
-    {
-        let async_env_thread: LuaFunction = self.lua.named_registry_value("co.thread")?;
-        let async_env_yield: LuaFunction = self.lua.named_registry_value("co.yield")?;
-        self.lua
-            .load(TASK_ASYNC_IMPL_LUA)
-            .set_environment(
-                TableBuilder::new(self.lua)?
-                    .with_value("thread", async_env_thread)?
-                    .with_value("yield", async_env_yield)?
-                    .with_function(
-                        "resumeAsync",
-                        move |lua: &Lua, (thread, args): (LuaThread, A)| {
-                            let fut = func(lua, args);
-                            let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-                            sched.queue_async_task(LuaValue::Thread(thread), None, None, async {
-                                let rets = fut.await?;
-                                let mult = rets.to_lua_multi(lua)?;
-                                Ok(Some(mult))
-                            })
-                        },
-                    )?
-                    .build_readonly()?,
-            )?
-            .into_function()
-    }
-
-    /**
-        Registers a new background task with the task scheduler.
-
-        This will ensure that the task scheduler keeps running until a
-        call to [`TaskScheduler::deregister_background_task`] is made.
-
-        The returned [`TaskSchedulerUnregistrar::unregister`]
-        must be called upon completion of the background task to
-        prevent the task scheduler from running indefinitely.
-    */
-    pub fn register_background_task(&self) -> TaskSchedulerAsyncHandle {
-        let sender = self.futures_tx.clone();
-        sender
-            .send(TaskSchedulerMessage::Spawned)
-            .unwrap_or_else(|e| {
-                panic!(
-                    "\
-                    \nFailed to unregister background task - this is an internal error! \
-                    \nPlease report it at {} \
-                    \nDetails: {e} \
-                    ",
-                    env!("CARGO_PKG_REPOSITORY")
-                )
-            });
-        TaskSchedulerAsyncHandle::new(sender)
-    }
-
-    /**
-        Resumes the next queued Lua task, if one exists, blocking
-        the current thread until it either yields or finishes.
-    */
-    fn resume_next_blocking_task(
-        &self,
-        override_args: Option<LuaResult<LuaMultiValue>>,
-    ) -> TaskSchedulerState {
-        match {
-            let mut queue_guard = self.tasks_queue_blocking.borrow_mut();
-            let task = queue_guard.pop_front();
-            drop(queue_guard);
-            task
-        } {
-            None => TaskSchedulerState::new(self),
-            Some(task) => match self.resume_task(task, override_args) {
-                Ok(_) => TaskSchedulerState::new(self),
-                Err(task_err) => TaskSchedulerState::err(self, task_err),
-            },
-        }
-    }
-
-    /**
-        Awaits the first available queued future, and resumes its associated
-        Lua task which will be ready for resumption when that future wakes.
-
-        Panics if there are no futures currently queued.
-
-        Use [`TaskScheduler::next_queue_future_exists`]
-        to check if there are any queued futures.
-    */
-    async fn resume_next_async_task(&self) -> TaskSchedulerState {
-        let (task, result) = {
-            let mut futs = self
-                .futures
-                .try_lock()
-                .expect("Tried to resume next queued future while already resuming or modifying");
-            futs.next()
-                .await
-                .expect("Tried to resume next queued future but none are queued")
-        };
-        // Promote this future task to a blocking task and resume it
-        // right away, also taking care to not borrow mutably twice
-        // by dropping this guard before trying to resume it
-        let mut queue_guard = self.tasks_queue_blocking.borrow_mut();
-        queue_guard.push_front(task);
-        drop(queue_guard);
-        self.resume_next_blocking_task(result.transpose())
-    }
-
-    /**
-        Awaits the next background task registration
-        message, if any messages exist in the queue.
-
-        This is a no-op if there are no background tasks left running
-        and / or the background task messages channel was closed.
-    */
-    async fn receive_next_message(&self) -> TaskSchedulerState {
-        let message_opt = {
-            let mut rx = self.futures_rx.lock().await;
-            rx.recv().await
-        };
-        if let Some(message) = message_opt {
-            match message {
-                TaskSchedulerMessage::NewBlockingTaskReady => TaskSchedulerState::new(self),
-                TaskSchedulerMessage::Spawned => {
-                    let prev = self.futures_registered_count.get();
-                    self.futures_registered_count.set(prev + 1);
-                    TaskSchedulerState::new(self)
-                }
-                TaskSchedulerMessage::Terminated(result) => {
-                    let prev = self.futures_registered_count.get();
-                    self.futures_registered_count.set(prev - 1);
-                    if prev == 0 {
-                        panic!(
-                            r#"
-                            Terminated a background task without it running - this is an internal error!
-                            Please report it at {}
-                            "#,
-                            env!("CARGO_PKG_REPOSITORY")
-                        )
-                    }
-                    if let Err(e) = result {
-                        TaskSchedulerState::err(self, e)
-                    } else {
-                        TaskSchedulerState::new(self)
-                    }
-                }
-            }
-        } else {
-            TaskSchedulerState::new(self)
-        }
-    }
-
-    /**
-        Resumes the task scheduler queue.
-
-        This will run any spawned or deferred Lua tasks in a blocking manner.
-
-        Once all spawned and / or deferred Lua tasks have finished running,
-        this will process delayed tasks, waiting tasks, and native Rust
-        futures concurrently, awaiting the first one to be ready for resumption.
-    */
-    pub async fn resume_queue(&self) -> TaskSchedulerState {
-        let current = TaskSchedulerState::new(self);
-        /*
-            Resume tasks in the internal queue, in this order:
-
-            * 🛑 = blocking - lua tasks, in order
-            * ⏳ = async - first come, first serve
-
-            1. 🛑 Tasks from task.spawn / task.defer, the main thread
-            2. ⏳ Tasks from task.delay / task.wait, spawned background tasks
-        */
-        if current.has_blocking_tasks() {
-            self.resume_next_blocking_task(None)
-        } else if current.has_future_tasks() && current.has_background_tasks() {
-            // Futures, spawned background tasks
-            tokio::select! {
-                result = self.resume_next_async_task() => result,
-                result = self.receive_next_message() => result,
-            }
-        } else if current.has_future_tasks() {
-            // Futures
-            self.resume_next_async_task().await
-        } else if current.has_background_tasks() {
-            // Only spawned background tasks, these may then
-            // spawn new lua tasks and "wake up" the scheduler
-            self.receive_next_message().await
-        } else {
-            TaskSchedulerState::new(self)
-        }
     }
 }

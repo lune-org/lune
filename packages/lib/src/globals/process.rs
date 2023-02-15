@@ -50,7 +50,9 @@ pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
     let process_exit_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
     let process_exit_env_exit: LuaFunction = lua.create_function(|lua, code: Option<u8>| {
         let exit_code = code.map_or(ExitCode::SUCCESS, ExitCode::from);
-        let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+        let sched = lua
+            .app_data_ref::<&TaskScheduler>()
+            .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
         sched.set_exit_code(exit_code);
         Ok(())
     })?;
