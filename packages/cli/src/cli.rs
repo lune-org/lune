@@ -10,88 +10,83 @@ use crate::{
     gen::generate_docs_json_from_definitions,
     utils::{
         files::find_parse_file_path,
-        github::Client as GithubClient,
         listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
     },
 };
 
-pub(crate) const LUNE_SELENE_FILE_NAME: &str = "lune.yml";
-pub(crate) const LUNE_LUAU_FILE_NAME: &str = "luneTypes.d.luau";
-pub(crate) const LUNE_DOCS_FILE_NAME: &str = "luneDocs.json";
+pub(crate) const FILE_NAME_SELENE_TYPES: &str = "lune.yml";
+pub(crate) const FILE_NAME_LUAU_TYPES: &str = "luneTypes.d.luau";
+pub(crate) const FILE_NAME_DOCS: &str = "luneDocs.json";
 
-/// Lune CLI
-#[derive(Parser, Debug, Default)]
-#[command(author, version, about, long_about = None)]
+pub(crate) const FILE_CONTENTS_SELENE_TYPES: &str = include_str!("../../../lune.yml");
+pub(crate) const FILE_CONTENTS_LUAU_TYPES: &str = include_str!("../../../luneTypes.d.luau");
+
+/// A Luau script runner
+#[derive(Parser, Debug, Default, Clone)]
+#[command(version, long_about = None)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Cli {
-    /// Path to the file to run, or the name
-    /// of a luau file in a lune directory
-    ///
-    /// Can be omitted when downloading type definitions
+    /// Script name or full path to the file to run
     script_path: Option<String>,
-    /// Arguments to pass to the file as vararg (...)
+    /// Arguments to pass to the script, stored in process.args
     script_args: Vec<String>,
-    /// Pass this flag to list scripts inside of
-    /// nearby `lune` and / or `.lune` directories
+    /// List scripts found inside of a nearby `lune` directory
     #[clap(long, short = 'l')]
     list: bool,
-    /// Pass this flag to download the Selene type
-    /// definitions file to the current directory
+    /// Generate a Selene type definitions file in the current dir
     #[clap(long)]
-    download_selene_types: bool,
-    /// Pass this flag to download the Luau type
-    /// definitions file to the current directory
+    generate_selene_types: bool,
+    /// Generate a Luau type definitions file in the current dir
     #[clap(long)]
-    download_luau_types: bool,
-    /// Pass this flag to generate the Lune documentation file
-    /// from a luau type definitions file in the current directory
+    generate_luau_types: bool,
+    /// Generate a Lune documentation file for Luau LSP
     #[clap(long)]
     generate_docs_file: bool,
+    /// Generate the full Lune wiki directory
+    #[clap(long, hide = true)]
+    generate_wiki_dir: bool,
 }
 
 #[allow(dead_code)]
 impl Cli {
-    pub fn from_path<S>(path: S) -> Self
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_path<S>(mut self, path: S) -> Self
     where
         S: Into<String>,
     {
-        Self {
-            script_path: Some(path.into()),
-            ..Default::default()
-        }
+        self.script_path = Some(path.into());
+        self
     }
 
-    pub fn from_path_with_args<S, A>(path: S, args: A) -> Self
+    pub fn with_args<A>(mut self, args: A) -> Self
     where
-        S: Into<String>,
         A: Into<Vec<String>>,
     {
-        Self {
-            script_path: Some(path.into()),
-            script_args: args.into(),
-            ..Default::default()
-        }
+        self.script_args = args.into();
+        self
     }
 
-    pub fn download_selene_types() -> Self {
-        Self {
-            download_selene_types: true,
-            ..Default::default()
-        }
+    pub fn generate_selene_types(mut self) -> Self {
+        self.generate_selene_types = true;
+        self
     }
 
-    pub fn download_luau_types() -> Self {
-        Self {
-            download_luau_types: true,
-            ..Default::default()
-        }
+    pub fn generate_luau_types(mut self) -> Self {
+        self.generate_luau_types = true;
+        self
     }
 
-    pub fn list() -> Self {
-        Self {
-            list: true,
-            ..Default::default()
-        }
+    pub fn generate_docs_file(mut self) -> Self {
+        self.generate_docs_file = true;
+        self
+    }
+
+    pub fn list(mut self) -> Self {
+        self.list = true;
+        self
     }
 
     pub async fn run(self) -> Result<ExitCode> {
@@ -115,36 +110,37 @@ impl Cli {
                 }
             }
         }
-        // Download definition files, if wanted
-        let download_types_requested = self.download_selene_types || self.download_luau_types;
-        if download_types_requested {
-            let client = GithubClient::new();
-            let release = client.fetch_release_for_this_version().await?;
-            if self.download_selene_types {
-                println!("Downloading Selene type definitions...");
-                client
-                    .fetch_release_asset(&release, LUNE_SELENE_FILE_NAME)
-                    .await?;
+        // Generate (save) definition files, if wanted
+        let generate_file_requested =
+            self.generate_selene_types || self.generate_luau_types || self.generate_docs_file;
+        if generate_file_requested {
+            if self.generate_selene_types {
+                generate_and_save_file(FILE_NAME_SELENE_TYPES, "Selene type definitions", || {
+                    Ok(FILE_CONTENTS_SELENE_TYPES.to_string())
+                })
+                .await?;
             }
-            if self.download_luau_types {
-                println!("Downloading Luau type definitions...");
-                client
-                    .fetch_release_asset(&release, LUNE_LUAU_FILE_NAME)
-                    .await?;
+            if self.generate_luau_types {
+                generate_and_save_file(FILE_NAME_LUAU_TYPES, "Luau type definitions", || {
+                    Ok(FILE_CONTENTS_LUAU_TYPES.to_string())
+                })
+                .await?;
             }
-        }
-        // Generate docs file, if wanted
-        if self.generate_docs_file {
-            let defs_contents = read_to_string(LUNE_LUAU_FILE_NAME).await?;
-            let docs_root = generate_docs_json_from_definitions(&defs_contents, "roblox/global")?;
-            let docs_contents = serde_json::to_string_pretty(&docs_root)?;
-            write(LUNE_DOCS_FILE_NAME, &docs_contents).await?;
+            if self.generate_docs_file {
+                generate_and_save_file(FILE_NAME_DOCS, "Luau LSP documentation", || {
+                    let docs = &generate_docs_json_from_definitions(
+                        FILE_CONTENTS_LUAU_TYPES,
+                        "roblox/global",
+                    )?;
+                    Ok(serde_json::to_string_pretty(docs)?)
+                })
+                .await?;
+            }
         }
         if self.script_path.is_none() {
-            // Only downloading types without running a script is completely
+            // Only generating typedefs without running a script is completely
             // fine, and we should just exit the program normally afterwards
-            // Same thing goes for generating the docs file
-            if download_types_requested || self.generate_docs_file {
+            if generate_file_requested {
                 return Ok(ExitCode::SUCCESS);
             }
             // HACK: We know that we didn't get any arguments here but since
@@ -170,4 +166,35 @@ impl Cli {
             Ok(code) => code,
         })
     }
+}
+
+async fn generate_and_save_file(
+    file_path: &str,
+    display_name: &str,
+    f: impl Fn() -> Result<String>,
+) -> Result<()> {
+    #[cfg(test)]
+    use crate::tests::fmt_path_relative_to_workspace_root;
+    match f() {
+        Ok(file_contents) => {
+            write(file_path, file_contents).await?;
+            #[cfg(not(test))]
+            println!("Generated {display_name} file at '{file_path}'");
+            #[cfg(test)]
+            println!(
+                "Generated {display_name} file at '{}'",
+                fmt_path_relative_to_workspace_root(file_path)
+            );
+        }
+        Err(e) => {
+            #[cfg(not(test))]
+            println!("Failed to generate {display_name} file at '{file_path}'\n{e}");
+            #[cfg(test)]
+            println!(
+                "Failed to generate {display_name} file at '{}'\n{e}",
+                fmt_path_relative_to_workspace_root(file_path)
+            );
+        }
+    }
+    Ok(())
 }

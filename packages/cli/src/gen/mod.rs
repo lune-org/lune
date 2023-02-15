@@ -12,7 +12,7 @@ mod visitor;
 
 use self::{doc::DocsFunctionParamLink, visitor::DocumentationVisitor};
 
-fn parse_definitions(contents: &str) -> Result<DocumentationVisitor> {
+pub fn parse_definitions(contents: &str) -> Result<DocumentationVisitor> {
     // TODO: Properly handle the "declare class" syntax, for now we just skip it
     let mut no_declares = contents.to_string();
     while let Some(dec) = no_declares.find("\ndeclare class") {

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Type definitions are now bundled as part of the Lune executable, meaning they do not need to be downloaded, and are instead generated.
+  - `lune --generate-selene-types` will generate the Selene type definitions file, replacing `lune --download-selene-types`
+  - `lune --generate-luau-types` will generate the Luau type definitions file, replacing `lune --download-luau-types`
 - Improve error handling and messages for `net.serve`
 - Improve error handling and messages for `stdio.prompt`
 

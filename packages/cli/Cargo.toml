@@ -27,6 +27,7 @@ reqwest.workspace = true
 
 anyhow = "1.0.68"
 regex = "1.7.1"
+serde_yaml = "0.9.17"
 
 clap = { version = "4.1.1", features = ["derive"] }
 full_moon = { version = "0.17.0", features = ["roblox"] }
