@@ -6,13 +6,20 @@ use crate::{
 };
 
 const TASK_WAIT_IMPL_LUA: &str = r#"
-resume_after(thread(), ...)
+local seconds = ...
+local current = thread()
+resumeAfter(seconds, current)
 return yield()
 "#;
 
 const TASK_SPAWN_IMPL_LUA: &str = r#"
-local task = resume_first(...)
-resume_second(thread())
+-- Schedule the current thread at the front
+scheduleNext(thread())
+-- Schedule the thread to spawn at the front,
+-- the previous schedule now comes right after
+local task = scheduleNext(...)
+-- Give control over to the scheduler, which will
+-- resume the above tasks in order when its ready
 yield()
 return task
 "#;
@@ -46,8 +53,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                 .with_value("thread", task_wait_env_thread)?
                 .with_value("yield", task_wait_env_yield)?
                 .with_function(
-                    "resume_after",
-                    |lua, (thread, secs): (LuaThread, Option<f64>)| {
+                    "resumeAfter",
+                    |lua, (secs, thread): (Option<f64>, LuaThread)| {
                         let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
                         sched.schedule_wait(secs.unwrap_or(0f64), LuaValue::Thread(thread))
                     },
@@ -67,19 +74,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                 .with_value("thread", task_spawn_env_thread)?
                 .with_value("yield", task_spawn_env_yield)?
                 .with_function(
-                    "resume_first",
+                    "scheduleNext",
                     |lua, (tof, args): (LuaValue, LuaMultiValue)| {
                         let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-                        sched.schedule_current_resume(tof, args)
+                        sched.schedule_next(tof, args)
                     },
                 )?
-                .with_function("resume_second", |lua, thread: LuaThread| {
-                    let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-                    sched.schedule_after_current_resume(
-                        LuaValue::Thread(thread),
-                        LuaMultiValue::new(),
-                    )
-                })?
                 .build_readonly()?,
         )?
         .into_function()?;
@@ -138,7 +138,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                 sched.create_task(TaskKind::Instant, LuaValue::Function(func), None, None)?;
             lua.create_function(move |lua, args: LuaMultiValue| {
                 let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-                sched.resume_task(task, Some(args.into_vec()))
+                sched.resume_task(task, Some(Ok(args)))
             })
         })?,
     )?;

@@ -1,4 +1,4 @@
-local PORT = 8080
+local PORT = 8081
 local URL = `http://127.0.0.1:{PORT}`
 local WS_URL = `ws://127.0.0.1:{PORT}`
 local REQUEST = "Hello from client!"

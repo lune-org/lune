@@ -103,7 +103,7 @@ impl Lune {
         // Create our task scheduler and schedule the main thread on it
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);
-        sched.schedule_current_resume(
+        sched.schedule_next(
             LuaValue::Function(
                 lua.load(script_contents)
                     .set_name(script_name)
