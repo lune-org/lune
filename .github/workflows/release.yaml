@@ -34,43 +34,51 @@ jobs:
           release_name: ${{ steps.get_version.outputs.value }}
           draft: true
 
-  upload-assets:
+  assets:
     needs: ["create-release"]
-    name: Upload assets
+    strategy:
+      matrix:
+        include:
+          - name: Selene type definitions
+            cargo-args: "--generate-selene-types"
+            file-name: "lune.yml"
+            file-type: "application/x-yaml"
+
+          - name: Luau type definitions
+            cargo-args: "--generate-luau-types"
+            file-name: "luneTypes.d.luau"
+            file-type: "application/x-luau"
+
+          - name: Luau LSP documentation
+            cargo-args: "--generate-docs-file"
+            file-name: "luneDocs.json"
+            file-type: "application/json"
+
+    name: Generate - ${{ matrix.name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Upload Selene types to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: lune.yml
-          asset_name: lune.yml
-          asset_content_type: application/x-yaml
+          toolchain: stable
+          override: true
+          profile: minimal
 
-      - name: Upload Luau types to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: luneTypes.d.luau
-          asset_name: luneTypes.d.luau
-          asset_content_type: application/x-luau
+      - name: Generate file
+        run: cargo run --package lune-cli -- ${{ matrix.cargo-args }}
 
-      - name: Upload documentation file to release
+      - name: Upload file to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: luneDocs.json
-          asset_name: luneDocs.json
-          asset_content_type: application/json
+          asset_path: ${{ matrix.file-name }}
+          asset_name: ${{ matrix.file-name }}
+          asset_content_type: ${{ matrix.file-type }}
 
   release:
     needs: ["create-release"]
@@ -81,10 +89,12 @@ jobs:
             runner-os: windows-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-x86_64
             cargo-target: x86_64-pc-windows-msvc
+
           - name: Linux x86_64
             runner-os: ubuntu-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-x86_64
             cargo-target: x86_64-unknown-linux-gnu
+
           - name: macOS x86_64
             runner-os: macos-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-x86_64
