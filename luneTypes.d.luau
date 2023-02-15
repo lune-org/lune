@@ -8,6 +8,7 @@
 declare fs: {
 	--[=[
 		@within fs
+		@must_use
 
 		Reads a file at `path`.
 
@@ -24,6 +25,7 @@ declare fs: {
 	readFile: (path: string) -> string,
 	--[=[
 		@within fs
+		@must_use
 
 		Reads entries in a directory at `path`.
 		
@@ -96,6 +98,7 @@ declare fs: {
 	removeDir: (path: string) -> (),
 	--[=[
 		@within fs
+		@must_use
 
 		Checks if a given path is a file.
 
@@ -110,6 +113,7 @@ declare fs: {
 	isFile: (path: string) -> boolean,
 	--[=[
 		@within fs
+		@must_use
 
 		Checks if a given path is a directory.
 
@@ -192,6 +196,7 @@ declare net: {
 	request: (config: string | NetFetchParams) -> NetFetchResponse,
 	--[=[
 		@within net
+		@must_use
 
 		Connects to a web socket at the given URL.
 		
@@ -216,6 +221,7 @@ declare net: {
 	serve: (port: number, handlerOrConfig: NetServeHttpHandler | NetServeConfig) -> NetServeHandle,
 	--[=[
 		@within net
+		@must_use
 
 		Encodes the given value as JSON.
 
@@ -226,6 +232,7 @@ declare net: {
 	jsonEncode: (value: any, pretty: boolean?) -> string,
 	--[=[
 		@within net
+		@must_use
 
 		Decodes the given JSON string into a lua value.
 
@@ -259,18 +266,21 @@ export type ProcessSpawnResult = {
 declare process: {
 	--[=[
 		@within process
+		@read_only
 
 		The arguments given when running the Lune script.
 	]=]
 	args: { string },
 	--[=[
 		@within process
+		@read_only
 
 		The current working directory in which the Lune script is running.
 	]=]
 	cwd: string,
 	--[=[
 		@within process
+		@new_fields
 
 		Current environment variables for this process.
 
@@ -323,6 +333,7 @@ declare process: {
 declare stdio: {
 	--[=[
 		@within stdio
+		@must_use
 
 		Return an ANSI string that can be used to modify the persistent output color.
 
@@ -343,6 +354,7 @@ declare stdio: {
 	color: (color: "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> string,
 	--[=[
 		@within stdio
+		@must_use
 
 		Return an ANSI string that can be used to modify the persistent output style.
 
@@ -363,6 +375,7 @@ declare stdio: {
 	style: (style: "reset" | "bold" | "dim") -> string,
 	--[=[
 		@within stdio
+		@must_use
 
 		Formats arguments into a human-readable string with syntax highlighting for tables.
 
@@ -388,6 +401,7 @@ declare stdio: {
 	ewrite: (s: string) -> (),
 	--[=[
 		@within stdio
+		@must_use
 
 		Prompts for user input using the wanted kind of prompt:
 

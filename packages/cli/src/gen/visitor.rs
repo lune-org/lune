@@ -10,6 +10,7 @@ use super::{
     tag::{DocsTag, DocsTagKind, DocsTagList},
 };
 
+#[derive(Debug, Clone)]
 pub struct DocumentationVisitor {
     pub globals: Vec<(String, DocsGlobal)>,
     pub functions: Vec<(String, DocsFunction)>,

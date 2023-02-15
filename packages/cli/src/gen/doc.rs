@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocsGlobal {
     pub documentation: String,
     pub keys: HashMap<String, String>,
@@ -10,13 +10,13 @@ pub struct DocsGlobal {
     pub code_sample: String,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocsFunctionParamLink {
     pub name: String,
     pub documentation: String,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocsFunction {
     #[serde(skip)]
     pub global_name: String,
@@ -27,7 +27,7 @@ pub struct DocsFunction {
     pub code_sample: String,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocsParam {
     #[serde(skip)]
     pub global_name: String,
@@ -36,7 +36,7 @@ pub struct DocsParam {
     pub documentation: String,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocsReturn {
     #[serde(skip)]
     pub global_name: String,
