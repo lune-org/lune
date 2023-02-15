@@ -50,7 +50,7 @@ jobs:
             file-type: "application/x-luau"
 
           - name: Luau LSP documentation
-            cargo-args: "--generate-docs-file"
+            cargo-args: "--generate-luau-types --generate-docs-file"
             file-name: "luneDocs.json"
             file-type: "application/json"
 
