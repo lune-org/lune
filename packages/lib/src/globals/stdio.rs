@@ -49,8 +49,8 @@ fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
         PromptKind::Text => {
             let input: String = Input::with_theme(&theme)
                 .allow_empty(true)
-                .with_prompt(options.text.unwrap_or("".to_string()))
-                .with_initial_text(options.default_string.unwrap_or("".to_string()))
+                .with_prompt(options.text.unwrap_or_default())
+                .with_initial_text(options.default_string.unwrap_or_default())
                 .interact_text()?;
             Ok(PromptResult::String(input))
         }
@@ -66,7 +66,7 @@ fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
         }
         PromptKind::Select => {
             let chosen = Select::with_theme(&prompt_theme())
-                .with_prompt(&options.text.unwrap_or("".to_string()))
+                .with_prompt(&options.text.unwrap_or_default())
                 .items(&options.options.expect("Missing options in prompt options"))
                 .interact_opt()?;
             Ok(match chosen {
@@ -76,7 +76,7 @@ fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
         }
         PromptKind::MultiSelect => {
             let chosen = MultiSelect::with_theme(&prompt_theme())
-                .with_prompt(&options.text.unwrap_or("".to_string()))
+                .with_prompt(&options.text.unwrap_or_default())
                 .items(&options.options.expect("Missing options in prompt options"))
                 .interact_opt()?;
             Ok(match chosen {

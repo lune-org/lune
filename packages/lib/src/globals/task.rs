@@ -66,7 +66,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                         let sched = lua
                             .app_data_ref::<&TaskScheduler>()
                             .expect(ERR_MISSING_SCHEDULER);
-                        sched.schedule_wait(secs.unwrap_or(0f64), LuaValue::Thread(thread))
+                        sched.schedule_wait(secs.unwrap_or_default(), LuaValue::Thread(thread))
                     },
                 )?
                 .build_readonly()?,
