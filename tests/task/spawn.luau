@@ -31,6 +31,34 @@ end)
 task.spawn(thread2)
 assert(flag3, "Spawn should run threads made from coroutine.create")
 
+-- Spawn should be able to be nested
+
+local flag4: boolean = false
+task.spawn(function()
+	local function nested3()
+		task.spawn(function()
+			task.wait(0.05)
+			flag4 = true
+		end)
+	end
+	local function nested2()
+		task.spawn(function()
+			task.wait(0.05)
+			nested3()
+		end)
+	end
+	local function nested1()
+		task.spawn(function()
+			task.wait(0.05)
+			nested2()
+		end)
+	end
+	task.wait(0.05)
+	nested1()
+end)
+task.wait(0.25)
+assert(flag4, "Spawn should work with nesting")
+
 -- Varargs should get passed correctly
 
 local fcheck = require("./fcheck")

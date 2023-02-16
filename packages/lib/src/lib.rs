@@ -14,6 +14,7 @@ mod tests;
 use crate::utils::formatting::pretty_format_luau_error;
 
 pub use globals::LuneGlobal;
+pub use lua::create_lune_lua;
 
 #[derive(Clone, Debug, Default)]
 pub struct Lune {
@@ -88,18 +89,8 @@ impl Lune {
         script_name: &str,
         script_contents: &str,
     ) -> Result<ExitCode, LuaError> {
-        let lua = Lua::new().into_static();
-        // Store original lua global functions in the registry so we can use
-        // them later without passing them around and dealing with lifetimes
-        lua.set_named_registry_value("require", lua.globals().get::<_, LuaFunction>("require")?)?;
-        lua.set_named_registry_value("print", lua.globals().get::<_, LuaFunction>("print")?)?;
-        lua.set_named_registry_value("error", lua.globals().get::<_, LuaFunction>("error")?)?;
-        let coroutine: LuaTable = lua.globals().get("coroutine")?;
-        lua.set_named_registry_value("co.thread", coroutine.get::<_, LuaFunction>("running")?)?;
-        lua.set_named_registry_value("co.yield", coroutine.get::<_, LuaFunction>("yield")?)?;
-        lua.set_named_registry_value("co.close", coroutine.get::<_, LuaFunction>("close")?)?;
-        let debug: LuaTable = lua.globals().raw_get("debug")?;
-        lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
+        // Create our special lune-flavored Lua object with extra registry values
+        let lua = create_lune_lua().expect("Failed to create Lua object");
         // Create our task scheduler and schedule the main thread on it
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);

@@ -94,9 +94,12 @@ impl TaskSchedulerState {
         Returns `true` if the task scheduler is done,
         meaning it has no lua threads left to run, and
         no spawned tasks are running in the background.
+
+        Also returns `true` if a task has requested to exit the process.
     */
     pub fn is_done(&self) -> bool {
-        self.num_blocking == 0 && self.num_futures == 0 && self.num_background == 0
+        self.exit_code.is_some()
+            || (self.num_blocking == 0 && self.num_futures == 0 && self.num_background == 0)
     }
 }
 

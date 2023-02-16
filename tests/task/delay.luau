@@ -26,6 +26,34 @@ assert(flag, "Delay should work with yielding (1)")
 task.wait(0.1)
 assert(not flag2, "Delay should work with yielding (2)")
 
+-- Defer should be able to be nested
+
+local flag4: boolean = false
+task.defer(function()
+	local function nested3()
+		task.defer(function()
+			task.wait(0.05)
+			flag4 = true
+		end)
+	end
+	local function nested2()
+		task.defer(function()
+			task.wait(0.05)
+			nested3()
+		end)
+	end
+	local function nested1()
+		task.defer(function()
+			task.wait(0.05)
+			nested2()
+		end)
+	end
+	task.wait(0.05)
+	nested1()
+end)
+task.wait(0.25)
+assert(flag4, "Defer should work with nesting")
+
 -- Varargs should get passed correctly
 
 local fcheck = require("./fcheck")

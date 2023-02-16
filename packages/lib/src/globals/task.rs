@@ -98,8 +98,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     // We want the task scheduler to be transparent,
     // but it does not return real lua threads, so
     // we need to override some globals to fake it
-    let globals = lua.globals();
-    let type_original: LuaFunction = globals.get("type")?;
+    let type_original: LuaFunction = lua.named_registry_value("type")?;
     let type_proxy = lua.create_function(move |_, value: LuaValue| {
         if let LuaValue::UserData(u) = &value {
             if u.is::<TaskReference>() {
@@ -108,7 +107,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
         }
         type_original.call(value)
     })?;
-    let typeof_original: LuaFunction = globals.get("typeof")?;
+    let typeof_original: LuaFunction = lua.named_registry_value("typeof")?;
     let typeof_proxy = lua.create_function(move |_, value: LuaValue| {
         if let LuaValue::UserData(u) = &value {
             if u.is::<TaskReference>() {
@@ -117,6 +116,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
         }
         typeof_original.call(value)
     })?;
+    let globals = lua.globals();
     globals.set("type", type_proxy)?;
     globals.set("typeof", typeof_proxy)?;
     // Functions in the built-in coroutine library also need to be

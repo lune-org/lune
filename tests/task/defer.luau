@@ -39,6 +39,26 @@ end)
 task.wait()
 assert(flag3 == 3, "Defer should run after spawned threads")
 
+-- Delay should be able to be nested
+
+local flag4: boolean = false
+task.delay(0.05, function()
+	local function nested3()
+		task.delay(0.05, function()
+			flag4 = true
+		end)
+	end
+	local function nested2()
+		task.delay(0.05, nested3)
+	end
+	local function nested1()
+		task.delay(0.05, nested2)
+	end
+	nested1()
+end)
+task.wait(0.25)
+assert(flag4, "Defer should work with nesting")
+
 -- Varargs should get passed correctly
 
 local fcheck = require("./fcheck")
