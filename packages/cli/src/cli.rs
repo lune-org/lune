@@ -7,7 +7,7 @@ use lune::Lune;
 use tokio::fs::{read_to_string, write};
 
 use crate::{
-    gen::generate_docs_json_from_definitions,
+    gen::{generate_docs_json_from_definitions, generate_wiki_dir_from_definitions},
     utils::{
         files::find_parse_file_path,
         listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
@@ -111,8 +111,10 @@ impl Cli {
             }
         }
         // Generate (save) definition files, if wanted
-        let generate_file_requested =
-            self.generate_selene_types || self.generate_luau_types || self.generate_docs_file;
+        let generate_file_requested = self.generate_selene_types
+            || self.generate_luau_types
+            || self.generate_docs_file
+            || self.generate_wiki_dir;
         if generate_file_requested {
             if self.generate_selene_types {
                 generate_and_save_file(FILE_NAME_SELENE_TYPES, "Selene type definitions", || {
@@ -128,13 +130,12 @@ impl Cli {
             }
             if self.generate_docs_file {
                 generate_and_save_file(FILE_NAME_DOCS, "Luau LSP documentation", || {
-                    let docs = &generate_docs_json_from_definitions(
-                        FILE_CONTENTS_LUAU_TYPES,
-                        "roblox/global",
-                    )?;
-                    Ok(serde_json::to_string_pretty(docs)?)
+                    generate_docs_json_from_definitions(FILE_CONTENTS_LUAU_TYPES, "roblox/global")
                 })
                 .await?;
+            }
+            if self.generate_wiki_dir {
+                generate_wiki_dir_from_definitions(FILE_CONTENTS_LUAU_TYPES).await?;
             }
         }
         if self.script_path.is_none() {

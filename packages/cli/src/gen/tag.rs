@@ -6,6 +6,7 @@ pub enum DocsTagKind {
     Within,
     Param,
     Return,
+    Modifier,
 }
 
 impl DocsTagKind {
@@ -15,6 +16,7 @@ impl DocsTagKind {
             "within" => Ok(Self::Within),
             "param" => Ok(Self::Param),
             "return" => Ok(Self::Return),
+            "must_use" | "read_only" | "new_fields" => Ok(Self::Modifier),
             s => bail!("Unknown docs tag: '{}'", s),
         }
     }

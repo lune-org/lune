@@ -33,7 +33,6 @@ async fn generate_luau_types() -> Result<()> {
 
 #[tokio::test]
 async fn generate_docs_file() -> Result<()> {
-    run_cli(Cli::new().generate_luau_types()).await?;
     run_cli(Cli::new().generate_docs_file()).await?;
     ensure_file_exists_and_is(FILE_NAME_DOCS, FileType::Json).await?;
     Ok(())

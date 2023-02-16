@@ -21,7 +21,7 @@ pub struct DocumentationVisitor {
 
 impl DocumentationVisitor {
     pub fn new() -> Self {
-        let tag_regex = Regex::new(r#"^@(\S+)\s+(\S+)(.*)$"#).unwrap();
+        let tag_regex = Regex::new(r#"^@(\S+)\s*(.*)$"#).unwrap();
         Self {
             globals: vec![],
             functions: vec![],
@@ -35,12 +35,18 @@ impl DocumentationVisitor {
         if self.tag_regex.is_match(line) {
             let captures = self.tag_regex.captures(line).unwrap();
             let tag_kind = captures.get(1).unwrap().as_str();
-            let tag_name = captures.get(2).unwrap().as_str();
-            let tag_contents = captures.get(3).unwrap().as_str();
+            let tag_rest = captures.get(2).unwrap().as_str();
+            let mut tag_words = tag_rest.split_whitespace().collect::<Vec<_>>();
+            let tag_name = if tag_words.is_empty() {
+                String::new()
+            } else {
+                tag_words.remove(0).to_string()
+            };
+            let tag_contents = tag_words.join(" ");
             Some(DocsTag {
                 kind: DocsTagKind::parse(tag_kind).unwrap(),
-                name: tag_name.to_string(),
-                contents: tag_contents.to_string(),
+                name: tag_name,
+                contents: tag_contents,
             })
         } else {
             None
