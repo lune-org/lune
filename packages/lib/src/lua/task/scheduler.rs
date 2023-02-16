@@ -8,10 +8,7 @@ use std::{
 use futures_util::{future::LocalBoxFuture, stream::FuturesUnordered, Future};
 use mlua::prelude::*;
 
-use tokio::{
-    sync::{mpsc, Mutex as AsyncMutex},
-    time::Instant,
-};
+use tokio::sync::{mpsc, Mutex as AsyncMutex};
 
 use super::message::TaskSchedulerMessage;
 pub use super::{task_kind::TaskKind, task_reference::TaskReference};
@@ -24,7 +21,6 @@ type TaskFuture<'fut> = LocalBoxFuture<'fut, (TaskReference, TaskFutureRets<'fut
 pub struct Task {
     thread: LuaRegistryKey,
     args: LuaRegistryKey,
-    queued_at: Instant,
 }
 
 /// A task scheduler that implements task queues
@@ -147,11 +143,9 @@ impl<'fut> TaskScheduler<'fut> {
         let task_args_key: LuaRegistryKey = self.lua.create_registry_value(task_args_vec)?;
         let task_thread_key: LuaRegistryKey = self.lua.create_registry_value(task_thread)?;
         // Create the full task struct
-        let queued_at = Instant::now();
         let task = Task {
             thread: task_thread_key,
             args: task_args_key,
-            queued_at,
         };
         // Create the task ref to use
         let task_ref = if let Some(reusable_guid) = guid_to_reuse {
@@ -239,33 +233,16 @@ impl<'fut> TaskScheduler<'fut> {
         });
         self.lua.remove_registry_value(task.thread)?;
         self.lua.remove_registry_value(task.args)?;
-        if let Some(args_res) = args_opt_res {
-            match args_res {
-                Err(e) => Err(e), // FIXME: We need to throw this error in lua to let pcall & friends handle it properly
-                Ok(args) => {
-                    self.guid_running.set(Some(reference.id()));
-                    let rets = thread.resume::<_, LuaMultiValue>(args);
-                    self.guid_running.set(None);
-                    rets
-                }
-            }
-        } else {
-            /*
-                The tasks did not get any arguments from either:
-
-                - Providing arguments at the call site for creating the task
-                - Returning arguments from a future that created this task
-
-                The only tasks that do not get any arguments from either
-                of those sources are waiting tasks, and waiting tasks
-                want the amount of time waited returned to them.
-            */
-            let elapsed = task.queued_at.elapsed().as_secs_f64();
-            self.guid_running.set(Some(reference.id()));
-            let rets = thread.resume::<_, LuaMultiValue>(elapsed);
-            self.guid_running.set(None);
-            rets
-        }
+        self.guid_running.set(Some(reference.id()));
+        let rets = match args_opt_res {
+            Some(args_res) => match args_res {
+                Err(err) => Err(err), // FIXME: We need to throw this error in lua to let pcall & friends handle it properly
+                Ok(args) => thread.resume::<_, LuaMultiValue>(args),
+            },
+            None => thread.resume(()),
+        };
+        self.guid_running.set(None);
+        rets
     }
 
     /**
@@ -284,7 +261,7 @@ impl<'fut> TaskScheduler<'fut> {
         -- Here we have either yielded or finished the above task
         ```
     */
-    pub(super) fn queue_blocking_task(
+    pub(crate) fn queue_blocking_task(
         &self,
         kind: TaskKind,
         thread_or_function: LuaValue<'_>,
@@ -324,7 +301,7 @@ impl<'fut> TaskScheduler<'fut> {
     /**
         Queues a new future to run on the task scheduler.
     */
-    pub(super) fn queue_async_task(
+    pub(crate) fn queue_async_task(
         &self,
         thread_or_function: LuaValue<'_>,
         thread_args: Option<LuaMultiValue<'_>>,

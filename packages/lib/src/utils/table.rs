@@ -2,7 +2,7 @@ use std::future::Future;
 
 use mlua::prelude::*;
 
-use crate::lua::task::{TaskScheduler, TaskSchedulerAsyncExt};
+use crate::lua::ext::LuaAsyncExt;
 
 pub struct TableBuilder {
     lua: &'static Lua,
@@ -78,12 +78,8 @@ impl TableBuilder {
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        let sched = self
-            .lua
-            .app_data_ref::<&TaskScheduler>()
-            .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
-        let func = sched.make_scheduled_async_fn(func)?;
-        self.with_value(key, LuaValue::Function(func))
+        let f = self.lua.create_async_function(func)?;
+        self.with_value(key, LuaValue::Function(f))
     }
 
     pub fn build_readonly(self) -> LuaResult<LuaTable<'static>> {

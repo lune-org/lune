@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use mlua::prelude::*;
+use tokio::time::{sleep, Instant};
 
 use crate::{
     lua::task::{TaskKind, TaskReference, TaskScheduler, TaskSchedulerScheduleExt},
@@ -6,13 +9,6 @@ use crate::{
 };
 
 const ERR_MISSING_SCHEDULER: &str = "Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption";
-
-const TASK_WAIT_IMPL_LUA: &str = r#"
-local seconds = ...
-local current = thread()
-resumeAfter(seconds, current)
-return yield()
-"#;
 
 const TASK_SPAWN_IMPL_LUA: &str = r#"
 -- Schedule the current thread at the front
@@ -27,58 +23,14 @@ return task
 "#;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
-    // Create a user-accessible function that cancels a task
-    let task_cancel = lua.create_function(|lua, task: TaskReference| {
-        let sched = lua
-            .app_data_ref::<&TaskScheduler>()
-            .expect(ERR_MISSING_SCHEDULER);
-        sched.remove_task(task)?;
-        Ok(())
-    })?;
-    // Create functions that manipulate non-blocking tasks in the scheduler
-    let task_defer = lua.create_function(|lua, (tof, args): (LuaValue, LuaMultiValue)| {
-        let sched = lua
-            .app_data_ref::<&TaskScheduler>()
-            .expect(ERR_MISSING_SCHEDULER);
-        sched.schedule_blocking_deferred(tof, args)
-    })?;
-    let task_delay =
-        lua.create_function(|lua, (secs, tof, args): (f64, LuaValue, LuaMultiValue)| {
-            let sched = lua
-                .app_data_ref::<&TaskScheduler>()
-                .expect(ERR_MISSING_SCHEDULER);
-            sched.schedule_delayed(secs, tof, args)
-        })?;
-    // Create our task wait function, this is a bit different since
-    // we have no way to yield from c / rust, we need to load a
-    // lua chunk that schedules and yields for us instead
-    let task_wait_env_thread: LuaFunction = lua.named_registry_value("co.thread")?;
-    let task_wait_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
-    let task_wait = lua
-        .load(TASK_WAIT_IMPL_LUA)
-        .set_environment(
-            TableBuilder::new(lua)?
-                .with_value("thread", task_wait_env_thread)?
-                .with_value("yield", task_wait_env_yield)?
-                .with_function(
-                    "resumeAfter",
-                    |lua, (secs, thread): (Option<f64>, LuaThread)| {
-                        let sched = lua
-                            .app_data_ref::<&TaskScheduler>()
-                            .expect(ERR_MISSING_SCHEDULER);
-                        sched.schedule_wait(secs.unwrap_or_default(), LuaValue::Thread(thread))
-                    },
-                )?
-                .build_readonly()?,
-        )?
-        .into_function()?;
-    // The spawn function also needs special treatment,
+    // The spawn function needs special treatment,
     // we need to yield right away to allow the
     // spawned task to run until first yield
     let task_spawn_env_thread: LuaFunction = lua.named_registry_value("co.thread")?;
     let task_spawn_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
     let task_spawn = lua
         .load(TASK_SPAWN_IMPL_LUA)
+        .set_name("=task.spawn")?
         .set_environment(
             TableBuilder::new(lua)?
                 .with_value("thread", task_spawn_env_thread)?
@@ -164,10 +116,41 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     )?;
     // All good, return the task scheduler lib
     TableBuilder::new(lua)?
-        .with_value("cancel", task_cancel)?
         .with_value("spawn", task_spawn)?
-        .with_value("defer", task_defer)?
-        .with_value("delay", task_delay)?
-        .with_value("wait", task_wait)?
+        .with_function("cancel", task_cancel)?
+        .with_function("defer", task_defer)?
+        .with_function("delay", task_delay)?
+        .with_async_function("wait", task_wait)?
         .build_readonly()
+}
+
+fn task_cancel(lua: &Lua, task: TaskReference) -> LuaResult<()> {
+    let sched = lua
+        .app_data_ref::<&TaskScheduler>()
+        .expect(ERR_MISSING_SCHEDULER);
+    sched.remove_task(task)?;
+    Ok(())
+}
+
+fn task_defer(lua: &Lua, (tof, args): (LuaValue, LuaMultiValue)) -> LuaResult<TaskReference> {
+    let sched = lua
+        .app_data_ref::<&TaskScheduler>()
+        .expect(ERR_MISSING_SCHEDULER);
+    sched.schedule_blocking_deferred(tof, args)
+}
+
+fn task_delay(
+    lua: &Lua,
+    (secs, tof, args): (f64, LuaValue, LuaMultiValue),
+) -> LuaResult<TaskReference> {
+    let sched = lua
+        .app_data_ref::<&TaskScheduler>()
+        .expect(ERR_MISSING_SCHEDULER);
+    sched.schedule_blocking_after_seconds(secs, tof, args)
+}
+
+async fn task_wait(_: &Lua, secs: Option<f64>) -> LuaResult<f64> {
+    let start = Instant::now();
+    sleep(Duration::from_secs_f64(secs.unwrap_or_default())).await;
+    Ok(start.elapsed().as_secs_f64())
 }

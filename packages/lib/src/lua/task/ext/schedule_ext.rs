@@ -26,17 +26,11 @@ pub trait TaskSchedulerScheduleExt {
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference>;
 
-    fn schedule_delayed(
+    fn schedule_blocking_after_seconds(
         &self,
         after_secs: f64,
         thread_or_function: LuaValue<'_>,
         thread_args: LuaMultiValue<'_>,
-    ) -> LuaResult<TaskReference>;
-
-    fn schedule_wait(
-        &self,
-        after_secs: f64,
-        thread_or_function: LuaValue<'_>,
     ) -> LuaResult<TaskReference>;
 }
 
@@ -93,7 +87,7 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
         The given lua thread or function will be resumed
         using the given `thread_args` as its argument(s).
     */
-    fn schedule_delayed(
+    fn schedule_blocking_after_seconds(
         &self,
         after_secs: f64,
         thread_or_function: LuaValue<'_>,
@@ -103,31 +97,5 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
             sleep(Duration::from_secs_f64(after_secs)).await;
             Ok(None)
         })
-    }
-
-    /**
-        Schedules a lua thread or function to
-        be resumed after waiting asynchronously.
-
-        The given lua thread or function will be resumed
-        using the elapsed time as its one and only argument.
-    */
-    fn schedule_wait(
-        &self,
-        after_secs: f64,
-        thread_or_function: LuaValue<'_>,
-    ) -> LuaResult<TaskReference> {
-        self.queue_async_task(
-            thread_or_function,
-            None,
-            // Wait should recycle the guid of the current task,
-            // which ensures that the TaskReference is identical and
-            // that any waits inside of spawned tasks will also cancel
-            self.guid_running.get(),
-            async move {
-                sleep(Duration::from_secs_f64(after_secs)).await;
-                Ok(None)
-            },
-        )
     }
 }

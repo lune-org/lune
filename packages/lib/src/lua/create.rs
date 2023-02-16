@@ -28,8 +28,6 @@ for level = 2, 2^8 do
     end
 end
 if #lines > 0 then
-    push(lines, 1, "Stack Begin")
-    push(lines, "Stack End")
     return concat(lines, "\n")
 else
     return nil
@@ -43,6 +41,7 @@ end
 
     ---
     * `"require"` -> `require`
+    * `"select"` -> `select`
     ---
     * `"print"` -> `print`
     * `"error"` -> `error`
@@ -68,6 +67,7 @@ pub fn create() -> LuaResult<&'static Lua> {
     // Store original lua global functions in the registry so we can use
     // them later without passing them around and dealing with lifetimes
     lua.set_named_registry_value("require", globals.get::<_, LuaFunction>("require")?)?;
+    lua.set_named_registry_value("select", globals.get::<_, LuaFunction>("select")?)?;
     lua.set_named_registry_value("print", globals.get::<_, LuaFunction>("print")?)?;
     lua.set_named_registry_value("error", globals.get::<_, LuaFunction>("error")?)?;
     lua.set_named_registry_value("type", globals.get::<_, LuaFunction>("type")?)?;
@@ -85,6 +85,7 @@ pub fn create() -> LuaResult<&'static Lua> {
     trace_env.set("format", string.get::<_, LuaFunction>("format")?)?;
     let trace_fn = lua
         .load(TRACE_IMPL_LUA)
+        .set_name("=dbg.trace")?
         .set_environment(trace_env)?
         .into_function()?;
     lua.set_named_registry_value("dbg.trace", trace_fn)?;
