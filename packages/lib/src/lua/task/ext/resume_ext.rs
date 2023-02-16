@@ -1,8 +1,11 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 
 use mlua::prelude::*;
 
 use futures_util::StreamExt;
+use tokio::time::sleep;
 
 use super::super::{message::TaskSchedulerMessage, result::TaskSchedulerState, TaskScheduler};
 
@@ -48,9 +51,23 @@ impl TaskSchedulerResumeExt for TaskScheduler<'_> {
             // 3. Async tasks
             resume_next_async_task(self).await
         } else if current.has_background_tasks() {
-            // 4. Background tasks
+            // 4. Only background tasks left, meaning the task scheduler will
+            // get woken up by things such as a new network connection, we can
+            // take advantage of this and perform a GC cycle right away since
+            // lua threads don't care about that performance hit right now
+            if self.lua.gc_is_running() {
+                // Finish current (maybe partial) GC cycle if it is already running
+                self.lua.gc_collect().expect("Failed to garbage collect");
+            }
+            self.lua.gc_collect().expect("Failed to garbage collect");
+            self.lua.expire_registry_values();
+            // All cleaned up, wait for the next background task to wake
             receive_next_message(self).await
         } else {
+            // 5. No tasks left, here we sleep one millisecond in case
+            // the caller of resume_queue accidentally calls this in
+            // a busy loop to prevent cpu usage from going to 100%
+            sleep(Duration::from_millis(1)).await;
             TaskSchedulerState::new(self)
         }
     }
