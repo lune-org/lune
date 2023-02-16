@@ -1,13 +1,15 @@
+use anyhow::Result;
 use full_moon::{
     ast::types::{ExportedTypeDeclaration, TypeField, TypeFieldKey},
+    parse as parse_luau_ast,
     tokenizer::{Token, TokenType},
     visitors::Visitor,
 };
 use regex::Regex;
 
 use super::{
-    doc::{DocsFunction, DocsFunctionParamLink, DocsGlobal, DocsParam, DocsReturn},
-    tag::{DocsTag, DocsTagKind, DocsTagList},
+    {DocsFunction, DocsFunctionParamLink, DocsGlobal, DocsParam, DocsReturn},
+    {DocsTag, DocsTagKind, DocsTagList},
 };
 
 #[derive(Debug, Clone)]
@@ -29,6 +31,25 @@ impl DocumentationVisitor {
             returns: vec![],
             tag_regex,
         }
+    }
+
+    pub fn from_definitions(definitions_file_contents: &str) -> Result<Self> {
+        // TODO: Properly handle the "declare class" syntax, for now we just skip it
+        let mut no_declares = definitions_file_contents.to_string();
+        while let Some(dec) = no_declares.find("\ndeclare class") {
+            let end = no_declares.find("\nend").unwrap();
+            let before = &no_declares[0..dec];
+            let after = &no_declares[end + 4..];
+            no_declares = format!("{before}{after}");
+        }
+        let (regex, replacement) = (
+            Regex::new(r#"declare (?P<n>\w+): "#).unwrap(),
+            r#"export type $n = "#,
+        );
+        let defs_ast = parse_luau_ast(&regex.replace_all(&no_declares, replacement))?;
+        let mut visitor = DocumentationVisitor::new();
+        visitor.visit_ast(&defs_ast);
+        Ok(visitor)
     }
 
     pub fn parse_moonwave_style_tag(&self, line: &str) -> Option<DocsTag> {

@@ -1,47 +1,24 @@
 use std::{collections::HashMap, fmt::Write, path::PathBuf};
 
 use anyhow::{Context, Result};
-use regex::Regex;
-use serde_json::{Map, Value};
+use serde_json::{Map as JsonMap, Value as JsonValue};
 
-use full_moon::{parse as parse_luau_ast, visitors::Visitor};
 use tokio::fs::{create_dir_all, write};
 
 mod doc;
-mod tag;
-mod visitor;
 
 const GENERATED_COMMENT_TAG: &str = "@generated with lune-cli";
 
-use self::{doc::DocsFunctionParamLink, visitor::DocumentationVisitor};
-
-pub fn parse_definitions(contents: &str) -> Result<DocumentationVisitor> {
-    // TODO: Properly handle the "declare class" syntax, for now we just skip it
-    let mut no_declares = contents.to_string();
-    while let Some(dec) = no_declares.find("\ndeclare class") {
-        let end = no_declares.find("\nend").unwrap();
-        let before = &no_declares[0..dec];
-        let after = &no_declares[end + 4..];
-        no_declares = format!("{before}{after}");
-    }
-    let (regex, replacement) = (
-        Regex::new(r#"declare (?P<n>\w+): "#).unwrap(),
-        r#"export type $n = "#,
-    );
-    let defs_ast = parse_luau_ast(&regex.replace_all(&no_declares, replacement))?;
-    let mut visitor = DocumentationVisitor::new();
-    visitor.visit_ast(&defs_ast);
-    Ok(visitor)
-}
+use self::doc::{DocsFunctionParamLink, DocumentationVisitor};
 
 pub fn generate_docs_json_from_definitions(contents: &str, namespace: &str) -> Result<String> {
-    let visitor = parse_definitions(contents)?;
+    let visitor = DocumentationVisitor::from_definitions(contents)?;
     /*
         Extract globals, functions, params, returns from the visitor
         Here we will also convert the plain names into proper namespaced names according to the spec at
         https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/api-docs/en-us.json
     */
-    let mut map = Map::new();
+    let mut map = JsonMap::new();
     for (name, mut doc) in visitor.globals {
         doc.keys = doc
             .keys
@@ -90,7 +67,7 @@ pub fn generate_docs_json_from_definitions(contents: &str, namespace: &str) -> R
             serde_json::to_value(doc)?,
         );
     }
-    serde_json::to_string_pretty(&Value::Object(map)).context("Failed to encode docs as json")
+    serde_json::to_string_pretty(&JsonValue::Object(map)).context("Failed to encode docs as json")
 }
 
 pub async fn generate_wiki_dir_from_definitions(contents: &str) -> Result<()> {
@@ -102,7 +79,7 @@ pub async fn generate_wiki_dir_from_definitions(contents: &str) -> Result<()> {
     create_dir_all(&root.join("wiki"))
         .await
         .context("Failed to create wiki dir")?;
-    let visitor = parse_definitions(contents)?;
+    let visitor = DocumentationVisitor::from_definitions(contents)?;
     for global in &visitor.globals {
         // Create the dir for this global
         let global_dir_path = root.join("wiki").join("api-reference").join(&global.0);

@@ -2,6 +2,12 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+mod tag;
+mod visitor;
+
+pub use tag::*;
+pub use visitor::*;
+
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocsGlobal {
     pub documentation: String,
