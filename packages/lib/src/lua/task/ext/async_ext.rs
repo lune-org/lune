@@ -22,7 +22,7 @@ pub trait TaskSchedulerAsyncExt<'fut> {
 
     fn schedule_async<'sched, R, F, FR>(
         &'sched self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         func: F,
     ) -> LuaResult<TaskReference>
     where
@@ -73,7 +73,7 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
     */
     fn schedule_async<'sched, R, F, FR>(
         &'sched self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         func: F,
     ) -> LuaResult<TaskReference>
     where
@@ -82,7 +82,7 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
         F: 'static + Fn(&'static Lua) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        self.queue_async_task(thread_or_function, None, None, async move {
+        self.queue_async_task(thread, None, None, async move {
             match func(self.lua).await {
                 Ok(res) => match res.to_lua_multi(self.lua) {
                     Ok(multi) => Ok(Some(multi)),

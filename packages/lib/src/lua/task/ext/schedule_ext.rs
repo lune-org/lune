@@ -16,20 +16,20 @@ use super::super::{scheduler::TaskKind, scheduler::TaskReference, scheduler::Tas
 pub trait TaskSchedulerScheduleExt {
     fn schedule_blocking(
         &self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference>;
 
     fn schedule_blocking_deferred(
         &self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference>;
 
     fn schedule_blocking_after_seconds(
         &self,
         after_secs: f64,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference>;
 }
@@ -49,15 +49,10 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
     */
     fn schedule_blocking(
         &self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
-        self.queue_blocking_task(
-            TaskKind::Instant,
-            thread_or_function,
-            Some(thread_args),
-            None,
-        )
+        self.queue_blocking_task(TaskKind::Instant, thread, Some(thread_args), None)
     }
 
     /**
@@ -69,15 +64,10 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
     */
     fn schedule_blocking_deferred(
         &self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
-        self.queue_blocking_task(
-            TaskKind::Deferred,
-            thread_or_function,
-            Some(thread_args),
-            None,
-        )
+        self.queue_blocking_task(TaskKind::Deferred, thread, Some(thread_args), None)
     }
 
     /**
@@ -90,10 +80,10 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
     fn schedule_blocking_after_seconds(
         &self,
         after_secs: f64,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
-        self.queue_async_task(thread_or_function, Some(thread_args), None, async move {
+        self.queue_async_task(thread, Some(thread_args), None, async move {
             sleep(Duration::from_secs_f64(after_secs)).await;
             Ok(None)
         })

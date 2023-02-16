@@ -91,19 +91,19 @@ impl Lune {
     ) -> Result<ExitCode, LuaError> {
         // Create our special lune-flavored Lua object with extra registry values
         let lua = create_lune_lua().expect("Failed to create Lua object");
-        // Create our task scheduler and schedule the main thread on it
+        // Create our task scheduler
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);
-        sched.schedule_blocking(
-            LuaValue::Function(
-                lua.load(script_contents)
-                    .set_name(script_name)
-                    .unwrap()
-                    .into_function()
-                    .unwrap(),
-            ),
-            LuaValue::Nil.to_lua_multi(lua)?,
-        )?;
+        // Create the main thread and schedule it
+        let main_chunk = lua
+            .load(script_contents)
+            .set_name(script_name)
+            .unwrap()
+            .into_function()
+            .unwrap();
+        let main_thread = lua.create_thread(main_chunk).unwrap();
+        let main_thread_args = LuaValue::Nil.to_lua_multi(lua)?;
+        sched.schedule_blocking(main_thread, main_thread_args)?;
         // Create our wanted lune globals, some of these need
         // the task scheduler be available during construction
         for global in self.includes.clone() {

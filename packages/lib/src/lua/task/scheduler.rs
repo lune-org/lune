@@ -121,27 +121,16 @@ impl<'fut> TaskScheduler<'fut> {
     pub fn create_task(
         &self,
         kind: TaskKind,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: Option<LuaMultiValue<'_>>,
         guid_to_reuse: Option<usize>,
     ) -> LuaResult<TaskReference> {
-        // Get or create a thread from the given argument
-        let task_thread = match thread_or_function {
-            LuaValue::Thread(t) => t,
-            LuaValue::Function(f) => self.lua.create_thread(f)?,
-            value => {
-                return Err(LuaError::RuntimeError(format!(
-                    "Argument must be a thread or function, got {}",
-                    value.type_name()
-                )))
-            }
-        };
         // Store the thread and its arguments in the registry
         // NOTE: We must convert to a vec since multis
         // can't be stored in the registry directly
         let task_args_vec: Option<Vec<LuaValue>> = thread_args.map(|opt| opt.into_vec());
         let task_args_key: LuaRegistryKey = self.lua.create_registry_value(task_args_vec)?;
-        let task_thread_key: LuaRegistryKey = self.lua.create_registry_value(task_thread)?;
+        let task_thread_key: LuaRegistryKey = self.lua.create_registry_value(thread)?;
         // Create the full task struct
         let task = Task {
             thread: task_thread_key,
@@ -264,14 +253,14 @@ impl<'fut> TaskScheduler<'fut> {
     pub(crate) fn queue_blocking_task(
         &self,
         kind: TaskKind,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: Option<LuaMultiValue<'_>>,
         guid_to_reuse: Option<usize>,
     ) -> LuaResult<TaskReference> {
         if kind == TaskKind::Future {
             panic!("Tried to schedule future using normal task schedule method")
         }
-        let task_ref = self.create_task(kind, thread_or_function, thread_args, guid_to_reuse)?;
+        let task_ref = self.create_task(kind, thread, thread_args, guid_to_reuse)?;
         // Add the task to the front of the queue, unless it
         // should be deferred, in that case add it to the back
         let mut queue = self.tasks_queue_blocking.borrow_mut();
@@ -303,17 +292,12 @@ impl<'fut> TaskScheduler<'fut> {
     */
     pub(crate) fn queue_async_task(
         &self,
-        thread_or_function: LuaValue<'_>,
+        thread: LuaThread<'_>,
         thread_args: Option<LuaMultiValue<'_>>,
         guid_to_reuse: Option<usize>,
         fut: impl Future<Output = TaskFutureRets<'fut>> + 'fut,
     ) -> LuaResult<TaskReference> {
-        let task_ref = self.create_task(
-            TaskKind::Future,
-            thread_or_function,
-            thread_args,
-            guid_to_reuse,
-        )?;
+        let task_ref = self.create_task(TaskKind::Future, thread, thread_args, guid_to_reuse)?;
         let futs = self
             .futures
             .try_lock()

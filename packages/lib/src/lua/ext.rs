@@ -38,7 +38,7 @@ impl LuaAsyncExt for &'static Lua {
                     let sched = lua
                         .app_data_ref::<&TaskScheduler>()
                         .expect("Missing task scheduler as a lua app data");
-                    sched.queue_async_task(LuaValue::Thread(thread), None, None, async {
+                    sched.queue_async_task(thread, None, None, async {
                         let rets = fut.await?;
                         let mult = rets.to_lua_multi(lua)?;
                         Ok(Some(mult))
