@@ -31,7 +31,7 @@ async fn inner(file_name: &str, desired_type: FileType) -> Result<()> {
                     fmt_path_relative_to_workspace_root(file_name)
                 )
             })?;
-            let parsed_type = FileType::from_contents(&file_contents);
+            let parsed_type = FileType::sniff(&file_contents);
             if parsed_type != Some(desired_type) {
                 bail!(
                     "Generating definitions file at '{}' created '{}', expected '{}'",

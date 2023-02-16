@@ -9,7 +9,8 @@ mod doc;
 
 const GENERATED_COMMENT_TAG: &str = "@generated with lune-cli";
 
-use self::doc::{DocsFunctionParamLink, DocumentationVisitor};
+use self::doc::DocsFunctionParamLink;
+pub use self::doc::DocumentationVisitor;
 
 pub fn generate_docs_json_from_definitions(contents: &str, namespace: &str) -> Result<String> {
     let visitor = DocumentationVisitor::from_definitions(contents)?;
