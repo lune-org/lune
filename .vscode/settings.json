@@ -5,6 +5,8 @@
 	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"],
 	"luau-lsp.types.documentationFiles": ["luneDocs.json"],
 	"luau-lsp.require.mode": "relativeToFile",
+	// Luau - ignore type defs file in docs dir
+	"luau-lsp.ignoreGlobs": ["docs/*.d.luau"],
 	// Rust
 	"rust-analyzer.check.command": "clippy",
 	// Formatting

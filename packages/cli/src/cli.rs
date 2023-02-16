@@ -7,7 +7,10 @@ use lune::Lune;
 use tokio::fs::{read_to_string, write};
 
 use crate::{
-    gen::{generate_docs_json_from_definitions, generate_wiki_dir_from_definitions},
+    gen::{
+        generate_docs_json_from_definitions, generate_selene_defs_from_definitions,
+        generate_wiki_dir_from_definitions,
+    },
     utils::{
         files::find_parse_file_path,
         listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
@@ -18,8 +21,7 @@ pub(crate) const FILE_NAME_SELENE_TYPES: &str = "lune.yml";
 pub(crate) const FILE_NAME_LUAU_TYPES: &str = "luneTypes.d.luau";
 pub(crate) const FILE_NAME_DOCS: &str = "luneDocs.json";
 
-pub(crate) const FILE_CONTENTS_SELENE_TYPES: &str = include_str!("../../../lune.yml");
-pub(crate) const FILE_CONTENTS_LUAU_TYPES: &str = include_str!("../../../luneTypes.d.luau");
+pub(crate) const FILE_CONTENTS_LUAU_TYPES: &str = include_str!("../../../docs/luneTypes.d.luau");
 
 /// A Luau script runner
 #[derive(Parser, Debug, Default, Clone)]
@@ -33,12 +35,12 @@ pub struct Cli {
     /// List scripts found inside of a nearby `lune` directory
     #[clap(long, short = 'l')]
     list: bool,
-    /// Generate a Selene type definitions file in the current dir
-    #[clap(long)]
-    generate_selene_types: bool,
     /// Generate a Luau type definitions file in the current dir
     #[clap(long)]
     generate_luau_types: bool,
+    /// Generate a Selene type definitions file in the current dir
+    #[clap(long)]
+    generate_selene_types: bool,
     /// Generate a Lune documentation file for Luau LSP
     #[clap(long)]
     generate_docs_file: bool,
@@ -111,20 +113,20 @@ impl Cli {
             }
         }
         // Generate (save) definition files, if wanted
-        let generate_file_requested = self.generate_selene_types
-            || self.generate_luau_types
+        let generate_file_requested = self.generate_luau_types
+            || self.generate_selene_types
             || self.generate_docs_file
             || self.generate_wiki_dir;
         if generate_file_requested {
-            if self.generate_selene_types {
-                generate_and_save_file(FILE_NAME_SELENE_TYPES, "Selene type definitions", || {
-                    Ok(FILE_CONTENTS_SELENE_TYPES.to_string())
-                })
-                .await?;
-            }
             if self.generate_luau_types {
                 generate_and_save_file(FILE_NAME_LUAU_TYPES, "Luau type definitions", || {
                     Ok(FILE_CONTENTS_LUAU_TYPES.to_string())
+                })
+                .await?;
+            }
+            if self.generate_selene_types {
+                generate_and_save_file(FILE_NAME_SELENE_TYPES, "Selene type definitions", || {
+                    generate_selene_defs_from_definitions(FILE_CONTENTS_LUAU_TYPES)
                 })
                 .await?;
             }
