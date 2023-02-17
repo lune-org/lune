@@ -24,7 +24,11 @@ impl TaskReference {
 
 impl fmt::Display for TaskReference {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TaskReference({} - {})", self.kind, self.guid)
+        if self.guid == 0 {
+            write!(f, "TaskReference(MAIN)")
+        } else {
+            write!(f, "TaskReference({} - {})", self.kind, self.guid)
+        }
     }
 }
 

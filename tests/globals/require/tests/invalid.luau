@@ -5,7 +5,7 @@ local function test(path: string)
 	if success then
 		error(string.format("Invalid require at path '%s' succeeded", path))
 	else
-		print(message)
+		message = tostring(message)
 		if string.find(message, string.format("%s'", path)) == nil then
 			error(
 				string.format(

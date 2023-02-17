@@ -14,7 +14,7 @@ use super::message::TaskSchedulerMessage;
 pub use super::{task_kind::TaskKind, task_reference::TaskReference};
 
 type TaskFutureRets<'fut> = LuaResult<Option<LuaMultiValue<'fut>>>;
-type TaskFuture<'fut> = LocalBoxFuture<'fut, (TaskReference, TaskFutureRets<'fut>)>;
+type TaskFuture<'fut> = LocalBoxFuture<'fut, (Option<TaskReference>, TaskFutureRets<'fut>)>;
 
 /// A struct representing a task contained in the task scheduler
 #[derive(Debug)]
@@ -40,10 +40,10 @@ pub struct TaskScheduler<'fut> {
     // Internal state & flags
     pub(super) lua: &'static Lua,
     pub(super) guid: Cell<usize>,
-    pub(super) guid_running: Cell<Option<usize>>,
     pub(super) exit_code: Cell<Option<ExitCode>>,
     // Blocking tasks
     pub(super) tasks: RefCell<HashMap<TaskReference, Task>>,
+    pub(super) tasks_current: Cell<Option<TaskReference>>,
     pub(super) tasks_queue_blocking: RefCell<VecDeque<TaskReference>>,
     // Future tasks & objects for waking
     pub(super) futures: AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>,
@@ -61,9 +61,9 @@ impl<'fut> TaskScheduler<'fut> {
         Ok(Self {
             lua,
             guid: Cell::new(0),
-            guid_running: Cell::new(None),
             exit_code: Cell::new(None),
             tasks: RefCell::new(HashMap::new()),
+            tasks_current: Cell::new(None),
             tasks_queue_blocking: RefCell::new(VecDeque::new()),
             futures: AsyncMutex::new(FuturesUnordered::new()),
             futures_tx: tx,
@@ -110,6 +110,14 @@ impl<'fut> TaskScheduler<'fut> {
     }
 
     /**
+        Returns the currently running task, if any.
+    */
+    #[allow(dead_code)]
+    pub fn current_task(&self) -> Option<TaskReference> {
+        self.tasks_current.get()
+    }
+
+    /**
         Creates a new task, storing a new Lua thread
         for it, as well as the arguments to give the
         thread on resumption, in the Lua registry.
@@ -123,7 +131,7 @@ impl<'fut> TaskScheduler<'fut> {
         kind: TaskKind,
         thread: LuaThread<'_>,
         thread_args: Option<LuaMultiValue<'_>>,
-        guid_to_reuse: Option<usize>,
+        inherit_current_guid: bool,
     ) -> LuaResult<TaskReference> {
         // Store the thread and its arguments in the registry
         // NOTE: We must convert to a vec since multis
@@ -137,19 +145,22 @@ impl<'fut> TaskScheduler<'fut> {
             args: task_args_key,
         };
         // Create the task ref to use
-        let task_ref = if let Some(reusable_guid) = guid_to_reuse {
-            TaskReference::new(kind, reusable_guid)
+        let guid = if inherit_current_guid {
+            self.current_task()
+                .expect("No current guid to inherit")
+                .id()
         } else {
             let guid = self.guid.get();
             self.guid.set(guid + 1);
-            TaskReference::new(kind, guid)
+            guid
         };
+        let reference = TaskReference::new(kind, guid);
         // Add the task to the scheduler
         {
             let mut tasks = self.tasks.borrow_mut();
-            tasks.insert(task_ref, task);
+            tasks.insert(reference, task);
         }
-        Ok(task_ref)
+        Ok(reference)
     }
 
     /**
@@ -181,8 +192,13 @@ impl<'fut> TaskScheduler<'fut> {
             .filter(|task_ref| task_ref.id() == reference.id())
             .copied()
             .collect();
-        for task_ref in tasks_to_remove {
-            if let Some(task) = tasks.remove(&task_ref) {
+        for task_ref in &tasks_to_remove {
+            if let Some(task) = tasks.remove(task_ref) {
+                // NOTE: We need to close the thread here to
+                // make 100% sure that nothing can resume it
+                let close: LuaFunction = self.lua.named_registry_value("co.close")?;
+                let thread: LuaThread = self.lua.registry_value(&task.thread)?;
+                close.call(thread)?;
                 self.lua.remove_registry_value(task.thread)?;
                 self.lua.remove_registry_value(task.args)?;
                 found = true;
@@ -204,13 +220,16 @@ impl<'fut> TaskScheduler<'fut> {
         reference: TaskReference,
         override_args: Option<LuaResult<LuaMultiValue<'a>>>,
     ) -> LuaResult<LuaMultiValue<'a>> {
+        // Fetch and check if the task was removed, if it got
+        // removed it means it was intentionally cancelled
         let task = {
             let mut tasks = self.tasks.borrow_mut();
             match tasks.remove(&reference) {
                 Some(task) => task,
-                None => return Ok(LuaMultiValue::new()), // Task was removed
+                None => return Ok(LuaMultiValue::new()),
             }
         };
+        // Fetch and remove the thread to resume + its arguments
         let thread: LuaThread = self.lua.registry_value(&task.thread)?;
         let args_opt_res = override_args.or_else(|| {
             Ok(self
@@ -222,7 +241,9 @@ impl<'fut> TaskScheduler<'fut> {
         });
         self.lua.remove_registry_value(task.thread)?;
         self.lua.remove_registry_value(task.args)?;
-        self.guid_running.set(Some(reference.id()));
+        // We got everything we need and our references
+        // were cleaned up properly, resume the thread
+        self.tasks_current.set(Some(reference));
         let rets = match args_opt_res {
             Some(args_res) => match args_res {
                 /*
@@ -235,12 +256,12 @@ impl<'fut> TaskScheduler<'fut> {
                     that may pass errors as arguments when resuming tasks, other
                     native mlua functions will handle this and dont need wrapping
                 */
-                Err(err) => thread.resume(err),
+                Err(e) => thread.resume(e),
                 Ok(args) => thread.resume(args),
             },
             None => thread.resume(()),
         };
-        self.guid_running.set(None);
+        self.tasks_current.set(None);
         rets
     }
 
@@ -265,12 +286,11 @@ impl<'fut> TaskScheduler<'fut> {
         kind: TaskKind,
         thread: LuaThread<'_>,
         thread_args: Option<LuaMultiValue<'_>>,
-        guid_to_reuse: Option<usize>,
     ) -> LuaResult<TaskReference> {
         if kind == TaskKind::Future {
             panic!("Tried to schedule future using normal task schedule method")
         }
-        let task_ref = self.create_task(kind, thread, thread_args, guid_to_reuse)?;
+        let task_ref = self.create_task(kind, thread, thread_args, false)?;
         // Add the task to the front of the queue, unless it
         // should be deferred, in that case add it to the back
         let mut queue = self.tasks_queue_blocking.borrow_mut();
@@ -304,17 +324,16 @@ impl<'fut> TaskScheduler<'fut> {
         &self,
         thread: LuaThread<'_>,
         thread_args: Option<LuaMultiValue<'_>>,
-        guid_to_reuse: Option<usize>,
         fut: impl Future<Output = TaskFutureRets<'fut>> + 'fut,
     ) -> LuaResult<TaskReference> {
-        let task_ref = self.create_task(TaskKind::Future, thread, thread_args, guid_to_reuse)?;
+        let task_ref = self.create_task(TaskKind::Future, thread, thread_args, false)?;
         let futs = self
             .futures
             .try_lock()
-            .expect("Failed to get lock on futures");
+            .expect("Tried to add future to queue during futures resumption");
         futs.push(Box::pin(async move {
             let result = fut.await;
-            (task_ref, result)
+            (Some(task_ref), result)
         }));
         Ok(task_ref)
     }

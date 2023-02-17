@@ -1,10 +1,13 @@
-use std::time::Duration;
-
 use mlua::prelude::*;
-use tokio::time::{sleep, Instant};
 
 use crate::{
-    lua::task::{TaskKind, TaskReference, TaskScheduler, TaskSchedulerScheduleExt},
+    lua::{
+        async_ext::LuaAsyncExt,
+        task::{
+            LuaThreadOrFunction, LuaThreadOrTaskReference, TaskKind, TaskReference, TaskScheduler,
+            TaskSchedulerScheduleExt,
+        },
+    },
     utils::table::TableBuilder,
 };
 
@@ -22,7 +25,6 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
         we need to yield right away to allow the
         spawned task to run until first yield
     */
-    let task_spawn_env_thread: LuaFunction = lua.named_registry_value("co.thread")?;
     let task_spawn_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
     let task_spawn = lua
         .load(
@@ -33,10 +35,10 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
             return task
             ",
         )
-        .set_name("=task.spawn")?
+        .set_name("task.spawn")?
         .set_environment(
             TableBuilder::new(lua)?
-                .with_value("thread", task_spawn_env_thread)?
+                .with_function("thread", |lua, _: ()| Ok(lua.current_thread()))?
                 .with_value("yield", task_spawn_env_yield)?
                 .with_function(
                     "scheduleNext",
@@ -63,81 +65,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     coroutine.set("wrap", lua.create_function(coroutine_wrap)?)?;
     // All good, return the task scheduler lib
     TableBuilder::new(lua)?
+        .with_value("wait", lua.create_waiter_function()?)?
         .with_value("spawn", task_spawn)?
         .with_function("cancel", task_cancel)?
         .with_function("defer", task_defer)?
         .with_function("delay", task_delay)?
-        .with_async_function("wait", task_wait)?
         .build_readonly()
-}
-
-/*
-    Proxy enum to deal with both threads & functions
-*/
-
-enum LuaThreadOrFunction<'lua> {
-    Thread(LuaThread<'lua>),
-    Function(LuaFunction<'lua>),
-}
-
-impl<'lua> LuaThreadOrFunction<'lua> {
-    fn into_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
-        match self {
-            Self::Thread(t) => Ok(t),
-            Self::Function(f) => lua.create_thread(f),
-        }
-    }
-}
-
-impl<'lua> FromLua<'lua> for LuaThreadOrFunction<'lua> {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        match value {
-            LuaValue::Thread(t) => Ok(Self::Thread(t)),
-            LuaValue::Function(f) => Ok(Self::Function(f)),
-            value => Err(LuaError::FromLuaConversionError {
-                from: value.type_name(),
-                to: "LuaThreadOrFunction",
-                message: Some(format!(
-                    "Expected thread or function, got '{}'",
-                    value.type_name()
-                )),
-            }),
-        }
-    }
-}
-
-/*
-    Proxy enum to deal with both threads & task scheduler task references
-*/
-
-enum LuaThreadOrTaskReference<'lua> {
-    Thread(LuaThread<'lua>),
-    TaskReference(TaskReference),
-}
-
-impl<'lua> FromLua<'lua> for LuaThreadOrTaskReference<'lua> {
-    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
-        let tname = value.type_name();
-        match value {
-            LuaValue::Thread(t) => Ok(Self::Thread(t)),
-            LuaValue::UserData(u) => {
-                if let Ok(task) = TaskReference::from_lua(LuaValue::UserData(u), lua) {
-                    Ok(Self::TaskReference(task))
-                } else {
-                    Err(LuaError::FromLuaConversionError {
-                        from: tname,
-                        to: "thread",
-                        message: Some(format!("Expected thread, got '{tname}'")),
-                    })
-                }
-            }
-            _ => Err(LuaError::FromLuaConversionError {
-                from: tname,
-                to: "thread",
-                message: Some(format!("Expected thread, got '{tname}'")),
-            }),
-        }
-    }
 }
 
 /*
@@ -164,12 +97,6 @@ fn task_delay(
 ) -> LuaResult<TaskReference> {
     let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
     sched.schedule_blocking_after_seconds(secs, tof.into_thread(lua)?, args)
-}
-
-async fn task_wait(_: &Lua, secs: Option<f64>) -> LuaResult<f64> {
-    let start = Instant::now();
-    sleep(Duration::from_secs_f64(secs.unwrap_or_default())).await;
-    Ok(start.elapsed().as_secs_f64())
 }
 
 /*
@@ -207,7 +134,7 @@ fn coroutine_resume<'lua>(
     match value {
         LuaThreadOrTaskReference::Thread(t) => {
             let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-            let task = sched.create_task(TaskKind::Instant, t, None, None)?;
+            let task = sched.create_task(TaskKind::Instant, t, None, true)?;
             sched.resume_task(task, None)
         }
         LuaThreadOrTaskReference::TaskReference(t) => lua
@@ -222,7 +149,7 @@ fn coroutine_wrap<'lua>(lua: &'lua Lua, func: LuaFunction) -> LuaResult<LuaFunct
         TaskKind::Instant,
         lua.create_thread(func)?,
         None,
-        None,
+        false,
     )?;
     lua.create_function(move |lua, args: LuaMultiValue| {
         lua.app_data_ref::<&TaskScheduler>()

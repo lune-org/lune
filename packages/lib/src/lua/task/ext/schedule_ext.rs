@@ -52,7 +52,7 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
         thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
-        self.queue_blocking_task(TaskKind::Instant, thread, Some(thread_args), None)
+        self.queue_blocking_task(TaskKind::Instant, thread, Some(thread_args))
     }
 
     /**
@@ -67,7 +67,7 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
         thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
-        self.queue_blocking_task(TaskKind::Deferred, thread, Some(thread_args), None)
+        self.queue_blocking_task(TaskKind::Deferred, thread, Some(thread_args))
     }
 
     /**
@@ -83,7 +83,7 @@ impl TaskSchedulerScheduleExt for TaskScheduler<'_> {
         thread: LuaThread<'_>,
         thread_args: LuaMultiValue<'_>,
     ) -> LuaResult<TaskReference> {
-        self.queue_async_task(thread, Some(thread_args), None, async move {
+        self.queue_async_task(thread, Some(thread_args), async move {
             sleep(Duration::from_secs_f64(after_secs)).await;
             Ok(None)
         })

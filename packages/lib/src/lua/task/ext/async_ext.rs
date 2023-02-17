@@ -1,7 +1,12 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 
 use futures_util::Future;
 use mlua::prelude::*;
+use tokio::time::{sleep, Instant};
+
+use crate::lua::task::TaskKind;
 
 use super::super::{
     async_handle::TaskSchedulerAsyncHandle, message::TaskSchedulerMessage,
@@ -30,6 +35,12 @@ pub trait TaskSchedulerAsyncExt<'fut> {
         R: ToLuaMulti<'static>,
         F: 'static + Fn(&'static Lua) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>;
+
+    fn schedule_wait(
+        &'fut self,
+        reference: LuaThread<'_>,
+        duration: Option<f64>,
+    ) -> LuaResult<TaskReference>;
 }
 
 /*
@@ -82,7 +93,7 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
         F: 'static + Fn(&'static Lua) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        self.queue_async_task(thread, None, None, async move {
+        self.queue_async_task(thread, None, async move {
             match func(self.lua).await {
                 Ok(res) => match res.to_lua_multi(self.lua) {
                     Ok(multi) => Ok(Some(multi)),
@@ -91,5 +102,31 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
                 Err(e) => Err(e),
             }
         })
+    }
+
+    /**
+        Schedules a task reference to be resumed after a certain amount of time.
+
+        The given task will be resumed with the elapsed time as its one and only argument.
+    */
+    fn schedule_wait(
+        &'fut self,
+        thread: LuaThread<'_>,
+        duration: Option<f64>,
+    ) -> LuaResult<TaskReference> {
+        let reference = self.create_task(TaskKind::Future, thread, None, true)?;
+        // Insert the future
+        let futs = self
+            .futures
+            .try_lock()
+            .expect("Tried to add future to queue during futures resumption");
+        futs.push(Box::pin(async move {
+            let before = Instant::now();
+            sleep(Duration::from_secs_f64(duration.unwrap_or_default())).await;
+            let elapsed_secs = before.elapsed().as_secs_f64();
+            let args = elapsed_secs.to_lua_multi(self.lua).unwrap();
+            (Some(reference), Ok(Some(args)))
+        }));
+        Ok(reference)
     }
 }

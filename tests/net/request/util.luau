@@ -15,7 +15,7 @@ function util.fail(method, url, message)
 		method = method,
 		url = url,
 	})
-	if not response.ok then
+	if response.ok then
 		error(string.format("%s passed!\nResponse: %s", message, stdio.format(response)))
 	end
 end

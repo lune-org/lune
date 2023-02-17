@@ -240,18 +240,21 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
             // The traceback may also start with "override traceback:" which
             // means it was passed from somewhere that wants a custom trace,
             // so we should then respect that and get the best override instead
-            let mut best_trace: &str = traceback;
+            let mut full_trace = traceback.to_string();
             let mut root_cause = cause.as_ref();
             let mut trace_override = false;
             while let LuaError::CallbackError { cause, traceback } = root_cause {
                 let is_override = traceback.starts_with("override traceback:");
                 if is_override {
-                    if !trace_override || traceback.lines().count() > best_trace.len() {
-                        best_trace = traceback.strip_prefix("override traceback:").unwrap();
+                    if !trace_override || traceback.lines().count() > full_trace.len() {
+                        full_trace = traceback
+                            .strip_prefix("override traceback:")
+                            .unwrap()
+                            .to_string();
                         trace_override = true;
                     }
-                } else if !trace_override && traceback.lines().count() > best_trace.len() {
-                    best_trace = traceback;
+                } else if !trace_override {
+                    full_trace = format!("{traceback}\n{full_trace}");
                 }
                 root_cause = cause;
             }
@@ -266,10 +269,10 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
                     "{}\n{}\n{}\n{}",
                     pretty_format_luau_error(root_cause, colorized),
                     stack_begin,
-                    if best_trace.starts_with("stack traceback:") {
-                        best_trace.strip_prefix("stack traceback:\n").unwrap()
+                    if full_trace.starts_with("stack traceback:") {
+                        full_trace.strip_prefix("stack traceback:\n").unwrap()
                     } else {
-                        best_trace
+                        &full_trace
                     },
                     stack_end
                 )
@@ -378,7 +381,8 @@ fn transform_stack_line(line: &str) -> String {
             let line_num = match after_name.find(':') {
                 Some(lineno_start) => match after_name[lineno_start + 1..].find(':') {
                     Some(lineno_end) => &after_name[lineno_start + 1..lineno_end + 1],
-                    None => match after_name.contains("in function") {
+                    None => match after_name.contains("in function") || after_name.contains("in ?")
+                    {
                         false => &after_name[lineno_start + 1..],
                         true => "",
                     },
@@ -418,11 +422,18 @@ fn transform_stack_line(line: &str) -> String {
 fn fix_error_nitpicks(full_message: String) -> String {
     full_message
         // Hacky fix for our custom require appearing as a normal script
+        // TODO: It's probably better to pull in the regex crate here ..
         .replace("'require', Line 5", "'[C]' - function require")
         .replace("'require', Line 7", "'[C]' - function require")
+        .replace("'require', Line 8", "'[C]' - function require")
         // Fix error calls in custom script chunks coming through
         .replace(
             "'[C]' - function error\n    Script '[C]' - function require",
+            "'[C]' - function require",
+        )
+        // Fix strange double require
+        .replace(
+            "'[C]' - function require - function require",
             "'[C]' - function require",
         )
 }

@@ -124,12 +124,15 @@ async fn resume_next_async_task(scheduler: &TaskScheduler<'_>) -> TaskSchedulerS
             .await
             .expect("Tried to resume next queued future but none are queued")
     };
-    // Promote this future task to a blocking task and resume it
-    // right away, also taking care to not borrow mutably twice
-    // by dropping this guard before trying to resume it
-    let mut queue_guard = scheduler.tasks_queue_blocking.borrow_mut();
-    queue_guard.push_front(task);
-    drop(queue_guard);
+    // The future might not return a reference that it wants to resume
+    if let Some(task) = task {
+        // Promote this future task to a blocking task and resume it
+        // right away, also taking care to not borrow mutably twice
+        // by dropping this guard before trying to resume it
+        let mut queue_guard = scheduler.tasks_queue_blocking.borrow_mut();
+        queue_guard.push_front(task);
+        drop(queue_guard);
+    }
     resume_next_blocking_task(scheduler, result.transpose())
 }
 

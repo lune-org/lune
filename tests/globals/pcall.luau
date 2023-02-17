@@ -1,3 +1,6 @@
+local PORT = 9090 -- NOTE: This must be different from
+-- net tests to let them run in parallel with this file
+
 local function test(f, ...)
 	local success, message = pcall(f, ...)
 	assert(not success, "Function did not throw an error")
@@ -14,7 +17,7 @@ test(net.request, "https://wxyz.google.com")
 
 -- Net serve is async and will throw an OS error when trying to serve twice on the same port
 
-local handle = net.serve(8080, function()
+local handle = net.serve(PORT, function()
 	return ""
 end)
 
@@ -22,18 +25,4 @@ task.delay(0, function()
 	handle.stop()
 end)
 
-test(net.serve, 8080, function() end)
-
-local function e()
-	task.spawn(function()
-		task.defer(function()
-			task.delay(0, function()
-				error({
-					Hello = "World",
-				})
-			end)
-		end)
-	end)
-end
-
-task.defer(e)
+test(net.serve, PORT, function() end)

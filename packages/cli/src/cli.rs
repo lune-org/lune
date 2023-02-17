@@ -159,7 +159,7 @@ impl Cli {
         // Display the file path relative to cwd with no extensions in stack traces
         let file_display_name = file_path.with_extension("").display().to_string();
         // Create a new lune object with all globals & run the script
-        let lune = Lune::new().with_all_globals_and_args(self.script_args);
+        let lune = Lune::new().with_args(self.script_args);
         let result = lune.run(&file_display_name, &file_contents).await;
         Ok(match result {
             Err(e) => {

@@ -4,6 +4,8 @@ use mlua::prelude::*;
 
 use crate::{lua::task::TaskScheduler, utils::table::TableBuilder};
 
+use super::task::TaskSchedulerAsyncExt;
+
 #[async_trait(?Send)]
 pub trait LuaAsyncExt {
     fn create_async_function<'lua, A, R, F, FR>(self, func: F) -> LuaResult<LuaFunction<'lua>>
@@ -12,6 +14,8 @@ pub trait LuaAsyncExt {
         R: ToLuaMulti<'static>,
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>;
+
+    fn create_waiter_function<'lua>(self) -> LuaResult<LuaFunction<'lua>>;
 }
 
 impl LuaAsyncExt for &'static Lua {
@@ -31,7 +35,6 @@ impl LuaAsyncExt for &'static Lua {
         let async_env_trace: LuaFunction = self.named_registry_value("dbg.trace")?;
         let async_env_error: LuaFunction = self.named_registry_value("error")?;
         let async_env_unpack: LuaFunction = self.named_registry_value("tab.unpack")?;
-        let async_env_thread: LuaFunction = self.named_registry_value("co.thread")?;
         let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;
         let async_env = TableBuilder::new(self)?
             .with_value("makeError", async_env_make_err)?
@@ -39,8 +42,8 @@ impl LuaAsyncExt for &'static Lua {
             .with_value("trace", async_env_trace)?
             .with_value("error", async_env_error)?
             .with_value("unpack", async_env_unpack)?
-            .with_value("thread", async_env_thread)?
             .with_value("yield", async_env_yield)?
+            .with_function("thread", |lua, _: ()| Ok(lua.current_thread()))?
             .with_function(
                 "resumeAsync",
                 move |lua: &Lua, (thread, args): (LuaThread, A)| {
@@ -48,7 +51,7 @@ impl LuaAsyncExt for &'static Lua {
                     let sched = lua
                         .app_data_ref::<&TaskScheduler>()
                         .expect("Missing task scheduler as a lua app data");
-                    sched.queue_async_task(thread, None, None, async {
+                    sched.queue_async_task(thread, None, async {
                         let rets = fut.await?;
                         let mult = rets.to_lua_multi(lua)?;
                         Ok(Some(mult))
@@ -68,7 +71,36 @@ impl LuaAsyncExt for &'static Lua {
                 end
                 ",
             )
-            .set_name("asyncWrapper")?
+            .set_name("async")?
+            .set_environment(async_env)?
+            .into_function()?;
+        Ok(async_func)
+    }
+
+    /**
+        Creates a special async function that waits the
+        desired amount of time, inheriting the guid of the
+        current thread / task for proper cancellation.
+    */
+    fn create_waiter_function<'lua>(self) -> LuaResult<LuaFunction<'lua>> {
+        let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;
+        let async_env = TableBuilder::new(self)?
+            .with_value("yield", async_env_yield)?
+            .with_function("resumeAfter", move |lua: &Lua, duration: Option<f64>| {
+                let sched = lua
+                    .app_data_ref::<&TaskScheduler>()
+                    .expect("Missing task scheduler as a lua app data");
+                sched.schedule_wait(lua.current_thread(), duration)
+            })?
+            .build_readonly()?;
+        let async_func = self
+            .load(
+                "
+                resumeAfter(...)
+                return yield()
+                ",
+            )
+            .set_name("wait")?
             .set_environment(async_env)?
             .into_function()?;
         Ok(async_func)

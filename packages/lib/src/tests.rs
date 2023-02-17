@@ -26,12 +26,12 @@ macro_rules! create_tests {
             // The rest of the test logic can continue as normal
             let full_name = format!("tests/{}.luau", $value);
             let script = read_to_string(&full_name).await?;
-            let lune = Lune::new().with_all_globals_and_args(
+            let lune = Lune::new().with_args(
                 ARGS
                     .clone()
                     .iter()
                     .map(ToString::to_string)
-                    .collect()
+                    .collect::<Vec<_>>()
             );
             let script_name = full_name.strip_suffix(".luau").unwrap();
             let exit_code = lune.run(&script_name, &script).await?;

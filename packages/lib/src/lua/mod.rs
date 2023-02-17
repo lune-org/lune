@@ -1,6 +1,6 @@
 mod create;
 
-pub mod ext;
+pub mod async_ext;
 pub mod net;
 pub mod stdio;
 pub mod task;
