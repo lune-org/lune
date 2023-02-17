@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use console::{style, Style};
+use console::{colors_enabled, set_colors_enabled, style, Style};
 use lazy_static::lazy_static;
 use mlua::prelude::*;
 
@@ -178,7 +178,7 @@ pub fn pretty_format_value(
             }
         }
         LuaValue::LightUserData(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<userdata>"))?,
-        _ => write!(buffer, "{}", STYLE_DIM.apply_to("?"))?,
+        LuaValue::Error(e) => write!(buffer, "{}", pretty_format_luau_error(e, false),)?,
     }
     Ok(())
 }
@@ -200,7 +200,13 @@ pub fn pretty_format_multi_value(multi: &LuaMultiValue) -> LuaResult<String> {
     Ok(buffer)
 }
 
-pub fn pretty_format_luau_error(e: &LuaError) -> String {
+pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
+    let previous_colors_enabled = if !colorized {
+        set_colors_enabled(false);
+        Some(colors_enabled())
+    } else {
+        None
+    };
     let stack_begin = format!("[{}]", COLOR_BLUE.apply_to("Stack Begin"));
     let stack_end = format!("[{}]", COLOR_BLUE.apply_to("Stack End"));
     let err_string = match e {
@@ -218,23 +224,33 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
             let mut found_stack_begin = false;
             for (index, line) in err_lines.clone().iter().enumerate().rev() {
                 if *line == "stack traceback:" {
-                    err_lines[index] = stack_begin;
+                    err_lines[index] = stack_begin.clone();
                     found_stack_begin = true;
                     break;
                 }
             }
             // Add "Stack End" to the very end of the stack trace for symmetry
             if found_stack_begin {
-                err_lines.push(stack_end);
+                err_lines.push(stack_end.clone());
             }
             err_lines.join("\n")
         }
         LuaError::CallbackError { traceback, cause } => {
             // Find the best traceback (most lines) and the root error message
-            let mut best_trace = traceback;
+            // The traceback may also start with "override traceback:" which
+            // means it was passed from somewhere that wants a custom trace,
+            // so we should then respect that and get the best override instead
+            let mut best_trace: &str = traceback;
             let mut root_cause = cause.as_ref();
+            let mut trace_override = false;
             while let LuaError::CallbackError { cause, traceback } = root_cause {
-                if traceback.lines().count() > best_trace.len() {
+                let is_override = traceback.starts_with("override traceback:");
+                if is_override {
+                    if !trace_override || traceback.lines().count() > best_trace.len() {
+                        best_trace = traceback.strip_prefix("override traceback:").unwrap();
+                        trace_override = true;
+                    }
+                } else if !trace_override && traceback.lines().count() > best_trace.len() {
                     best_trace = traceback;
                 }
                 root_cause = cause;
@@ -242,15 +258,19 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
             // If we got a runtime error with an embedded traceback, we should
             // use that instead since it generally contains more information
             if matches!(root_cause, LuaError::RuntimeError(e) if e.contains("stack traceback:")) {
-                pretty_format_luau_error(root_cause)
+                pretty_format_luau_error(root_cause, colorized)
             } else {
                 // Otherwise we format whatever root error we got using
                 // the same error formatting as for above runtime errors
                 format!(
                     "{}\n{}\n{}\n{}",
-                    pretty_format_luau_error(root_cause),
+                    pretty_format_luau_error(root_cause, colorized),
                     stack_begin,
-                    best_trace.strip_prefix("stack traceback:\n").unwrap(),
+                    if best_trace.starts_with("stack traceback:") {
+                        best_trace.strip_prefix("stack traceback:\n").unwrap()
+                    } else {
+                        best_trace
+                    },
                     stack_end
                 )
             }
@@ -269,11 +289,13 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
         }
         e => format!("{e}"),
     };
-    let mut err_lines = err_string.lines().collect::<Vec<_>>();
+    // Re-enable colors if they were previously enabled
+    if let Some(true) = previous_colors_enabled {
+        set_colors_enabled(true)
+    }
     // Remove the script path from the error message
     // itself, it can be found in the stack trace
-    // FIXME: This no longer works now that we use
-    // an exact name when our lune script is loaded
+    let mut err_lines = err_string.lines().collect::<Vec<_>>();
     if let Some(first_line) = err_lines.first() {
         if first_line.starts_with("[string \"") {
             if let Some(closing_bracket) = first_line.find("]:") {
@@ -287,6 +309,120 @@ pub fn pretty_format_luau_error(e: &LuaError) -> String {
             }
         }
     }
-    // Merge all lines back together into one string
-    err_lines.join("\n")
+    // Find where the stack trace stars and ends
+    let stack_begin_idx =
+        err_lines.iter().enumerate().find_map(
+            |(i, line)| {
+                if *line == stack_begin {
+                    Some(i)
+                } else {
+                    None
+                }
+            },
+        );
+    let stack_end_idx =
+        err_lines.iter().enumerate().find_map(
+            |(i, line)| {
+                if *line == stack_end {
+                    Some(i)
+                } else {
+                    None
+                }
+            },
+        );
+    // If we have a stack trace, we should transform the formatting from the
+    // default mlua formatting into something more friendly, similar to Roblox
+    if let (Some(idx_start), Some(idx_end)) = (stack_begin_idx, stack_end_idx) {
+        let stack_lines = err_lines
+            .iter()
+            .enumerate()
+            // Filter out stack lines
+            .filter_map(|(idx, line)| {
+                if idx > idx_start && idx < idx_end {
+                    Some(*line)
+                } else {
+                    None
+                }
+            })
+            // Transform from mlua format into friendly format, while also
+            // ensuring that leading whitespace / indentation is consistent
+            .map(transform_stack_line)
+            .collect::<Vec<_>>();
+        fix_error_nitpicks(format!(
+            "{}\n{}\n{}\n{}",
+            err_lines
+                .iter()
+                .take(idx_start)
+                .copied()
+                .collect::<Vec<_>>()
+                .join("\n"),
+            stack_begin,
+            stack_lines.join("\n"),
+            stack_end,
+        ))
+    } else {
+        fix_error_nitpicks(err_string)
+    }
+}
+
+fn transform_stack_line(line: &str) -> String {
+    match (line.find('['), line.find(']')) {
+        (Some(idx_start), Some(idx_end)) => {
+            let name = line[idx_start..idx_end + 1]
+                .trim_start_matches('[')
+                .trim_start_matches("string ")
+                .trim_start_matches('"')
+                .trim_end_matches(']')
+                .trim_end_matches('"');
+            let after_name = &line[idx_end + 1..];
+            let line_num = match after_name.find(':') {
+                Some(lineno_start) => match after_name[lineno_start + 1..].find(':') {
+                    Some(lineno_end) => &after_name[lineno_start + 1..lineno_end + 1],
+                    None => match after_name.contains("in function") {
+                        false => &after_name[lineno_start + 1..],
+                        true => "",
+                    },
+                },
+                None => "",
+            };
+            let func_name = match after_name.find("in function ") {
+                Some(func_start) => after_name[func_start + 12..]
+                    .trim()
+                    .trim_end_matches('\'')
+                    .trim_start_matches('\'')
+                    .trim_start_matches("_G."),
+                None => "",
+            };
+            let mut result = String::new();
+            write!(
+                result,
+                "    Script '{}'",
+                match name {
+                    "C" => "[C]",
+                    name => name,
+                },
+            )
+            .unwrap();
+            if !line_num.is_empty() {
+                write!(result, ", Line {line_num}").unwrap();
+            }
+            if !func_name.is_empty() {
+                write!(result, " - function {func_name}").unwrap();
+            }
+            result
+        }
+        (_, _) => line.to_string(),
+    }
+}
+
+fn fix_error_nitpicks(full_message: String) -> String {
+    full_message
+        // Hacky fix for our custom require appearing as a normal script
+        .replace("'require', Line 5", "'[C]' - function require")
+        .replace("'require', Line 7", "'[C]' - function require")
+        // Fix error calls in custom script chunks coming through
+        .replace(
+            "'[C]' - function error\n    Script '[C]' - function require",
+            "'[C]' - function require",
+        )
 }

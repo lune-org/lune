@@ -26,9 +26,19 @@ impl LuaAsyncExt for &'static Lua {
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
+        let async_env_make_err: LuaFunction = self.named_registry_value("dbg.makeerr")?;
+        let async_env_is_err: LuaFunction = self.named_registry_value("dbg.iserr")?;
+        let async_env_trace: LuaFunction = self.named_registry_value("dbg.trace")?;
+        let async_env_error: LuaFunction = self.named_registry_value("error")?;
+        let async_env_unpack: LuaFunction = self.named_registry_value("tab.unpack")?;
         let async_env_thread: LuaFunction = self.named_registry_value("co.thread")?;
         let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;
         let async_env = TableBuilder::new(self)?
+            .with_value("makeError", async_env_make_err)?
+            .with_value("isError", async_env_is_err)?
+            .with_value("trace", async_env_trace)?
+            .with_value("error", async_env_error)?
+            .with_value("unpack", async_env_unpack)?
             .with_value("thread", async_env_thread)?
             .with_value("yield", async_env_yield)?
             .with_function(
@@ -50,7 +60,12 @@ impl LuaAsyncExt for &'static Lua {
             .load(
                 "
                 resumeAsync(thread(), ...)
-                return yield()
+                local results = { yield() }
+                if isError(results[1]) then
+                    error(makeError(results[1], trace()))
+                else
+                    return unpack(results)
+                end
                 ",
             )
             .set_name("asyncWrapper")?

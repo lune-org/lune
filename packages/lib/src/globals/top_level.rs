@@ -37,16 +37,21 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         })?
         .with_function("error", |lua, (arg, level): (LuaValue, Option<u32>)| {
             let error: LuaFunction = lua.named_registry_value("error")?;
-            let multi = arg.to_lua_multi(lua)?;
+            let trace: LuaFunction = lua.named_registry_value("dbg.trace")?;
             error.call((
-                format!(
-                    "{}\n{}",
-                    format_label("error"),
-                    pretty_format_multi_value(&multi)?
-                ),
+                LuaError::CallbackError {
+                    traceback: format!("override traceback:{}", trace.call::<_, String>(())?),
+                    cause: LuaError::external(format!(
+                        "{}\n{}",
+                        format_label("error"),
+                        pretty_format_multi_value(&arg.to_lua_multi(lua)?)?
+                    ))
+                    .into(),
+                },
                 level,
             ))?;
             Ok(())
         })?
+        // TODO: Add an override for tostring that formats errors in a nicer way
         .build_readonly()
 }

@@ -3,28 +3,37 @@ use mlua::prelude::*;
 /*
     - Level 0 is the call to info
     - Level 1 is the load call in create() below where we load this into a function
-    - Level 2 is the call to the scheduler, probably, but we can't know for sure so we start at 2
+    - Level 2 is the call to the trace, which we also want to skip, so start at 3
+
+    Also note that we must match the mlua traceback format here so that we
+    can pattern match and beautify it properly later on when outputting it
 */
 const TRACE_IMPL_LUA: &str = r#"
 local lines = {}
-for level = 2, 2^8 do
+for level = 3, 16 do
+    local parts = {}
     local source, line, name = info(level, "sln")
     if source then
-        if line then
-            if name and #name > 0 then
-                push(lines, format("    Script '%s', Line %d - function %s", source, line, name))
-            else
-                push(lines, format("    Script '%s', Line %d", source, line))
-            end
-        elseif name and #name > 0 then
-            push(lines, format("    Script '%s' - function %s", source, name))
-        else
-            push(lines, format("    Script '%s'", source))
-        end
-    elseif name then
-        push(lines, format("[Lune] - function %s", source, name))
+        push(parts, source)
     else
         break
+    end
+    if line == -1 then
+        line = nil
+    end
+    if name and #name <= 0 then
+        name = nil
+    end
+    if line then
+        push(parts, format("%d", line))
+    end
+    if name and #parts > 1 then
+        push(parts, format(" in function '%s'", name))
+    elseif name then
+        push(parts, format("in function '%s'", name))
+    end
+    if #parts > 0 then
+        push(lines, concat(parts, ":"))
     end
 end
 if #lines > 0 then
@@ -49,12 +58,20 @@ end
     * `"type"` -> `type`
     * `"typeof"` -> `typeof`
     ---
+    * `"pcall"` -> `pcall`
+    * `"xpcall"` -> `xpcall`
+    ---
+    * `"tostring"` -> `tostring`
+    * `"tonumber"` -> `tonumber`
+    ---
     * `"co.thread"` -> `coroutine.running`
     * `"co.yield"` -> `coroutine.yield`
     * `"co.close"` -> `coroutine.close`
     ---
     * `"dbg.info"` -> `debug.info`
     * `"dbg.trace"` -> `debug.traceback`
+    * `"dbg.iserr"` -> `<custom function>`
+    * `"dbg.makeerr"` -> `<custom function>`
     ---
 */
 pub fn create() -> LuaResult<&'static Lua> {
@@ -72,23 +89,43 @@ pub fn create() -> LuaResult<&'static Lua> {
     lua.set_named_registry_value("error", globals.get::<_, LuaFunction>("error")?)?;
     lua.set_named_registry_value("type", globals.get::<_, LuaFunction>("type")?)?;
     lua.set_named_registry_value("typeof", globals.get::<_, LuaFunction>("typeof")?)?;
+    lua.set_named_registry_value("xpcall", globals.get::<_, LuaFunction>("xpcall")?)?;
+    lua.set_named_registry_value("pcall", globals.get::<_, LuaFunction>("pcall")?)?;
+    lua.set_named_registry_value("tostring", globals.get::<_, LuaFunction>("tostring")?)?;
+    lua.set_named_registry_value("tonumber", globals.get::<_, LuaFunction>("tonumber")?)?;
     lua.set_named_registry_value("co.thread", coroutine.get::<_, LuaFunction>("running")?)?;
     lua.set_named_registry_value("co.yield", coroutine.get::<_, LuaFunction>("yield")?)?;
     lua.set_named_registry_value("co.close", coroutine.get::<_, LuaFunction>("close")?)?;
     lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
+    lua.set_named_registry_value("tab.pack", table.get::<_, LuaFunction>("pack")?)?;
+    lua.set_named_registry_value("tab.unpack", table.get::<_, LuaFunction>("unpack")?)?;
+    // Create a function that can be called from lua to check if a value is a mlua error,
+    // this will be used in async environments for proper error handling and throwing, as
+    // well as a function that can be called to make a callback error with a traceback from lua
+    let dbg_is_err_fn =
+        lua.create_function(move |_, value: LuaValue| Ok(matches!(value, LuaValue::Error(_))))?;
+
+    let dbg_make_err_fn = lua.create_function(|_, (cause, traceback): (LuaError, String)| {
+        Ok(LuaError::CallbackError {
+            traceback,
+            cause: cause.into(),
+        })
+    })?;
     // Create a trace function that can be called to obtain a full stack trace from
     // lua, this is not possible to do from rust when using our manual scheduler
-    let trace_env = lua.create_table_with_capacity(0, 1)?;
-    trace_env.set("info", debug.get::<_, LuaFunction>("info")?)?;
-    trace_env.set("push", table.get::<_, LuaFunction>("insert")?)?;
-    trace_env.set("concat", table.get::<_, LuaFunction>("concat")?)?;
-    trace_env.set("format", string.get::<_, LuaFunction>("format")?)?;
-    let trace_fn = lua
+    let dbg_trace_env = lua.create_table_with_capacity(0, 1)?;
+    dbg_trace_env.set("info", debug.get::<_, LuaFunction>("info")?)?;
+    dbg_trace_env.set("push", table.get::<_, LuaFunction>("insert")?)?;
+    dbg_trace_env.set("concat", table.get::<_, LuaFunction>("concat")?)?;
+    dbg_trace_env.set("format", string.get::<_, LuaFunction>("format")?)?;
+    let dbg_trace_fn = lua
         .load(TRACE_IMPL_LUA)
         .set_name("=dbg.trace")?
-        .set_environment(trace_env)?
+        .set_environment(dbg_trace_env)?
         .into_function()?;
-    lua.set_named_registry_value("dbg.trace", trace_fn)?;
+    lua.set_named_registry_value("dbg.trace", dbg_trace_fn)?;
+    lua.set_named_registry_value("dbg.iserr", dbg_is_err_fn)?;
+    lua.set_named_registry_value("dbg.makeerr", dbg_make_err_fn)?;
     // All done
     Ok(lua)
 }

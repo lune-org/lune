@@ -118,9 +118,8 @@ impl Lune {
                 let mut got_error = false;
                 loop {
                     let result = sched.resume_queue().await;
-                    // println!("{result}");
                     if let Some(err) = result.get_lua_error() {
-                        eprintln!("{}", pretty_format_luau_error(&err));
+                        eprintln!("{}", pretty_format_luau_error(&err, true));
                         got_error = true;
                     }
                     if result.is_done() {

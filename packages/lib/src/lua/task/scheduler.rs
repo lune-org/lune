@@ -225,8 +225,18 @@ impl<'fut> TaskScheduler<'fut> {
         self.guid_running.set(Some(reference.id()));
         let rets = match args_opt_res {
             Some(args_res) => match args_res {
-                Err(err) => Err(err), // FIXME: We need to throw this error in lua to let pcall & friends handle it properly
-                Ok(args) => thread.resume::<_, LuaMultiValue>(args),
+                /*
+                    HACK: Resuming with an error here only works because the Rust
+                    functions that we register and that may return lua errors are
+                    also error-aware and wrapped in a special wrapper that checks
+                    if the returned value is a lua error userdata, then throws it
+
+                    Also note that this only happens for our custom async functions
+                    that may pass errors as arguments when resuming tasks, other
+                    native mlua functions will handle this and dont need wrapping
+                */
+                Err(err) => thread.resume(err),
+                Ok(args) => thread.resume(args),
             },
             None => thread.resume(()),
         };
