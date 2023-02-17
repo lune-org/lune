@@ -116,9 +116,27 @@ impl<'fut> TaskScheduler<'fut> {
     /**
         Returns the currently running task, if any.
     */
-    #[allow(dead_code)]
     pub fn current_task(&self) -> Option<TaskReference> {
         self.tasks_current.get()
+    }
+
+    /**
+        Returns the status of a specific task, if it exists in the scheduler.
+    */
+    pub fn get_task_status(&self, reference: TaskReference) -> Option<LuaString> {
+        self.tasks.borrow().get(&reference).map(|task| {
+            let status: LuaFunction = self
+                .lua
+                .named_registry_value("co.status")
+                .expect("Missing coroutine status function in registry");
+            let thread: LuaThread = self
+                .lua
+                .registry_value(&task.thread)
+                .expect("Task thread missing from registry");
+            status
+                .call(thread)
+                .expect("Task thread failed to call status")
+        })
     }
 
     /**

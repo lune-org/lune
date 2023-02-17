@@ -61,6 +61,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     // calling resume or the function that wrap returns must return
     // whatever lua value(s) that the thread or task yielded back
     let coroutine = globals.get::<_, LuaTable>("coroutine")?;
+    coroutine.set("status", lua.create_function(coroutine_status)?)?;
     coroutine.set("resume", lua.create_function(coroutine_resume)?)?;
     coroutine.set("wrap", lua.create_function(coroutine_wrap)?)?;
     // All good, return the task scheduler lib
@@ -127,26 +128,46 @@ fn proxy_typeof<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaStr
     Coroutine library overrides for compat with task scheduler
 */
 
+fn coroutine_status<'a>(
+    lua: &'a Lua,
+    value: LuaThreadOrTaskReference<'a>,
+) -> LuaResult<LuaString<'a>> {
+    Ok(match value {
+        LuaThreadOrTaskReference::Thread(thread) => {
+            let get_status: LuaFunction = lua.named_registry_value("co.status")?;
+            get_status.call(thread)?
+        }
+        LuaThreadOrTaskReference::TaskReference(task) => {
+            let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+            sched
+                .get_task_status(task)
+                .unwrap_or_else(|| lua.create_string("dead").unwrap())
+        }
+    })
+}
+
 fn coroutine_resume<'lua>(
     lua: &'lua Lua,
     value: LuaThreadOrTaskReference,
-) -> LuaResult<LuaMultiValue<'lua>> {
-    // FIXME: Resume should return true, return vals OR false, error message
+) -> LuaResult<(bool, LuaMultiValue<'lua>)> {
     let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-    match value {
+    if sched.current_task().is_none() {
+        return Err(LuaError::RuntimeError(
+            "No current task to inherit".to_string(),
+        ));
+    }
+    let current = sched.current_task().unwrap();
+    let result = match value {
         LuaThreadOrTaskReference::Thread(t) => {
-            if sched.current_task().is_none() {
-                return Err(LuaError::RuntimeError(
-                    "No current task to inherit".to_string(),
-                ));
-            }
             let task = sched.create_task(TaskKind::Instant, t, None, true)?;
-            let current = sched.current_task().unwrap();
-            let result = sched.resume_task(task, None);
-            sched.force_set_current_task(Some(current));
-            result
+            sched.resume_task(task, None)
         }
         LuaThreadOrTaskReference::TaskReference(t) => sched.resume_task(t, None),
+    };
+    sched.force_set_current_task(Some(current));
+    match result {
+        Ok(rets) => Ok((true, rets)),
+        Err(e) => Ok((false, e.to_lua_multi(lua)?)),
     }
 }
 

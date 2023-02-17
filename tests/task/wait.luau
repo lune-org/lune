@@ -1,6 +1,6 @@
 -- Wait should be accurate down to at least 10ms
 
-local EPSILON = 1 / 100
+local EPSILON = 10 / 1_000
 
 local function test(expected: number)
 	local start = os.clock()
@@ -44,8 +44,7 @@ measure(1 / 30)
 measure(1 / 20)
 measure(1 / 10)
 
--- Wait should work in other threads, including
--- ones created by the built-in coroutine library
+-- Wait should work in other threads
 
 local flag: boolean = false
 task.spawn(function()
@@ -55,21 +54,3 @@ end)
 assert(not flag, "Wait failed while inside task-spawned thread (1)")
 task.wait(0.2)
 assert(flag, "Wait failed while inside task-spawned thread (2)")
-
-local flag2: boolean = false
-coroutine.resume(coroutine.create(function()
-	task.wait(0.1)
-	flag2 = true
-end))
-assert(not flag2, "Wait failed while inside coroutine (1)")
-task.wait(0.2)
-assert(flag2, "Wait failed while inside coroutine (2)")
-
-local flag3: boolean = false
-coroutine.wrap(function()
-	task.wait(0.1)
-	flag3 = true
-end)()
-assert(not flag3, "Wait failed while inside wrap (1)")
-task.wait(0.2)
-assert(flag3, "Wait failed while inside wrap (2)")

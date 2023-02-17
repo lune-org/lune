@@ -92,6 +92,7 @@ pub fn create() -> LuaResult<&'static Lua> {
     lua.set_named_registry_value("pcall", globals.get::<_, LuaFunction>("pcall")?)?;
     lua.set_named_registry_value("tostring", globals.get::<_, LuaFunction>("tostring")?)?;
     lua.set_named_registry_value("tonumber", globals.get::<_, LuaFunction>("tonumber")?)?;
+    lua.set_named_registry_value("co.status", coroutine.get::<_, LuaFunction>("status")?)?;
     lua.set_named_registry_value("co.yield", coroutine.get::<_, LuaFunction>("yield")?)?;
     lua.set_named_registry_value("co.close", coroutine.get::<_, LuaFunction>("close")?)?;
     lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;

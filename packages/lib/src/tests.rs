@@ -60,6 +60,7 @@ create_tests! {
     require_nested: "globals/require/tests/nested",
     require_parents: "globals/require/tests/parents",
     require_siblings: "globals/require/tests/siblings",
+    global_coroutine: "globals/coroutine",
     global_pcall: "globals/pcall",
     global_type: "globals/type",
     global_typeof: "globals/typeof",
