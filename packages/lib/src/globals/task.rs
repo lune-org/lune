@@ -131,16 +131,22 @@ fn coroutine_resume<'lua>(
     lua: &'lua Lua,
     value: LuaThreadOrTaskReference,
 ) -> LuaResult<LuaMultiValue<'lua>> {
+    // FIXME: Resume should return true, return vals OR false, error message
+    let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
     match value {
         LuaThreadOrTaskReference::Thread(t) => {
-            let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+            if sched.current_task().is_none() {
+                return Err(LuaError::RuntimeError(
+                    "No current task to inherit".to_string(),
+                ));
+            }
             let task = sched.create_task(TaskKind::Instant, t, None, true)?;
-            sched.resume_task(task, None)
+            let current = sched.current_task().unwrap();
+            let result = sched.resume_task(task, None);
+            sched.force_set_current_task(Some(current));
+            result
         }
-        LuaThreadOrTaskReference::TaskReference(t) => lua
-            .app_data_ref::<&TaskScheduler>()
-            .unwrap()
-            .resume_task(t, None),
+        LuaThreadOrTaskReference::TaskReference(t) => sched.resume_task(t, None),
     }
 }
 
@@ -152,8 +158,18 @@ fn coroutine_wrap<'lua>(lua: &'lua Lua, func: LuaFunction) -> LuaResult<LuaFunct
         false,
     )?;
     lua.create_function(move |lua, args: LuaMultiValue| {
-        lua.app_data_ref::<&TaskScheduler>()
+        let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
+        if sched.current_task().is_none() {
+            return Err(LuaError::RuntimeError(
+                "No current task to inherit".to_string(),
+            ));
+        }
+        let current = sched.current_task().unwrap();
+        let result = lua
+            .app_data_ref::<&TaskScheduler>()
             .unwrap()
-            .resume_task(task, Some(Ok(args)))
+            .resume_task(task, Some(Ok(args)));
+        sched.force_set_current_task(Some(current));
+        result
     })
 }

@@ -98,6 +98,10 @@ impl<'fut> TaskScheduler<'fut> {
         self.exit_code.set(Some(code));
     }
 
+    pub(crate) fn force_set_current_task(&self, reference: Option<TaskReference>) {
+        self.tasks_current.set(reference);
+    }
+
     /**
         Checks if a task still exists in the scheduler.
 
@@ -147,7 +151,7 @@ impl<'fut> TaskScheduler<'fut> {
         // Create the task ref to use
         let guid = if inherit_current_guid {
             self.current_task()
-                .expect("No current guid to inherit")
+                .ok_or_else(|| LuaError::RuntimeError("No current guid to inherit".to_string()))?
                 .id()
         } else {
             let guid = self.guid.get();
