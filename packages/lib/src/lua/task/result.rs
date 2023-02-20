@@ -27,8 +27,8 @@ impl TaskSchedulerState {
                 .try_borrow()
                 .expect(MESSAGE)
                 .len(),
-            num_futures: sched.futures.try_lock().expect(MESSAGE).len(),
-            num_background: sched.futures_registered_count.get(),
+            num_futures: sched.futures_count.get(),
+            num_background: sched.futures_background_count.get(),
         }
     }
 

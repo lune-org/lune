@@ -53,7 +53,7 @@ impl Service<Request<Body>> for NetServiceInner {
             let sched = lua
                 .app_data_ref::<&TaskScheduler>()
                 .expect("Missing task scheduler");
-            let handle = sched.register_background_task();
+            let task = sched.register_background_task();
             task::spawn_local(async move {
                 // Create our new full websocket object, then
                 // schedule our handler to get called asap
@@ -66,7 +66,7 @@ impl Service<Request<Body>> for NetServiceInner {
                     lua.create_thread(handler)?,
                     LuaMultiValue::from_vec(vec![LuaValue::Table(sock)]),
                 );
-                handle.unregister(Ok(()));
+                task.unregister(Ok(()));
                 result
             });
             Box::pin(async move { Ok(response) })

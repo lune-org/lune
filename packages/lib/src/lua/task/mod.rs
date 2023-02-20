@@ -7,6 +7,7 @@ mod scheduler;
 mod task_kind;
 mod task_reference;
 
+pub use async_handle::*;
 pub use ext::*;
 pub use proxy::*;
 pub use scheduler::*;

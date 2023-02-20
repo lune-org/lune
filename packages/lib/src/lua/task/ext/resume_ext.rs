@@ -38,38 +38,23 @@ impl TaskSchedulerResumeExt for TaskScheduler<'_> {
     */
     async fn resume_queue(&self) -> TaskSchedulerState {
         let current = TaskSchedulerState::new(self);
-        if current.has_blocking_tasks() {
+        let result = if current.has_blocking_tasks() {
             // 1. Blocking tasks
             resume_next_blocking_task(self, None)
-        } else if current.has_future_tasks() && current.has_background_tasks() {
+        } else if current.has_future_tasks() || current.has_background_tasks() {
             // 2. Async + background tasks
             tokio::select! {
                 result = resume_next_async_task(self) => result,
                 result = receive_next_message(self) => result,
             }
-        } else if current.has_future_tasks() {
-            // 3. Async tasks
-            resume_next_async_task(self).await
-        } else if current.has_background_tasks() {
-            // 4. Only background tasks left, meaning the task scheduler will
-            // get woken up by things such as a new network connection, we can
-            // take advantage of this and perform a GC cycle right away since
-            // lua threads don't care about that performance hit right now
-            if self.lua.gc_is_running() {
-                // Finish current (maybe partial) GC cycle if it is already running
-                self.lua.gc_collect().expect("Failed to garbage collect");
-            }
-            self.lua.gc_collect().expect("Failed to garbage collect");
-            self.lua.expire_registry_values();
-            // All cleaned up, wait for the next background task to wake
-            receive_next_message(self).await
         } else {
-            // 5. No tasks left, here we sleep one millisecond in case
+            // 3. No tasks left, here we sleep one millisecond in case
             // the caller of resume_queue accidentally calls this in
             // a busy loop to prevent cpu usage from going to 100%
             sleep(Duration::from_millis(1)).await;
             TaskSchedulerState::new(self)
-        }
+        };
+        result
     }
 }
 
@@ -126,6 +111,11 @@ async fn resume_next_async_task(scheduler: &TaskScheduler<'_>) -> TaskSchedulerS
     };
     // The future might not return a reference that it wants to resume
     if let Some(task) = task {
+        // Decrement the counter since the future has completed,
+        // meaning it has been removed from the futures queue
+        scheduler
+            .futures_count
+            .set(scheduler.futures_count.get() - 1);
         // Promote this future task to a blocking task and resume it
         // right away, also taking care to not borrow mutably twice
         // by dropping this guard before trying to resume it
@@ -154,13 +144,13 @@ async fn receive_next_message(scheduler: &TaskScheduler<'_>) -> TaskSchedulerSta
         match message {
             TaskSchedulerMessage::NewBlockingTaskReady => TaskSchedulerState::new(scheduler),
             TaskSchedulerMessage::Spawned => {
-                let prev = scheduler.futures_registered_count.get();
-                scheduler.futures_registered_count.set(prev + 1);
+                let prev = scheduler.futures_background_count.get();
+                scheduler.futures_background_count.set(prev + 1);
                 TaskSchedulerState::new(scheduler)
             }
             TaskSchedulerMessage::Terminated(result) => {
-                let prev = scheduler.futures_registered_count.get();
-                scheduler.futures_registered_count.set(prev - 1);
+                let prev = scheduler.futures_background_count.get();
+                scheduler.futures_background_count.set(prev - 1);
                 if prev == 0 {
                     panic!(
                         r#"

@@ -120,9 +120,13 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
             .futures
             .try_lock()
             .expect("Tried to add future to queue during futures resumption");
+        self.futures_count.set(self.futures_count.get() + 1);
         futs.push(Box::pin(async move {
             let before = Instant::now();
-            sleep(Duration::from_secs_f64(duration.unwrap_or_default())).await;
+            sleep(Duration::from_secs_f64(
+                duration.unwrap_or_default().max(0.0),
+            ))
+            .await;
             let elapsed_secs = before.elapsed().as_secs_f64();
             let args = elapsed_secs.to_lua_multi(self.lua).unwrap();
             (Some(reference), Ok(Some(args)))

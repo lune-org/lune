@@ -49,7 +49,8 @@ pub struct TaskScheduler<'fut> {
     pub(super) tasks_current_lua_error: Arc<RefCell<Option<LuaError>>>,
     // Future tasks & objects for waking
     pub(super) futures: AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>,
-    pub(super) futures_registered_count: Cell<usize>,
+    pub(super) futures_count: Cell<usize>,
+    pub(super) futures_background_count: Cell<usize>,
     pub(super) futures_tx: mpsc::UnboundedSender<TaskSchedulerMessage>,
     pub(super) futures_rx: AsyncMutex<mpsc::UnboundedReceiver<TaskSchedulerMessage>>,
 }
@@ -77,7 +78,8 @@ impl<'fut> TaskScheduler<'fut> {
             futures: AsyncMutex::new(FuturesUnordered::new()),
             futures_tx: tx,
             futures_rx: AsyncMutex::new(rx),
-            futures_registered_count: Cell::new(0),
+            futures_count: Cell::new(0),
+            futures_background_count: Cell::new(0),
         })
     }
 
@@ -281,7 +283,7 @@ impl<'fut> TaskScheduler<'fut> {
                     // NOTE: Setting this error here means that when the thread
                     // is resumed it will error instantly, so we don't need
                     // to call it with proper args, empty args is fine
-                    *self.tasks_current_lua_error.borrow_mut() = Some(e);
+                    self.tasks_current_lua_error.replace(Some(e));
                     thread.resume(())
                 }
                 Ok(args) => thread.resume(args),
@@ -358,6 +360,7 @@ impl<'fut> TaskScheduler<'fut> {
             .futures
             .try_lock()
             .expect("Tried to add future to queue during futures resumption");
+        self.futures_count.set(self.futures_count.get() + 1);
         futs.push(Box::pin(async move {
             let result = fut.await;
             (Some(task_ref), result)
