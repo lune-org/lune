@@ -6,6 +6,16 @@ use crate::{lua::task::TaskScheduler, utils::table::TableBuilder};
 
 use super::task::TaskSchedulerAsyncExt;
 
+const ASYNC_IMPL_LUA: &str = r#"
+resumeAsync(thread(), ...)
+return yield()
+"#;
+
+const WAIT_IMPL_LUA: &str = r#"
+resumeAfter(...)
+return yield()
+"#;
+
 #[async_trait(?Send)]
 pub trait LuaAsyncExt {
     fn create_async_function<'lua, A, R, F, FR>(self, func: F) -> LuaResult<LuaFunction<'lua>>
@@ -30,18 +40,8 @@ impl LuaAsyncExt for &'static Lua {
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        let async_env_make_err: LuaFunction = self.named_registry_value("dbg.makeerr")?;
-        let async_env_is_err: LuaFunction = self.named_registry_value("dbg.iserr")?;
-        let async_env_trace: LuaFunction = self.named_registry_value("dbg.trace")?;
-        let async_env_error: LuaFunction = self.named_registry_value("error")?;
-        let async_env_unpack: LuaFunction = self.named_registry_value("tab.unpack")?;
         let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;
         let async_env = TableBuilder::new(self)?
-            .with_value("makeError", async_env_make_err)?
-            .with_value("isError", async_env_is_err)?
-            .with_value("trace", async_env_trace)?
-            .with_value("error", async_env_error)?
-            .with_value("unpack", async_env_unpack)?
             .with_value("yield", async_env_yield)?
             .with_function("thread", |lua, _: ()| Ok(lua.current_thread()))?
             .with_function(
@@ -60,17 +60,7 @@ impl LuaAsyncExt for &'static Lua {
             )?
             .build_readonly()?;
         let async_func = self
-            .load(
-                "
-                resumeAsync(thread(), ...)
-                local results = { yield() }
-                if isError(results[1]) then
-                    error(makeError(results[1], trace()))
-                else
-                    return unpack(results)
-                end
-                ",
-            )
+            .load(ASYNC_IMPL_LUA)
             .set_name("async")?
             .set_environment(async_env)?
             .into_function()?;
@@ -94,12 +84,7 @@ impl LuaAsyncExt for &'static Lua {
             })?
             .build_readonly()?;
         let async_func = self
-            .load(
-                "
-                resumeAfter(...)
-                return yield()
-                ",
-            )
+            .load(WAIT_IMPL_LUA)
             .set_name("wait")?
             .set_environment(async_env)?
             .into_function()?;

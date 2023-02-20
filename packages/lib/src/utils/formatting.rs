@@ -426,6 +426,8 @@ fn fix_error_nitpicks(full_message: String) -> String {
         .replace("'require', Line 5", "'[C]' - function require")
         .replace("'require', Line 7", "'[C]' - function require")
         .replace("'require', Line 8", "'[C]' - function require")
+        // Same thing here for our async script
+        .replace("'async', Line 3", "'[C]'")
         // Fix error calls in custom script chunks coming through
         .replace(
             "'[C]' - function error\n    Script '[C]' - function require",

@@ -49,9 +49,6 @@ end
     These globals can then be modified safely after constructing Lua using this function.
 
     ---
-    * `"require"` -> `require`
-    * `"select"` -> `select`
-    ---
     * `"print"` -> `print`
     * `"error"` -> `error`
     ---
@@ -82,8 +79,6 @@ pub fn create() -> LuaResult<&'static Lua> {
     let coroutine: LuaTable = globals.get("coroutine")?;
     // Store original lua global functions in the registry so we can use
     // them later without passing them around and dealing with lifetimes
-    lua.set_named_registry_value("require", globals.get::<_, LuaFunction>("require")?)?;
-    lua.set_named_registry_value("select", globals.get::<_, LuaFunction>("select")?)?;
     lua.set_named_registry_value("print", globals.get::<_, LuaFunction>("print")?)?;
     lua.set_named_registry_value("error", globals.get::<_, LuaFunction>("error")?)?;
     lua.set_named_registry_value("type", globals.get::<_, LuaFunction>("type")?)?;
@@ -98,18 +93,6 @@ pub fn create() -> LuaResult<&'static Lua> {
     lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
     lua.set_named_registry_value("tab.pack", table.get::<_, LuaFunction>("pack")?)?;
     lua.set_named_registry_value("tab.unpack", table.get::<_, LuaFunction>("unpack")?)?;
-    // Create a function that can be called from lua to check if a value is a mlua error,
-    // this will be used in async environments for proper error handling and throwing, as
-    // well as a function that can be called to make a callback error with a traceback from lua
-    let dbg_is_err_fn =
-        lua.create_function(move |_, value: LuaValue| Ok(matches!(value, LuaValue::Error(_))))?;
-
-    let dbg_make_err_fn = lua.create_function(|_, (cause, traceback): (LuaError, String)| {
-        Ok(LuaError::CallbackError {
-            traceback,
-            cause: cause.into(),
-        })
-    })?;
     // Create a trace function that can be called to obtain a full stack trace from
     // lua, this is not possible to do from rust when using our manual scheduler
     let dbg_trace_env = lua.create_table_with_capacity(0, 1)?;
@@ -123,8 +106,6 @@ pub fn create() -> LuaResult<&'static Lua> {
         .set_environment(dbg_trace_env)?
         .into_function()?;
     lua.set_named_registry_value("dbg.trace", dbg_trace_fn)?;
-    lua.set_named_registry_value("dbg.iserr", dbg_is_err_fn)?;
-    lua.set_named_registry_value("dbg.makeerr", dbg_make_err_fn)?;
     // All done
     Ok(lua)
 }

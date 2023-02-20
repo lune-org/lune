@@ -8,6 +8,25 @@ use mlua::prelude::*;
 
 use crate::utils::table::TableBuilder;
 
+const REQUIRE_IMPL_LUA: &str = r#"
+local source = info(1, "s")
+if source == '[string "require"]' then
+    source = info(2, "s")
+end
+local absolute, relative = paths(source, ...)
+if loaded[absolute] ~= true then
+    local first, second = load(absolute, relative)
+    if first == nil or second ~= nil then
+        error("Module did not return exactly one value")
+    end
+    loaded[absolute] = true
+    cache[absolute] = first
+    return first
+else
+    return cache[absolute]
+end
+"#;
+
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // Preserve original require behavior if we have a special env var set,
     // returning an empty table since there are no globals to overwrite
@@ -89,26 +108,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_value("load", require_get_loaded_file)?
         .build_readonly()?;
     let require_fn_lua = lua
-        .load(
-            r#"
-            local source = info(1, "s")
-            if source == '[string "require"]' then
-                source = info(2, "s")
-            end
-            local absolute, relative = paths(source, ...)
-            if loaded[absolute] ~= true then
-                local first, second = load(absolute, relative)
-                if first == nil or second ~= nil then
-                    error("Module did not return exactly one value")
-                end
-                loaded[absolute] = true
-                cache[absolute] = first
-                return first
-            else
-                return cache[absolute]
-            end
-            "#,
-        )
+        .load(REQUIRE_IMPL_LUA)
         .set_name("require")?
         .set_environment(require_env)?
         .into_function()?;

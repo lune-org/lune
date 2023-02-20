@@ -11,6 +11,13 @@ use crate::{
     utils::table::TableBuilder,
 };
 
+const SPAWN_IMPL_LUA: &str = r#"
+scheduleNext(thread())
+local task = scheduleNext(...)
+yield()
+return task
+"#;
+
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     lua.app_data_ref::<&TaskScheduler>()
         .expect("Missing task scheduler in app data");
@@ -27,14 +34,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     */
     let task_spawn_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
     let task_spawn = lua
-        .load(
-            "
-            scheduleNext(thread())
-            local task = scheduleNext(...)
-            yield()
-            return task
-            ",
-        )
+        .load(SPAWN_IMPL_LUA)
         .set_name("task.spawn")?
         .set_environment(
             TableBuilder::new(lua)?

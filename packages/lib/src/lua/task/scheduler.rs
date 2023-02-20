@@ -3,6 +3,7 @@ use std::{
     cell::{Cell, RefCell},
     collections::{HashMap, VecDeque},
     process::ExitCode,
+    sync::Arc,
 };
 
 use futures_util::{future::LocalBoxFuture, stream::FuturesUnordered, Future};
@@ -45,6 +46,7 @@ pub struct TaskScheduler<'fut> {
     pub(super) tasks: RefCell<HashMap<TaskReference, Task>>,
     pub(super) tasks_current: Cell<Option<TaskReference>>,
     pub(super) tasks_queue_blocking: RefCell<VecDeque<TaskReference>>,
+    pub(super) tasks_current_lua_error: Arc<RefCell<Option<LuaError>>>,
     // Future tasks & objects for waking
     pub(super) futures: AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>,
     pub(super) futures_registered_count: Cell<usize>,
@@ -58,6 +60,12 @@ impl<'fut> TaskScheduler<'fut> {
     */
     pub fn new(lua: &'static Lua) -> LuaResult<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
+        let tasks_current_lua_error = Arc::new(RefCell::new(None));
+        let tasks_current_lua_error_inner = tasks_current_lua_error.clone();
+        lua.set_interrupt(move || match tasks_current_lua_error_inner.take() {
+            Some(err) => Err(err),
+            None => Ok(LuaVmState::Continue),
+        });
         Ok(Self {
             lua,
             guid: Cell::new(0),
@@ -65,6 +73,7 @@ impl<'fut> TaskScheduler<'fut> {
             tasks: RefCell::new(HashMap::new()),
             tasks_current: Cell::new(None),
             tasks_queue_blocking: RefCell::new(VecDeque::new()),
+            tasks_current_lua_error,
             futures: AsyncMutex::new(FuturesUnordered::new()),
             futures_tx: tx,
             futures_rx: AsyncMutex::new(rx),
@@ -268,17 +277,13 @@ impl<'fut> TaskScheduler<'fut> {
         self.tasks_current.set(Some(reference));
         let rets = match args_opt_res {
             Some(args_res) => match args_res {
-                /*
-                    HACK: Resuming with an error here only works because the Rust
-                    functions that we register and that may return lua errors are
-                    also error-aware and wrapped in a special wrapper that checks
-                    if the returned value is a lua error userdata, then throws it
-
-                    Also note that this only happens for our custom async functions
-                    that may pass errors as arguments when resuming tasks, other
-                    native mlua functions will handle this and dont need wrapping
-                */
-                Err(e) => thread.resume(e),
+                Err(e) => {
+                    // NOTE: Setting this error here means that when the thread
+                    // is resumed it will error instantly, so we don't need
+                    // to call it with proper args, empty args is fine
+                    *self.tasks_current_lua_error.borrow_mut() = Some(e);
+                    thread.resume(())
+                }
                 Ok(args) => thread.resume(args),
             },
             None => thread.resume(()),
