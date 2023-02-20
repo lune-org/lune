@@ -14,52 +14,47 @@ use crate::utils::table::TableBuilder;
 pub struct NetWebSocketClient(Arc<Mutex<WebSocketStream<MaybeTlsStream<TcpStream>>>>);
 
 impl NetWebSocketClient {
-    async fn close(&self) -> LuaResult<()> {
-        self.0.lock().await.close(None).await;
+    pub async fn close(&self) -> LuaResult<()> {
+        let mut ws = self.0.lock().await;
+        ws.close(None).await.map_err(LuaError::external)?;
         Ok(())
     }
 
-    async fn send(&self, msg: String) -> LuaResult<()> {
-        self.0
-            .lock()
-            .await
-            .send(WsMessage::Text(msg))
-            .await
-            .map_err(LuaError::external)
+    pub async fn send(&self, msg: WsMessage) -> LuaResult<()> {
+        let mut ws = self.0.lock().await;
+        ws.send(msg).await.map_err(LuaError::external)?;
+        Ok(())
     }
 
-    async fn next<'a>(&self, lua: &'static Lua) -> LuaResult<LuaValue<'a>> {
-        let item = self
-            .0
-            .lock()
-            .await
-            .next()
-            .await
-            .transpose()
-            .map_err(LuaError::external)?;
-        Ok(match item {
-            None => LuaValue::Nil,
-            Some(msg) => match msg {
-                WsMessage::Binary(bin) => LuaValue::String(lua.create_string(&bin)?),
-                WsMessage::Text(txt) => LuaValue::String(lua.create_string(&txt)?),
-                _ => LuaValue::Nil,
-            },
-        })
+    pub async fn next(&self) -> LuaResult<Option<WsMessage>> {
+        let mut ws = self.0.lock().await;
+        let item = ws.next().await.transpose();
+        item.map_err(LuaError::external)
     }
 
     pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
-        let inner_close = self.clone();
-        let inner_send = self.clone();
-        let inner_next = self.clone();
+        // FIXME: Deallocate when closed
+        let client = Box::leak(Box::new(self));
         TableBuilder::new(lua)?
-            .with_async_function("close", move |_, _: ()| inner_close.close())?
-            .with_async_function("send", move |_, msg: String| inner_send.send(msg))?
-            .with_async_function("next", move |lua, _: ()| inner_next.next(lua))?
+            .with_async_function("close", |_, ()| async {
+                let result = client.close().await;
+                result
+            })?
+            .with_async_function("send", |_, message: String| async {
+                let result = client.send(WsMessage::Text(message)).await;
+                result
+            })?
+            .with_async_function("next", |lua, ()| async {
+                let result = client.next().await?;
+                Ok(match result {
+                    Some(WsMessage::Binary(bin)) => LuaValue::String(lua.create_string(&bin)?),
+                    Some(WsMessage::Text(txt)) => LuaValue::String(lua.create_string(&txt)?),
+                    _ => LuaValue::Nil,
+                })
+            })?
             .build_readonly()
     }
 }
-
-impl LuaUserData for NetWebSocketClient {}
 
 impl From<WebSocketStream<MaybeTlsStream<TcpStream>>> for NetWebSocketClient {
     fn from(value: WebSocketStream<MaybeTlsStream<TcpStream>>) -> Self {

@@ -22,7 +22,7 @@ pub trait LuaAsyncExt {
     where
         A: FromLuaMulti<'static>,
         R: ToLuaMulti<'static>,
-        F: 'static + Fn(&'static Lua, A) -> FR,
+        F: 'static + Fn(&'lua Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>;
 
     fn create_waiter_function<'lua>(self) -> LuaResult<LuaFunction<'lua>>;
@@ -37,7 +37,7 @@ impl LuaAsyncExt for &'static Lua {
     where
         A: FromLuaMulti<'static>,
         R: ToLuaMulti<'static>,
-        F: 'static + Fn(&'static Lua, A) -> FR,
+        F: 'static + Fn(&'lua Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
         let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;

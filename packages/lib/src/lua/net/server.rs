@@ -12,7 +12,12 @@ use hyper::{Body, Request, Response};
 use hyper_tungstenite::{is_upgrade_request as is_ws_upgrade_request, upgrade as ws_upgrade};
 use tokio::task;
 
-use crate::utils::table::TableBuilder;
+use crate::{
+    lua::task::{TaskScheduler, TaskSchedulerAsyncExt, TaskSchedulerScheduleExt},
+    utils::table::TableBuilder,
+};
+
+use super::NetWebSocketServer;
 
 // Hyper service implementation for net, lots of boilerplate here
 // but make_svc and make_svc_function do not work for what we need
@@ -40,25 +45,30 @@ impl Service<Request<Body>> for NetServiceInner {
             // and then call our handler with a new socket object
             let kopt = self.2.clone();
             let key = kopt.as_ref().as_ref().unwrap();
-            let _handler: LuaFunction = lua.registry_value(key).expect("Missing websocket handler");
+            let handler: LuaFunction = lua.registry_value(key).expect("Missing websocket handler");
             let (response, ws) = ws_upgrade(&mut req, None).expect("Failed to upgrade websocket");
-            // TODO: This should be spawned as part of the scheduler,
+            // This should be spawned as a registered task, otherwise
             // the scheduler may exit early and cancel this even though what
             // we want here is a long-running task that keeps the program alive
+            let sched = lua
+                .app_data_ref::<&TaskScheduler>()
+                .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
+            let handle = sched.register_background_task();
             task::spawn_local(async move {
                 // Create our new full websocket object, then
                 // schedule our handler to get called asap
-                let _ws = ws.await.map_err(LuaError::external)?;
-                // let sock = NetWebSocketServer::from(ws);
-                // let table = sock.into_lua_table(lua)?;
-                // let sched = lua
-                //     .app_data_ref::<&TaskScheduler>()
-                //     .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
-                // sched.schedule_current_resume(
-                //     LuaValue::Function(handler),
-                //     LuaMultiValue::from_vec(vec![LuaValue::Table(table)]),
-                // )
-                Ok::<_, LuaError>(())
+                let ws = ws.await.map_err(LuaError::external)?;
+                let sock = NetWebSocketServer::from(ws);
+                let table = sock.into_lua_table(lua)?;
+                let sched = lua
+                    .app_data_ref::<&TaskScheduler>()
+                    .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
+                let result = sched.schedule_blocking(
+                    lua.create_thread(handler)?,
+                    LuaMultiValue::from_vec(vec![LuaValue::Table(table)]),
+                );
+                handle.unregister(Ok(()));
+                result
             });
             Box::pin(async move { Ok(response) })
         } else {
@@ -103,6 +113,9 @@ impl Service<Request<Body>> for NetServiceInner {
                     .with_value("headers", header_map)?
                     .with_value("body", lua.create_string(&bytes)?)?
                     .build_readonly()?;
+                // TODO: Make some kind of NetServeResponse type with a
+                // FromLua implementation instead, this is a bit messy
+                // and does not send errors to the scheduler properly
                 match handler.call(request) {
                     // Plain strings from the handler are plaintext responses
                     Ok(LuaValue::String(s)) => Ok(Response::builder()
@@ -139,12 +152,8 @@ impl Service<Request<Body>> for NetServiceInner {
                     }
                     // If the handler returns a value that is of an invalid type,
                     // this should also be an error, so generate a 5xx response
-                    Ok(value) => {
-                        // TODO: Send below error to task scheduler so that it can emit properly
-                        let _ = LuaError::RuntimeError(format!(
-                            "Expected net serve handler to return a value of type 'string' or 'table', got '{}'",
-                            value.type_name()
-                        ));
+                    Ok(_) => {
+                        // TODO: Implement the type in the above todo
                         Ok(Response::builder()
                             .status(500)
                             .body(Body::from("Internal Server Error"))

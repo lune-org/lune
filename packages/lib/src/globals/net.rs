@@ -8,8 +8,10 @@ use tokio::{sync::mpsc, task};
 
 use crate::{
     lua::{
-        // net::{NetWebSocketClient, NetWebSocketServer},
-        net::{NetClient, NetClientBuilder, NetLocalExec, NetService, RequestConfig, ServeConfig},
+        net::{
+            NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocketClient,
+            RequestConfig, ServeConfig,
+        },
         task::{TaskScheduler, TaskSchedulerAsyncExt},
     },
     utils::{net::get_request_user_agent_header, table::TableBuilder},
@@ -78,27 +80,17 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
         .build_readonly()
 }
 
-async fn net_socket<'a>(_lua: &'static Lua, _url: String) -> LuaResult<LuaTable> {
-    Err(LuaError::RuntimeError(
-        "Client websockets are not yet implemented".to_string(),
-    ))
-    // let (ws, _) = tokio_tungstenite::connect_async(url)
-    //     .await
-    //     .map_err(LuaError::external)?;
-    // let sock = NetWebSocketClient::from(ws);
-    // let table = sock.into_lua_table(lua)?;
-    // Ok(table)
+async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
+    let (ws, _) = tokio_tungstenite::connect_async(url)
+        .await
+        .map_err(LuaError::external)?;
+    NetWebSocketClient::from(ws).into_lua_table(lua)
 }
 
 async fn net_serve<'a>(
     lua: &'static Lua,
     (port, config): (u16, ServeConfig<'a>),
 ) -> LuaResult<LuaTable<'a>> {
-    if config.handle_web_socket.is_some() {
-        return Err(LuaError::RuntimeError(
-            "Server websockets are not yet implemented".to_string(),
-        ));
-    }
     // Note that we need to use a mpsc here and not
     // a oneshot channel since we move the sender
     // into our table with the stop function
