@@ -17,7 +17,7 @@ use crate::{
     utils::table::TableBuilder,
 };
 
-use super::NetWebSocketServer;
+use super::NetWebSocket;
 
 // Hyper service implementation for net, lots of boilerplate here
 // but make_svc and make_svc_function do not work for what we need
@@ -52,20 +52,19 @@ impl Service<Request<Body>> for NetServiceInner {
             // we want here is a long-running task that keeps the program alive
             let sched = lua
                 .app_data_ref::<&TaskScheduler>()
-                .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
+                .expect("Missing task scheduler");
             let handle = sched.register_background_task();
             task::spawn_local(async move {
                 // Create our new full websocket object, then
                 // schedule our handler to get called asap
                 let ws = ws.await.map_err(LuaError::external)?;
-                let sock = NetWebSocketServer::from(ws);
-                let table = sock.into_lua_table(lua)?;
+                let sock = NetWebSocket::new(ws).into_lua_table(lua)?;
                 let sched = lua
                     .app_data_ref::<&TaskScheduler>()
-                    .expect("Missing task scheduler - make sure it is added as a lua app data before the first scheduler resumption");
+                    .expect("Missing task scheduler");
                 let result = sched.schedule_blocking(
                     lua.create_thread(handler)?,
-                    LuaMultiValue::from_vec(vec![LuaValue::Table(table)]),
+                    LuaMultiValue::from_vec(vec![LuaValue::Table(sock)]),
                 );
                 handle.unregister(Ok(()));
                 result

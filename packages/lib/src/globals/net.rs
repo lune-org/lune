@@ -9,8 +9,8 @@ use tokio::{sync::mpsc, task};
 use crate::{
     lua::{
         net::{
-            NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocketClient,
-            RequestConfig, ServeConfig,
+            NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocket, RequestConfig,
+            ServeConfig,
         },
         task::{TaskScheduler, TaskSchedulerAsyncExt},
     },
@@ -84,7 +84,7 @@ async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
     let (ws, _) = tokio_tungstenite::connect_async(url)
         .await
         .map_err(LuaError::external)?;
-    NetWebSocketClient::from(ws).into_lua_table(lua)
+    NetWebSocket::new(ws).into_lua_table(lua)
 }
 
 async fn net_serve<'a>(
