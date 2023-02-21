@@ -3,7 +3,7 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::prelude::*;
 use tokio::fs;
 
-use crate::utils::table::TableBuilder;
+use crate::lua::table::TableBuilder;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?

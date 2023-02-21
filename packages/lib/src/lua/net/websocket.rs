@@ -10,7 +10,7 @@ use tokio::{
     sync::Mutex,
 };
 
-use crate::utils::table::TableBuilder;
+use crate::lua::table::TableBuilder;
 
 #[derive(Debug, Clone)]
 pub struct NetWebSocket<T> {

@@ -6,7 +6,7 @@ use std::{
 
 use mlua::prelude::*;
 
-use crate::utils::table::TableBuilder;
+use crate::lua::table::TableBuilder;
 
 const REQUIRE_IMPL_LUA: &str = r#"
 local source = info(1, "s")

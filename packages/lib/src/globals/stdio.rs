@@ -2,14 +2,14 @@ use blocking::unblock;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use mlua::prelude::*;
 
-use crate::{
-    lua::stdio::{PromptKind, PromptOptions, PromptResult},
-    utils::{
+use crate::lua::{
+    stdio::{
         formatting::{
             format_style, pretty_format_multi_value, style_from_color_str, style_from_style_str,
         },
-        table::TableBuilder,
+        prompt::{PromptKind, PromptOptions, PromptResult},
     },
+    table::TableBuilder,
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {

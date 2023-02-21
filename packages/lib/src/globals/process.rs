@@ -10,9 +10,8 @@ use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
 
-use crate::{
-    lua::task::TaskScheduler,
-    utils::{process::pipe_and_inherit_child_process_stdio, table::TableBuilder},
+use crate::lua::{
+    process::pipe_and_inherit_child_process_stdio, table::TableBuilder, task::TaskScheduler,
 };
 
 const PROCESS_EXIT_IMPL_LUA: &str = r#"

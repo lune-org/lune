@@ -3,7 +3,8 @@ use std::process::ExitStatus;
 use mlua::prelude::*;
 use tokio::{io, process::Child, task};
 
-use crate::utils::futures::AsyncTeeWriter;
+mod tee_writer;
+use tee_writer::AsyncTeeWriter;
 
 pub async fn pipe_and_inherit_child_process_stdio(
     mut child: Child,

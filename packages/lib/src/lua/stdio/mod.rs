@@ -1,3 +1,2 @@
-mod prompt;
-
-pub use prompt::{PromptKind, PromptOptions, PromptResult};
+pub mod formatting;
+pub mod prompt;

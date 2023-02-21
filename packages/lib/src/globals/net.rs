@@ -6,15 +6,13 @@ use console::style;
 use hyper::Server;
 use tokio::{sync::mpsc, task};
 
-use crate::{
-    lua::{
-        net::{
-            NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocket, RequestConfig,
-            ServeConfig,
-        },
-        task::{TaskScheduler, TaskSchedulerAsyncExt},
+use crate::lua::{
+    net::{
+        NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocket, RequestConfig,
+        ServeConfig,
     },
-    utils::{net::get_request_user_agent_header, table::TableBuilder},
+    table::TableBuilder,
+    task::{TaskScheduler, TaskSchedulerAsyncExt},
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -22,7 +20,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // web requests and store it in the lua registry,
     // allowing us to reuse headers and internal structs
     let client = NetClientBuilder::new()
-        .headers(&[("User-Agent", get_request_user_agent_header())])?
+        .headers(&[("User-Agent", create_user_agent_header())])?
         .build()?;
     lua.set_named_registry_value("net.client", client)?;
     // Create the global table for net
@@ -33,6 +31,15 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("socket", net_socket)?
         .with_async_function("serve", net_serve)?
         .build_readonly()
+}
+
+fn create_user_agent_header() -> String {
+    let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
+        .strip_prefix("https://github.com/")
+        .unwrap()
+        .split_once('/')
+        .unwrap();
+    format!("{github_owner}-{github_repo}-cli")
 }
 
 fn net_json_encode(_: &'static Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<String> {

@@ -6,15 +6,14 @@ use tokio::task::LocalSet;
 
 pub(crate) mod globals;
 pub(crate) mod lua;
-pub(crate) mod utils;
 
 #[cfg(test)]
 mod tests;
 
-use crate::utils::formatting::pretty_format_luau_error;
-
 pub use globals::LuneGlobal;
 pub use lua::create_lune_lua;
+
+use lua::stdio::formatting::pretty_format_luau_error;
 
 #[derive(Clone, Debug, Default)]
 pub struct Lune {

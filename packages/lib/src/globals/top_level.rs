@@ -1,8 +1,8 @@
 use mlua::prelude::*;
 
-use crate::utils::{
-    formatting::{format_label, pretty_format_multi_value},
-    table::TableBuilder,
+use crate::{
+    lua::stdio::formatting::{format_label, pretty_format_multi_value},
+    lua::table::TableBuilder,
 };
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {

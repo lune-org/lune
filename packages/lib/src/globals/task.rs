@@ -1,14 +1,12 @@
 use mlua::prelude::*;
 
-use crate::{
-    lua::{
-        async_ext::LuaAsyncExt,
-        task::{
-            LuaThreadOrFunction, LuaThreadOrTaskReference, TaskKind, TaskReference, TaskScheduler,
-            TaskSchedulerScheduleExt,
-        },
+use crate::lua::{
+    async_ext::LuaAsyncExt,
+    table::TableBuilder,
+    task::{
+        LuaThreadOrFunction, LuaThreadOrTaskReference, TaskKind, TaskReference, TaskScheduler,
+        TaskSchedulerScheduleExt,
     },
-    utils::table::TableBuilder,
 };
 
 const SPAWN_IMPL_LUA: &str = r#"

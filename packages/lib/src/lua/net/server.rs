@@ -13,8 +13,8 @@ use hyper_tungstenite::{is_upgrade_request as is_ws_upgrade_request, upgrade as 
 use tokio::task;
 
 use crate::{
+    lua::table::TableBuilder,
     lua::task::{TaskScheduler, TaskSchedulerAsyncExt, TaskSchedulerScheduleExt},
-    utils::table::TableBuilder,
 };
 
 use super::{NetServeResponse, NetWebSocket};

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use futures_util::Future;
 use mlua::prelude::*;
 
-use crate::{lua::task::TaskScheduler, utils::table::TableBuilder};
+use crate::{lua::table::TableBuilder, lua::task::TaskScheduler};
 
 use super::task::TaskSchedulerAsyncExt;
 
