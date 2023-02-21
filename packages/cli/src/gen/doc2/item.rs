@@ -71,6 +71,10 @@ impl DocItem {
         self.kind.is_tag()
     }
 
+    pub fn kind(&self) -> DocItemKind {
+        self.kind
+    }
+
     pub fn get_name(&self) -> Option<&str> {
         self.name.as_deref()
     }
@@ -82,12 +86,8 @@ impl DocItem {
     pub fn get_value(&self) -> Option<&str> {
         self.value.as_deref()
     }
-}
 
-impl IntoIterator for DocItem {
-    type Item = DocItem;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.children.into_iter()
+    pub fn children(&self) -> &[DocItem] {
+        &self.children
     }
 }

@@ -10,6 +10,7 @@ use regex::Regex;
 
 use super::{builder::DocItemBuilder, item::DocItem, kind::DocItemKind};
 
+#[derive(Debug, Clone)]
 struct DocVisitorItem {
     name: String,
     comment: Option<String>,
@@ -20,9 +21,9 @@ struct DocVisitorItem {
 impl From<DocVisitorItem> for DocItem {
     fn from(value: DocVisitorItem) -> Self {
         let mut builder = DocItemBuilder::new()
-            .with_kind(match value.type_info {
+            .with_kind(match &value.type_info {
                 TypeInfo::Array { .. } | TypeInfo::Table { .. } => DocItemKind::Table,
-                TypeInfo::Callback { .. } => DocItemKind::Function,
+                typ if type_info_is_fn(typ) => DocItemKind::Function,
                 _ => unimplemented!("Support for globals that are not properties or functions is not yet implemented")
             })
             .with_name(value.name);
@@ -39,7 +40,7 @@ impl From<DocVisitorItem> for DocItem {
                     builder = builder.with_child(
                         DocItemBuilder::new()
                             .with_kind(match field.value() {
-                                TypeInfo::Callback { .. } => DocItemKind::Function,
+                                typ if type_info_is_fn(typ) => DocItemKind::Function,
                                 _ => DocItemKind::Property,
                             })
                             .with_name(name.token().to_string())
@@ -82,6 +83,18 @@ where
         .filter(|item| item.exported) // NOTE: Should we include items that are not exported? Probably not ..
         .map(DocItem::from)
         .collect())
+}
+
+fn type_info_is_fn(typ: &TypeInfo) -> bool {
+    match typ {
+        TypeInfo::Callback { .. } => true,
+        TypeInfo::Tuple { types, .. } => types.iter().all(type_info_is_fn),
+        TypeInfo::Union { left, right, .. } => type_info_is_fn(left) && type_info_is_fn(right),
+        TypeInfo::Intersection { left, right, .. } => {
+            type_info_is_fn(left) && type_info_is_fn(right)
+        }
+        _ => false,
+    }
 }
 
 fn should_separate_tag_meta(tag_kind: &str) -> bool {

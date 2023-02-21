@@ -12,12 +12,43 @@ pub enum DocsItemTag {
     Return(String),
     MustUse,
     ReadOnly,
-    NewFields,
+    ReadWrite,
 }
 
-impl TryFrom<DocItem> for DocsItemTag {
+#[allow(dead_code)]
+impl DocsItemTag {
+    pub fn is_class(&self) -> bool {
+        matches!(self, Self::Class(_))
+    }
+
+    pub fn is_within(&self) -> bool {
+        matches!(self, Self::Within(_))
+    }
+
+    pub fn is_param(&self) -> bool {
+        matches!(self, Self::Param(_))
+    }
+
+    pub fn is_return(&self) -> bool {
+        matches!(self, Self::Return(_))
+    }
+
+    pub fn is_must_use(&self) -> bool {
+        self == &Self::MustUse
+    }
+
+    pub fn is_read_only(&self) -> bool {
+        self == &Self::ReadOnly
+    }
+
+    pub fn is_read_write(&self) -> bool {
+        self == &Self::ReadWrite
+    }
+}
+
+impl TryFrom<&DocItem> for DocsItemTag {
     type Error = anyhow::Error;
-    fn try_from(value: DocItem) -> Result<Self> {
+    fn try_from(value: &DocItem) -> Result<Self> {
         if let Some(name) = value.get_name() {
             Ok(match name.trim().to_ascii_lowercase().as_ref() {
                 "class" => Self::Class(
@@ -50,7 +81,7 @@ impl TryFrom<DocItem> for DocsItemTag {
                 ),
                 "must_use" => Self::MustUse,
                 "read_only" => Self::ReadOnly,
-                "new_fields" => Self::NewFields,
+                "read_write" => Self::ReadWrite,
                 s => bail!("Unknown docs tag: '{}'", s),
             })
         } else {

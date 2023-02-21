@@ -46,11 +46,3 @@ impl DerefMut for DocTree {
         &mut self.0
     }
 }
-
-impl IntoIterator for DocTree {
-    type Item = DocItem;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}

@@ -305,7 +305,7 @@ declare process: {
 	cwd: string,
 	--[=[
 		@within process
-		@new_fields
+		@read_write
 
 		Current environment variables for this process.
 
