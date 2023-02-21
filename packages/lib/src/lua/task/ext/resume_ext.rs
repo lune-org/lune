@@ -143,6 +143,7 @@ async fn receive_next_message(scheduler: &TaskScheduler<'_>) -> TaskSchedulerSta
     if let Some(message) = message_opt {
         match message {
             TaskSchedulerMessage::NewBlockingTaskReady => TaskSchedulerState::new(scheduler),
+            TaskSchedulerMessage::NewLuaErrorReady(err) => TaskSchedulerState::err(scheduler, err),
             TaskSchedulerMessage::Spawned => {
                 let prev = scheduler.futures_background_count.get();
                 scheduler.futures_background_count.set(prev + 1);

@@ -109,6 +109,35 @@ impl<'fut> TaskScheduler<'fut> {
         self.exit_code.set(Some(code));
     }
 
+    /**
+        Forwards a lua error to be emitted as soon as possible,
+        after any current blocking / queued tasks have been resumed.
+
+        Useful when an async function may call into Lua and get a
+        result back, without erroring out of the entire async block.
+    */
+    pub fn forward_lua_error(&self, err: LuaError) {
+        let sender = self.futures_tx.clone();
+        sender
+            .send(TaskSchedulerMessage::NewLuaErrorReady(err))
+            .unwrap_or_else(|e| {
+                panic!(
+                    "\
+                    \nFailed to forward lua error - this is an internal error! \
+                    \nPlease report it at {} \
+                    \nDetails: {e} \
+                    ",
+                    env!("CARGO_PKG_REPOSITORY")
+                )
+            });
+    }
+
+    /**
+        Forces the current task to be set to the given reference.
+
+        Useful if a task is to be resumed externally but full
+        compatibility with the task scheduler is still necessary.
+    */
     pub(crate) fn force_set_current_task(&self, reference: Option<TaskReference>) {
         self.tasks_current.set(reference);
     }
