@@ -9,8 +9,8 @@ use tokio::time::{sleep, Instant};
 use crate::lua::task::TaskKind;
 
 use super::super::{
-    async_handle::TaskSchedulerAsyncHandle, message::TaskSchedulerMessage,
-    scheduler::TaskReference, scheduler::TaskScheduler,
+    scheduler::TaskReference, scheduler::TaskScheduler, scheduler_handle::TaskSchedulerAsyncHandle,
+    scheduler_message::TaskSchedulerMessage,
 };
 
 /*
@@ -120,7 +120,6 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
             .futures
             .try_lock()
             .expect("Tried to add future to queue during futures resumption");
-        self.futures_count.set(self.futures_count.get() + 1);
         futs.push(Box::pin(async move {
             let before = Instant::now();
             sleep(Duration::from_secs_f64(

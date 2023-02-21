@@ -6,27 +6,21 @@ use super::scheduler::TaskScheduler;
 
 /// Struct representing the current state of the task scheduler
 #[derive(Debug, Clone)]
+#[must_use = "Scheduler state must be checked after every resumption"]
 pub struct TaskSchedulerState {
-    lua_error: Option<LuaError>,
-    exit_code: Option<ExitCode>,
-    num_blocking: usize,
-    num_futures: usize,
-    num_background: usize,
+    pub(super) lua_error: Option<LuaError>,
+    pub(super) exit_code: Option<ExitCode>,
+    pub(super) num_blocking: usize,
+    pub(super) num_futures: usize,
+    pub(super) num_background: usize,
 }
 
 impl TaskSchedulerState {
     pub(super) fn new(sched: &TaskScheduler) -> Self {
-        const MESSAGE: &str = "\
-            Failed to get lock on or borrow internal scheduler state!\
-            \nMake sure not to call during task scheduler resumption";
         Self {
             lua_error: None,
             exit_code: sched.exit_code.get(),
-            num_blocking: sched
-                .tasks_queue_blocking
-                .try_borrow()
-                .expect(MESSAGE)
-                .len(),
+            num_blocking: sched.tasks_count.get(),
             num_futures: sched.futures_count.get(),
             num_background: sched.futures_background_count.get(),
         }
@@ -36,18 +30,6 @@ impl TaskSchedulerState {
         let mut this = Self::new(sched);
         this.lua_error = Some(err);
         this
-    }
-
-    pub(super) fn has_blocking_tasks(&self) -> bool {
-        self.num_blocking > 0
-    }
-
-    pub(super) fn has_future_tasks(&self) -> bool {
-        self.num_futures > 0
-    }
-
-    pub(super) fn has_background_tasks(&self) -> bool {
-        self.num_background > 0
     }
 
     /**

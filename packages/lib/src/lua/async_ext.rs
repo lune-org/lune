@@ -71,6 +71,9 @@ impl LuaAsyncExt for &'static Lua {
         Creates a special async function that waits the
         desired amount of time, inheriting the guid of the
         current thread / task for proper cancellation.
+
+        This will yield the lua thread calling the function until the
+        desired time has passed and the scheduler resumes the thread.
     */
     fn create_waiter_function<'lua>(self) -> LuaResult<LuaFunction<'lua>> {
         let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;

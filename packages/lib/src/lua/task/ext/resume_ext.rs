@@ -7,7 +7,9 @@ use mlua::prelude::*;
 use futures_util::StreamExt;
 use tokio::time::sleep;
 
-use super::super::{message::TaskSchedulerMessage, result::TaskSchedulerState, TaskScheduler};
+use super::super::{
+    scheduler_message::TaskSchedulerMessage, scheduler_state::TaskSchedulerState, TaskScheduler,
+};
 
 /*
     ──────────────────────────────────────────────────────────
@@ -30,19 +32,21 @@ pub trait TaskSchedulerResumeExt {
 #[async_trait(?Send)]
 impl TaskSchedulerResumeExt for TaskScheduler<'_> {
     /**
-        Awaits the next background task registration
-        message, if any messages exist in the queue.
+        Resumes the task scheduler queue.
 
-        This is a no-op if there are no background tasks left running
-        and / or the background task messages channel was closed.
+        This will run any spawned or deferred Lua tasks in a blocking manner.
+
+        Once all spawned and / or deferred Lua tasks have finished running,
+        this will process delayed tasks, waiting tasks, and native Rust
+        futures concurrently, awaiting the first one to be ready for resumption.
     */
     async fn resume_queue(&self) -> TaskSchedulerState {
         let current = TaskSchedulerState::new(self);
-        let result = if current.has_blocking_tasks() {
+        let result = if current.num_blocking > 0 {
             // 1. Blocking tasks
             resume_next_blocking_task(self, None)
-        } else if current.has_future_tasks() || current.has_background_tasks() {
-            // 2. Async + background tasks
+        } else if current.num_futures > 0 || current.num_background > 0 {
+            // 2. Async and/or background tasks
             tokio::select! {
                 result = resume_next_async_task(self) => result,
                 result = receive_next_message(self) => result,
@@ -111,11 +115,6 @@ async fn resume_next_async_task(scheduler: &TaskScheduler<'_>) -> TaskSchedulerS
     };
     // The future might not return a reference that it wants to resume
     if let Some(task) = task {
-        // Decrement the counter since the future has completed,
-        // meaning it has been removed from the futures queue
-        scheduler
-            .futures_count
-            .set(scheduler.futures_count.get() - 1);
         // Promote this future task to a blocking task and resume it
         // right away, also taking care to not borrow mutably twice
         // by dropping this guard before trying to resume it
@@ -127,13 +126,11 @@ async fn resume_next_async_task(scheduler: &TaskScheduler<'_>) -> TaskSchedulerS
 }
 
 /**
-    Resumes the task scheduler queue.
+    Awaits the next background task registration
+    message, if any messages exist in the queue.
 
-    This will run any spawned or deferred Lua tasks in a blocking manner.
-
-    Once all spawned and / or deferred Lua tasks have finished running,
-    this will process delayed tasks, waiting tasks, and native Rust
-    futures concurrently, awaiting the first one to be ready for resumption.
+    This is a no-op if there are no background tasks left running
+    and / or the background task messages channel was closed.
 */
 async fn receive_next_message(scheduler: &TaskScheduler<'_>) -> TaskSchedulerState {
     let message_opt = {

@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use tokio::sync::mpsc;
 
-use super::message::TaskSchedulerMessage;
+use super::scheduler_message::TaskSchedulerMessage;
 
 /**
     A handle to a registered asynchronous background task.

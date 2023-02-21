@@ -11,7 +11,7 @@ use mlua::prelude::*;
 
 use tokio::sync::{mpsc, Mutex as AsyncMutex};
 
-use super::message::TaskSchedulerMessage;
+use super::scheduler_message::TaskSchedulerMessage;
 pub use super::{task_kind::TaskKind, task_reference::TaskReference};
 
 type TaskFutureRets<'fut> = LuaResult<Option<LuaMultiValue<'fut>>>;
@@ -20,6 +20,7 @@ type TaskFuture<'fut> = LocalBoxFuture<'fut, (Option<TaskReference>, TaskFutureR
 /// A struct representing a task contained in the task scheduler
 #[derive(Debug)]
 pub struct Task {
+    kind: TaskKind,
     thread: LuaRegistryKey,
     args: LuaRegistryKey,
 }
@@ -44,6 +45,7 @@ pub struct TaskScheduler<'fut> {
     pub(super) exit_code: Cell<Option<ExitCode>>,
     // Blocking tasks
     pub(super) tasks: RefCell<HashMap<TaskReference, Task>>,
+    pub(super) tasks_count: Cell<usize>,
     pub(super) tasks_current: Cell<Option<TaskReference>>,
     pub(super) tasks_queue_blocking: RefCell<VecDeque<TaskReference>>,
     pub(super) tasks_current_lua_error: Arc<RefCell<Option<LuaError>>>,
@@ -72,6 +74,7 @@ impl<'fut> TaskScheduler<'fut> {
             guid: Cell::new(0),
             exit_code: Cell::new(None),
             tasks: RefCell::new(HashMap::new()),
+            tasks_count: Cell::new(0),
             tasks_current: Cell::new(None),
             tasks_queue_blocking: RefCell::new(VecDeque::new()),
             tasks_current_lua_error,
@@ -203,6 +206,7 @@ impl<'fut> TaskScheduler<'fut> {
         let task_thread_key: LuaRegistryKey = self.lua.create_registry_value(thread)?;
         // Create the full task struct
         let task = Task {
+            kind,
             thread: task_thread_key,
             args: task_args_key,
         };
@@ -217,6 +221,11 @@ impl<'fut> TaskScheduler<'fut> {
             guid
         };
         let reference = TaskReference::new(kind, guid);
+        // Increment the corresponding task counter
+        match kind {
+            TaskKind::Future => self.futures_count.set(self.futures_count.get() + 1),
+            _ => self.tasks_count.set(self.tasks_count.get() + 1),
+        }
         // Add the task to the scheduler
         {
             let mut tasks = self.tasks.borrow_mut();
@@ -256,6 +265,11 @@ impl<'fut> TaskScheduler<'fut> {
             .collect();
         for task_ref in &tasks_to_remove {
             if let Some(task) = tasks.remove(task_ref) {
+                // Decrement the corresponding task counter
+                match task.kind {
+                    TaskKind::Future => self.futures_count.set(self.futures_count.get() - 1),
+                    _ => self.tasks_count.set(self.tasks_count.get() - 1),
+                }
                 // NOTE: We need to close the thread here to
                 // make 100% sure that nothing can resume it
                 let close: LuaFunction = self.lua.named_registry_value("co.close")?;
@@ -291,6 +305,11 @@ impl<'fut> TaskScheduler<'fut> {
                 None => return Ok(LuaMultiValue::new()),
             }
         };
+        // Decrement the corresponding task counter
+        match task.kind {
+            TaskKind::Future => self.futures_count.set(self.futures_count.get() - 1),
+            _ => self.tasks_count.set(self.tasks_count.get() - 1),
+        }
         // Fetch and remove the thread to resume + its arguments
         let thread: LuaThread = self.lua.registry_value(&task.thread)?;
         let args_opt_res = override_args.or_else(|| {
@@ -389,7 +408,6 @@ impl<'fut> TaskScheduler<'fut> {
             .futures
             .try_lock()
             .expect("Tried to add future to queue during futures resumption");
-        self.futures_count.set(self.futures_count.get() + 1);
         futs.push(Box::pin(async move {
             let result = fut.await;
             (Some(task_ref), result)
