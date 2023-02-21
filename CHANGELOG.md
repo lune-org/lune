@@ -10,9 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Implemented a new task scheduler which resolves several long-standing issues:
+  - Issues with yielding across the c-call/metamethod boundary no longer occur when calling certain async APIs that Lune provides.
+  - Ordering of interleaved calls to `task.spawn/task.defer` is now completely deterministic, defer is now guaranteed to run last even in these cases.
+  - The minimum wait time possible when using `task.wait` and minimum delay time using `task.delay` are now much smaller, and only limited by the underlying OS implementation. For most systems this means `task.wait` and `task.delay` are now accurate down to about 5 milliseconds or less.
+
 ### Changed
 
-- Type definitions are now bundled as part of the Lune executable, meaning they do not need to be downloaded, and are instead generated.
+- Type definitions are now bundled as part of the Lune executable, meaning they no longer need to be downloaded.
   - `lune --generate-selene-types` will generate the Selene type definitions file, replacing `lune --download-selene-types`
   - `lune --generate-luau-types` will generate the Luau type definitions file, replacing `lune --download-luau-types`
 - Improve error handling and messages for `net.serve`
