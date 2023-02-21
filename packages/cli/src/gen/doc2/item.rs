@@ -8,8 +8,13 @@ use super::kind::DocItemKind;
 #[serde(rename_all = "camelCase")]
 pub struct DocItem {
     pub(super) kind: DocItemKind,
-    pub(super) name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) meta: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) value: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) children: Vec<DocItem>,
 }
 
@@ -66,8 +71,12 @@ impl DocItem {
         self.kind.is_tag()
     }
 
-    pub fn get_name(&self) -> &str {
-        &self.name
+    pub fn get_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn get_meta(&self) -> Option<&str> {
+        self.meta.as_deref()
     }
 
     pub fn get_value(&self) -> Option<&str> {

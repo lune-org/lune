@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "PascalCase")]
 pub enum DocItemKind {
     Root,
-    Global,
+    Table,
     Property,
     Function,
     Description,
@@ -19,8 +19,8 @@ impl DocItemKind {
         self == DocItemKind::Root
     }
 
-    pub fn is_global(self) -> bool {
-        self == DocItemKind::Global
+    pub fn is_table(self) -> bool {
+        self == DocItemKind::Table
     }
 
     pub fn is_property(self) -> bool {
@@ -47,7 +47,7 @@ impl fmt::Display for DocItemKind {
             "{}",
             match self {
                 Self::Root => "Root",
-                Self::Global => "Global",
+                Self::Table => "Table",
                 Self::Property => "Property",
                 Self::Function => "Function",
                 Self::Description => "Description",

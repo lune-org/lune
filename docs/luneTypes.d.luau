@@ -431,7 +431,7 @@ declare stdio: {
 		Prompts for user input using the wanted kind of prompt:
 
 		* `"text"` - Prompts for a plain text string from the user
-		* `"confirm"` - Prompts the user to confirm with y / n
+		* `"confirm"` - Prompts the user to confirm with y / n (yes / no)
 		* `"select"` - Prompts the user to select *one* value from a list
 		* `"multiselect"` - Prompts the user to select *one or more* values from a list
 		* `nil` - Equivalent to `"text"` with no extra arguments
@@ -504,9 +504,28 @@ declare task: {
 	wait: (duration: number?) -> number,
 }
 
--- TODO: Write docs for these and include them in docs gen
+--[=[
+	Prints given value(s) to stdout.
 
+	This will format and prettify values such as tables, numbers, booleans, and more.
+]=]
 declare print: <T...>(T...) -> ()
+
+--[=[
+	Prints given value(s) to stdout with a leading "[INFO]" tag.
+
+	This will format and prettify values such as tables, numbers, booleans, and more.
+]=]
 declare info: <T...>(T...) -> ()
+
+--[=[
+	Prints given value(s) to stdout with a leading "[WARN]" tag.
+
+	This will format and prettify values such as tables, numbers, booleans, and more.
+]=]
 declare warn: <T...>(T...) -> ()
+
+--[=[
+	Throws an error and prints a formatted version of it with a leading "[ERROR]" tag.
+]=]
 declare error: <T>(message: T, level: number?) -> ()

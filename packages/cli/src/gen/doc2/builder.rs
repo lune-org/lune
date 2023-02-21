@@ -6,6 +6,7 @@ use super::{item::DocItem, kind::DocItemKind};
 pub struct DocItemBuilder {
     kind: Option<DocItemKind>,
     name: Option<String>,
+    meta: Option<String>,
     value: Option<String>,
     children: Vec<DocItem>,
 }
@@ -28,6 +29,11 @@ impl DocItemBuilder {
         self
     }
 
+    pub fn with_meta<S: AsRef<str>>(mut self, meta: S) -> Self {
+        self.meta = Some(meta.as_ref().to_string());
+        self
+    }
+
     pub fn with_value<S: AsRef<str>>(mut self, value: S) -> Self {
         self.value = Some(value.as_ref().to_string());
         self
@@ -45,18 +51,15 @@ impl DocItemBuilder {
 
     pub fn build(self) -> Result<DocItem> {
         if let Some(kind) = self.kind {
-            if let Some(name) = self.name {
-                let mut children = self.children;
-                children.sort();
-                Ok(DocItem {
-                    kind,
-                    name,
-                    value: self.value,
-                    children,
-                })
-            } else {
-                bail!("Missing doc item name")
-            }
+            let mut children = self.children;
+            children.sort();
+            Ok(DocItem {
+                kind,
+                name: self.name,
+                meta: self.meta,
+                value: self.value,
+                children,
+            })
         } else {
             bail!("Missing doc item kind")
         }
