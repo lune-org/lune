@@ -1,4 +1,5 @@
 mod doc;
+mod doc2;
 mod docs_file;
 mod selene_defs;
 mod wiki_dir;
