@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
-    env,
-    path::PathBuf,
+    env::{self, consts},
+    path::{self, PathBuf},
     process::{ExitCode, Stdio},
 };
 
@@ -23,12 +23,15 @@ pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
     let cwd_str = {
         let cwd = env::current_dir()?.canonicalize()?;
         let cwd_str = cwd.to_string_lossy().to_string();
-        if !cwd_str.ends_with('/') {
-            format!("{cwd_str}/")
+        if !cwd_str.ends_with(path::MAIN_SEPARATOR) {
+            format!("{cwd_str}{}", path::MAIN_SEPARATOR)
         } else {
             cwd_str
         }
     };
+    // Create constants for OS & processor architecture
+    let os = lua.create_string(&consts::OS.to_lowercase())?;
+    let arch = lua.create_string(&consts::ARCH.to_lowercase())?;
     // Create readonly args array
     let args_tab = TableBuilder::new(lua)?
         .with_sequential_values(args_vec)?
@@ -67,6 +70,8 @@ pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
         .into_function()?;
     // Create the full process table
     TableBuilder::new(lua)?
+        .with_value("os", os)?
+        .with_value("arch", arch)?
         .with_value("args", args_tab)?
         .with_value("cwd", cwd_str)?
         .with_value("env", env_tab)?

@@ -267,6 +267,31 @@ declare process: {
 	--[=[
 		@within process
 		@read_only
+		
+		The current operating system being used.
+		
+		Possible values:
+
+		* `"linux"`
+		* `"macos"`
+		* `"windows"`
+	]=]
+	os: "linux" | "macos" | "windows",
+	--[=[
+		@within process
+		@read_only
+		
+		The architecture of the processor currently being used.
+		
+		Possible values:
+
+		* `"x86_64"`
+		* `"aarch64"`
+	]=]
+	arch: "x86_64" | "aarch64",
+	--[=[
+		@within process
+		@read_only
 
 		The arguments given when running the Lune script.
 	]=]
