@@ -247,6 +247,16 @@ impl TypeInfoExt for TypeInfo {
     }
 }
 
+fn make_empty_type_argument() -> TypeArgument {
+    TypeArgument::new(TypeInfo::Basic(TokenReference::new(
+        vec![],
+        Token::new(TokenType::Symbol {
+            symbol: Symbol::Nil,
+        }),
+        vec![],
+    )))
+}
+
 fn merge_type_arguments(left: TypeArgument, right: TypeArgument) -> TypeArgument {
     TypeArgument::new(TypeInfo::Union {
         left: Box::new(left.type_info().clone()),
@@ -270,7 +280,10 @@ fn merge_type_argument_vecs(
         if let Some(existing) = existing.get(index) {
             result.push(merge_type_arguments(existing.clone(), argument.clone()));
         } else {
-            result.push(argument.clone());
+            result.push(merge_type_arguments(
+                make_empty_type_argument(),
+                argument.clone(),
+            ));
         }
     }
     result

@@ -142,6 +142,7 @@ impl DefinitionsParser {
             results.push(self.convert_parser_item_into_doc_item(top_level_item.clone()));
         }
         self.found_top_level_items = BTreeMap::new();
+        self.found_top_level_types = HashMap::new();
         self.found_top_level_declares = Vec::new();
         Ok(results)
     }
