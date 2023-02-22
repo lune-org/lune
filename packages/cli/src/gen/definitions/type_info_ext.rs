@@ -1,18 +1,24 @@
-use full_moon::ast::types::{TypeArgument, TypeInfo};
+use full_moon::{
+    ast::types::{TypeArgument, TypeInfo},
+    tokenizer::{Symbol, Token, TokenReference, TokenType},
+};
 
 use super::kind::DefinitionsItemKind;
 
-pub const PIPE_SEPARATOR: &str = " | ";
-
-pub(super) trait TypeInfoExt {
+pub(crate) trait TypeInfoExt {
     fn is_fn(&self) -> bool;
-    fn to_definitions_kind(&self) -> DefinitionsItemKind;
+    fn parse_definitions_kind(&self) -> DefinitionsItemKind;
     fn stringify_simple(&self, parent_typ: Option<&TypeInfo>) -> String;
-    fn extract_args<'a>(&'a self, base: Vec<Vec<&'a TypeArgument>>) -> Vec<Vec<&'a TypeArgument>>;
+    fn extract_args(&self, base: Vec<TypeArgument>) -> Vec<TypeArgument>;
     fn extract_args_normalized(&self) -> Option<Vec<String>>;
 }
 
 impl TypeInfoExt for TypeInfo {
+    /**
+        Checks if this type represents a function or not.
+
+        If the type is a tuple, union, or intersection, it will be checked recursively.
+    */
     fn is_fn(&self) -> bool {
         match self {
             TypeInfo::Callback { .. } => true,
@@ -24,15 +30,21 @@ impl TypeInfoExt for TypeInfo {
         }
     }
 
-    fn to_definitions_kind(&self) -> DefinitionsItemKind {
+    /**
+        Parses the definitions item kind from the type.
+
+        If the type is a tupe, union, or intersection, all the inner types
+        are required to be equivalent in terms of definitions item kinds.
+    */
+    fn parse_definitions_kind(&self) -> DefinitionsItemKind {
         match self {
             TypeInfo::Array { .. } | TypeInfo::Table { .. } => DefinitionsItemKind::Table,
             TypeInfo::Basic(_) | TypeInfo::String(_) => DefinitionsItemKind::Property,
-            TypeInfo::Optional { base, .. } => Self::to_definitions_kind(base.as_ref()),
+            TypeInfo::Optional { base, .. } => Self::parse_definitions_kind(base.as_ref()),
             TypeInfo::Tuple { types, .. } => {
                 let mut kinds = types
                     .iter()
-                    .map(Self::to_definitions_kind)
+                    .map(Self::parse_definitions_kind)
                     .collect::<Vec<_>>();
                 let kinds_all_the_same = kinds.windows(2).all(|w| w[0] == w[1]);
                 if kinds_all_the_same && !kinds.is_empty() {
@@ -44,8 +56,8 @@ impl TypeInfoExt for TypeInfo {
                 }
             }
             TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
-                let kind_left = Self::to_definitions_kind(left.as_ref());
-                let kind_right = Self::to_definitions_kind(right.as_ref());
+                let kind_left = Self::parse_definitions_kind(left.as_ref());
+                let kind_right = Self::parse_definitions_kind(right.as_ref());
                 if kind_left == kind_right {
                     kind_left
                 } else {
@@ -62,6 +74,22 @@ impl TypeInfoExt for TypeInfo {
         }
     }
 
+    /**
+        Stringifies the type into a simplified type string.
+
+        The simplified type string match one of the following formats:
+
+        * `any`
+        * `boolean`
+        * `string`
+        * `function`
+        * `table`
+        * `CustomTypeName`
+        * `TypeName?`
+        * `TypeName | OtherTypeName`
+        * `{ TypeName }`
+        * `"string-literal"`
+    */
     fn stringify_simple(&self, parent_typ: Option<&TypeInfo>) -> String {
         match self {
             TypeInfo::Array { type_info, .. } => {
@@ -96,8 +124,9 @@ impl TypeInfoExt for TypeInfo {
             TypeInfo::Table { .. } => "table".to_string(),
             TypeInfo::Union { left, right, .. } => {
                 format!(
-                    "{}{PIPE_SEPARATOR}{}",
+                    "{} {} {}",
                     left.as_ref().stringify_simple(Some(self)),
+                    Symbol::Pipe,
                     right.as_ref().stringify_simple(Some(self))
                 )
             }
@@ -107,20 +136,18 @@ impl TypeInfoExt for TypeInfo {
         }
     }
 
-    fn extract_args<'a>(&'a self, base: Vec<Vec<&'a TypeArgument>>) -> Vec<Vec<&'a TypeArgument>> {
+    fn extract_args(&self, base: Vec<TypeArgument>) -> Vec<TypeArgument> {
         match self {
             TypeInfo::Callback { arguments, .. } => {
-                let mut result = base.clone();
-                result.push(arguments.iter().collect::<Vec<_>>());
-                result
+                merge_type_argument_vecs(base, arguments.iter().cloned().collect::<Vec<_>>())
             }
             TypeInfo::Tuple { types, .. } => types
                 .iter()
                 .next()
                 .expect("Function tuple type was empty")
-                .extract_args(base.clone()),
+                .extract_args(base),
             TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
-                let mut result = base.clone();
+                let mut result = base;
                 result = left.extract_args(result.clone());
                 result = right.extract_args(result.clone());
                 result
@@ -131,76 +158,80 @@ impl TypeInfoExt for TypeInfo {
 
     fn extract_args_normalized(&self) -> Option<Vec<String>> {
         if self.is_fn() {
-            let mut type_args_multi = self.extract_args(Vec::new());
-            match type_args_multi.len() {
-                0 => None,
-                1 => Some(
-                    // We got a normal function with some known list of args, and we will
-                    // stringify the arg types into simple ones such as "function", "table", ..
-                    type_args_multi
-                        .pop()
-                        .unwrap()
-                        .iter()
-                        .map(|type_arg| type_arg.type_info().stringify_simple(Some(self)))
-                        .collect(),
-                ),
-                _ => {
-                    // We got a union or intersection function, meaning it has
-                    // several different overloads that accept different args
-                    let mut unified_args = Vec::new();
-                    for index in 0..type_args_multi
-                        .iter()
-                        .fold(0, |acc, type_args| acc.max(type_args.len()))
-                    {
-                        // Gather function arg type strings for all
-                        // of the different variants of this function
-                        let mut type_arg_strings = type_args_multi
-                            .iter()
-                            .filter_map(|type_args| type_args.get(index))
-                            .map(|type_arg| type_arg.type_info().stringify_simple(Some(self)))
-                            .collect::<Vec<_>>();
-                        if type_arg_strings.len() < type_args_multi.len() {
-                            for _ in type_arg_strings.len()..type_args_multi.len() {
-                                type_arg_strings.push("nil".to_string());
-                            }
-                        }
-                        // Type arg strings may themselves be stringified to something like number | string so we
-                        // will split that out to be able to handle it better with the following unification process
-                        let mut type_arg_strings_sep = Vec::new();
-                        for type_arg_string in type_arg_strings.drain(..) {
-                            for typ_arg_string_inner in type_arg_string.split(PIPE_SEPARATOR) {
-                                type_arg_strings_sep.push(typ_arg_string_inner.to_string());
-                            }
-                        }
-                        // Find out if we have any nillable type, to know if we
-                        // should make the entire arg type union nillable or not
-                        let has_any_optional = type_arg_strings_sep
-                            .iter()
-                            .any(|s| s == "nil" || s.ends_with('?'));
-                        // Filter out any nils or optional markers (?),
-                        // we will add this back at the end if necessary
-                        let mut type_arg_strings_non_nil = type_arg_strings_sep
-                            .iter()
-                            .filter(|s| *s != "nil")
-                            .map(|s| s.trim_end_matches('?').to_string())
-                            .collect::<Vec<_>>();
-                        type_arg_strings_non_nil.sort(); // Need to sort for dedup
-                        type_arg_strings_non_nil.dedup(); // Dedup to get rid of redundant types such as string | string
-                        unified_args.push(if has_any_optional {
-                            if type_arg_strings_non_nil.len() == 1 {
-                                format!("{}?", type_arg_strings_non_nil.pop().unwrap())
-                            } else {
-                                format!("({})?", type_arg_strings_non_nil.join(PIPE_SEPARATOR))
-                            }
+            let separator = format!(" {} ", Symbol::Pipe);
+            let args_stringified_not_normalized = self
+                .extract_args(Vec::new())
+                .iter()
+                .map(|type_arg| type_arg.type_info().stringify_simple(Some(self)))
+                .collect::<Vec<_>>();
+            let mut args_stringified = Vec::new();
+            for arg_string in args_stringified_not_normalized {
+                let arg_parts = arg_string.split(&separator).collect::<Vec<_>>();
+                // Check if we got any optional arg, if so then the entire possible
+                // union of args will be optional when merged together / normalized
+                let is_optional = arg_parts
+                    .iter()
+                    .any(|part| part == &"nil" || part.ends_with('?'));
+                // Get rid of any nils or optional markers since we keep track of it above
+                let mut arg_parts_no_nils = arg_parts
+                    .iter()
+                    .filter_map(|arg_part| {
+                        if arg_part == &"nil" {
+                            None
                         } else {
-                            type_arg_strings_non_nil.join(PIPE_SEPARATOR)
-                        });
+                            Some(arg_part.trim_end_matches('?'))
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                arg_parts_no_nils.sort_unstable(); // Sort the args to be able to dedup
+                arg_parts_no_nils.dedup(); // Deduplicate types that are the exact same shape
+                if is_optional {
+                    if arg_parts_no_nils.len() > 1 {
+                        // A union of args that is nillable should be enclosed in parens to make
+                        // it more clear that the entire arg is nillable and not just the last type
+                        args_stringified.push(format!("({})?", arg_parts_no_nils.join(&separator)));
+                    } else {
+                        // Just one nillable arg, does not need any parens
+                        args_stringified.push(format!("{}?", arg_parts_no_nils.first().unwrap()));
                     }
-                    Some(unified_args)
+                } else if arg_parts_no_nils.len() > 1 {
+                    args_stringified.push(arg_parts_no_nils.join(&separator).to_string());
+                } else {
+                    args_stringified.push((*arg_parts_no_nils.first().unwrap()).to_string());
                 }
             }
+            Some(args_stringified)
         } else {
             None
         }
     }
+}
+
+fn merge_type_arguments(left: TypeArgument, right: TypeArgument) -> TypeArgument {
+    TypeArgument::new(TypeInfo::Union {
+        left: Box::new(left.type_info().clone()),
+        pipe: TokenReference::new(
+            vec![],
+            Token::new(TokenType::Symbol {
+                symbol: Symbol::Pipe,
+            }),
+            vec![],
+        ),
+        right: Box::new(right.type_info().clone()),
+    })
+}
+
+fn merge_type_argument_vecs(
+    existing: Vec<TypeArgument>,
+    new: Vec<TypeArgument>,
+) -> Vec<TypeArgument> {
+    let mut result = Vec::new();
+    for (index, argument) in new.iter().enumerate() {
+        if let Some(existing) = existing.get(index) {
+            result.push(merge_type_arguments(existing.clone(), argument.clone()));
+        } else {
+            result.push(argument.clone());
+        }
+    }
+    result
 }

@@ -33,6 +33,12 @@ impl DefinitionsParser {
         }
     }
 
+    /**
+        Parses the given Luau type definitions into parser items.
+
+        The parser items will be stored internally and can be converted
+        into usable definition items using [`DefinitionsParser::drain`].
+    */
     pub fn parse<S>(&mut self, contents: S) -> Result<()>
     where
         S: AsRef<str>,
@@ -82,7 +88,7 @@ impl DefinitionsParser {
 
     fn convert_parser_item_into_doc_item(&self, item: DefinitionsParserItem) -> DefinitionsItem {
         let mut builder = DefinitionsItemBuilder::new()
-            .with_kind(item.type_info.to_definitions_kind())
+            .with_kind(item.type_info.parse_definitions_kind())
             .with_name(&item.name);
         if self.found_top_level_declares.contains(&item.name) {
             builder = builder.as_exported();
@@ -109,13 +115,19 @@ impl DefinitionsParser {
         builder.build().unwrap()
     }
 
+    /**
+        Converts currently stored parser items into definition items.
+
+        This will consume (drain) all stored parser items, leaving the parser empty.
+    */
     #[allow(clippy::unnecessary_wraps)]
-    pub fn into_definition_items(mut self) -> Result<Vec<DefinitionsItem>> {
+    pub fn drain(&mut self) -> Result<Vec<DefinitionsItem>> {
         let mut top_level_items = self.found_top_level_items.drain(..).collect::<Vec<_>>();
         let results = top_level_items
             .drain(..)
             .map(|visitor_item| self.convert_parser_item_into_doc_item(visitor_item))
             .collect();
+        self.found_top_level_declares = Vec::new();
         Ok(results)
     }
 }

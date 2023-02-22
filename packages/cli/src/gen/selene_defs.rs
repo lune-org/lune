@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
+use full_moon::tokenizer::Symbol;
 use serde_yaml::{Mapping as YamlMapping, Sequence as YamlSequence, Value as YamlValue};
 
 use crate::gen::definitions::DefinitionsItemTag;
 
-use super::definitions::{DefinitionsItem, DefinitionsItemKind, DefinitionsTree, PIPE_SEPARATOR};
+use super::definitions::{DefinitionsItem, DefinitionsItemKind, DefinitionsTree};
 
 pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
     let tree = DefinitionsTree::from_type_definitions(contents)?;
@@ -141,17 +142,26 @@ fn doc_item_to_selene_yaml_mapping(item: &DefinitionsItem) -> Result<YamlMapping
 }
 
 fn simplify_type_str_into_primitives(type_str: &str) -> String {
+    let separator = format!(" {} ", Symbol::Pipe);
+    // Simplify type strings even further into ones that selene can understand,
+    // turning types such as `{ bool }` or `"string-literal"` into `bool[]` and `string`
     let mut primitives = Vec::new();
-    for type_inner in type_str.split(PIPE_SEPARATOR) {
+    for type_inner in type_str.split(&separator) {
         if type_inner.starts_with('{') && type_inner.ends_with('}') {
-            primitives.push("table");
+            primitives.push(format!(
+                "{}[]",
+                type_inner
+                    .trim_start_matches('{')
+                    .trim_end_matches('}')
+                    .trim()
+            ));
         } else if type_inner.starts_with('"') && type_inner.ends_with('"') {
-            primitives.push("string");
+            primitives.push("string".to_string());
         } else {
-            primitives.push(type_inner);
+            primitives.push(type_inner.to_string());
         }
     }
     primitives.sort_unstable();
     primitives.dedup();
-    primitives.join(PIPE_SEPARATOR)
+    primitives.join(&separator)
 }

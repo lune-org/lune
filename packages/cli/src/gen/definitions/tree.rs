@@ -19,7 +19,7 @@ impl DefinitionsTree {
             .parse(type_definitions_contents)
             .context("Failed to parse type definitions AST")?;
         let top_level_definition_items = parser
-            .into_definition_items()
+            .drain()
             .context("Failed to convert parser items into definition items")?;
         let root = DefinitionsItemBuilder::new()
             .with_kind(DefinitionsItemKind::Root)
