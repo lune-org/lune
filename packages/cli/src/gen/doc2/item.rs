@@ -7,6 +7,8 @@ use super::kind::DocItemKind;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocItem {
+    #[serde(skip_serializing_if = "skip_serialize_is_false")]
+    pub(super) exported: bool,
     pub(super) kind: DocItemKind,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) name: Option<String>,
@@ -18,6 +20,11 @@ pub struct DocItem {
     pub(super) children: Vec<DocItem>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) arg_types: Vec<String>,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn skip_serialize_is_false(b: &bool) -> bool {
+    !b
 }
 
 impl PartialOrd for DocItem {
@@ -53,8 +60,16 @@ impl Ord for DocItem {
 
 #[allow(dead_code)]
 impl DocItem {
+    pub fn is_exported(&self) -> bool {
+        self.exported
+    }
+
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
+    }
+
+    pub fn is_table(&self) -> bool {
+        self.kind.is_table()
     }
 
     pub fn is_property(&self) -> bool {

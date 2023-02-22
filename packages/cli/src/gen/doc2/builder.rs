@@ -4,6 +4,7 @@ use super::{item::DocItem, kind::DocItemKind};
 
 #[derive(Debug, Default, Clone)]
 pub struct DocItemBuilder {
+    exported: bool,
     kind: Option<DocItemKind>,
     name: Option<String>,
     meta: Option<String>,
@@ -18,6 +19,12 @@ impl DocItemBuilder {
         Self {
             ..Default::default()
         }
+    }
+
+    #[allow(clippy::wrong_self_convention)]
+    pub fn as_exported(mut self) -> Self {
+        self.exported = true;
+        self
     }
 
     pub fn with_kind(mut self, kind: DocItemKind) -> Self {
@@ -67,6 +74,7 @@ impl DocItemBuilder {
             let mut children = self.children;
             children.sort();
             Ok(DocItem {
+                exported: self.exported,
                 kind,
                 name: self.name,
                 meta: self.meta,

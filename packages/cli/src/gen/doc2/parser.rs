@@ -22,26 +22,31 @@ struct DocVisitorItem {
     type_info: TypeInfo,
 }
 
-impl From<DocVisitorItem> for DocItem {
-    fn from(value: DocVisitorItem) -> Self {
+impl DocVisitorItem {
+    fn into_doc_item(self, type_definition_declares: &Vec<String>) -> DocItem {
         let mut builder = DocItemBuilder::new()
-            .with_kind(DocItemKind::from(&value.type_info))
-            .with_name(&value.name);
-        if let Some(comment) = value.comment {
+            .with_kind(DocItemKind::from(&self.type_info))
+            .with_name(&self.name);
+        if type_definition_declares.contains(&self.name) {
+            builder = builder.as_exported();
+        }
+        if let Some(comment) = self.comment {
             builder = builder.with_children(&parse_moonwave_style_comment(&comment));
         }
-        if let Some(args) = try_extract_normalized_function_args(&value.type_info) {
-            println!("{} > {args:?}", value.name);
+        if let Some(args) = try_extract_normalized_function_args(&self.type_info) {
             builder = builder.with_arg_types(&args);
         }
-        if let TypeInfo::Table { fields, .. } = value.type_info {
+        if let TypeInfo::Table { fields, .. } = self.type_info {
             for field in fields.iter() {
                 if let TypeFieldKey::Name(name) = field.key() {
-                    builder = builder.with_child(DocItem::from(DocVisitorItem {
-                        name: name.token().to_string(),
-                        comment: find_token_moonwave_comment(name),
-                        type_info: field.value().clone(),
-                    }));
+                    builder = builder.with_child(
+                        Self {
+                            name: name.token().to_string(),
+                            comment: find_token_moonwave_comment(name),
+                            type_info: field.value().clone(),
+                        }
+                        .into_doc_item(type_definition_declares),
+                    );
                 }
             }
         }
@@ -54,9 +59,9 @@ impl From<&TypeInfo> for DocItemKind {
         match value {
             TypeInfo::Array { .. } | TypeInfo::Table { .. } => DocItemKind::Table,
             TypeInfo::Basic(_) | TypeInfo::String(_) => DocItemKind::Property,
-            TypeInfo::Optional { base, .. } => DocItemKind::from(base.as_ref()),
+            TypeInfo::Optional { base, .. } => Self::from(base.as_ref()),
             TypeInfo::Tuple { types, .. } => {
-                let mut kinds = types.iter().map(DocItemKind::from).collect::<Vec<_>>();
+                let mut kinds = types.iter().map(Self::from).collect::<Vec<_>>();
                 let kinds_all_the_same = kinds.windows(2).all(|w| w[0] == w[1]);
                 if kinds_all_the_same && !kinds.is_empty() {
                     kinds.pop().unwrap()
@@ -67,8 +72,8 @@ impl From<&TypeInfo> for DocItemKind {
                 }
             }
             TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
-                let kind_left = DocItemKind::from(left.as_ref());
-                let kind_right = DocItemKind::from(right.as_ref());
+                let kind_left = Self::from(left.as_ref());
+                let kind_right = Self::from(right.as_ref());
                 if kind_left == kind_right {
                     kind_left
                 } else {
@@ -86,13 +91,35 @@ impl From<&TypeInfo> for DocItemKind {
     }
 }
 
+fn parse_type_definitions_declares(contents: &str) -> (String, Vec<String>) {
+    // TODO: Properly handle the "declare class" syntax, for now we just skip it
+    let mut no_class_declares = contents.to_string();
+    while let Some(dec) = no_class_declares.find("\ndeclare class") {
+        let end = no_class_declares.find("\nend").unwrap();
+        let before = &no_class_declares[0..dec];
+        let after = &no_class_declares[end + 4..];
+        no_class_declares = format!("{before}{after}");
+    }
+    let regex_declare = Regex::new(r#"declare (\w+): "#).unwrap();
+    let resulting_contents = regex_declare
+        .replace_all(&no_class_declares, "export type $1 =")
+        .to_string();
+    let found_declares = regex_declare
+        .captures_iter(&no_class_declares)
+        .map(|cap| cap[1].to_string())
+        .collect();
+    (resulting_contents, found_declares)
+}
+
 pub fn parse_type_definitions_into_doc_items<S>(contents: S) -> Result<Vec<DocItem>>
 where
     S: AsRef<str>,
 {
     let mut found_top_level_items = Vec::new();
-    let ast = full_moon::parse(&cleanup_type_definitions(contents.as_ref()))
-        .context("Failed to parse type definitions")?;
+    let (type_definition_contents, type_definition_declares) =
+        parse_type_definitions_declares(contents.as_ref());
+    let ast =
+        full_moon::parse(&type_definition_contents).context("Failed to parse type definitions")?;
     for stmt in ast.nodes().stmts() {
         if let Some((declaration, token_reference)) = match stmt {
             Stmt::ExportedTypeDeclaration(exp) => {
@@ -108,7 +135,10 @@ where
             });
         }
     }
-    Ok(found_top_level_items.drain(..).map(DocItem::from).collect())
+    Ok(found_top_level_items
+        .drain(..)
+        .map(|visitor_item| visitor_item.into_doc_item(&type_definition_declares))
+        .collect())
 }
 
 fn simple_stringify_type_info(typ: &TypeInfo) -> String {
@@ -260,20 +290,4 @@ fn find_token_moonwave_comment(token: &TokenReference) -> Option<String> {
         })
         .last()
         .map(|comment| comment.trim().to_string())
-}
-
-fn cleanup_type_definitions(contents: &str) -> String {
-    // TODO: Properly handle the "declare class" syntax, for now we just skip it
-    let mut no_declares = contents.to_string();
-    while let Some(dec) = no_declares.find("\ndeclare class") {
-        let end = no_declares.find("\nend").unwrap();
-        let before = &no_declares[0..dec];
-        let after = &no_declares[end + 4..];
-        no_declares = format!("{before}{after}");
-    }
-    let (regex, replacement) = (
-        Regex::new(r#"declare (?P<n>\w+): "#).unwrap(),
-        r#"export type $n = "#,
-    );
-    regex.replace_all(&no_declares, replacement).to_string()
 }

@@ -8,13 +8,14 @@ use super::doc2::{DocItem, DocItemKind, DocTree, PIPE_SEPARATOR};
 pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
     let tree = DocTree::from_type_definitions(contents)?;
     let mut globals = YamlMapping::new();
-    let top_level_items = tree.children().iter().filter(|top_level| {
-        top_level.is_function()
-            || top_level.children().iter().any(|top_level_child| {
-                top_level_child.is_tag() && top_level_child.get_name().unwrap() == "class"
-            })
+    let top_level_exported_items = tree.children().iter().filter(|top_level| {
+        top_level.is_exported()
+            && (top_level.is_function()
+                || top_level.children().iter().any(|top_level_child| {
+                    top_level_child.is_tag() && top_level_child.get_name().unwrap() == "class"
+                }))
     });
-    for top_level_item in top_level_items {
+    for top_level_item in top_level_exported_items {
         match top_level_item.kind() {
             DocItemKind::Table => {
                 let top_level_name = top_level_item
@@ -24,7 +25,7 @@ pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
                 for child_item in top_level_item
                     .children()
                     .iter()
-                    .filter(|item| item.is_function() || item.is_property())
+                    .filter(|item| item.is_function() || item.is_table() || item.is_property())
                 {
                     let child_name = child_item
                         .get_name()
@@ -64,7 +65,7 @@ pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
 
 fn doc_item_to_selene_yaml_mapping(item: &DocItem) -> Result<YamlMapping> {
     let mut mapping = YamlMapping::new();
-    if item.is_property() {
+    if item.is_property() || item.is_table() {
         let property_access_tag = item
             .children()
             .iter()
