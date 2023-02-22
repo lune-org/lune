@@ -3,7 +3,7 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::prelude::*;
 use tokio::fs;
 
-use crate::lua::table::TableBuilder;
+use crate::lua::{fs::FsWriteOptions, table::TableBuilder};
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
@@ -15,6 +15,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("removeDir", fs_remove_dir)?
         .with_async_function("isFile", fs_is_file)?
         .with_async_function("isDir", fs_is_dir)?
+        .with_async_function("move", fs_move)?
         .build_readonly()
 }
 
@@ -92,4 +93,28 @@ async fn fs_is_dir(_: &'static Lua, path: String) -> LuaResult<bool> {
     } else {
         Ok(false)
     }
+}
+
+async fn fs_move(
+    _: &'static Lua,
+    (from, to, options): (String, String, FsWriteOptions),
+) -> LuaResult<()> {
+    let path_from = PathBuf::from(from);
+    if !path_from.exists() {
+        return Err(LuaError::RuntimeError(format!(
+            "No file or directory exists at the path '{}'",
+            path_from.display()
+        )));
+    }
+    let path_to = PathBuf::from(to);
+    if !options.overwrite && path_to.exists() {
+        return Err(LuaError::RuntimeError(format!(
+            "A file or directory alreadys exists at the path '{}'",
+            path_to.display()
+        )));
+    }
+    fs::rename(path_from, path_to)
+        .await
+        .map_err(LuaError::external)?;
+    Ok(())
 }

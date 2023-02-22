@@ -79,10 +79,14 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
             });
         };
         // Anything else is invalid
-        Err(LuaError::RuntimeError(format!(
-            "Invalid request config - expected string or table, got {}",
-            value.type_name()
-        )))
+        Err(LuaError::FromLuaConversionError {
+            from: value.type_name(),
+            to: "RequestConfig",
+            message: Some(format!(
+                "Invalid request config - expected string or table, got {}",
+                value.type_name()
+            )),
+        })
     }
 }
 

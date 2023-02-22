@@ -1,6 +1,7 @@
 mod create;
 
 pub mod async_ext;
+pub mod fs;
 pub mod net;
 pub mod process;
 pub mod stdio;

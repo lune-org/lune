@@ -1,3 +1,7 @@
+export type FsWriteOptions = {
+	overwrite: boolean,
+}
+
 --[=[
 	@class fs
 	
@@ -124,6 +128,25 @@ declare fs: {
 		@return If the path is a directory or not
 	]=]
 	isDir: (path: string) -> boolean,
+	--[=[
+		@within fs
+
+		Moves a file or directory to a new path.
+
+		Throws an error if a file or directory already exists at the target path.
+		This can be bypassed by passing `true` as the third argument, or a table of options with `overwrite` set to `true.`
+		
+		An error will be thrown in the following situations:
+		
+		* The current process lacks permissions to read at `from` or `to`.
+		* The new path exists on a different mount point.
+		* Some other I/O error occurred.
+
+		@param from The path to move from
+		@param to The path to move to
+		@param overwriteOrOptions Options the target path, such as if should be overwritten if it already exists
+	]=]
+	move: (from: string, to: string, overwriteOrOptions: boolean | FsWriteOptions) -> (),
 }
 
 type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
