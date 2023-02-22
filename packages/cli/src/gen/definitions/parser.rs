@@ -141,28 +141,43 @@ where
         .collect())
 }
 
-fn simple_stringify_type_info(typ: &TypeInfo) -> String {
+fn simple_stringify_type_info(typ: &TypeInfo, parent_typ: Option<&TypeInfo>) -> String {
     match typ {
         TypeInfo::Array { type_info, .. } => {
-            format!("{{ {} }}", simple_stringify_type_info(type_info))
+            format!("{{ {} }}", simple_stringify_type_info(type_info, Some(typ)))
         }
-        TypeInfo::Basic(tok) => {
-            if tok.token().to_string() == "T" {
-                "any".to_string() // HACK: Assume that any literal type "T" is a generic that accepts any value
-            } else {
-                tok.token().to_string()
+        TypeInfo::Basic(tok) => match parent_typ {
+            Some(TypeInfo::Callback { generics, .. }) => {
+                if let Some(generics) = generics {
+                    // If the function that contains this arg has generic and a
+                    // generic is the same as this token, we stringify it as any
+                    if generics
+                        .generics()
+                        .iter()
+                        .any(|g| g.to_string() == tok.token().to_string())
+                    {
+                        "any".to_string()
+                    } else {
+                        tok.token().to_string()
+                    }
+                } else {
+                    tok.token().to_string()
+                }
             }
-        }
+            _ => tok.token().to_string(),
+        },
         TypeInfo::String(str) => str.token().to_string(),
         TypeInfo::Boolean(_) => "boolean".to_string(),
         TypeInfo::Callback { .. } => "function".to_string(),
-        TypeInfo::Optional { base, .. } => format!("{}?", simple_stringify_type_info(base)),
+        TypeInfo::Optional { base, .. } => {
+            format!("{}?", simple_stringify_type_info(base, Some(typ)))
+        }
         TypeInfo::Table { .. } => "table".to_string(),
         TypeInfo::Union { left, right, .. } => {
             format!(
                 "{}{PIPE_SEPARATOR}{}",
-                simple_stringify_type_info(left),
-                simple_stringify_type_info(right)
+                simple_stringify_type_info(left, Some(typ)),
+                simple_stringify_type_info(right, Some(typ))
             )
         }
         // TODO: Stringify custom table types properly, these show up as basic tokens
@@ -218,7 +233,7 @@ fn try_extract_normalized_function_args(typ: &TypeInfo) -> Option<Vec<String>> {
                     .pop()
                     .unwrap()
                     .iter()
-                    .map(|type_arg| simple_stringify_type_info(type_arg.type_info()))
+                    .map(|type_arg| simple_stringify_type_info(type_arg.type_info(), Some(typ)))
                     .collect(),
             ),
             _ => {
@@ -234,7 +249,7 @@ fn try_extract_normalized_function_args(typ: &TypeInfo) -> Option<Vec<String>> {
                     let mut type_arg_strings = type_args_multi
                         .iter()
                         .filter_map(|type_args| type_args.get(index))
-                        .map(|type_arg| simple_stringify_type_info(type_arg.type_info()))
+                        .map(|type_arg| simple_stringify_type_info(type_arg.type_info(), Some(typ)))
                         .collect::<Vec<_>>();
                     if type_arg_strings.len() < type_args_multi.len() {
                         for _ in type_arg_strings.len()..type_args_multi.len() {
