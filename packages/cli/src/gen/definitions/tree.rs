@@ -4,20 +4,20 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    builder::DocItemBuilder, item::DocItem, kind::DocItemKind,
+    builder::DefinitionsItemBuilder, item::DefinitionsItem, kind::DefinitionsItemKind,
     parser::parse_type_definitions_into_doc_items,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DocTree(DocItem);
+pub struct DefinitionsTree(DefinitionsItem);
 
 #[allow(dead_code)]
-impl DocTree {
+impl DefinitionsTree {
     pub fn from_type_definitions<S: AsRef<str>>(type_definitions_contents: S) -> Result<Self> {
         let top_level_items = parse_type_definitions_into_doc_items(type_definitions_contents)
             .context("Failed to visit type definitions AST")?;
-        let root = DocItemBuilder::new()
-            .with_kind(DocItemKind::Root)
+        let root = DefinitionsItemBuilder::new()
+            .with_kind(DefinitionsItemKind::Root)
             .with_name("<<<ROOT>>>")
             .with_children(&top_level_items)
             .build()?;
@@ -29,19 +29,19 @@ impl DocTree {
         true
     }
 
-    pub fn into_inner(self) -> DocItem {
+    pub fn into_inner(self) -> DefinitionsItem {
         self.0
     }
 }
 
-impl Deref for DocTree {
-    type Target = DocItem;
+impl Deref for DefinitionsTree {
+    type Target = DefinitionsItem;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for DocTree {
+impl DerefMut for DefinitionsTree {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

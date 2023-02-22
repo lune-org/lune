@@ -2,14 +2,14 @@ use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};
 
-use super::kind::DocItemKind;
+use super::kind::DefinitionsItemKind;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DocItem {
+pub struct DefinitionsItem {
     #[serde(skip_serializing_if = "skip_serialize_is_false")]
     pub(super) exported: bool,
-    pub(super) kind: DocItemKind,
+    pub(super) kind: DefinitionsItemKind,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -17,7 +17,7 @@ pub struct DocItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) value: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub(super) children: Vec<DocItem>,
+    pub(super) children: Vec<DefinitionsItem>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) arg_types: Vec<String>,
 }
@@ -27,7 +27,7 @@ fn skip_serialize_is_false(b: &bool) -> bool {
     !b
 }
 
-impl PartialOrd for DocItem {
+impl PartialOrd for DefinitionsItem {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match self.kind.partial_cmp(&other.kind).unwrap() {
             Ordering::Equal => {}
@@ -52,14 +52,14 @@ impl PartialOrd for DocItem {
     }
 }
 
-impl Ord for DocItem {
+impl Ord for DefinitionsItem {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
     }
 }
 
 #[allow(dead_code)]
-impl DocItem {
+impl DefinitionsItem {
     pub fn is_exported(&self) -> bool {
         self.exported
     }
@@ -88,7 +88,7 @@ impl DocItem {
         self.kind.is_tag()
     }
 
-    pub fn kind(&self) -> DocItemKind {
+    pub fn kind(&self) -> DefinitionsItemKind {
         self.kind
     }
 
@@ -104,7 +104,7 @@ impl DocItem {
         self.value.as_deref()
     }
 
-    pub fn children(&self) -> &[DocItem] {
+    pub fn children(&self) -> &[DefinitionsItem] {
         &self.children
     }
 

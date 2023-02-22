@@ -1,12 +1,12 @@
 use regex::Regex;
 
-use super::{builder::DocItemBuilder, item::DocItem, kind::DocItemKind};
+use super::{builder::DefinitionsItemBuilder, item::DefinitionsItem, kind::DefinitionsItemKind};
 
 fn should_separate_tag_meta(tag_kind: &str) -> bool {
     matches!(tag_kind.trim().to_ascii_lowercase().as_ref(), "param")
 }
 
-fn parse_moonwave_style_tag(line: &str) -> Option<DocItem> {
+fn parse_moonwave_style_tag(line: &str) -> Option<DefinitionsItem> {
     let tag_regex = Regex::new(r#"^@(\S+)\s*(.*)$"#).unwrap();
     if tag_regex.is_match(line) {
         let captures = tag_regex.captures(line).unwrap();
@@ -22,8 +22,8 @@ fn parse_moonwave_style_tag(line: &str) -> Option<DocItem> {
         if tag_kind.is_empty() {
             None
         } else {
-            let mut builder = DocItemBuilder::new()
-                .with_kind(DocItemKind::Tag)
+            let mut builder = DefinitionsItemBuilder::new()
+                .with_kind(DefinitionsItemKind::Tag)
                 .with_name(tag_kind);
             if !tag_name.is_empty() {
                 builder = builder.with_meta(tag_name);
@@ -38,7 +38,7 @@ fn parse_moonwave_style_tag(line: &str) -> Option<DocItem> {
     }
 }
 
-pub(super) fn parse_moonwave_style_comment(comment: &str) -> Vec<DocItem> {
+pub(super) fn parse_moonwave_style_comment(comment: &str) -> Vec<DefinitionsItem> {
     let lines = comment.lines().map(str::trim).collect::<Vec<_>>();
     let indent_len = lines.iter().fold(usize::MAX, |acc, line| {
         let first = line.chars().enumerate().find_map(|(idx, ch)| {
@@ -70,8 +70,8 @@ pub(super) fn parse_moonwave_style_comment(comment: &str) -> Vec<DocItem> {
     }
     if !doc_lines.is_empty() {
         doc_items.push(
-            DocItemBuilder::new()
-                .with_kind(DocItemKind::Description)
+            DefinitionsItemBuilder::new()
+                .with_kind(DefinitionsItemKind::Description)
                 .with_value(doc_lines.join("\n").trim())
                 .build()
                 .unwrap(),

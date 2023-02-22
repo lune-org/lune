@@ -1,20 +1,20 @@
 use anyhow::{bail, Result};
 
-use super::{item::DocItem, kind::DocItemKind};
+use super::{item::DefinitionsItem, kind::DefinitionsItemKind};
 
 #[derive(Debug, Default, Clone)]
-pub struct DocItemBuilder {
+pub struct DefinitionsItemBuilder {
     exported: bool,
-    kind: Option<DocItemKind>,
+    kind: Option<DefinitionsItemKind>,
     name: Option<String>,
     meta: Option<String>,
     value: Option<String>,
-    children: Vec<DocItem>,
+    children: Vec<DefinitionsItem>,
     arg_types: Vec<String>,
 }
 
 #[allow(dead_code)]
-impl DocItemBuilder {
+impl DefinitionsItemBuilder {
     pub fn new() -> Self {
         Self {
             ..Default::default()
@@ -27,7 +27,7 @@ impl DocItemBuilder {
         self
     }
 
-    pub fn with_kind(mut self, kind: DocItemKind) -> Self {
+    pub fn with_kind(mut self, kind: DefinitionsItemKind) -> Self {
         self.kind = Some(kind);
         self
     }
@@ -47,12 +47,12 @@ impl DocItemBuilder {
         self
     }
 
-    pub fn with_child(mut self, child: DocItem) -> Self {
+    pub fn with_child(mut self, child: DefinitionsItem) -> Self {
         self.children.push(child);
         self
     }
 
-    pub fn with_children(mut self, children: &[DocItem]) -> Self {
+    pub fn with_children(mut self, children: &[DefinitionsItem]) -> Self {
         self.children.extend_from_slice(children);
         self
     }
@@ -69,11 +69,11 @@ impl DocItemBuilder {
         self
     }
 
-    pub fn build(self) -> Result<DocItem> {
+    pub fn build(self) -> Result<DefinitionsItem> {
         if let Some(kind) = self.kind {
             let mut children = self.children;
             children.sort();
-            Ok(DocItem {
+            Ok(DefinitionsItem {
                 exported: self.exported,
                 kind,
                 name: self.name,

@@ -1,11 +1,11 @@
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
-use super::item::DocItem;
+use super::item::DefinitionsItem;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-pub enum DocsItemTag {
+pub enum DefinitionsItemTag {
     Class(String),
     Within(String),
     Param((String, String)),
@@ -16,7 +16,7 @@ pub enum DocsItemTag {
 }
 
 #[allow(dead_code)]
-impl DocsItemTag {
+impl DefinitionsItemTag {
     pub fn is_class(&self) -> bool {
         matches!(self, Self::Class(_))
     }
@@ -46,9 +46,9 @@ impl DocsItemTag {
     }
 }
 
-impl TryFrom<&DocItem> for DocsItemTag {
+impl TryFrom<&DefinitionsItem> for DefinitionsItemTag {
     type Error = anyhow::Error;
-    fn try_from(value: &DocItem) -> Result<Self> {
+    fn try_from(value: &DefinitionsItem) -> Result<Self> {
         if let Some(name) = value.get_name() {
             Ok(match name.trim().to_ascii_lowercase().as_ref() {
                 "class" => Self::Class(

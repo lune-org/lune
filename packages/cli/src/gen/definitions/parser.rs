@@ -9,23 +9,23 @@ use full_moon::{
 use regex::Regex;
 
 use super::{
-    builder::DocItemBuilder, item::DocItem, kind::DocItemKind,
+    builder::DefinitionsItemBuilder, item::DefinitionsItem, kind::DefinitionsItemKind,
     moonwave::parse_moonwave_style_comment,
 };
 
 pub const PIPE_SEPARATOR: &str = " | ";
 
 #[derive(Debug, Clone)]
-struct DocVisitorItem {
+struct DefinitionsParserItem {
     name: String,
     comment: Option<String>,
     type_info: TypeInfo,
 }
 
-impl DocVisitorItem {
-    fn into_doc_item(self, type_definition_declares: &Vec<String>) -> DocItem {
-        let mut builder = DocItemBuilder::new()
-            .with_kind(DocItemKind::from(&self.type_info))
+impl DefinitionsParserItem {
+    fn into_doc_item(self, type_definition_declares: &Vec<String>) -> DefinitionsItem {
+        let mut builder = DefinitionsItemBuilder::new()
+            .with_kind(DefinitionsItemKind::from(&self.type_info))
             .with_name(&self.name);
         if type_definition_declares.contains(&self.name) {
             builder = builder.as_exported();
@@ -54,11 +54,11 @@ impl DocVisitorItem {
     }
 }
 
-impl From<&TypeInfo> for DocItemKind {
+impl From<&TypeInfo> for DefinitionsItemKind {
     fn from(value: &TypeInfo) -> Self {
         match value {
-            TypeInfo::Array { .. } | TypeInfo::Table { .. } => DocItemKind::Table,
-            TypeInfo::Basic(_) | TypeInfo::String(_) => DocItemKind::Property,
+            TypeInfo::Array { .. } | TypeInfo::Table { .. } => DefinitionsItemKind::Table,
+            TypeInfo::Basic(_) | TypeInfo::String(_) => DefinitionsItemKind::Property,
             TypeInfo::Optional { base, .. } => Self::from(base.as_ref()),
             TypeInfo::Tuple { types, .. } => {
                 let mut kinds = types.iter().map(Self::from).collect::<Vec<_>>();
@@ -82,7 +82,7 @@ impl From<&TypeInfo> for DocItemKind {
                     )
                 }
             }
-            typ if type_info_is_fn(typ) => DocItemKind::Function,
+            typ if type_info_is_fn(typ) => DefinitionsItemKind::Function,
             typ => unimplemented!(
                 "Missing support for TypeInfo in type definitions parser:\n{}",
                 typ.to_string()
@@ -111,7 +111,7 @@ fn parse_type_definitions_declares(contents: &str) -> (String, Vec<String>) {
     (resulting_contents, found_declares)
 }
 
-pub fn parse_type_definitions_into_doc_items<S>(contents: S) -> Result<Vec<DocItem>>
+pub fn parse_type_definitions_into_doc_items<S>(contents: S) -> Result<Vec<DefinitionsItem>>
 where
     S: AsRef<str>,
 {
@@ -128,7 +128,7 @@ where
             Stmt::TypeDeclaration(typ) => Some((typ, typ.type_token())),
             _ => None,
         } {
-            found_top_level_items.push(DocVisitorItem {
+            found_top_level_items.push(DefinitionsParserItem {
                 name: declaration.type_name().token().to_string(),
                 comment: find_token_moonwave_comment(token_reference),
                 type_info: declaration.type_definition().clone(),

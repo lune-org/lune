@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use serde_yaml::{Mapping as YamlMapping, Sequence as YamlSequence, Value as YamlValue};
 
-use crate::gen::doc2::DocsItemTag;
+use crate::gen::definitions::DefinitionsItemTag;
 
-use super::doc2::{DocItem, DocItemKind, DocTree, PIPE_SEPARATOR};
+use super::definitions::{DefinitionsItem, DefinitionsItemKind, DefinitionsTree, PIPE_SEPARATOR};
 
 pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
-    let tree = DocTree::from_type_definitions(contents)?;
+    let tree = DefinitionsTree::from_type_definitions(contents)?;
     let mut globals = YamlMapping::new();
     let top_level_exported_items = tree.children().iter().filter(|top_level| {
         top_level.is_exported()
@@ -17,7 +17,7 @@ pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
     });
     for top_level_item in top_level_exported_items {
         match top_level_item.kind() {
-            DocItemKind::Table => {
+            DefinitionsItemKind::Table => {
                 let top_level_name = top_level_item
                     .get_name()
                     .context("Missing name for top-level doc item")?
@@ -37,7 +37,7 @@ pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
                     );
                 }
             }
-            DocItemKind::Function => {
+            DefinitionsItemKind::Function => {
                 globals.insert(
                     YamlValue::String(
                         top_level_item
@@ -63,14 +63,14 @@ pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
     ))
 }
 
-fn doc_item_to_selene_yaml_mapping(item: &DocItem) -> Result<YamlMapping> {
+fn doc_item_to_selene_yaml_mapping(item: &DefinitionsItem) -> Result<YamlMapping> {
     let mut mapping = YamlMapping::new();
     if item.is_property() || item.is_table() {
         let property_access_tag = item
             .children()
             .iter()
             .find_map(|child| {
-                if let Ok(tag) = DocsItemTag::try_from(child) {
+                if let Ok(tag) = DefinitionsItemTag::try_from(child) {
                     if tag.is_read_only() || tag.is_read_write() {
                         Some(tag)
                     } else {
@@ -90,8 +90,8 @@ fn doc_item_to_selene_yaml_mapping(item: &DocItem) -> Result<YamlMapping> {
             YamlValue::String("property".to_string()),
             YamlValue::String(
                 match property_access_tag {
-                    DocsItemTag::ReadOnly => "read-only",
-                    DocsItemTag::ReadWrite => "new-fields",
+                    DefinitionsItemTag::ReadOnly => "read-only",
+                    DefinitionsItemTag::ReadWrite => "new-fields",
                     _ => unreachable!(),
                 }
                 .to_string(),
@@ -99,7 +99,7 @@ fn doc_item_to_selene_yaml_mapping(item: &DocItem) -> Result<YamlMapping> {
         );
     } else if item.is_function() {
         let is_must_use = item.children().iter().any(|child| {
-            if let Ok(tag) = DocsItemTag::try_from(child) {
+            if let Ok(tag) = DefinitionsItemTag::try_from(child) {
                 tag.is_must_use()
             } else {
                 false

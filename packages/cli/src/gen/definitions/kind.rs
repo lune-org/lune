@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-pub enum DocItemKind {
+pub enum DefinitionsItemKind {
     Root,
     Table,
     Property,
@@ -14,33 +14,33 @@ pub enum DocItemKind {
 }
 
 #[allow(dead_code)]
-impl DocItemKind {
+impl DefinitionsItemKind {
     pub fn is_root(self) -> bool {
-        self == DocItemKind::Root
+        self == DefinitionsItemKind::Root
     }
 
     pub fn is_table(self) -> bool {
-        self == DocItemKind::Table
+        self == DefinitionsItemKind::Table
     }
 
     pub fn is_property(self) -> bool {
-        self == DocItemKind::Property
+        self == DefinitionsItemKind::Property
     }
 
     pub fn is_function(self) -> bool {
-        self == DocItemKind::Function
+        self == DefinitionsItemKind::Function
     }
 
     pub fn is_description(self) -> bool {
-        self == DocItemKind::Description
+        self == DefinitionsItemKind::Description
     }
 
     pub fn is_tag(self) -> bool {
-        self == DocItemKind::Tag
+        self == DefinitionsItemKind::Tag
     }
 }
 
-impl fmt::Display for DocItemKind {
+impl fmt::Display for DefinitionsItemKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
