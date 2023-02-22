@@ -1,5 +1,3 @@
--- Lune v0.4.0
-
 --[=[
 	@class fs
 	
@@ -527,5 +525,8 @@ declare warn: <T...>(T...) -> ()
 
 --[=[
 	Throws an error and prints a formatted version of it with a leading "[ERROR]" tag.
+
+	@param message The error message to throw
+	@param level The stack level to throw the error at, defaults to 0
 ]=]
 declare error: <T>(message: T, level: number?) -> ()

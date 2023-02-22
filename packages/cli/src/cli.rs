@@ -8,8 +8,8 @@ use tokio::fs::{read_to_string, write};
 
 use crate::{
     gen::{
-        generate_docs_json_from_definitions, generate_selene_defs_from_definitions,
-        generate_wiki_dir_from_definitions,
+        generate_docs_json_from_definitions, generate_luau_defs_from_definitions,
+        generate_selene_defs_from_definitions, generate_wiki_dir_from_definitions,
     },
     utils::{
         files::find_parse_file_path,
@@ -120,7 +120,7 @@ impl Cli {
         if generate_file_requested {
             if self.generate_luau_types {
                 generate_and_save_file(FILE_NAME_LUAU_TYPES, "Luau type definitions", || {
-                    Ok(FILE_CONTENTS_LUAU_TYPES.to_string())
+                    generate_luau_defs_from_definitions(FILE_CONTENTS_LUAU_TYPES)
                 })
                 .await?;
             }

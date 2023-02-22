@@ -1,7 +1,7 @@
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
 
-use crate::gen::DocumentationVisitor;
+use crate::gen::definitions::DefinitionsTree;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -16,7 +16,7 @@ impl FileType {
             Some(Self::Json)
         } else if serde_yaml::from_str::<YamlValue>(contents).is_ok() {
             Some(Self::Yaml)
-        } else if DocumentationVisitor::from_definitions(contents).is_ok() {
+        } else if DefinitionsTree::from_type_definitions(contents).is_ok() {
             Some(Self::Luau)
         } else {
             None
