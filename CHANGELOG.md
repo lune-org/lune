@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `process.cwd` not having the correct ending path separator on Windows
 - Fixed remaining edge cases where the `task` and `coroutine` libraries weren't interoperable
 - Fixed `task.delay` keeping the script running even if it was cancelled using `task.cancel`
 - Fixed `stdio.prompt` blocking all other lua threads while prompting for input
