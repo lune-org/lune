@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use full_moon::{
     ast::types::{TypeArgument, TypeInfo},
     tokenizer::{Symbol, Token, TokenReference, TokenType},
@@ -8,9 +10,16 @@ use super::kind::DefinitionsItemKind;
 pub(crate) trait TypeInfoExt {
     fn is_fn(&self) -> bool;
     fn parse_definitions_kind(&self) -> DefinitionsItemKind;
-    fn stringify_simple(&self, parent_typ: Option<&TypeInfo>) -> String;
+    fn stringify_simple(
+        &self,
+        parent_typ: Option<&TypeInfo>,
+        type_lookup_table: &HashMap<String, TypeInfo>,
+    ) -> String;
     fn extract_args(&self, base: Vec<TypeArgument>) -> Vec<TypeArgument>;
-    fn extract_args_normalized(&self) -> Option<Vec<String>>;
+    fn extract_args_normalized(
+        &self,
+        type_lookup_table: &HashMap<String, TypeInfo>,
+    ) -> Option<Vec<String>>;
 }
 
 impl TypeInfoExt for TypeInfo {
@@ -90,44 +99,68 @@ impl TypeInfoExt for TypeInfo {
         * `{ TypeName }`
         * `"string-literal"`
     */
-    fn stringify_simple(&self, parent_typ: Option<&TypeInfo>) -> String {
+    fn stringify_simple(
+        &self,
+        parent_typ: Option<&TypeInfo>,
+        type_lookup_table: &HashMap<String, TypeInfo>,
+    ) -> String {
         match self {
             TypeInfo::Array { type_info, .. } => {
-                format!("{{ {} }}", type_info.as_ref().stringify_simple(Some(self)))
+                format!(
+                    "{{ {} }}",
+                    type_info
+                        .as_ref()
+                        .stringify_simple(Some(self), type_lookup_table)
+                )
             }
-            TypeInfo::Basic(tok) => match parent_typ {
-                Some(TypeInfo::Callback { generics, .. }) => {
-                    if let Some(generics) = generics {
-                        // If the function that contains this arg has generic and a
-                        // generic is the same as this token, we stringify it as any
-                        if generics
-                            .generics()
-                            .iter()
-                            .any(|g| g.to_string() == tok.token().to_string())
-                        {
-                            "any".to_string()
-                        } else {
-                            tok.token().to_string()
-                        }
-                    } else {
-                        tok.token().to_string()
+            TypeInfo::Basic(tok) => {
+                let tok_str = tok.token().to_string();
+                let mut any_str = None;
+                // If the function that contains this arg has generic and a
+                // generic is the same as this token, we stringify it as any
+                if let Some(TypeInfo::Callback {
+                    generics: Some(callback_generics),
+                    ..
+                }) = parent_typ
+                {
+                    if callback_generics
+                        .generics()
+                        .iter()
+                        .any(|g| g.to_string() == tok_str)
+                    {
+                        any_str = Some("any".to_string());
                     }
                 }
-                _ => tok.token().to_string(),
-            },
+                // Also check if we got a referenced type, meaning that it
+                // exists in the lookup table of global types passed to us
+                if let Some(any_str) = any_str {
+                    any_str
+                } else if let Some(referenced_typ) = type_lookup_table.get(&tok_str) {
+                    referenced_typ.stringify_simple(None, type_lookup_table)
+                } else {
+                    tok_str
+                }
+            }
             TypeInfo::String(str) => str.token().to_string(),
             TypeInfo::Boolean(_) => "boolean".to_string(),
             TypeInfo::Callback { .. } => "function".to_string(),
             TypeInfo::Optional { base, .. } => {
-                format!("{}?", base.as_ref().stringify_simple(Some(self)))
+                format!(
+                    "{}?",
+                    base.as_ref()
+                        .stringify_simple(Some(self), type_lookup_table)
+                )
             }
             TypeInfo::Table { .. } => "table".to_string(),
             TypeInfo::Union { left, right, .. } => {
                 format!(
                     "{} {} {}",
-                    left.as_ref().stringify_simple(Some(self)),
+                    left.as_ref()
+                        .stringify_simple(Some(self), type_lookup_table),
                     Symbol::Pipe,
-                    right.as_ref().stringify_simple(Some(self))
+                    right
+                        .as_ref()
+                        .stringify_simple(Some(self), type_lookup_table)
                 )
             }
             // TODO: Stringify custom table types properly, these show up as basic tokens
@@ -156,13 +189,20 @@ impl TypeInfoExt for TypeInfo {
         }
     }
 
-    fn extract_args_normalized(&self) -> Option<Vec<String>> {
+    fn extract_args_normalized(
+        &self,
+        type_lookup_table: &HashMap<String, TypeInfo>,
+    ) -> Option<Vec<String>> {
         if self.is_fn() {
             let separator = format!(" {} ", Symbol::Pipe);
             let args_stringified_not_normalized = self
                 .extract_args(Vec::new())
                 .iter()
-                .map(|type_arg| type_arg.type_info().stringify_simple(Some(self)))
+                .map(|type_arg| {
+                    type_arg
+                        .type_info()
+                        .stringify_simple(Some(self), type_lookup_table)
+                })
                 .collect::<Vec<_>>();
             let mut args_stringified = Vec::new();
             for arg_string in args_stringified_not_normalized {

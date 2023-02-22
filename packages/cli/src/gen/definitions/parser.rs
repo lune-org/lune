@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, HashMap};
+
 use anyhow::{Context, Result};
 use full_moon::{
     ast::{
@@ -20,16 +22,19 @@ struct DefinitionsParserItem {
     type_info: TypeInfo,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct DefinitionsParser {
-    found_top_level_items: Vec<DefinitionsParserItem>,
+    found_top_level_items: BTreeMap<String, DefinitionsParserItem>,
+    found_top_level_types: HashMap<String, TypeInfo>,
     found_top_level_declares: Vec<String>,
 }
 
 impl DefinitionsParser {
     pub fn new() -> Self {
         Self {
-            ..Default::default()
+            found_top_level_items: BTreeMap::new(),
+            found_top_level_types: HashMap::new(),
+            found_top_level_declares: Vec::new(),
         }
     }
 
@@ -62,7 +67,8 @@ impl DefinitionsParser {
             .map(|cap| cap[1].to_string())
             .collect();
         // Parse contents into top-level parser items for later use
-        let mut found_top_level_items = Vec::new();
+        let mut found_top_level_items = BTreeMap::new();
+        let mut found_top_level_types = HashMap::new();
         let ast =
             full_moon::parse(&resulting_contents).context("Failed to parse type definitions")?;
         for stmt in ast.nodes().stmts() {
@@ -73,15 +79,21 @@ impl DefinitionsParser {
                 Stmt::TypeDeclaration(typ) => Some((typ, typ.type_token())),
                 _ => None,
             } {
-                found_top_level_items.push(DefinitionsParserItem {
-                    name: declaration.type_name().token().to_string(),
-                    comment: find_token_moonwave_comment(token_reference),
-                    type_info: declaration.type_definition().clone(),
-                });
+                let name = declaration.type_name().token().to_string();
+                found_top_level_items.insert(
+                    name.clone(),
+                    DefinitionsParserItem {
+                        name: name.clone(),
+                        comment: find_token_moonwave_comment(token_reference),
+                        type_info: declaration.type_definition().clone(),
+                    },
+                );
+                found_top_level_types.insert(name, declaration.type_definition().clone());
             }
         }
         // Store results
         self.found_top_level_items = found_top_level_items;
+        self.found_top_level_types = found_top_level_types;
         self.found_top_level_declares = found_declares;
         Ok(())
     }
@@ -96,7 +108,10 @@ impl DefinitionsParser {
         if let Some(comment) = item.comment {
             builder = builder.with_children(&parse_moonwave_style_comment(&comment));
         }
-        if let Some(args) = item.type_info.extract_args_normalized() {
+        if let Some(args) = item
+            .type_info
+            .extract_args_normalized(&self.found_top_level_types)
+        {
             builder = builder.with_arg_types(&args);
         }
         if let TypeInfo::Table { fields, .. } = item.type_info {
@@ -122,11 +137,11 @@ impl DefinitionsParser {
     */
     #[allow(clippy::unnecessary_wraps)]
     pub fn drain(&mut self) -> Result<Vec<DefinitionsItem>> {
-        let mut top_level_items = self.found_top_level_items.drain(..).collect::<Vec<_>>();
-        let results = top_level_items
-            .drain(..)
-            .map(|visitor_item| self.convert_parser_item_into_doc_item(visitor_item))
-            .collect();
+        let mut results = Vec::new();
+        for top_level_item in self.found_top_level_items.values() {
+            results.push(self.convert_parser_item_into_doc_item(top_level_item.clone()));
+        }
+        self.found_top_level_items = BTreeMap::new();
         self.found_top_level_declares = Vec::new();
         Ok(results)
     }
