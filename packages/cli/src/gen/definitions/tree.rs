@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     builder::DefinitionsItemBuilder, item::DefinitionsItem, kind::DefinitionsItemKind,
-    parser::parse_type_definitions_into_doc_items,
+    parser::DefinitionsParser,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,12 +14,17 @@ pub struct DefinitionsTree(DefinitionsItem);
 #[allow(dead_code)]
 impl DefinitionsTree {
     pub fn from_type_definitions<S: AsRef<str>>(type_definitions_contents: S) -> Result<Self> {
-        let top_level_items = parse_type_definitions_into_doc_items(type_definitions_contents)
-            .context("Failed to visit type definitions AST")?;
+        let mut parser = DefinitionsParser::new();
+        parser
+            .parse(type_definitions_contents)
+            .context("Failed to parse type definitions AST")?;
+        let top_level_definition_items = parser
+            .into_definition_items()
+            .context("Failed to convert parser items into definition items")?;
         let root = DefinitionsItemBuilder::new()
             .with_kind(DefinitionsItemKind::Root)
             .with_name("<<<ROOT>>>")
-            .with_children(&top_level_items)
+            .with_children(&top_level_definition_items)
             .build()?;
         Ok(Self(root))
     }
