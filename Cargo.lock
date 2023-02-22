@@ -808,6 +808,7 @@ dependencies = [
  "clap",
  "console",
  "full_moon",
+ "futures-util",
  "lazy_static",
  "lune",
  "regex",

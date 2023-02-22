@@ -331,6 +331,7 @@ declare process: {
 
 		The third argument, `options`, can be passed as a dictionary of options to give to the child process.
 		The available options inside of the `options` dictionary are:
+		
 		* `cwd` - The current working directory for the process
 		* `env` - Extra environment variables to give to the process
 		* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell

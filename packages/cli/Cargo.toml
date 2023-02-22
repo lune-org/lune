@@ -26,6 +26,7 @@ tokio.workspace = true
 reqwest.workspace = true
 
 anyhow = "1.0.68"
+futures-util = "0.3.26"
 regex = "1.7.1"
 serde_yaml = "0.9.17"
 
