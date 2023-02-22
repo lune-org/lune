@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved accuracy of Selene type definitions, strongly typed arrays are now used where possible
 - Improve error handling and messages for `net.serve`
 - Improve error handling and messages for `stdio.prompt`
+- File path representations on Windows now use legacy paths instead of UNC paths wherever possible, preventing some confusing cases where file paths don't work as expected
 
 ### Fixed
 

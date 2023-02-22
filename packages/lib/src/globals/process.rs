@@ -6,6 +6,7 @@ use std::{
 };
 
 use directories::UserDirs;
+use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use tokio::process::Command;
@@ -21,7 +22,7 @@ yield()
 
 pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
     let cwd_str = {
-        let cwd = env::current_dir()?.canonicalize()?;
+        let cwd = canonicalize(env::current_dir()?)?;
         let cwd_str = cwd.to_string_lossy().to_string();
         if !cwd_str.ends_with(path::MAIN_SEPARATOR) {
             format!("{cwd_str}{}", path::MAIN_SEPARATOR)

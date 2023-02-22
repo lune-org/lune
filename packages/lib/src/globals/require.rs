@@ -1,9 +1,10 @@
 use std::{
     env::{self, current_dir},
     fs,
-    path::PathBuf,
+    path::{self, PathBuf},
 };
 
+use dunce::canonicalize;
 use mlua::prelude::*;
 
 use crate::lua::table::TableBuilder;
@@ -35,8 +36,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     }
     // Store the current pwd, and make the functions for path conversions & loading a file
     let mut require_pwd = current_dir()?.to_string_lossy().to_string();
-    if !require_pwd.ends_with('/') {
-        require_pwd = format!("{require_pwd}/")
+    if !require_pwd.ends_with(path::MAIN_SEPARATOR) {
+        require_pwd = format!("{require_pwd}{}", path::MAIN_SEPARATOR)
     }
     let require_info: LuaFunction = lua.named_registry_value("dbg.info")?;
     let require_error: LuaFunction = lua.named_registry_value("error")?;
@@ -53,8 +54,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 .join(&require_path);
                 // Try to normalize and resolve relative path segments such as './' and '../'
                 let file_path = match (
-                    path_relative_to_pwd.with_extension("luau").canonicalize(),
-                    path_relative_to_pwd.with_extension("lua").canonicalize(),
+                    canonicalize(path_relative_to_pwd.with_extension("luau")),
+                    canonicalize(path_relative_to_pwd.with_extension("lua")),
                 ) {
                     (Ok(luau), _) => luau,
                     (_, Ok(lua)) => lua,
