@@ -9,6 +9,7 @@ pub struct DocItemBuilder {
     meta: Option<String>,
     value: Option<String>,
     children: Vec<DocItem>,
+    arg_types: Vec<String>,
 }
 
 #[allow(dead_code)]
@@ -49,6 +50,18 @@ impl DocItemBuilder {
         self
     }
 
+    pub fn with_arg_type<S: AsRef<str>>(mut self, arg_type: S) -> Self {
+        self.arg_types.push(arg_type.as_ref().to_string());
+        self
+    }
+
+    pub fn with_arg_types<S: AsRef<str>>(mut self, arg_types: &[S]) -> Self {
+        for arg_type in arg_types {
+            self.arg_types.push(arg_type.as_ref().to_string());
+        }
+        self
+    }
+
     pub fn build(self) -> Result<DocItem> {
         if let Some(kind) = self.kind {
             let mut children = self.children;
@@ -59,6 +72,7 @@ impl DocItemBuilder {
                 meta: self.meta,
                 value: self.value,
                 children,
+                arg_types: self.arg_types,
             })
         } else {
             bail!("Missing doc item kind")

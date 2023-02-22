@@ -16,6 +16,8 @@ pub struct DocItem {
     pub(super) value: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) children: Vec<DocItem>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) arg_types: Vec<String>,
 }
 
 impl PartialOrd for DocItem {
@@ -89,5 +91,9 @@ impl DocItem {
 
     pub fn children(&self) -> &[DocItem] {
         &self.children
+    }
+
+    pub fn arg_types(&self) -> Vec<&str> {
+        self.arg_types.iter().map(String::as_str).collect()
     }
 }

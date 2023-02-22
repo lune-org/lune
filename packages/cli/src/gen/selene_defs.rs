@@ -3,7 +3,7 @@ use serde_yaml::{Mapping as YamlMapping, Sequence as YamlSequence, Value as Yaml
 
 use crate::gen::doc2::DocsItemTag;
 
-use super::doc2::{DocItem, DocItemKind, DocTree};
+use super::doc2::{DocItem, DocItemKind, DocTree, PIPE_SEPARATOR};
 
 pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
     let tree = DocTree::from_type_definitions(contents)?;
@@ -110,10 +110,47 @@ fn doc_item_to_selene_yaml_mapping(item: &DocItem) -> Result<YamlMapping> {
                 YamlValue::Bool(true),
             );
         }
+        let mut args = YamlSequence::new();
+        for arg_type in item.arg_types() {
+            let mut arg_mapping = YamlMapping::new();
+            let (type_str, type_opt) = match arg_type.strip_suffix('?') {
+                Some(stripped) => (stripped, true),
+                None => (arg_type, false),
+            };
+            if type_opt {
+                arg_mapping.insert(
+                    YamlValue::String("required".to_string()),
+                    YamlValue::Bool(false),
+                );
+            }
+            arg_mapping.insert(
+                YamlValue::String("type".to_string()),
+                YamlValue::String(simplify_type_str_into_primitives(
+                    type_str.trim_start_matches('(').trim_end_matches(')'),
+                )),
+            );
+            args.push(YamlValue::Mapping(arg_mapping));
+        }
         mapping.insert(
             YamlValue::String("args".to_string()),
-            YamlValue::Mapping(YamlMapping::new()),
+            YamlValue::Sequence(args),
         );
     }
     Ok(mapping)
+}
+
+fn simplify_type_str_into_primitives(type_str: &str) -> String {
+    let mut primitives = Vec::new();
+    for type_inner in type_str.split(PIPE_SEPARATOR) {
+        if type_inner.starts_with('{') && type_inner.ends_with('}') {
+            primitives.push("table");
+        } else if type_inner.starts_with('"') && type_inner.ends_with('"') {
+            primitives.push("string");
+        } else {
+            primitives.push(type_inner);
+        }
+    }
+    primitives.sort_unstable();
+    primitives.dedup();
+    primitives.join(PIPE_SEPARATOR)
 }
