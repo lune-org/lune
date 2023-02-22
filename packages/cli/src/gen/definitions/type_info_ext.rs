@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use full_moon::{
     ast::types::{TypeArgument, TypeInfo},
     tokenizer::{Symbol, Token, TokenReference, TokenType},
+    ShortString,
 };
 
 use super::kind::DefinitionsItemKind;
@@ -15,7 +16,7 @@ pub(crate) trait TypeInfoExt {
         parent_typ: Option<&TypeInfo>,
         type_lookup_table: &HashMap<String, TypeInfo>,
     ) -> String;
-    fn extract_args(&self, base: Vec<TypeArgument>) -> Vec<TypeArgument>;
+    fn extract_args(&self) -> Vec<TypeArgument>;
     fn extract_args_normalized(
         &self,
         type_lookup_table: &HashMap<String, TypeInfo>,
@@ -114,21 +115,23 @@ impl TypeInfoExt for TypeInfo {
                 )
             }
             TypeInfo::Basic(tok) => {
-                let tok_str = tok.token().to_string();
+                let tok_str = tok.token().to_string().trim().to_string();
                 let mut any_str = None;
                 // If the function that contains this arg has generic and a
                 // generic is the same as this token, we stringify it as any
-                if let Some(TypeInfo::Callback {
-                    generics: Some(callback_generics),
-                    ..
-                }) = parent_typ
-                {
-                    if callback_generics
-                        .generics()
-                        .iter()
-                        .any(|g| g.to_string() == tok_str)
+                if let Some(parent) = parent_typ {
+                    if let Some(TypeInfo::Callback {
+                        generics: Some(callback_generics),
+                        ..
+                    }) = try_extract_callback_type_info(parent)
                     {
-                        any_str = Some("any".to_string());
+                        if callback_generics
+                            .generics()
+                            .iter()
+                            .any(|g| g.to_string() == tok_str)
+                        {
+                            any_str = Some("any".to_string());
+                        }
                     }
                 }
                 // Also check if we got a referenced type, meaning that it
@@ -163,29 +166,34 @@ impl TypeInfoExt for TypeInfo {
                         .stringify_simple(Some(self), type_lookup_table)
                 )
             }
-            // TODO: Stringify custom table types properly, these show up as basic tokens
-            // and we should be able to look up the real type using found top level items
+            // FUTURE: Is there any other type that we can
+            // stringify to a primitive in an obvious way?
             _ => "...".to_string(),
         }
     }
 
-    fn extract_args(&self, base: Vec<TypeArgument>) -> Vec<TypeArgument> {
-        match self {
-            TypeInfo::Callback { arguments, .. } => {
-                merge_type_argument_vecs(base, arguments.iter().cloned().collect::<Vec<_>>())
+    fn extract_args(&self) -> Vec<TypeArgument> {
+        if self.is_fn() {
+            match self {
+                TypeInfo::Callback { arguments, .. } => {
+                    arguments.iter().cloned().collect::<Vec<_>>()
+                }
+                TypeInfo::Tuple { types, .. } => types
+                    .iter()
+                    .next()
+                    .expect("Function tuple type was empty")
+                    .extract_args(),
+                TypeInfo::Union { left, right, .. }
+                | TypeInfo::Intersection { left, right, .. } => {
+                    let mut result = Vec::new();
+                    result = merge_type_argument_vecs(result, left.extract_args());
+                    result = merge_type_argument_vecs(result, right.extract_args());
+                    result
+                }
+                _ => vec![],
             }
-            TypeInfo::Tuple { types, .. } => types
-                .iter()
-                .next()
-                .expect("Function tuple type was empty")
-                .extract_args(base),
-            TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
-                let mut result = base;
-                result = left.extract_args(result.clone());
-                result = right.extract_args(result.clone());
-                result
-            }
-            _ => base,
+        } else {
+            vec![]
         }
     }
 
@@ -196,7 +204,7 @@ impl TypeInfoExt for TypeInfo {
         if self.is_fn() {
             let separator = format!(" {} ", Symbol::Pipe);
             let args_stringified_not_normalized = self
-                .extract_args(Vec::new())
+                .extract_args()
                 .iter()
                 .map(|type_arg| {
                     type_arg
@@ -247,6 +255,17 @@ impl TypeInfoExt for TypeInfo {
     }
 }
 
+fn try_extract_callback_type_info(type_info: &TypeInfo) -> Option<&TypeInfo> {
+    match type_info {
+        TypeInfo::Callback { .. } => Some(type_info),
+        TypeInfo::Tuple { types, .. } => types.iter().find_map(try_extract_callback_type_info),
+        TypeInfo::Union { left, right, .. } | TypeInfo::Intersection { left, right, .. } => {
+            try_extract_callback_type_info(left).or_else(|| try_extract_callback_type_info(right))
+        }
+        _ => None,
+    }
+}
+
 fn make_empty_type_argument() -> TypeArgument {
     TypeArgument::new(TypeInfo::Basic(TokenReference::new(
         vec![],
@@ -261,11 +280,15 @@ fn merge_type_arguments(left: TypeArgument, right: TypeArgument) -> TypeArgument
     TypeArgument::new(TypeInfo::Union {
         left: Box::new(left.type_info().clone()),
         pipe: TokenReference::new(
-            vec![],
+            vec![Token::new(TokenType::Whitespace {
+                characters: ShortString::new(" "),
+            })],
             Token::new(TokenType::Symbol {
                 symbol: Symbol::Pipe,
             }),
-            vec![],
+            vec![Token::new(TokenType::Whitespace {
+                characters: ShortString::new(" "),
+            })],
         ),
         right: Box::new(right.type_info().clone()),
     })
