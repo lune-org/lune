@@ -26,7 +26,7 @@ Lune is a standalone [Luau](https://luau-lang.org) script runtime meant to be an
 ## Features
 
 - A strictly minimal but powerful interface that is easy to read and remember, just like Lua itself
-- Fully featured APIs for the filesystem, networking, stdio, all included in the small (~1mb) executable
+- Fully featured APIs for the filesystem, networking, stdio, all included in the small (~2mb) executable
 - World-class documentation, on the web _or_ directly in your editor, no network connection necessary
 - A familiar scripting environment for Roblox developers, with an included 1-to-1 task scheduler port
 
