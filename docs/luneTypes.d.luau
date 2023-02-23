@@ -1,6 +1,6 @@
 --[=[
 	@type FsWriteOptions
-	@within fs
+	@within FS
 
 	Options for filesystem APIs what write to files and/or directories.
 
@@ -13,13 +13,13 @@ export type FsWriteOptions = {
 }
 
 --[=[
-	@class fs
+	@class FS
 	
 	Filesystem
 ]=]
 declare fs: {
 	--[=[
-		@within fs
+		@within FS
 		@must_use
 
 		Reads a file at `path`.
@@ -36,7 +36,7 @@ declare fs: {
 	]=]
 	readFile: (path: string) -> string,
 	--[=[
-		@within fs
+		@within FS
 		@must_use
 
 		Reads entries in a directory at `path`.
@@ -52,7 +52,7 @@ declare fs: {
 	]=]
 	readDir: (path: string) -> { string },
 	--[=[
-		@within fs
+		@within FS
 
 		Writes to a file at `path`.
 
@@ -67,7 +67,7 @@ declare fs: {
 	]=]
 	writeFile: (path: string, contents: string) -> (),
 	--[=[
-		@within fs
+		@within FS
 
 		Creates a directory and its parent directories if they are missing.
 
@@ -81,7 +81,7 @@ declare fs: {
 	]=]
 	writeDir: (path: string) -> (),
 	--[=[
-		@within fs
+		@within FS
 
 		Removes a file.
 
@@ -95,7 +95,7 @@ declare fs: {
 	]=]
 	removeFile: (path: string) -> (),
 	--[=[
-		@within fs
+		@within FS
 
 		Removes a directory and all of its contents.
 
@@ -109,7 +109,7 @@ declare fs: {
 	]=]
 	removeDir: (path: string) -> (),
 	--[=[
-		@within fs
+		@within FS
 		@must_use
 
 		Checks if a given path is a file.
@@ -124,7 +124,7 @@ declare fs: {
 	]=]
 	isFile: (path: string) -> boolean,
 	--[=[
-		@within fs
+		@within FS
 		@must_use
 
 		Checks if a given path is a directory.
@@ -139,7 +139,7 @@ declare fs: {
 	]=]
 	isDir: (path: string) -> boolean,
 	--[=[
-		@within fs
+		@within FS
 
 		Moves a file or directory to a new path.
 
@@ -164,7 +164,7 @@ type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH
 
 --[=[
 	@type NetFetchParams
-	@within net
+	@within Net
 
 	Parameters for sending network requests with `net.request`.
 
@@ -208,7 +208,7 @@ export type NetFetchResponse = {
 
 --[=[
 	@type NetRequest
-	@within net
+	@within Net
 
 	Data type for requests in `net.serve`.
 
@@ -230,7 +230,7 @@ export type NetRequest = {
 
 --[=[
 	@type NetRequest
-	@within net
+	@within Net
 	
 	Response type for requests in `net.serve`.
 
@@ -251,7 +251,7 @@ type NetServeWebSocketHandler = (socket: NetWebSocket) -> ()
 
 --[=[
 	@type NetServeConfig
-	@within net
+	@within Net
 
 	Configuration for `net.serve`.
 
@@ -267,7 +267,7 @@ export type NetServeConfig = {
 
 --[=[
 	@type NetServeHandle
-	@within net
+	@within Net
 
 	A handle to a currently running web server, containing a single `stop` function to gracefully shut down the web server.
 ]=]
@@ -277,7 +277,7 @@ export type NetServeHandle = {
 
 --[=[
 	@type NetWebSocket
-	@within net
+	@within Net
 
 	A reference to a web socket connection.
 	
@@ -302,13 +302,13 @@ declare class NetWebSocket
 end
 
 --[=[
-	@class net
+	@class Net
 
 	Networking
 ]=]
 declare net: {
 	--[=[
-		@within net
+		@within Net
 
 		Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.
 		
@@ -319,7 +319,7 @@ declare net: {
 	]=]
 	request: (config: string | NetFetchParams) -> NetFetchResponse,
 	--[=[
-		@within net
+		@within Net
 		@must_use
 
 		Connects to a web socket at the given URL.
@@ -332,7 +332,7 @@ declare net: {
 	]=]
 	socket: (url: string) -> NetWebSocket,
 	--[=[
-		@within net
+		@within Net
 
 		Creates an HTTP server that listens on the given `port`.
 
@@ -344,7 +344,7 @@ declare net: {
 	]=]
 	serve: (port: number, handlerOrConfig: NetServeHttpHandler | NetServeConfig) -> NetServeHandle,
 	--[=[
-		@within net
+		@within Net
 		@must_use
 
 		Encodes the given value as JSON.
@@ -355,7 +355,7 @@ declare net: {
 	]=]
 	jsonEncode: (value: any, pretty: boolean?) -> string,
 	--[=[
-		@within net
+		@within Net
 		@must_use
 
 		Decodes the given JSON string into a lua value.
@@ -370,7 +370,7 @@ type ProcessSpawnOptionsStdio = "inherit" | "default"
 
 --[=[
 	@type ProcessSpawnOptions
-	@within process
+	@within Process
 
 	A dictionary of options for `process.spawn`, with the following available values:
 
@@ -388,7 +388,7 @@ export type ProcessSpawnOptions = {
 
 --[=[
 	@type ProcessSpawnResult
-	@within process
+	@within Process
 
 	Result type for child processes in `process.spawn`.
 
@@ -407,13 +407,13 @@ export type ProcessSpawnResult = {
 }
 
 --[=[
-	@class process
+	@class Process
 
 	Current process & child processes
 ]=]
 declare process: {
 	--[=[
-		@within process
+		@within Process
 		@read_only
 		
 		The current operating system being used.
@@ -426,7 +426,7 @@ declare process: {
 	]=]
 	os: "linux" | "macos" | "windows",
 	--[=[
-		@within process
+		@within Process
 		@read_only
 		
 		The architecture of the processor currently being used.
@@ -438,21 +438,21 @@ declare process: {
 	]=]
 	arch: "x86_64" | "aarch64",
 	--[=[
-		@within process
+		@within Process
 		@read_only
 
 		The arguments given when running the Lune script.
 	]=]
 	args: { string },
 	--[=[
-		@within process
+		@within Process
 		@read_only
 
 		The current working directory in which the Lune script is running.
 	]=]
 	cwd: string,
 	--[=[
-		@within process
+		@within Process
 		@read_write
 
 		Current environment variables for this process.
@@ -461,7 +461,7 @@ declare process: {
 	]=]
 	env: { [string]: string? },
 	--[=[
-		@within process
+		@within Process
 
 		Exits the currently running script as soon as possible with the given exit code.
 
@@ -473,7 +473,7 @@ declare process: {
 	]=]
 	exit: (code: number?) -> (),
 	--[=[
-		@within process
+		@within Process
 		
 		Spawns a child process that will run the program `program`, and returns a dictionary that describes the final status and ouput of the child process.
 
@@ -495,13 +495,13 @@ declare process: {
 }
 
 --[=[
-	@class stdio
+	@class Stdio
 
 	Standard input / output & utility functions 
 ]=]
 declare stdio: {
 	--[=[
-		@within stdio
+		@within Stdio
 		@must_use
 
 		Return an ANSI string that can be used to modify the persistent output color.
@@ -522,7 +522,7 @@ declare stdio: {
 	]=]
 	color: (color: "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white") -> string,
 	--[=[
-		@within stdio
+		@within Stdio
 		@must_use
 
 		Return an ANSI string that can be used to modify the persistent output style.
@@ -543,7 +543,7 @@ declare stdio: {
 	]=]
 	style: (style: "reset" | "bold" | "dim") -> string,
 	--[=[
-		@within stdio
+		@within Stdio
 		@must_use
 
 		Formats arguments into a human-readable string with syntax highlighting for tables.
@@ -553,7 +553,7 @@ declare stdio: {
 	]=]
 	format: (...any) -> string,
 	--[=[
-		@within stdio
+		@within Stdio
 
 		Writes a string directly to stdout, without any newline.
 
@@ -561,7 +561,7 @@ declare stdio: {
 	]=]
 	write: (s: string) -> (),
 	--[=[
-		@within stdio
+		@within Stdio
 
 		Writes a string directly to stderr, without any newline.
 
@@ -569,7 +569,7 @@ declare stdio: {
 	]=]
 	ewrite: (s: string) -> (),
 	--[=[
-		@within stdio
+		@within Stdio
 		@must_use
 
 		Prompts for user input using the wanted kind of prompt:
@@ -594,13 +594,13 @@ declare stdio: {
 }
 
 --[=[
-	@class task
+	@class Task
 
 	Task scheduler & thread spawning
 ]=]
 declare task: {
 	--[=[
-		@within task
+		@within Task
 
 		Stops a currently scheduled thread from resuming.
 
@@ -608,7 +608,7 @@ declare task: {
 	]=]
 	cancel: (thread: thread) -> (),
 	--[=[
-		@within task
+		@within Task
 
 		Defers a thread or function to run at the end of the current task queue.
 
@@ -617,7 +617,7 @@ declare task: {
 	]=]
 	defer: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
 	--[=[
-		@within task
+		@within Task
 
 		Delays a thread or function to run after `duration` seconds.
 
@@ -626,7 +626,7 @@ declare task: {
 	]=]
 	delay: <T...>(duration: number?, functionOrThread: thread | (T...) -> (...any), T...) -> thread,
 	--[=[
-		@within task
+		@within Task
 
 		Instantly runs a thread or function.
 		
@@ -638,7 +638,7 @@ declare task: {
 	]=]
 	spawn: <T...>(functionOrThread: thread | (T...) -> (...any), T...) -> thread,
 	--[=[
-		@within task
+		@within Task
 
 		Waits for the given duration, with a minimum wait time of 10 milliseconds.
 
@@ -656,21 +656,21 @@ declare task: {
 declare print: <T...>(T...) -> ()
 
 --[=[
-	Prints given value(s) to stdout with a leading "[INFO]" tag.
+	Prints given value(s) to stdout with a leading `[INFO]` tag.
 
 	This will format and prettify values such as tables, numbers, booleans, and more.
 ]=]
 declare info: <T...>(T...) -> ()
 
 --[=[
-	Prints given value(s) to stdout with a leading "[WARN]" tag.
+	Prints given value(s) to stdout with a leading `[WARN]` tag.
 
 	This will format and prettify values such as tables, numbers, booleans, and more.
 ]=]
 declare warn: <T...>(T...) -> ()
 
 --[=[
-	Throws an error and prints a formatted version of it with a leading "[ERROR]" tag.
+	Throws an error and prints a formatted version of it with a leading `[ERROR]` tag.
 
 	@param message The error message to throw
 	@param level The stack level to throw the error at, defaults to 0

@@ -5,10 +5,18 @@ use anyhow::{Context, Result};
 use futures_util::future::try_join_all;
 use tokio::fs::{create_dir_all, write};
 
-use super::definitions::{DefinitionsItem, DefinitionsItemKind, DefinitionsTree};
+use super::definitions::{
+    DefinitionsItem, DefinitionsItemBuilder, DefinitionsItemKind, DefinitionsItemTag,
+    DefinitionsTree,
+};
 
 const GENERATED_COMMENT_TAG: &str = "<!-- @generated with lune-cli -->";
-const CATEGORY_NONE: &str = "uncategorized";
+const CATEGORY_NONE_NAME: &str = "Uncategorized";
+const CATEGORY_NONE_DESC: &str = "
+All globals that are not available under a specific scope.
+
+These are to be used directly without indexing a global table first.
+";
 
 pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     let tree = DefinitionsTree::from_type_definitions(contents)?;
@@ -22,7 +30,8 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     let path_wiki_dir = path_root.join("wiki");
     dirs_to_write.push(path_wiki_dir.clone());
     // Sort doc items into subcategories based on globals
-    let mut api_reference: HashMap<&str, Vec<DefinitionsItem>> = HashMap::new();
+    let mut api_reference = HashMap::new();
+    let mut no_category = Vec::new();
     for top_level_item in tree
         .children()
         .iter()
@@ -30,57 +39,41 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     {
         match top_level_item.kind() {
             DefinitionsItemKind::Table => {
-                let category_name = top_level_item
-                    .get_name()
-                    .context("Missing name for top-level doc item")?;
-                let category = match api_reference.contains_key(category_name) {
-                    true => api_reference.get_mut(category_name).unwrap(),
-                    false => {
-                        api_reference.insert(category_name, vec![]);
-                        api_reference.get_mut(category_name).unwrap()
-                    }
-                };
-                category.push(top_level_item.clone());
+                let category_name =
+                    get_name(top_level_item).context("Missing name for top-level doc item")?;
+                api_reference.insert(category_name, top_level_item.clone());
             }
             DefinitionsItemKind::Function => {
-                let category = match api_reference.contains_key(CATEGORY_NONE) {
-                    true => api_reference.get_mut(CATEGORY_NONE).unwrap(),
-                    false => {
-                        api_reference.insert(CATEGORY_NONE, vec![]);
-                        api_reference.get_mut(CATEGORY_NONE).unwrap()
-                    }
-                };
-                category.push(top_level_item.clone());
+                no_category.push(top_level_item.clone());
             }
             _ => unimplemented!("Globals other than tables and functions are not yet implemented"),
         }
     }
-    // Generate our api reference folder
-    let path_api_ref = path_wiki_dir.join("api-reference");
-    dirs_to_write.push(path_api_ref.clone());
+    // Insert globals with no category into a new "Uncategorized" global
+    api_reference.insert(
+        CATEGORY_NONE_NAME.to_string(),
+        DefinitionsItemBuilder::new()
+            .with_kind(DefinitionsItemKind::Table)
+            .with_name("Uncategorized")
+            .with_children(&no_category)
+            .with_child(
+                DefinitionsItemBuilder::new()
+                    .with_kind(DefinitionsItemKind::Description)
+                    .with_value(CATEGORY_NONE_DESC)
+                    .build()?,
+            )
+            .build()
+            .unwrap(),
+    );
     // Generate files for all subcategories
-    for (category_name, category_items) in api_reference {
-        if category_items.len() == 1 {
-            let item = category_items.first().unwrap();
-            let path = path_api_ref.join(category_name).with_extension("md");
-            let mut contents = String::new();
-            write!(contents, "{GENERATED_COMMENT_TAG}\n\n")?;
-            generate_markdown_documentation(&mut contents, item)?;
-            files_to_write.push((path, post_process_docs(contents)));
-        } else {
-            let path_subcategory = path_api_ref.join(category_name);
-            dirs_to_write.push(path_subcategory.clone());
-            for item in category_items {
-                let item_name = item
-                    .get_name()
-                    .context("Missing name for subcategory doc item")?;
-                let path = path_subcategory.join(item_name).with_extension("md");
-                let mut contents = String::new();
-                write!(contents, "{GENERATED_COMMENT_TAG}\n\n")?;
-                generate_markdown_documentation(&mut contents, &item)?;
-                files_to_write.push((path, post_process_docs(contents)));
-            }
-        }
+    for (category_name, category_item) in api_reference {
+        let path = path_wiki_dir
+            .join(format!("API Reference - {category_name}"))
+            .with_extension("md");
+        let mut contents = String::new();
+        write!(contents, "{GENERATED_COMMENT_TAG}\n\n")?;
+        generate_markdown_documentation(&mut contents, &category_item)?;
+        files_to_write.push((path, post_process_docs(contents)));
     }
     // Write all dirs and files only when we know generation was successful
     let futs_dirs = dirs_to_write
@@ -96,27 +89,34 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     Ok(())
 }
 
+fn get_name(item: &DefinitionsItem) -> Result<String> {
+    item.children()
+        .iter()
+        .find_map(|child| {
+            if child.is_tag() {
+                if let Ok(DefinitionsItemTag::Class(c)) = DefinitionsItemTag::try_from(child) {
+                    Some(c)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .or_else(|| item.get_name().map(ToString::to_string))
+        .context("Definitions item is missing a name")
+}
+
 fn generate_markdown_documentation(contents: &mut String, item: &DefinitionsItem) -> Result<()> {
     match item.kind() {
-        DefinitionsItemKind::Table => {
+        DefinitionsItemKind::Table
+        | DefinitionsItemKind::Property
+        | DefinitionsItemKind::Function => {
             write!(
                 contents,
-                "\n# {}\n",
-                item.get_name().context("Table is missing a name")?
-            )?;
-        }
-        DefinitionsItemKind::Property => {
-            write!(
-                contents,
-                "\n### `{}`\n",
-                item.get_name().context("Property is missing a name")?
-            )?;
-        }
-        DefinitionsItemKind::Function => {
-            write!(
-                contents,
-                "\n### `{}`\n",
-                item.get_name().context("Function is missing a name")?
+                "\n{} {}\n",
+                if item.is_table() { "#" } else { "###" },
+                get_name(item)?
             )?;
         }
         DefinitionsItemKind::Description => {
