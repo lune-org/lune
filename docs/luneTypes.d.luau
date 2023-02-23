@@ -138,15 +138,15 @@ declare fs: {
 		
 		An error will be thrown in the following situations:
 		
-		* The current process lacks permissions to read at `from` or `to`.
+		* The current process lacks permissions to read at `from` or write at `to`.
 		* The new path exists on a different mount point.
 		* Some other I/O error occurred.
 
 		@param from The path to move from
 		@param to The path to move to
-		@param overwriteOrOptions Options the target path, such as if should be overwritten if it already exists
+		@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
 	]=]
-	move: (from: string, to: string, overwriteOrOptions: boolean | FsWriteOptions) -> (),
+	move: (from: string, to: string, overwriteOrOptions: (boolean | FsWriteOptions)?) -> (),
 }
 
 type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
