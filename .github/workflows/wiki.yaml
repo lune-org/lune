@@ -1,0 +1,42 @@
+name: Deploy GitHub Wiki
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  wiki:
+    name: Deploy GitHub Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+
+      - name: Build CLI
+        shell: bash
+        run: cargo build --package lune-cli
+
+      - name: Copy docs pages
+        shell: bash
+        run: cp -R docs/pages/ wiki
+
+      - name: Generate wiki using CLI
+        shell: bash
+        run: cargo run --package lune-cli -- --generate-wiki-dir
+
+      - name: Push wiki changes
+        uses: Andrew-Chen-Wang/github-wiki-action@v3
+        env:
+          WIKI_DIR: wiki/
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_MAIL: ${{ secrets.WIKI_GITHUB_EMAIL }}
+          GH_NAME: ${{ github.repository_owner }}
