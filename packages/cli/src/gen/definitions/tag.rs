@@ -7,6 +7,7 @@ use super::item::DefinitionsItem;
 #[serde(rename_all = "PascalCase")]
 pub enum DefinitionsItemTag {
     Class(String),
+    Type(String),
     Within(String),
     Param((String, String)),
     Return(String),
@@ -18,6 +19,10 @@ pub enum DefinitionsItemTag {
 #[allow(dead_code)]
 impl DefinitionsItemTag {
     pub fn is_class(&self) -> bool {
+        matches!(self, Self::Class(_))
+    }
+
+    pub fn is_type(&self) -> bool {
         matches!(self, Self::Class(_))
     }
 
@@ -55,6 +60,12 @@ impl TryFrom<&DefinitionsItem> for DefinitionsItemTag {
                     value
                         .get_value()
                         .context("Missing class name for class tag")?
+                        .to_string(),
+                ),
+                "type" => Self::Class(
+                    value
+                        .get_value()
+                        .context("Missing type name for type tag")?
                         .to_string(),
                 ),
                 "within" => Self::Within(

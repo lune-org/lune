@@ -1,5 +1,15 @@
+--[=[
+	@type FsWriteOptions
+	@within fs
+
+	Options for filesystem APIs what write to files and/or directories.
+
+	This is a dictionary that may contain one or more of the following values:
+
+	* `overwrite` - If the target path should be overwritten or not, in the case that it already exists
+]=]
 export type FsWriteOptions = {
-	overwrite: boolean,
+	overwrite: boolean?,
 }
 
 --[=[
@@ -134,7 +144,8 @@ declare fs: {
 		Moves a file or directory to a new path.
 
 		Throws an error if a file or directory already exists at the target path.
-		This can be bypassed by passing `true` as the third argument, or a table of options with `overwrite` set to `true.`
+		This can be bypassed by passing `true` as the third argument, or a dictionary of options.
+		Refer to the documentation for `FsWriteOptions` for specific option keys and their values.
 		
 		An error will be thrown in the following situations:
 		
@@ -151,12 +162,40 @@ declare fs: {
 
 type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
 
+--[=[
+	@type NetFetchParams
+	@within net
+
+	Parameters for sending network requests with `net.request`.
+
+	This is a dictionary that may contain one or more of the following values:
+
+	* `url` - The URL to request. This is always required
+	* `method` - The HTTP method verb, such as `"GET"`, `"POST"`, `"PATCH"`, `"PUT"`, or `"DELETE"`. Defaults to `"GET"`
+	* `headers` - A table of key-value pairs representing headers
+	* `body` - The request body
+]=]
 export type NetFetchParams = {
 	url: string,
 	method: NetMethod?,
 	headers: { [string]: string }?,
 	body: string?,
 }
+
+--[=[
+	@type NetFetchResponse
+	@within new
+
+	Response type for sending network requests with `net.request`.
+
+	This is a dictionary containing the following values:
+
+	* `ok` - If the status code is a canonical success status code, meaning within the range 200 -> 299
+	* `statusCode` - The status code returned for the request
+	* `statusMessage` - The canonical status message for the returned status code, such as `"Not Found"` for status code 404
+	* `headers` - A table of key-value pairs representing headers
+	* `body` - The request body, or an empty string if one was not given
+]=]
 export type NetFetchResponse = {
 	ok: boolean,
 	statusCode: number,
@@ -165,6 +204,20 @@ export type NetFetchResponse = {
 	body: string,
 }
 
+--[=[
+	@type NetRequest
+	@within net
+
+	Data type for requests in `net.serve`.
+
+	This is a dictionary containing the following values:
+
+	* `path` - The path being requested, relative to the root. Will be `/` if not specified
+	* `query` - A table of key-value pairs representing query parameters in the request path
+	* `method` - The HTTP method verb, such as `"GET"`, `"POST"`, `"PATCH"`, `"PUT"`, or `"DELETE"`. Will always be uppercase
+	* `headers` - A table of key-value pairs representing headers
+	* `body` - The request body, or an empty string if one was not given
+]=]
 export type NetRequest = {
 	path: string,
 	query: { [string]: string? },
@@ -172,6 +225,19 @@ export type NetRequest = {
 	headers: { [string]: string },
 	body: string,
 }
+
+--[=[
+	@type NetRequest
+	@within net
+	
+	Response type for requests in `net.serve`.
+
+	This is a dictionary that may contain one or more of the following values:
+
+	* `status` - The status code for the request, in the range `100` -> `599`
+	* `headers` - A table of key-value pairs representing headers
+	* `body` - The response body
+]=]
 export type NetResponse = {
 	status: number?,
 	headers: { [string]: string }?,
@@ -181,15 +247,50 @@ export type NetResponse = {
 type NetServeHttpHandler = (request: NetRequest) -> string | NetResponse
 type NetServeWebSocketHandler = (socket: NetWebSocket) -> ()
 
+--[=[
+	@type NetServeConfig
+	@within net
+
+	Configuration for `net.serve`.
+
+	This may contain one of, or both of the following callbacks:
+
+	* `handleRequest` for handling normal http requests, equivalent to just passing a function to `net.serve`
+	* `handleWebSocket` for handling web socket requests, which will receive a `NetWebSocket` object as its first and only parameter
+]=]
 export type NetServeConfig = {
 	handleRequest: NetServeHttpHandler?,
 	handleWebSocket: NetServeWebSocketHandler?,
 }
 
+--[=[
+	@type NetServeHandle
+	@within net
+
+	A handle to a currently running web server, containing a single `stop` function to gracefully shut down the web server.
+]=]
 export type NetServeHandle = {
 	stop: () -> (),
 }
 
+--[=[
+	@type NetWebSocket
+	@within net
+
+	A reference to a web socket connection.
+	
+	The web socket may be in either an "open" or a "closed" state, changing its current behavior.
+
+	When open:
+
+	* Any function on the socket such as `send`, `next` or `close` can be called without erroring
+	* `next` can be called to yield until the next message is received or the socket becomes closed
+
+	When closed:
+
+	* `next` will no longer return any message(s) and instead instantly return nil
+	* `send` will throw an error stating that the socket has been closed
+]=]
 declare class NetWebSocket
 	close: () -> ()
 	send: (message: string) -> ()
@@ -265,6 +366,17 @@ declare net: {
 
 type ProcessSpawnOptionsStdio = "inherit" | "default"
 
+--[=[
+	@type ProcessSpawnOptions
+	@within process
+
+	A dictionary of options for `process.spawn`, with the following available values:
+
+	* `cwd` - The current working directory for the process
+	* `env` - Extra environment variables to give to the process
+	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
+	* `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
+]=]
 export type ProcessSpawnOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
@@ -272,6 +384,19 @@ export type ProcessSpawnOptions = {
 	stdio: ProcessSpawnOptionsStdio?,
 }
 
+--[=[
+	@type ProcessSpawnResult
+	@within process
+
+	Result type for child processes in `process.spawn`.
+
+	This is a dictionary containing the following values:
+
+	* `ok` - If the child process exited successfully or not, meaning the exit code was zero or not set
+	* `code` - The exit code set by the child process, or 0 if one was not set
+	* `stdout` - The full contents written to stdout by the child process, or an empty string if nothing was written
+	* `stderr` - The full contents written to stderr by the child process, or an empty string if nothing was written
+]=]
 export type ProcessSpawnResult = {
 	ok: boolean,
 	code: number,
@@ -353,12 +478,7 @@ declare process: {
 		The second argument, `params`, can be passed as a list of string parameters to give to the program.
 
 		The third argument, `options`, can be passed as a dictionary of options to give to the child process.
-		The available options inside of the `options` dictionary are:
-		
-		* `cwd` - The current working directory for the process
-		* `env` - Extra environment variables to give to the process
-		* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
-		* `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
+		Refer to the documentation for `ProcessSpawnOptions` for specific option keys and their values.
 
 		@param program The program to spawn as a child process
 		@param params Additional parameters to pass to the program
