@@ -8,10 +8,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.5.0` - February 23rd, 2023
 
 ### Added
 
+- Added auto-generated API reference pages and documentation using GitHub wiki pages
 - Added support for `query` in `net.request` parameters, which enables usage of query parameters in URLs without having to manually URL encode values.
 - Added a new function `fs.move` to move / rename a file or directory from one path to another.
 - Implemented a new task scheduler which resolves several long-standing issues:
