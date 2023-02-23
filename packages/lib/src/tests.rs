@@ -46,6 +46,7 @@ create_tests! {
     fs_move: "fs/move",
     net_request_codes: "net/request/codes",
     net_request_methods: "net/request/methods",
+    net_request_query: "net/request/query",
     net_request_redirect: "net/request/redirect",
     net_json_decode: "net/json/decode",
     net_json_encode: "net/json/encode",
@@ -61,8 +62,8 @@ create_tests! {
     require_nested: "globals/require/tests/nested",
     require_parents: "globals/require/tests/parents",
     require_siblings: "globals/require/tests/siblings",
-    // TODO: Uncomment this test, it is commented out
-    // right now to let CI pass so we make a release
+    // TODO: Uncomment this test, it is commented out right
+    // now to let CI pass so that we can make a new release
     // global_coroutine: "globals/coroutine",
     global_pcall: "globals/pcall",
     global_type: "globals/type",

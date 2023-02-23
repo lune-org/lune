@@ -9,6 +9,7 @@ use reqwest::Method;
 pub struct RequestConfig<'a> {
     pub url: String,
     pub method: Method,
+    pub query: HashMap<LuaString<'a>, LuaString<'a>>,
     pub headers: HashMap<LuaString<'a>, LuaString<'a>>,
     pub body: Option<Vec<u8>>,
 }
@@ -20,6 +21,7 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
             return Ok(Self {
                 url: s.to_string_lossy().to_string(),
                 method: Method::GET,
+                query: HashMap::new(),
                 headers: HashMap::new(),
                 body: None,
             });
@@ -37,6 +39,18 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
             let method = match tab.raw_get::<_, LuaString>("method") {
                 Ok(config_method) => config_method.to_string_lossy().trim().to_ascii_uppercase(),
                 Err(_) => "GET".to_string(),
+            };
+            // Extract query
+            let query = match tab.raw_get::<_, LuaTable>("query") {
+                Ok(config_headers) => {
+                    let mut lua_headers = HashMap::new();
+                    for pair in config_headers.pairs::<LuaString, LuaString>() {
+                        let (key, value) = pair?.to_owned();
+                        lua_headers.insert(key, value);
+                    }
+                    lua_headers
+                }
+                Err(_) => HashMap::new(),
             };
             // Extract headers
             let headers = match tab.raw_get::<_, LuaTable>("headers") {
@@ -74,6 +88,7 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
             return Ok(Self {
                 url,
                 method,
+                query,
                 headers,
                 body,
             });

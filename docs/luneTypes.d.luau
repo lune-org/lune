@@ -170,14 +170,16 @@ type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH
 
 	This is a dictionary that may contain one or more of the following values:
 
-	* `url` - The URL to request. This is always required
+	* `url` - The URL to send a request to. This is always required
 	* `method` - The HTTP method verb, such as `"GET"`, `"POST"`, `"PATCH"`, `"PUT"`, or `"DELETE"`. Defaults to `"GET"`
+	* `query` - A table of key-value pairs representing query parameters in the request path
 	* `headers` - A table of key-value pairs representing headers
 	* `body` - The request body
 ]=]
 export type NetFetchParams = {
 	url: string,
 	method: NetMethod?,
+	query: { [string]: string }?,
 	headers: { [string]: string }?,
 	body: string?,
 }

@@ -59,6 +59,9 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
     // Create and send the request
     let client: NetClient = lua.named_registry_value("net.client")?;
     let mut request = client.request(config.method, &config.url);
+    for (query, value) in config.query {
+        request = request.query(&[(query.to_str()?, value.to_str()?)]);
+    }
     for (header, value) in config.headers {
         request = request.header(header.to_str()?, value.to_str()?);
     }
