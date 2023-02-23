@@ -50,7 +50,7 @@ jobs:
             file-type: "application/x-luau"
 
           - name: Luau LSP documentation
-            cargo-args: "--generate-luau-types --generate-docs-file"
+            cargo-args: "--generate-docs-file"
             file-name: "luneDocs.json"
             file-type: "application/json"
 
@@ -61,11 +61,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Generate file
         run: cargo run --package lune-cli -- ${{ matrix.cargo-args }}
@@ -107,12 +103,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.cargo-target }}
-          override: true
-          profile: minimal
+          targets: ${{ matrix.cargo-target }}
 
       - name: Build binary
         run: cargo build --package lune-cli --locked --release --all-features --target ${{ matrix.cargo-target }}
