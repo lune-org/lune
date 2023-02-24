@@ -1,5 +1,4 @@
 [workspace]
-
 members = ["packages/cli", "packages/lib"]
 default-members = ["packages/cli"]
 
@@ -13,22 +12,23 @@ readme = "README.md"
 keywords = ["cli", "lua", "luau", "scripts"]
 categories = ["command-line-interface"]
 
-[profile.release]
-strip = true # Automatically strip symbols from the binary.
-opt-level = "z" # Optimize for size.
-lto = true # Enable link-time optimization
-panic = "abort" # Remove extra panic info
-
 [workspace.dependencies]
-
 console = "0.15.5"
+futures-util = "0.3.26"
 lazy_static = "1.4.0"
 
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91", features = ["preserve_order"] }
+serde_yaml = "0.9.17"
 tokio = { version = "1.24.2", features = ["full"] }
 
 [workspace.dependencies.reqwest]
 version = "0.11.14"
 default-features = false
 features = ["rustls-tls"]
+
+[profile.release]
+strip = true # Automatically strip symbols from the binary.
+opt-level = "z" # Optimize for size.
+lto = true # Enable link-time optimization
+panic = "abort" # Remove extra panic info

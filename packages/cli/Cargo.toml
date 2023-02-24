@@ -19,16 +19,15 @@ path = "src/main.rs"
 lune = { path = "../lib" }
 
 console.workspace = true
+futures-util.workspace = true
 lazy_static.workspace = true
-serde_json.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
 tokio.workspace = true
-reqwest.workspace = true
 
 anyhow = "1.0.68"
-futures-util = "0.3.26"
-regex = "1.7.1"
-serde_yaml = "0.9.17"
 
 clap = { version = "4.1.1", features = ["derive"] }
 full_moon = { version = "0.17.0", features = ["roblox"] }
+regex = { version = "1.7.1", default-features = false, features = ["std"] }

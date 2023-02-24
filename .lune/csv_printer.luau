@@ -15,7 +15,9 @@ assert(fs.isFile(path), "Input file path does not exist")
 
 local csvTable = {}
 for index, rawLine in string.split(fs.readFile(path), LINE_SEPARATOR) do
-	csvTable[index] = string.split(rawLine, COMMA_SEPARATOR)
+	if #rawLine > 0 then
+		csvTable[index] = string.split(rawLine, COMMA_SEPARATOR)
+	end
 end
 
 -- Gather the maximum widths of strings
