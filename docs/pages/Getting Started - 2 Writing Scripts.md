@@ -23,7 +23,7 @@ if #process.args > 0 then
 		error("Too many arguments!")
 	end
 else
-    print("Got no arguments ☹️")
+	print("Got no arguments ☹️")
 end
 
 
@@ -75,14 +75,14 @@ end
 
 	Writing a module
 
-    Modularizing and splitting up your code is Lune is very straight-forward,
-    in contrast to other scripting languages and shells such as bash
+	Modularizing and splitting up your code is Lune is very straight-forward,
+	in contrast to other scripting languages and shells such as bash
 ]]
 
 local module = {}
 
 function module.sayHello()
-    print("Hello, Lune! 🌙")
+	print("Hello, Lune! 🌙")
 end
 
 return module
@@ -94,7 +94,7 @@ return module
 
 	Using a function from another module / script
 
-    Lune has path-relative imports, similar to other popular languages such as JavaScript
+	Lune has path-relative imports, similar to other popular languages such as JavaScript
 ]]
 
 local module = require("../modules/module")
@@ -107,7 +107,7 @@ module.sayHello()
 
 	Spawning concurrent tasks
 
-    These tasks will run at the same time as other Lua code which lets you do primitive multitasking
+	These tasks will run at the same time as other Lua code which lets you do primitive multitasking
 ]]
 
 task.spawn(function()
@@ -173,7 +173,7 @@ end
 
 	Call out to another program / executable
 
-    You can also get creative and combine this with example #6 to spawn several programs at the same time!
+	You can also get creative and combine this with example #6 to spawn several programs at the same time!
 ]]
 
 print("Sending 4 pings to google 🌏")
@@ -190,7 +190,7 @@ local result = process.spawn("ping", {
 	Using the result of a spawned process, exiting the process
 
 	This looks scary with lots of weird symbols, but, it's just some Lua-style pattern matching
-    to parse the lines of "min/avg/max/stddev = W/X/Y/Z ms" that the ping program outputs to us
+	to parse the lines of "min/avg/max/stddev = W/X/Y/Z ms" that the ping program outputs to us
 ]]
 
 if result.ok then
@@ -302,12 +302,12 @@ VALID=true
 COUNT=1
 while [ $VALID ]
 do
-    echo $COUNT
-    if [ $COUNT -eq 5 ];
-    then
-        break
-    fi
-    ((COUNT++))
+	echo $COUNT
+	if [ $COUNT -eq 5 ];
+	then
+		break
+	fi
+	((COUNT++))
 done
 ```
 
@@ -317,10 +317,10 @@ done
 local valid = true
 local count = 1
 while valid do
-    print(count)
-    if count == 5 then
-        break
-    end
-    count += 1
+	print(count)
+	if count == 5 then
+		break
+	end
+	count += 1
 end
 ```
