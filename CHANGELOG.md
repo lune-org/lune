@@ -8,6 +8,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.5.1` - February 25th, 2023
+
+### Added
+
+-   Added `net.encode` and `net.decode` which are equivalent to `net.jsonEncode` and `net.jsonDecode`, but with support for more formats.
+
+    **_WARNING: Unstable API_**
+
+    _This API is unstable and may change or be removed in the next major version of Lune. The purpose of making a new release with these functions is to gather feedback from the community, and potentially replace the JSON-specific encoding and decoding utilities._
+
+    Example usage:
+
+    ```lua
+    local toml = net.decode("toml", [[
+    [package]
+    name = "my-cool-toml-package"
+    version = "0.1.0"
+
+    [values]
+    epic = true
+    ]])
+
+    assert(toml.package.name == "my-cool-toml-package")
+    assert(toml.package.version == "0.1.0")
+    assert(toml.values.epic == true)
+    ```
+
+### Fixed
+
+-   Fixed indentation of closing curly bracket when printing tables
+
 ## `0.5.0` - February 23rd, 2023
 
 ### Added

@@ -2,6 +2,8 @@
 members = ["packages/cli", "packages/lib"]
 default-members = ["packages/cli"]
 
+# Package config values shared across all packages,
+# such as version, license, and other metadata
 [workspace.package]
 version = "0.5.0"
 edition = "2021"
@@ -12,23 +14,32 @@ readme = "README.md"
 keywords = ["cli", "lua", "luau", "scripts"]
 categories = ["command-line-interface"]
 
+# Shared dependencies that are used across 2 or more packages
+# These are declared here to ensure consistent versioning
 [workspace.dependencies]
 console = "0.15"
 futures-util = "0.3"
 lazy_static = "1.4"
 
+# Serde dependencies, supporting user-facing formats: json, yaml, toml
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 serde_yaml = "0.9"
+toml = { version = "0.7", features = ["preserve_order"] }
+
+# Tokio runtime & async clients
 tokio = { version = "1.24", features = ["full"] }
+reqwest = { version = "0.11", default-features = false, features = [
+	"rustls-tls",
+] }
 
-[workspace.dependencies.reqwest]
-version = "0.11"
-default-features = false
-features = ["rustls-tls"]
-
+# Profile for building the release binary, with the following options set:
+# 1. Optimize for size
+# 2. Automatically strip symbols from the binary
+# 3. Enable link-time optimization
+# 4. Remove extra panic info
 [profile.release]
-strip = true # Automatically strip symbols from the binary.
-opt-level = "z" # Optimize for size.
-lto = true # Enable link-time optimization
-panic = "abort" # Remove extra panic info
+opt-level = "z"
+strip = true
+lto = true
+panic = "abort"

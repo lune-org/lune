@@ -8,8 +8,8 @@ use tokio::{sync::mpsc, task};
 
 use crate::lua::{
     net::{
-        NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocket, RequestConfig,
-        ServeConfig,
+        EncodeDecodeConfig, EncodeDecodeFormat, NetClient, NetClientBuilder, NetLocalExec,
+        NetService, NetWebSocket, RequestConfig, ServeConfig,
     },
     table::TableBuilder,
     task::{TaskScheduler, TaskSchedulerAsyncExt},
@@ -25,6 +25,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     lua.set_named_registry_value("net.client", client)?;
     // Create the global table for net
     TableBuilder::new(lua)?
+        .with_function("encode", net_encode)?
+        .with_function("decode", net_decode)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
         .with_async_function("request", net_request)?
@@ -42,17 +44,32 @@ fn create_user_agent_header() -> String {
     format!("{github_owner}-{github_repo}-cli")
 }
 
-fn net_json_encode(_: &'static Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<String> {
-    if let Some(true) = pretty {
-        serde_json::to_string_pretty(&val).map_err(LuaError::external)
-    } else {
-        serde_json::to_string(&val).map_err(LuaError::external)
-    }
+fn net_encode<'a>(
+    lua: &'static Lua,
+    (format, val, pretty): (EncodeDecodeFormat, LuaValue<'a>, Option<bool>),
+) -> LuaResult<LuaString<'a>> {
+    let config = EncodeDecodeConfig::from((format, pretty.unwrap_or_default()));
+    config.serialize_to_string(lua, val)
 }
 
-fn net_json_decode(lua: &'static Lua, json: String) -> LuaResult<LuaValue> {
-    let json: serde_json::Value = serde_json::from_str(&json).map_err(LuaError::external)?;
-    lua.to_value(&json)
+fn net_decode<'a>(
+    lua: &'static Lua,
+    (format, str): (EncodeDecodeFormat, LuaString<'a>),
+) -> LuaResult<LuaValue<'a>> {
+    let config = EncodeDecodeConfig::from(format);
+    config.deserialize_from_string(lua, str)
+}
+
+fn net_json_encode<'a>(
+    lua: &'static Lua,
+    (val, pretty): (LuaValue<'a>, Option<bool>),
+) -> LuaResult<LuaString<'a>> {
+    EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()))
+        .serialize_to_string(lua, val)
+}
+
+fn net_json_decode<'a>(lua: &'static Lua, json: LuaString<'a>) -> LuaResult<LuaValue<'a>> {
+    EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
 async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaResult<LuaTable<'a>> {

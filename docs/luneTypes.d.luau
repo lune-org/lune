@@ -14,7 +14,7 @@ export type FsWriteOptions = {
 
 --[=[
 	@class FS
-	
+
 	Filesystem
 ]=]
 declare fs: {
@@ -40,7 +40,7 @@ declare fs: {
 		@must_use
 
 		Reads entries in a directory at `path`.
-		
+
 		An error will be thrown in the following situations:
 
 		* `path` does not point to an existing directory.
@@ -146,9 +146,9 @@ declare fs: {
 		Throws an error if a file or directory already exists at the target path.
 		This can be bypassed by passing `true` as the third argument, or a dictionary of options.
 		Refer to the documentation for `FsWriteOptions` for specific option keys and their values.
-		
+
 		An error will be thrown in the following situations:
-		
+
 		* The current process lacks permissions to read at `from` or write at `to`.
 		* The new path exists on a different mount point.
 		* Some other I/O error occurred.
@@ -161,6 +161,8 @@ declare fs: {
 }
 
 type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
+
+type NetEncodeDecodeFormat = "json" | "yaml" | "toml"
 
 --[=[
 	@type NetFetchParams
@@ -231,7 +233,7 @@ export type NetRequest = {
 --[=[
 	@type NetRequest
 	@within Net
-	
+
 	Response type for requests in `net.serve`.
 
 	This is a dictionary that may contain one or more of the following values:
@@ -280,7 +282,7 @@ export type NetServeHandle = {
 	@within Net
 
 	A reference to a web socket connection.
-	
+
 	The web socket may be in either an "open" or a "closed" state, changing its current behavior.
 
 	When open:
@@ -311,7 +313,7 @@ declare net: {
 		@within Net
 
 		Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.
-		
+
 		Only throws an error if a miscellaneous network or I/O error occurs, never for unsuccessful status codes.
 
 		@param config The URL or request config to use
@@ -323,7 +325,7 @@ declare net: {
 		@must_use
 
 		Connects to a web socket at the given URL.
-		
+
 		Throws an error if the server at the given URL does not support
 		web sockets, or if a miscellaneous network or I/O error occurs.
 
@@ -364,6 +366,37 @@ declare net: {
 		@return The decoded lua value
 	]=]
 	jsonDecode: (encoded: string) -> any,
+	--[=[
+		@within Net
+		@must_use
+
+		***WARNING:** Unstable API*
+
+		*This API is unstable and may change or be removed in the next major version of Lune.*
+
+		Encodes the given value using the given format.
+
+		@param format The format to use
+		@param value The value to encode
+		@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
+		@return The encoded string
+	]=]
+	encode: (format: NetEncodeDecodeFormat, value: any, pretty: boolean?) -> string,
+	--[=[
+		@within Net
+		@must_use
+
+		***WARNING:** Unstable API*
+
+		*This API is unstable and may change or be removed in the next major version of Lune.*
+
+		Decodes the given string using the given format into a lua value.
+
+		@param format The format to use
+		@param encoded The JSON string to decode
+		@return The decoded lua value
+	]=]
+	decode: (format: NetEncodeDecodeFormat, encoded: string) -> any,
 }
 
 type ProcessSpawnOptionsStdio = "inherit" | "default"
@@ -415,9 +448,9 @@ declare process: {
 	--[=[
 		@within Process
 		@read_only
-		
+
 		The current operating system being used.
-		
+
 		Possible values:
 
 		* `"linux"`
@@ -428,9 +461,9 @@ declare process: {
 	--[=[
 		@within Process
 		@read_only
-		
+
 		The architecture of the processor currently being used.
-		
+
 		Possible values:
 
 		* `"x86_64"`
@@ -468,13 +501,13 @@ declare process: {
 		Exit code 0 is treated as a successful exit, any other value is treated as an error.
 
 		Setting the exit code using this function will override any otherwise automatic exit code.
-		
+
 		@param code The exit code to set
 	]=]
 	exit: (code: number?) -> (),
 	--[=[
 		@within Process
-		
+
 		Spawns a child process that will run the program `program`, and returns a dictionary that describes the final status and ouput of the child process.
 
 		The second argument, `params`, can be passed as a list of string parameters to give to the program.
@@ -497,7 +530,7 @@ declare process: {
 --[=[
 	@class Stdio
 
-	Standard input / output & utility functions 
+	Standard input / output & utility functions
 ]=]
 declare stdio: {
 	--[=[
@@ -507,9 +540,9 @@ declare stdio: {
 		Return an ANSI string that can be used to modify the persistent output color.
 
 		Pass `"reset"` to get a string that can reset the persistent output color.
-		
+
 		### Example usage
-		
+
 		```lua
 		stdio.write(stdio.color("red"))
 		print("This text will be red")
@@ -528,9 +561,9 @@ declare stdio: {
 		Return an ANSI string that can be used to modify the persistent output style.
 
 		Pass `"reset"` to get a string that can reset the persistent output style.
-		
+
 		### Example usage
-		
+
 		```lua
 		stdio.write(stdio.style("bold"))
 		print("This text will be bold")
@@ -629,7 +662,7 @@ declare task: {
 		@within Task
 
 		Instantly runs a thread or function.
-		
+
 		If the spawned task yields, the thread that spawned the task
 		will resume, letting the spawned task run in the background.
 

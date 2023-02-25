@@ -156,7 +156,7 @@ pub fn pretty_format_value(
                 if is_empty {
                     write!(buffer, "{}", STYLE_DIM.apply_to(" }"))?;
                 } else {
-                    write!(buffer, "\n{}", STYLE_DIM.apply_to("}"))?;
+                    write!(buffer, "\n{depth_indent}{}", STYLE_DIM.apply_to("}"))?;
                 }
             }
         }
