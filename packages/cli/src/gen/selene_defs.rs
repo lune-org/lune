@@ -6,6 +6,8 @@ use crate::gen::definitions::DefinitionsItemTag;
 
 use super::definitions::{DefinitionsItem, DefinitionsItemKind, DefinitionsTree};
 
+const USE_TYPE_UNIONS: bool = false;
+
 pub fn generate_from_type_definitions(contents: &str) -> Result<String> {
     let tree = DefinitionsTree::from_type_definitions(contents)?;
     let mut globals = YamlMapping::new();
@@ -144,24 +146,24 @@ fn doc_item_to_selene_yaml_mapping(item: &DefinitionsItem) -> Result<YamlMapping
 fn simplify_type_str_into_primitives(type_str: &str) -> String {
     let separator = format!(" {} ", Symbol::Pipe);
     // Simplify type strings even further into ones that selene can understand,
-    // turning types such as `{ bool }` or `"string-literal"` into `bool[]` and `string`
+    // turning types such as `{ bool }` or `"string-literal"` into `table` and `string`
     let mut primitives = Vec::new();
     for type_inner in type_str.split(&separator) {
         if type_inner.starts_with('{') && type_inner.ends_with('}') {
-            primitives.push(format!(
-                "{}[]",
-                type_inner
-                    .trim_start_matches('{')
-                    .trim_end_matches('}')
-                    .trim()
-            ));
+            primitives.push("table".to_string());
         } else if type_inner.starts_with('"') && type_inner.ends_with('"') {
             primitives.push("string".to_string());
+        } else if type_inner == "boolean" {
+            primitives.push("bool".to_string());
         } else {
             primitives.push(type_inner.to_string());
         }
     }
-    primitives.sort_unstable();
-    primitives.dedup();
-    primitives.join(&separator)
+    if primitives.len() > 1 && !USE_TYPE_UNIONS {
+        "any".to_string()
+    } else {
+        primitives.sort_unstable();
+        primitives.dedup();
+        primitives.join(&separator)
+    }
 }
