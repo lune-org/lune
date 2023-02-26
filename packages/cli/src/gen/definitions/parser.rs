@@ -49,7 +49,7 @@ impl DefinitionsParser {
         S: AsRef<str>,
     {
         // TODO: Properly handle the "declare class" syntax, for now we just skip it
-        let mut no_class_declares = contents.as_ref().to_string();
+        let mut no_class_declares = contents.as_ref().replace("\r\n", "\n");
         while let Some(dec) = no_class_declares.find("\ndeclare class") {
             let end = no_class_declares.find("\nend").unwrap();
             let before = &no_class_declares[0..dec];
