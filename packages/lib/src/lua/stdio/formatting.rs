@@ -57,12 +57,12 @@ pub fn format_style(style: Option<&'static Style>) -> String {
     } else if let Some(style) = style {
         // HACK: We have no direct way of referencing the ansi color code
         // of the style that console::Style provides, and we also know for
-        // sure that styles always include the reset sequence at the end
+        // sure that styles always include the reset sequence at the end,
+        // unless we are in a CI environment on non-interactive terminal
         style
             .apply_to("")
             .to_string()
-            .strip_suffix(STYLE_RESET_STR)
-            .unwrap()
+            .trim_end_matches(STYLE_RESET_STR)
             .to_string()
     } else {
         STYLE_RESET_STR.to_string()
@@ -248,8 +248,7 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
                 if is_override {
                     if !trace_override || traceback.lines().count() > full_trace.len() {
                         full_trace = traceback
-                            .strip_prefix("override traceback:")
-                            .unwrap()
+                            .trim_start_matches("override traceback:")
                             .to_string();
                         trace_override = true;
                     }
@@ -269,11 +268,7 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
                     "{}\n{}\n{}\n{}",
                     pretty_format_luau_error(root_cause, colorized),
                     stack_begin,
-                    if full_trace.starts_with("stack traceback:") {
-                        full_trace.strip_prefix("stack traceback:\n").unwrap()
-                    } else {
-                        &full_trace
-                    },
+                    full_trace.trim_start_matches("stack traceback:\n"),
                     stack_end
                 )
             }

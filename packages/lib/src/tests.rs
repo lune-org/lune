@@ -33,7 +33,10 @@ macro_rules! create_tests {
                     .map(ToString::to_string)
                     .collect::<Vec<_>>()
             );
-            let script_name = full_name.strip_suffix(".luau").unwrap();
+            let script_name = full_name
+				.trim_end_matches(".luau")
+				.trim_end_matches(".lua")
+				.to_string();
             let exit_code = lune.run(&script_name, &script).await?;
             Ok(exit_code)
         }

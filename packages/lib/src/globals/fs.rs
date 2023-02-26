@@ -45,8 +45,7 @@ async fn fs_read_dir(_: &'static Lua, path: String) -> LuaResult<Vec<String>> {
         .map(|inner_path| {
             inner_path
                 .trim()
-                .strip_prefix(&dir_string_prefix)
-                .unwrap()
+                .trim_start_matches(&dir_string_prefix)
                 .to_owned()
         })
         .collect::<Vec<_>>();

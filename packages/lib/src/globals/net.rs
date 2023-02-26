@@ -37,8 +37,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
 
 fn create_user_agent_header() -> String {
     let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
-        .strip_prefix("https://github.com/")
-        .unwrap()
+        .trim_start_matches("https://github.com/")
         .split_once('/')
         .unwrap();
     format!("{github_owner}-{github_repo}-cli")
