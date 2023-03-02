@@ -8,6 +8,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+-   Added support for close codes in the `net` WebSocket APIs:
+    -   A close code can be sent by passing it to `socket.close`
+    -   A received close code can be checked with the `socket.closeCode` value, which is populated after a socket has been closed - note that using `socket.close` will not set the close code value, it is only set when received and is guaranteed to exist after closure
+
+### Fixed
+
+-   The `net` WebSocket APIs will no longer return `nil` for partial messages being received in `socket.next`, and will instead wait for the full message to arrive
+
 ## `0.5.3` - February 26th, 2023
 
 ### Fixed
