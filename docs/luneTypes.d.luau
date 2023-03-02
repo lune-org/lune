@@ -294,14 +294,17 @@ export type NetServeHandle = {
 
 	* `next` will no longer return any message(s) and instead instantly return nil
 	* `send` will throw an error stating that the socket has been closed
+
+	Once the websocket has been closed, `closeCode` will no longer be nil, and will be populated with a close
+	code according to the [WebSocket specification](https://www.iana.org/assignments/websocket/websocket.xhtml).
+	This will be an integer between 1000 and 4999, where 1000 is the canonical code for normal, error-free closure.
 ]=]
-declare class NetWebSocket
-	close: () -> ()
-	send: (message: string) -> ()
-	next: () -> string?
-	iter: () -> () -> string
-	function __iter(self): () -> string
-end
+export type NetWebSocket = {
+	closeCode: number?,
+	close: (code: number?) -> (),
+	send: (message: string, asBinaryMessage: boolean?) -> (),
+	next: () -> string?,
+}
 
 --[=[
 	@class Net
