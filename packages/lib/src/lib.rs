@@ -54,8 +54,8 @@ impl Lune {
     */
     pub async fn run(
         &self,
-        script_name: &str,
-        script_contents: &str,
+        script_name: impl AsRef<str>,
+        script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuaError> {
         // Create our special lune-flavored Lua object with extra registry values
         let lua = create_lune_lua().expect("Failed to create Lua object");
@@ -64,8 +64,8 @@ impl Lune {
         lua.set_app_data(sched);
         // Create the main thread and schedule it
         let main_chunk = lua
-            .load(script_contents)
-            .set_name(script_name)
+            .load(script_contents.as_ref())
+            .set_name(script_name.as_ref())
             .unwrap()
             .into_function()
             .unwrap();

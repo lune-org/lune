@@ -1,10 +1,13 @@
 use std::process::ExitCode;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser};
 
 use lune::Lune;
-use tokio::fs::{read_to_string, write};
+use tokio::{
+    fs::{read as read_to_vec, write},
+    io::{stdin, AsyncReadExt},
+};
 
 use crate::{
     gen::{
@@ -153,14 +156,27 @@ impl Cli {
             let cmd = Cli::command();
             cmd.arg_required_else_help(true).get_matches();
         }
-        // Parse and read the wanted file
-        let file_path = find_parse_file_path(&self.script_path.unwrap())?;
-        let file_contents = read_to_string(&file_path).await?;
-        // Display the file path relative to cwd with no extensions in stack traces
-        let file_display_name = file_path.with_extension("").display().to_string();
+        // Figure out if we should read from stdin or from a file,
+        // reading from stdin is marked by passing a single "-"
+        // (dash) as the script name to run to the cli
+        let script_path = self.script_path.unwrap();
+        let (script_display_name, script_contents) = if script_path == "-" {
+            let mut stdin_contents = Vec::new();
+            stdin()
+                .read_to_end(&mut stdin_contents)
+                .await
+                .context("Failed to read script contents from stdin")?;
+            ("stdin".to_string(), stdin_contents)
+        } else {
+            let file_path = find_parse_file_path(&script_path)?;
+            let file_contents = read_to_vec(&file_path).await?;
+            // NOTE: We skip the extension here to remove it from stack traces
+            let file_display_name = file_path.with_extension("").display().to_string();
+            (file_display_name, file_contents)
+        };
         // Create a new lune object with all globals & run the script
         let lune = Lune::new().with_args(self.script_args);
-        let result = lune.run(&file_display_name, &file_contents).await;
+        let result = lune.run(&script_display_name, &script_contents).await;
         Ok(match result {
             Err(e) => {
                 eprintln!("{e}");

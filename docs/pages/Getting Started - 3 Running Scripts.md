@@ -10,9 +10,9 @@ lune script-name
 
 This will look for the file `script-name.luau`**_<sup>[1]</sup>_** in a few locations:
 
-- The current directory
-- The folder `lune` in the current directory, if it exists
-- The folder `.lune` in the current directory, if it exists
+-   The current directory
+-   The folder `lune` in the current directory, if it exists
+-   The folder `.lune` in the current directory, if it exists
 
 ## 🎛️ Passing Command-Line Arguments
 
@@ -37,6 +37,12 @@ lune --list
 
 Lists all scripts found in `lune` or `.lune` directories, including any top-level description comments. <br />
 Lune description comments are always written at the top of a file and start with a lua-style comment arrow (`-->`).
+
+```sh
+lune -
+```
+
+Runs a script passed to Lune using stdin. Occasionally useful for running scripts piped to Lune from external sources.
 
 ---
 
