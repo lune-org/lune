@@ -676,7 +676,10 @@ declare task: {
 	--[=[
 		@within Task
 
-		Waits for the given duration, with a minimum wait time of 10 milliseconds.
+		Waits for *at least* the given amount of time.
+
+		The minimum wait time possible when using `task.wait` is limited by the underlying OS sleep implementation.
+		For most systems this means `task.wait` is accurate down to about 5 milliseconds or less.
 
 		@param duration The amount of time to wait
 		@return The exact amount of time waited

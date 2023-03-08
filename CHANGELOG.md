@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 -   Fixed the CLI being a bit too picky about file names when trying to run files in `lune` or `.lune` directories
+-   Fixed documentation misses from large changes made in version `0.5.0`
 
 ## `0.5.4` - March 7th, 2023
 
