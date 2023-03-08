@@ -23,16 +23,17 @@ pub async fn find_lune_scripts() -> Result<Vec<(String, String)>> {
             while let Some(entry) = dir.next_entry().await? {
                 let meta = entry.metadata().await?;
                 if meta.is_file() {
-                    let contents = fs::read_to_string(entry.path()).await?;
+                    let contents = fs::read(entry.path()).await?;
                     files.push((entry, meta, contents));
                 }
             }
             let parsed: Vec<_> = files
                 .iter()
                 .map(|(entry, _, contents)| {
+                    let contents_str = String::from_utf8_lossy(contents);
                     let file_path = entry.path().with_extension("");
                     let file_name = file_path.file_name().unwrap().to_string_lossy();
-                    let description = parse_lune_description_from_file(contents);
+                    let description = parse_lune_description_from_file(&contents_str);
                     (file_name.to_string(), description.unwrap_or_default())
                 })
                 .collect();

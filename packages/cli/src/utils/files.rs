@@ -157,3 +157,21 @@ pub fn parse_lune_description_from_file(contents: &str) -> Option<String> {
         Some(unindented_lines)
     }
 }
+
+pub fn strip_shebang(mut contents: Vec<u8>) -> Vec<u8> {
+    if contents.starts_with(b"#!") {
+        if let Some(first_newline_idx) =
+            contents
+                .iter()
+                .enumerate()
+                .find_map(|(idx, c)| if *c == b'\n' { Some(idx) } else { None })
+        {
+            // NOTE: We keep the newline here on purpose to preserve
+            // correct line numbers in stack traces, the only reason
+            // we strip the shebang is to get the lua script to parse
+            // and the extra newline is not really a problem for that
+            contents.drain(..first_newline_idx);
+        }
+    }
+    contents
+}

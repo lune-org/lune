@@ -15,7 +15,7 @@ use crate::{
         generate_selene_defs_from_definitions, generate_wiki_dir_from_definitions,
     },
     utils::{
-        files::discover_script_file_path_including_lune_dirs,
+        files::{discover_script_file_path_including_lune_dirs, strip_shebang},
         listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
     },
 };
@@ -177,7 +177,7 @@ impl Cli {
         // Create a new lune object with all globals & run the script
         let result = Lune::new()
             .with_args(self.script_args)
-            .try_run(&script_display_name, &script_contents)
+            .try_run(&script_display_name, strip_shebang(script_contents))
             .await;
         Ok(match result {
             Err(err) => {
