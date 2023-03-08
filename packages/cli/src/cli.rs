@@ -15,7 +15,7 @@ use crate::{
         generate_selene_defs_from_definitions, generate_wiki_dir_from_definitions,
     },
     utils::{
-        files::find_parse_file_path,
+        files::discover_script_file_path_including_lune_dirs,
         listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
     },
 };
@@ -168,7 +168,7 @@ impl Cli {
                 .context("Failed to read script contents from stdin")?;
             ("stdin".to_string(), stdin_contents)
         } else {
-            let file_path = find_parse_file_path(&script_path)?;
+            let file_path = discover_script_file_path_including_lune_dirs(&script_path)?;
             let file_contents = read_to_vec(&file_path).await?;
             // NOTE: We skip the extension here to remove it from stack traces
             let file_display_name = file_path.with_extension("").display().to_string();

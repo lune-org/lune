@@ -1,43 +1,136 @@
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::{
+    fs::Metadata,
+    path::{PathBuf, MAIN_SEPARATOR},
+};
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, Result};
+use console::style;
+use lazy_static::lazy_static;
 
 const LUNE_COMMENT_PREFIX: &str = "-->";
 
-pub fn find_luau_file_path(path: &str) -> Option<PathBuf> {
+lazy_static! {
+    static ref ERR_MESSAGE_HELP_NOTE: String = format!(
+        "To run this file, either:\n{}\n{}",
+        format_args!(
+            "{} rename it to use a {} or {} extension",
+            style("-").dim(),
+            style(".luau").blue(),
+            style(".lua").blue()
+        ),
+        format_args!(
+            "{} pass it as an absolute path instead of relative",
+            style("-").dim()
+        ),
+    );
+}
+
+/**
+    Discovers a script file path based on a given script name.
+
+    Script discovery is done in several steps here for the best possible user experience:
+
+    1. If we got a file that definitely exists, make sure it is either
+        - using an absolute path
+        - has the lua or luau extension
+    2. If we got a directory, let the user know
+    3. If we got an absolute path, don't check any extensions, just let the user know it didn't exist
+    4. If we got a relative path with no extension, also look for a file with a lua or luau extension
+    5. No other options left, the file simply did not exist
+
+    This behavior ensures that users can do pretty much whatever they want if they pass in an absolute
+    path, and that they then have control over script discovery behavior, whereas if they pass in
+    a relative path we will instead try to be as permissive as possible for user-friendliness
+*/
+pub fn discover_script_file_path(path: &str) -> Result<PathBuf> {
     let file_path = PathBuf::from(path);
-    if let Some(ext) = file_path.extension() {
-        match ext {
-            e if e == "lua" || e == "luau" && file_path.exists() => Some(file_path),
-            _ => None,
+    // NOTE: We use metadata directly here to try to
+    // avoid accessing the file path more than once
+    let file_meta = file_path.metadata();
+    let is_file = file_meta.as_ref().map_or(false, Metadata::is_file);
+    let is_dir = file_meta.as_ref().map_or(false, Metadata::is_dir);
+    let is_abs = file_path.is_absolute();
+    let ext = file_path.extension();
+    if is_file {
+        if is_abs {
+            Ok(file_path)
+        } else if let Some(ext) = file_path.extension() {
+            match ext {
+                e if e == "lua" || e == "luau" => Ok(file_path),
+                _ => Err(anyhow!(
+                    "A file was found at {} but it uses the '{}' file extension\n{}",
+                    style(file_path.display()).green(),
+                    style(ext.to_string_lossy()).blue(),
+                    *ERR_MESSAGE_HELP_NOTE
+                )),
+            }
+        } else {
+            Err(anyhow!(
+                "A file was found at {} but it has no file extension\n{}",
+                style(file_path.display()).green(),
+                *ERR_MESSAGE_HELP_NOTE
+            ))
+        }
+    } else if is_dir {
+        Err(anyhow!(
+            "No file was found at {}, found a directory",
+            style(file_path.display()).yellow()
+        ))
+    } else if is_abs {
+        Err(anyhow!(
+            "No file was found at {}",
+            style(file_path.display()).yellow()
+        ))
+    } else if ext.is_none() {
+        let file_path_lua = file_path.with_extension("lua");
+        let file_path_luau = file_path.with_extension("luau");
+        if file_path_lua.is_file() {
+            Ok(file_path_lua)
+        } else if file_path_luau.is_file() {
+            Ok(file_path_luau)
+        } else {
+            Err(anyhow!(
+                "No file was found at {}",
+                style(file_path.display()).yellow()
+            ))
         }
     } else {
-        let file_path_lua = PathBuf::from(path).with_extension("lua");
-        if file_path_lua.exists() {
-            Some(file_path_lua)
-        } else {
-            let file_path_luau = PathBuf::from(path).with_extension("luau");
-            if file_path_luau.exists() {
-                Some(file_path_luau)
-            } else {
-                None
-            }
-        }
+        Err(anyhow!(
+            "No file was found at {}",
+            style(file_path.display()).yellow()
+        ))
     }
 }
 
-pub fn find_parse_file_path(path: &str) -> Result<PathBuf> {
-    let parsed_file_path = find_luau_file_path(path)
-        .or_else(|| find_luau_file_path(&format!("lune{MAIN_SEPARATOR}{path}")))
-        .or_else(|| find_luau_file_path(&format!(".lune{MAIN_SEPARATOR}{path}")));
-    if let Some(file_path) = parsed_file_path {
-        if file_path.exists() {
-            Ok(file_path)
-        } else {
-            bail!("File does not exist at path: '{}'", path)
+/**
+    Discovers a script file path based on a given script name, and tries to
+    find scripts in `lune` and `.lune` folders if one was not directly found.
+
+    Note that looking in `lune` and `.lune` folders is automatically
+    disabled if the given script name is an absolute path.
+
+    Behavior is otherwise exactly the same as for `discover_script_file_path`.
+*/
+pub fn discover_script_file_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
+    match discover_script_file_path(path) {
+        Ok(path) => Ok(path),
+        Err(e) => {
+            // If we got any absolute path it means the user has also
+            // told us to not look in any special relative directories
+            // so we should error right away with the first err message
+            if PathBuf::from(path).is_absolute() {
+                return Err(e);
+            }
+            // Otherwise we take a look in either relative lune or .lune directories
+            let res_lune = discover_script_file_path(&format!("lune{MAIN_SEPARATOR}{path}"));
+            let res_dotlune = discover_script_file_path(&format!(".lune{MAIN_SEPARATOR}{path}"));
+            match res_lune.or(res_dotlune) {
+                // NOTE: The first error message is generally more
+                // descriptive than the ones for the lune subfolders
+                Err(_) => Err(e),
+                Ok(path) => Ok(path),
+            }
         }
-    } else {
-        bail!("Invalid file path: '{}'", path)
     }
 }
 

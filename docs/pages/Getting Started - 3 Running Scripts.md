@@ -46,4 +46,4 @@ Runs a script passed to Lune using stdin. Occasionally useful for running script
 
 ---
 
-**_<sup>[1]</sup>_** _Lune also supports files with the `.lua` extension but using the `.luau` extension is highly recommended. Additionally, if you don't want Lune to look in sub-directories you can provide a full file path with the file extension included, instead of only the file name._
+**_<sup>[1]</sup>_** _Lune also supports files with the `.lua` extension but using the `.luau` extension is highly recommended. Additionally, if you don't want Lune to look in sub-directories or try to find files with `.lua` / `.luau` extensions at all, you can provide an absolute file path. This will disable all file path parsing and checks, and just run the file directly._

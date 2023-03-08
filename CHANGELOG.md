@@ -8,6 +8,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+-   Added support for running scripts by passing absolute file paths in the CLI
+    -   This does not have the restriction of scripts having to use the `.luau` or `.lua` extension, since it is presumed that if you pass an absolute path you know exactly what you are doing
+
+### Changed
+
+-   Improved error messages for passing invalid file names / file paths substantially - they now include helpful formatting to make file names distinct from file extensions, and give suggestions on how to solve the problem
+
+### Fixed
+
+-   Fixed the CLI being a bit too picky about file names when trying to run files in `lune` or `.lune` directories
+
 ## `0.5.4` - March 7th, 2023
 
 ### Added
