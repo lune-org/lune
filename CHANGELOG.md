@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 -   Improved error messages for passing invalid file names / file paths substantially - they now include helpful formatting to make file names distinct from file extensions, and give suggestions on how to solve the problem
+-   Improved general formatting of error messages, both in the CLI and for Luau scripts being run
 
 ### Fixed
 

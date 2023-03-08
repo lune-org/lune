@@ -40,14 +40,14 @@ fn can_be_plain_lua_table_key(s: &LuaString) -> bool {
 pub fn format_label<S: AsRef<str>>(s: S) -> String {
     format!(
         "{}{}{} ",
-        style("[").bold(),
+        style("[").dim(),
         match s.as_ref().to_ascii_lowercase().as_str() {
             "info" => style("INFO").blue(),
             "warn" => style("WARN").yellow(),
             "error" => style("ERROR").red(),
             _ => style(""),
         },
-        style("]").bold()
+        style("]").dim()
     )
 }
 

@@ -10,7 +10,6 @@
 
 use std::process::ExitCode;
 
-use anyhow::Result;
 use clap::Parser;
 
 pub(crate) mod cli;
@@ -21,8 +20,20 @@ pub(crate) mod utils;
 mod tests;
 
 use cli::Cli;
+use console::style;
 
 #[tokio::main(flavor = "multi_thread")]
-async fn main() -> Result<ExitCode> {
-    Cli::parse().run().await
+async fn main() -> ExitCode {
+    match Cli::parse().run().await {
+        Ok(code) => code,
+        Err(err) => {
+            eprintln!(
+                "{}{}{}\n{err:?}",
+                style("[").dim(),
+                style("ERROR").red(),
+                style("]").dim(),
+            );
+            ExitCode::FAILURE
+        }
+    }
 }

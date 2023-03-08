@@ -175,11 +175,13 @@ impl Cli {
             (file_display_name, file_contents)
         };
         // Create a new lune object with all globals & run the script
-        let lune = Lune::new().with_args(self.script_args);
-        let result = lune.run(&script_display_name, &script_contents).await;
+        let result = Lune::new()
+            .with_args(self.script_args)
+            .try_run(&script_display_name, &script_contents)
+            .await;
         Ok(match result {
-            Err(e) => {
-                eprintln!("{e}");
+            Err(err) => {
+                eprintln!("{err}");
                 ExitCode::FAILURE
             }
             Ok(code) => code,
