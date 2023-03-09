@@ -14,6 +14,10 @@ categories.workspace = true
 name = "lune"
 path = "src/main.rs"
 
+[features]
+default = []
+roblox = ["lune/roblox"]
+
 [dependencies]
 
 lune = { path = "../lib" }

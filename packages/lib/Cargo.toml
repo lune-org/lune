@@ -13,11 +13,18 @@ categories.workspace = true
 name = "lune"
 path = "src/lib.rs"
 
+[features]
+default = []
+roblox = ["dep:lune-roblox"]
+
 [dependencies]
+
+lune-roblox = { path = "../lib-roblox", optional = true }
 
 console.workspace = true
 futures-util.workspace = true
 lazy_static.workspace = true
+mlua.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
@@ -35,7 +42,6 @@ os_str_bytes = "6.4"
 hyper = { version = "0.14", features = ["full"] }
 hyper-tungstenite = { version = "0.9" }
 tokio-tungstenite = { version = "0.18" }
-mlua = { version = "0.8", features = ["luau", "serialize"] }
 dunce = "1.0"
 
 [dev-dependencies]

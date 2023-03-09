@@ -44,6 +44,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     let require_get_abs_rel_paths = lua
         .create_function(
             |_, (require_pwd, require_source, require_path): (String, String, String)| {
+                // TODO: Special case for @lune prefix here
                 let path_relative_to_pwd = PathBuf::from(
                     &require_source
                         .trim_start_matches("[string \"")
@@ -75,6 +76,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     // were async then one lua script may require a module during the file reading process
     let require_get_loaded_file = lua.create_function(
         |lua: &Lua, (path_absolute, path_relative): (String, String)| {
+            // TODO: Check for @lune prefix here and try to load a builtin module
             // Use a name without extensions for loading the chunk, the
             // above code assumes the require path is without extensions
             let path_relative_no_extension = path_relative

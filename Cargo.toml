@@ -1,5 +1,5 @@
 [workspace]
-members = ["packages/cli", "packages/lib"]
+members = ["packages/cli", "packages/lib", "packages/lib-roblox"]
 default-members = ["packages/cli"]
 
 # Package config values shared across all packages,
@@ -20,6 +20,8 @@ categories = ["command-line-interface"]
 console = "0.15"
 futures-util = "0.3"
 lazy_static = "1.4"
+
+mlua = { version = "0.8", features = ["luau", "serialize"] }
 
 # Serde dependencies, supporting user-facing formats: json, yaml, toml
 serde = { version = "1.0", features = ["derive"] }
