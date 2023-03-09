@@ -14,6 +14,28 @@ pub use error::*;
 pub use format::*;
 pub use kind::*;
 
+pub type DocumentResult<T> = Result<T, DocumentError>;
+
+/**
+    A wrapper for [`rbx_dom_weak::WeakDom`] that also takes care of
+    reading and writing different kinds and formats of roblox files.
+
+    ```rust ignore
+    // Reading a document from a file
+
+    let file_path = PathBuf::from("place-file.rbxl");
+    let file_contents = std::fs::read(&file_path)?;
+
+    let document = Document::from_bytes_auto(file_contents)?;
+
+    // Writing a document to a file
+
+    let file_path = PathBuf::from("place-file")
+        .with_extension(document.extension()?);
+
+    std::fs::write(&file_path, document.to_bytes()?)?;
+    ```
+*/
 #[derive(Debug, Clone)]
 pub struct Document {
     kind: DocumentKind,
@@ -51,9 +73,7 @@ impl Document {
         }
     }
 
-    fn from_bytes_inner(
-        bytes: impl AsRef<[u8]>,
-    ) -> Result<(DocumentFormat, WeakDom), DocumentError> {
+    fn from_bytes_inner(bytes: impl AsRef<[u8]>) -> DocumentResult<(DocumentFormat, WeakDom)> {
         let bytes = bytes.as_ref();
         let format = DocumentFormat::from_bytes(bytes).ok_or(DocumentError::UnknownFormat)?;
         let dom = match format {
@@ -80,7 +100,7 @@ impl Document {
         of the file, and a model file with services in it will detect as a place file, so
         if possible using [`Document::from_bytes`] with an explicit kind should be preferred.
     */
-    pub fn from_bytes_auto(bytes: impl AsRef<[u8]>) -> Result<Self, DocumentError> {
+    pub fn from_bytes_auto(bytes: impl AsRef<[u8]>) -> DocumentResult<Self> {
         let (format, dom) = Self::from_bytes_inner(bytes)?;
         let kind = DocumentKind::from_weak_dom(&dom).ok_or(DocumentError::UnknownKind)?;
         Ok(Self {
@@ -95,8 +115,11 @@ impl Document {
 
         This will automatically handle and detect if the document
         should be decoded using a roblox binary or roblox xml format.
+
+        Note that passing [`DocumentKind`] enum values other than [`DocumentKind::Place`] and
+        [`DocumentKind::Model`] is possible but should only be done within the `lune-roblox` crate.
     */
-    pub fn from_bytes(bytes: impl AsRef<[u8]>, kind: DocumentKind) -> Result<Self, DocumentError> {
+    pub fn from_bytes(bytes: impl AsRef<[u8]>, kind: DocumentKind) -> DocumentResult<Self> {
         let (format, dom) = Self::from_bytes_inner(bytes)?;
         Ok(Self {
             kind,
@@ -113,7 +136,7 @@ impl Document {
         with, meaning if the document is a binary document the output
         will be binary, and vice versa for xml and other future formats.
     */
-    pub fn to_bytes(&self) -> Result<Vec<u8>, DocumentError> {
+    pub fn to_bytes(&self) -> DocumentResult<Vec<u8>> {
         self.to_bytes_with_format(self.format)
     }
 
@@ -121,7 +144,7 @@ impl Document {
         Encodes the document as a vector of bytes, to
         be written to a file or sent over the network.
     */
-    pub fn to_bytes_with_format(&self, format: DocumentFormat) -> Result<Vec<u8>, DocumentError> {
+    pub fn to_bytes_with_format(&self, format: DocumentFormat) -> DocumentResult<Vec<u8>> {
         let dom = self.dom.try_read().expect("Failed to lock dom");
         let mut bytes = Vec::new();
         match format {
@@ -150,6 +173,19 @@ impl Document {
     */
     pub fn format(&self) -> DocumentFormat {
         self.format
+    }
+
+    /**
+        Gets the file extension for this document.
+
+        Note that this will return `None` for an internal root
+        document, otherwise it will always return `Some`.
+
+        As such, if it is known that no internal root document is
+        being used here, the return value can be safely unwrapped.
+    */
+    pub fn extension(&self) -> Option<&'static str> {
+        Self::canonical_extension(self.kind, self.format)
     }
 
     /**

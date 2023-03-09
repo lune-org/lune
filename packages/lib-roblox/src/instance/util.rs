@@ -101,7 +101,7 @@ mod tests {
     fn is_a_service_invalid() {
         assert_eq!(instance_is_a_service("Camera"), Some(false));
         assert_eq!(instance_is_a_service("Terrain"), Some(false));
-        assert_eq!(instance_is_a_service("Work-space"), Some(false));
-        assert_eq!(instance_is_a_service("CSG Dictionary Service"), Some(false));
+        assert_eq!(instance_is_a_service("Work-space"), None);
+        assert_eq!(instance_is_a_service("CSG Dictionary Service"), None);
     }
 }
