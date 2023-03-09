@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rbx_dom_weak::WeakDom;
 
-use crate::instance::instance_is_a_service;
+use crate::instance::util::instance_is_a_service;
 
 /**
     A document kind specifier.
