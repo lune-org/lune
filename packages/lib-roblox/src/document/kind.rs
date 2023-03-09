@@ -1,5 +1,9 @@
 use std::path::Path;
 
+use rbx_dom_weak::WeakDom;
+
+use crate::instance::instance_is_a_service;
+
 /**
     A document kind specifier.
 
@@ -51,19 +55,37 @@ impl DocumentKind {
     }
 
     /**
-        Try to detect a document kind specifier from file contents.
+        Try to detect a document kind specifier from a weak dom.
 
-        Returns `None` if the file contents do not seem to be from a valid roblox file.
+        Returns `None` if the given dom is empty and as such can not have its kind inferred.
     */
-    pub fn from_bytes(_bytes: impl AsRef<[u8]>) -> Option<Self> {
-        // TODO: Implement this, read comment below
-        todo!("Investigate if it is possible to detect document kind from contents")
+    pub fn from_weak_dom(dom: &WeakDom) -> Option<Self> {
+        let mut has_top_level_child = false;
+        let mut has_top_level_service = false;
+        for child_ref in dom.root().children() {
+            if let Some(child_inst) = dom.get_by_ref(*child_ref) {
+                has_top_level_child = true;
+                if instance_is_a_service(&child_inst.class).unwrap_or(false) {
+                    has_top_level_service = true;
+                    break;
+                }
+            }
+        }
+        if has_top_level_service {
+            Some(Self::Place)
+        } else if has_top_level_child {
+            Some(Self::Model)
+        } else {
+            None
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+
+    use rbx_dom_weak::InstanceBuilder;
 
     use super::*;
 
@@ -149,5 +171,39 @@ mod tests {
         );
     }
 
-    // TODO: Add tests here for the from_bytes implementation
+    #[test]
+    fn from_weak_dom() {
+        let empty = WeakDom::new(InstanceBuilder::new("Instance"));
+        assert_eq!(DocumentKind::from_weak_dom(&empty), None);
+
+        let with_services = WeakDom::new(
+            InstanceBuilder::new("Instance")
+                .with_child(InstanceBuilder::new("Workspace"))
+                .with_child(InstanceBuilder::new("ReplicatedStorage")),
+        );
+        assert_eq!(
+            DocumentKind::from_weak_dom(&with_services),
+            Some(DocumentKind::Place)
+        );
+
+        let with_children = WeakDom::new(
+            InstanceBuilder::new("Instance")
+                .with_child(InstanceBuilder::new("Model"))
+                .with_child(InstanceBuilder::new("Part")),
+        );
+        assert_eq!(
+            DocumentKind::from_weak_dom(&with_children),
+            Some(DocumentKind::Model)
+        );
+
+        let with_mixed = WeakDom::new(
+            InstanceBuilder::new("Instance")
+                .with_child(InstanceBuilder::new("Workspace"))
+                .with_child(InstanceBuilder::new("Part")),
+        );
+        assert_eq!(
+            DocumentKind::from_weak_dom(&with_mixed),
+            Some(DocumentKind::Place)
+        );
+    }
 }

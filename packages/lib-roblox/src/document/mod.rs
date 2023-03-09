@@ -51,15 +51,10 @@ impl Document {
         }
     }
 
-    /**
-        Decodes and creates a new document from a byte buffer.
-
-        This will automatically handle and detect if the document should be decoded
-        using a roblox binary or roblox xml format, and if it is a model or place file.
-    */
-    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self, DocumentError> {
+    fn from_bytes_inner(
+        bytes: impl AsRef<[u8]>,
+    ) -> Result<(DocumentFormat, WeakDom), DocumentError> {
         let bytes = bytes.as_ref();
-        let kind = DocumentKind::from_bytes(bytes).ok_or(DocumentError::UnknownKind)?;
         let format = DocumentFormat::from_bytes(bytes).ok_or(DocumentError::UnknownFormat)?;
         let dom = match format {
             DocumentFormat::InternalRoot => Err(DocumentError::InternalRootReadWrite),
@@ -72,6 +67,37 @@ impl Document {
                     .map_err(|err| DocumentError::ReadError(err.to_string()))
             }
         }?;
+        Ok((format, dom))
+    }
+
+    /**
+        Decodes and creates a new document from a byte buffer.
+
+        This will automatically handle and detect if the document should be decoded
+        using a roblox binary or roblox xml format, and if it is a model or place file.
+
+        Note that detection of model vs place file is heavily dependent on the structure
+        of the file, and a model file with services in it will detect as a place file, so
+        if possible using [`Document::from_bytes`] with an explicit kind should be preferred.
+    */
+    pub fn from_bytes_auto(bytes: impl AsRef<[u8]>) -> Result<Self, DocumentError> {
+        let (format, dom) = Self::from_bytes_inner(bytes)?;
+        let kind = DocumentKind::from_weak_dom(&dom).ok_or(DocumentError::UnknownKind)?;
+        Ok(Self {
+            kind,
+            format,
+            dom: Arc::new(RwLock::new(dom)),
+        })
+    }
+
+    /**
+        Decodes and creates a new document from a byte buffer.
+
+        This will automatically handle and detect if the document
+        should be decoded using a roblox binary or roblox xml format.
+    */
+    pub fn from_bytes(bytes: impl AsRef<[u8]>, kind: DocumentKind) -> Result<Self, DocumentError> {
+        let (format, dom) = Self::from_bytes_inner(bytes)?;
         Ok(Self {
             kind,
             format,
