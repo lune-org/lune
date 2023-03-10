@@ -29,5 +29,8 @@ jobs:
       - name: Test - Lune
         run: cargo test --package lune
 
+      - name: Test - Lune Roblox
+        run: cargo test --package lune-roblox
+
       - name: Test - CLI
         run: cargo test --package lune-cli
