@@ -16,7 +16,7 @@ use super::*;
     Note that this does not use native Luau vectors to simplify implementation
     and instead allow us to implement all abovementioned APIs accurately.
 */
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3(pub Vec3A);
 
 impl fmt::Display for Vector3 {
@@ -58,20 +58,9 @@ impl LuaUserData for Vector3 {
         methods.add_method("Min", |_, this, rhs: Vector3| {
             Ok(Vector3(this.0.min(rhs.0)))
         });
-        // Metamethods - normal
-        methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| Ok(this.to_string()));
-        methods.add_meta_method(LuaMetaMethod::Eq, |_, this, rhs: LuaValue| {
-            if let LuaValue::UserData(ud) = rhs {
-                if let Ok(vec) = ud.borrow::<Vector3>() {
-                    Ok(this.0 == vec.0)
-                } else {
-                    Ok(false)
-                }
-            } else {
-                Ok(false)
-            }
-        });
-        // Metamethods - math
+        // Metamethods
+        methods.add_meta_method(LuaMetaMethod::Eq, datatype_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, datatype_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(Vector3(-this.0)));
         methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: Vector3| {
             Ok(Vector3(this.0 + rhs.0))
@@ -174,7 +163,7 @@ impl ToRbxVariant for Vector3 {
             }))
         } else {
             Err(RbxConversionError::DesiredTypeMismatch {
-                actual: RbxVariantType::Vector3.display_name(),
+                can_convert_to: Some(RbxVariantType::Vector3.display_name()),
                 detail: None,
             })
         }

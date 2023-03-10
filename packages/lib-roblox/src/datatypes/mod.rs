@@ -4,9 +4,11 @@ pub(crate) use rbx_dom_weak::types::{Variant as RbxVariant, VariantType as RbxVa
 
 // NOTE: We create a new inner module scope here to make imports of datatypes more ergonomic
 
+mod vector2;
 mod vector3;
 
 pub mod types {
+    pub use super::vector2::Vector2;
     pub use super::vector3::Vector3;
 }
 
@@ -25,7 +27,7 @@ pub(crate) enum RbxConversionError {
         detail: Option<String>,
     },
     DesiredTypeMismatch {
-        actual: &'static str,
+        can_convert_to: Option<&'static str>,
         detail: Option<String>,
     },
 }
@@ -45,6 +47,30 @@ pub(crate) trait FromRbxVariant: Sized {
 
 pub(crate) trait DatatypeTable {
     fn make_dt_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()>;
+}
+
+// Shared impls for datatype metamethods
+
+fn datatype_impl_to_string<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<String>
+where
+    D: LuaUserData + ToString + 'static,
+{
+    Ok(datatype.to_string())
+}
+
+fn datatype_impl_eq<D>(_: &Lua, datatype: &D, value: LuaValue) -> LuaResult<bool>
+where
+    D: LuaUserData + PartialEq + 'static,
+{
+    if let LuaValue::UserData(ud) = value {
+        if let Ok(vec) = ud.borrow::<D>() {
+            Ok(*datatype == *vec)
+        } else {
+            Ok(false)
+        }
+    } else {
+        Ok(false)
+    }
 }
 
 // NOTE: This implementation is .. not great, but it's the best we can
