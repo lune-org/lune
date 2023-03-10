@@ -17,6 +17,7 @@ path = "src/lib.rs"
 [dependencies]
 mlua.workspace = true
 
+base64 = "0.21"
 glam = "0.23"
 thiserror = "1.0"
 
