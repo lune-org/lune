@@ -156,8 +156,8 @@ impl<'lua> FromRbxVariantLua<'lua> for LuaValue<'lua> {
         match variant {
             // Primitives
             Rbx::Bool(b) => Ok(LuaValue::Boolean(*b)),
-            Rbx::Int64(i) => Ok(LuaValue::Integer(*i as i32)),
-            Rbx::Int32(i) => Ok(LuaValue::Integer(*i)),
+            Rbx::Int64(i) => Ok(LuaValue::Number(*i as f64)),
+            Rbx::Int32(i) => Ok(LuaValue::Number(*i as f64)),
             Rbx::Float64(n) => Ok(LuaValue::Number(*n)),
             Rbx::Float32(n) => Ok(LuaValue::Number(*n as f64)),
             Rbx::String(s) => Ok(LuaValue::String(
