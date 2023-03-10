@@ -17,7 +17,7 @@ pub use kind::*;
 pub type DocumentResult<T> = Result<T, DocumentError>;
 
 /**
-    A wrapper for [`rbx_dom_weak::WeakDom`] that also takes care of
+    A container for [`rbx_dom_weak::WeakDom`] that also takes care of
     reading and writing different kinds and formats of roblox files.
 
     ```rust ignore
