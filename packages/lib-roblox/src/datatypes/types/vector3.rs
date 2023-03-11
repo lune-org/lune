@@ -152,8 +152,8 @@ impl ops::Sub for Vector3 {
     }
 }
 
-impl From<&RbxVector3> for Vector3 {
-    fn from(v: &RbxVector3) -> Self {
+impl From<RbxVector3> for Vector3 {
+    fn from(v: RbxVector3) -> Self {
         Vector3(Vec3 {
             x: v.x,
             y: v.y,
@@ -162,8 +162,8 @@ impl From<&RbxVector3> for Vector3 {
     }
 }
 
-impl From<&Vector3> for RbxVector3 {
-    fn from(v: &Vector3) -> Self {
+impl From<Vector3> for RbxVector3 {
+    fn from(v: Vector3) -> Self {
         RbxVector3 {
             x: v.0.x,
             y: v.0.y,

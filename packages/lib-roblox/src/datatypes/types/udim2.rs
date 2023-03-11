@@ -24,14 +24,8 @@ impl UDim2 {
             "fromScale",
             lua.create_function(|_, (x, y): (Option<f32>, Option<f32>)| {
                 Ok(UDim2 {
-                    x: UDim {
-                        scale: x.unwrap_or_default(),
-                        offset: 0,
-                    },
-                    y: UDim {
-                        scale: y.unwrap_or_default(),
-                        offset: 0,
-                    },
+                    x: UDim::new(x.unwrap_or_default(), 0),
+                    y: UDim::new(y.unwrap_or_default(), 0),
                 })
             })?,
         )?;
@@ -39,14 +33,8 @@ impl UDim2 {
             "fromOffset",
             lua.create_function(|_, (x, y): (Option<i32>, Option<i32>)| {
                 Ok(UDim2 {
-                    x: UDim {
-                        scale: 0f32,
-                        offset: x.unwrap_or_default(),
-                    },
-                    y: UDim {
-                        scale: 0f32,
-                        offset: y.unwrap_or_default(),
-                    },
+                    x: UDim::new(0f32, x.unwrap_or_default()),
+                    y: UDim::new(0f32, y.unwrap_or_default()),
                 })
             })?,
         )?;
@@ -62,17 +50,11 @@ impl UDim2 {
                     })
                 } else if let Ok((sx, ox, sy, oy)) = ArgsNums::from_lua_multi(args, lua) {
                     Ok(UDim2 {
-                        x: UDim {
-                            scale: sx.unwrap_or_default(),
-                            offset: ox.unwrap_or_default(),
-                        },
-                        y: UDim {
-                            scale: sy.unwrap_or_default(),
-                            offset: oy.unwrap_or_default(),
-                        },
+                        x: UDim::new(sx.unwrap_or_default(), ox.unwrap_or_default()),
+                        y: UDim::new(sy.unwrap_or_default(), oy.unwrap_or_default()),
                     })
                 } else {
-                    // TODO: Better error message here using arg types
+                    // FUTURE: Better error message here using given arg types
                     Err(LuaError::RuntimeError(
                         "Invalid arguments to constructor".to_string(),
                     ))
@@ -158,20 +140,20 @@ impl ops::Sub for UDim2 {
     }
 }
 
-impl From<&RbxUDim2> for UDim2 {
-    fn from(v: &RbxUDim2) -> Self {
+impl From<RbxUDim2> for UDim2 {
+    fn from(v: RbxUDim2) -> Self {
         UDim2 {
-            x: (&v.x).into(),
-            y: (&v.y).into(),
+            x: v.x.into(),
+            y: v.y.into(),
         }
     }
 }
 
-impl From<&UDim2> for RbxUDim2 {
-    fn from(v: &UDim2) -> Self {
+impl From<UDim2> for RbxUDim2 {
+    fn from(v: UDim2) -> Self {
         RbxUDim2 {
-            x: (&v.x).into(),
-            y: (&v.y).into(),
+            x: v.x.into(),
+            y: v.y.into(),
         }
     }
 }

@@ -18,6 +18,10 @@ pub struct UDim {
 }
 
 impl UDim {
+    pub(super) fn new(scale: f32, offset: i32) -> Self {
+        Self { scale, offset }
+    }
+
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         datatype_table.set(
             "new",
@@ -91,8 +95,8 @@ impl ops::Sub for UDim {
     }
 }
 
-impl From<&RbxUDim> for UDim {
-    fn from(v: &RbxUDim) -> Self {
+impl From<RbxUDim> for UDim {
+    fn from(v: RbxUDim) -> Self {
         UDim {
             scale: v.scale,
             offset: v.offset,
@@ -100,8 +104,8 @@ impl From<&RbxUDim> for UDim {
     }
 }
 
-impl From<&UDim> for RbxUDim {
-    fn from(v: &UDim) -> Self {
+impl From<UDim> for RbxUDim {
+    fn from(v: UDim) -> Self {
         RbxUDim {
             scale: v.scale,
             offset: v.offset,

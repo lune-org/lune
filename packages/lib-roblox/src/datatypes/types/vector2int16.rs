@@ -113,8 +113,8 @@ impl ops::Sub for Vector2int16 {
     }
 }
 
-impl From<&RbxVector2int16> for Vector2int16 {
-    fn from(v: &RbxVector2int16) -> Self {
+impl From<RbxVector2int16> for Vector2int16 {
+    fn from(v: RbxVector2int16) -> Self {
         Vector2int16(IVec2 {
             x: v.x.clamp(i16::MIN, i16::MAX) as i32,
             y: v.y.clamp(i16::MIN, i16::MAX) as i32,
@@ -122,8 +122,8 @@ impl From<&RbxVector2int16> for Vector2int16 {
     }
 }
 
-impl From<&Vector2int16> for RbxVector2int16 {
-    fn from(v: &Vector2int16) -> Self {
+impl From<Vector2int16> for RbxVector2int16 {
+    fn from(v: Vector2int16) -> Self {
         RbxVector2int16 {
             x: v.0.x.clamp(i16::MIN as i32, i16::MAX as i32) as i16,
             y: v.0.y.clamp(i16::MIN as i32, i16::MAX as i32) as i16,

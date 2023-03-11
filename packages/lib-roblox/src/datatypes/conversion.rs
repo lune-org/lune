@@ -109,11 +109,12 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaValue<'lua> {
 */
 
 impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
+    #[rustfmt::skip]
     fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self> {
         use super::types::*;
         use RbxVariant as Rbx;
 
-        Ok(match variant {
+        Ok(match variant.clone() {
             // Not yet implemented datatypes
             // Rbx::Axes(_) => todo!(),
             // Rbx::BrickColor(_) => todo!(),
@@ -131,18 +132,19 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::Rect(_) => todo!(),
             // Rbx::Region3(_) => todo!(),
             // Rbx::Region3int16(_) => todo!(),
-            Rbx::UDim(value) => lua.create_userdata(UDim::from(value))?,
+
+            Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
             Rbx::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
 
-            Rbx::Vector2(value) => lua.create_userdata(Vector2::from(value))?,
+            Rbx::Vector2(value)      => lua.create_userdata(Vector2::from(value))?,
             Rbx::Vector2int16(value) => lua.create_userdata(Vector2int16::from(value))?,
-            Rbx::Vector3(value) => lua.create_userdata(Vector3::from(value))?,
+            Rbx::Vector3(value)      => lua.create_userdata(Vector3::from(value))?,
             Rbx::Vector3int16(value) => lua.create_userdata(Vector3int16::from(value))?,
 
             v => {
                 return Err(DatatypeConversionError::FromRbxVariant {
                     from: v.variant_name(),
-                    to: "LuaValue",
+                    to: "userdata",
                     detail: Some("Type not supported".to_string()),
                 })
             }
@@ -151,31 +153,54 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 }
 
 impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
+    #[rustfmt::skip]
     fn lua_to_rbx_variant(
         &self,
         _: &'lua Lua,
         variant_type: RbxVariantType,
     ) -> DatatypeConversionResult<RbxVariant> {
         use super::types::*;
+        use rbx_dom_weak::types as rbx;
 
-        Ok(if let Ok(value) = self.borrow::<UDim>() {
-            RbxVariant::UDim((&*value).into())
-        } else if let Ok(value) = self.borrow::<UDim2>() {
-            RbxVariant::UDim2((&*value).into())
-        } else if let Ok(value) = self.borrow::<Vector2>() {
-            RbxVariant::Vector2((&*value).into())
-        } else if let Ok(value) = self.borrow::<Vector2int16>() {
-            RbxVariant::Vector2int16((&*value).into())
-        } else if let Ok(value) = self.borrow::<Vector3>() {
-            RbxVariant::Vector3((&*value).into())
-        } else if let Ok(value) = self.borrow::<Vector3int16>() {
-            RbxVariant::Vector3int16((&*value).into())
-        } else {
-            return Err(DatatypeConversionError::ToRbxVariant {
+        let f = match variant_type {
+            RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
+            RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
+
+            RbxVariantType::Vector2      => convert::<Vector2,      rbx::Vector2>,
+            RbxVariantType::Vector2int16 => convert::<Vector2int16, rbx::Vector2int16>,
+            RbxVariantType::Vector3      => convert::<Vector3,      rbx::Vector3>,
+            RbxVariantType::Vector3int16 => convert::<Vector3int16, rbx::Vector3int16>,
+
+            _ => return Err(DatatypeConversionError::ToRbxVariant {
                 to: variant_type.variant_name(),
                 from: "userdata",
-                detail: None,
-            });
-        })
+                detail: Some("Type not supported".to_string()),
+            }),
+        };
+
+		f(self, variant_type)
+    }
+}
+
+fn convert<Datatype, RbxType>(
+    userdata: &LuaAnyUserData,
+    variant_type: RbxVariantType,
+) -> DatatypeConversionResult<RbxVariant>
+where
+    Datatype: LuaUserData + Clone + 'static,
+    RbxType: From<Datatype> + Into<RbxVariant>,
+{
+    match userdata.borrow::<Datatype>() {
+        Ok(value) => Ok(RbxType::from(value.clone()).into()),
+        Err(LuaError::UserDataTypeMismatch) => Err(DatatypeConversionError::ToRbxVariant {
+            to: variant_type.variant_name(),
+            from: "userdata",
+            detail: Some("Type mismatch".to_string()),
+        }),
+        Err(e) => Err(DatatypeConversionError::ToRbxVariant {
+            to: variant_type.variant_name(),
+            from: "userdata",
+            detail: Some(format!("Internal error: {e}")),
+        }),
     }
 }
