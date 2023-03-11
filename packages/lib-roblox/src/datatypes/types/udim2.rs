@@ -82,6 +82,46 @@ impl UDim2 {
     }
 }
 
+impl LuaUserData for UDim2 {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("X", |_, this| Ok(this.x));
+        fields.add_field_method_get("Y", |_, this| Ok(this.y));
+        fields.add_field_method_get("Width", |_, this| Ok(this.x));
+        fields.add_field_method_get("Height", |_, this| Ok(this.y));
+    }
+
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // Methods
+        methods.add_method("Lerp", |_, this, (goal, alpha): (UDim2, f32)| {
+            let this_x = Vec2::new(this.x.scale, this.x.offset as f32);
+            let goal_x = Vec2::new(goal.x.scale, this.x.offset as f32);
+
+            let this_y = Vec2::new(this.y.scale, this.y.offset as f32);
+            let goal_y = Vec2::new(goal.y.scale, goal.y.offset as f32);
+
+            let x = this_x.lerp(goal_x, alpha);
+            let y = this_y.lerp(goal_y, alpha);
+
+            Ok(UDim2 {
+                x: UDim {
+                    scale: x.x,
+                    offset: x.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
+                },
+                y: UDim {
+                    scale: y.x,
+                    offset: y.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
+                },
+            })
+        });
+        // Metamethods
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
+        methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
+        methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
+    }
+}
+
 impl fmt::Display for UDim2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}, {}", self.x, self.y)
@@ -115,43 +155,6 @@ impl ops::Sub for UDim2 {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
-    }
-}
-
-impl LuaUserData for UDim2 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("X", |_, this| Ok(this.x));
-        fields.add_field_method_get("Y", |_, this| Ok(this.y));
-        fields.add_field_method_get("Width", |_, this| Ok(this.x));
-        fields.add_field_method_get("Height", |_, this| Ok(this.y));
-    }
-
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        // Methods
-        methods.add_method("Lerp", |_, this, (rhs, alpha): (UDim2, f32)| {
-            let this_vec_x = Vec2::new(this.x.scale, this.x.offset as f32);
-            let this_vec_y = Vec2::new(this.y.scale, this.y.offset as f32);
-            let rhs_vec_x = Vec2::new(rhs.x.scale, rhs.x.offset as f32);
-            let rhs_vec_y = Vec2::new(rhs.y.scale, rhs.y.offset as f32);
-            let result_x = this_vec_x.lerp(rhs_vec_x, alpha);
-            let result_y = this_vec_y.lerp(rhs_vec_y, alpha);
-            Ok(UDim2 {
-                x: UDim {
-                    scale: result_x.x,
-                    offset: result_x.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
-                },
-                y: UDim {
-                    scale: result_y.x,
-                    offset: result_y.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
-                },
-            })
-        });
-        // Metamethods
-        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
-        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
-        methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(-*this));
-        methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: UDim2| Ok(*this + rhs));
-        methods.add_meta_method(LuaMetaMethod::Sub, |_, this, rhs: UDim2| Ok(*this - rhs));
     }
 }
 

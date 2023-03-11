@@ -1,3 +1,5 @@
+use std::ops;
+
 use mlua::prelude::*;
 
 pub(super) fn userdata_impl_to_string<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<String>
@@ -20,4 +22,25 @@ where
     } else {
         Ok(false)
     }
+}
+
+pub(super) fn userdata_impl_unm<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<D>
+where
+    D: LuaUserData + ops::Neg<Output = D> + Copy,
+{
+    Ok(-*datatype)
+}
+
+pub(super) fn userdata_impl_add<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
+where
+    D: LuaUserData + ops::Add<Output = D> + Copy,
+{
+    Ok(*datatype + value)
+}
+
+pub(super) fn userdata_impl_sub<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
+where
+    D: LuaUserData + ops::Sub<Output = D> + Copy,
+{
+    Ok(*datatype - value)
 }

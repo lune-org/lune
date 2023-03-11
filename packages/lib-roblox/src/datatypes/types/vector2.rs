@@ -1,4 +1,5 @@
 use core::fmt;
+use std::ops;
 
 use glam::{Vec2, Vec3};
 use mlua::prelude::*;
@@ -36,12 +37,6 @@ impl Vector2 {
     }
 }
 
-impl fmt::Display for Vector2 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}, {}", self.0.x, self.0.y)
-    }
-}
-
 impl LuaUserData for Vector2 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("Magnitude", |_, this| Ok(this.0.length()));
@@ -70,13 +65,9 @@ impl LuaUserData for Vector2 {
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
-        methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(Vector2(-this.0)));
-        methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: Vector2| {
-            Ok(Vector2(this.0 + rhs.0))
-        });
-        methods.add_meta_method(LuaMetaMethod::Sub, |_, this, rhs: Vector2| {
-            Ok(Vector2(this.0 - rhs.0))
-        });
+        methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
+        methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
+        methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
         methods.add_meta_method(LuaMetaMethod::Mul, |_, this, rhs: LuaValue| {
             match &rhs {
                 LuaValue::Number(n) => return Ok(Vector2(this.0 * Vec2::splat(*n as f32))),
@@ -117,6 +108,33 @@ impl LuaUserData for Vector2 {
                 )),
             })
         });
+    }
+}
+
+impl fmt::Display for Vector2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}, {}", self.0.x, self.0.y)
+    }
+}
+
+impl ops::Neg for Vector2 {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Vector2(-self.0)
+    }
+}
+
+impl ops::Add for Vector2 {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Vector2(self.0 + rhs.0)
+    }
+}
+
+impl ops::Sub for Vector2 {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vector2(self.0 - rhs.0)
     }
 }
 

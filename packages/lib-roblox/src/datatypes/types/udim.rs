@@ -31,6 +31,21 @@ impl UDim {
     }
 }
 
+impl LuaUserData for UDim {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("Scale", |_, this| Ok(this.scale));
+        fields.add_field_method_get("Offset", |_, this| Ok(this.offset));
+    }
+
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
+        methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
+        methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
+    }
+}
+
 impl Default for UDim {
     fn default() -> Self {
         Self {
@@ -73,21 +88,6 @@ impl ops::Sub for UDim {
             scale: self.scale - rhs.scale,
             offset: self.offset - rhs.offset,
         }
-    }
-}
-
-impl LuaUserData for UDim {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("Scale", |_, this| Ok(this.scale));
-        fields.add_field_method_get("Offset", |_, this| Ok(this.offset));
-    }
-
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
-        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
-        methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(-*this));
-        methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: UDim| Ok(*this + rhs));
-        methods.add_meta_method(LuaMetaMethod::Sub, |_, this, rhs: UDim| Ok(*this - rhs));
     }
 }
 
