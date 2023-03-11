@@ -118,10 +118,22 @@ impl DatatypeTable for Vector2 {
     }
 }
 
+impl From<&RbxVector2> for Vector2 {
+    fn from(v: &RbxVector2) -> Self {
+        Vector2(Vec2 { x: v.x, y: v.y })
+    }
+}
+
+impl From<&Vector2> for RbxVector2 {
+    fn from(v: &Vector2) -> Self {
+        RbxVector2 { x: v.0.x, y: v.0.y }
+    }
+}
+
 impl FromRbxVariant for Vector2 {
     fn from_rbx_variant(variant: &RbxVariant) -> RbxConversionResult<Self> {
         if let RbxVariant::Vector2(v) = variant {
-            Ok(Vector2(Vec2 { x: v.x, y: v.y }))
+            Ok(v.into())
         } else {
             Err(RbxConversionError::FromRbxVariant {
                 from: variant.display_name(),
@@ -138,10 +150,7 @@ impl ToRbxVariant for Vector2 {
         desired_type: Option<RbxVariantType>,
     ) -> RbxConversionResult<RbxVariant> {
         if matches!(desired_type, None | Some(RbxVariantType::Vector2)) {
-            Ok(RbxVariant::Vector2(RbxVector2 {
-                x: self.0.x,
-                y: self.0.y,
-            }))
+            Ok(RbxVariant::Vector2(self.into()))
         } else {
             Err(RbxConversionError::DesiredTypeMismatch {
                 can_convert_to: Some(RbxVariantType::Vector2.display_name()),

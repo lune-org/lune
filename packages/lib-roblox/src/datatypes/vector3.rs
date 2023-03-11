@@ -132,14 +132,30 @@ impl DatatypeTable for Vector3 {
     }
 }
 
+impl From<&RbxVector3> for Vector3 {
+    fn from(v: &RbxVector3) -> Self {
+        Vector3(Vec3 {
+            x: v.x,
+            y: v.y,
+            z: v.z,
+        })
+    }
+}
+
+impl From<&Vector3> for RbxVector3 {
+    fn from(v: &Vector3) -> Self {
+        RbxVector3 {
+            x: v.0.x,
+            y: v.0.y,
+            z: v.0.z,
+        }
+    }
+}
+
 impl FromRbxVariant for Vector3 {
     fn from_rbx_variant(variant: &RbxVariant) -> RbxConversionResult<Self> {
         if let RbxVariant::Vector3(v) = variant {
-            Ok(Vector3(Vec3 {
-                x: v.x,
-                y: v.y,
-                z: v.z,
-            }))
+            Ok(v.into())
         } else {
             Err(RbxConversionError::FromRbxVariant {
                 from: variant.display_name(),
@@ -156,11 +172,7 @@ impl ToRbxVariant for Vector3 {
         desired_type: Option<RbxVariantType>,
     ) -> RbxConversionResult<RbxVariant> {
         if matches!(desired_type, None | Some(RbxVariantType::Vector3)) {
-            Ok(RbxVariant::Vector3(RbxVector3 {
-                x: self.0.x,
-                y: self.0.y,
-                z: self.0.z,
-            }))
+            Ok(RbxVariant::Vector3(self.into()))
         } else {
             Err(RbxConversionError::DesiredTypeMismatch {
                 can_convert_to: Some(RbxVariantType::Vector3.display_name()),
