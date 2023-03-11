@@ -2,7 +2,7 @@
 -- crate all globals are also present in _G
 local Vector2int16 = _G.Vector2int16
 
--- Constructors
+-- Constructors & properties
 
 Vector2int16.new()
 Vector2int16.new(0)
@@ -20,6 +20,9 @@ end))
 assert(not pcall(function()
 	return Vector2int16.new(newproxy(true))
 end))
+
+assert(Vector2int16.new(1, 2).X == 1)
+assert(Vector2int16.new(1, 2).Y == 2)
 
 -- Ops
 

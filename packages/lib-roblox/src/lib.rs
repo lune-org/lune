@@ -7,8 +7,6 @@ pub mod instance;
 #[cfg(test)]
 mod tests;
 
-use datatypes::types::*;
-
 fn make_dt<F>(lua: &Lua, f: F) -> LuaResult<LuaTable>
 where
     F: Fn(&Lua, &LuaTable) -> LuaResult<()>,
@@ -21,7 +19,10 @@ where
 
 #[rustfmt::skip]
 fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaTable)>> {
+	use datatypes::types::*;
     Ok(vec![
+        ("UDim",         make_dt(lua, UDim::make_table)?),
+        ("UDim2",        make_dt(lua, UDim2::make_table)?),
         ("Vector2",      make_dt(lua, Vector2::make_table)?),
         ("Vector2int16", make_dt(lua, Vector2int16::make_table)?),
         ("Vector3",      make_dt(lua, Vector3::make_table)?),

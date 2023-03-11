@@ -133,6 +133,8 @@ impl<'lua> FromRbxVariantLua<'lua> for LuaAnyUserData<'lua> {
         use RbxVariant as Rbx;
         use super::types::*;
         match variant {
+            Rbx::UDim(_)         => Ok(lua.create_userdata(UDim::from_rbx_variant(variant)?)?),
+            Rbx::UDim2(_)        => Ok(lua.create_userdata(UDim2::from_rbx_variant(variant)?)?),
             Rbx::Vector2(_)      => Ok(lua.create_userdata(Vector2::from_rbx_variant(variant)?)?),
             Rbx::Vector2int16(_) => Ok(lua.create_userdata(Vector2int16::from_rbx_variant(variant)?)?),
             Rbx::Vector3(_)      => Ok(lua.create_userdata(Vector3::from_rbx_variant(variant)?)?),
@@ -154,8 +156,6 @@ impl<'lua> FromRbxVariantLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::Rect(_) => todo!(),
             // Rbx::Region3(_) => todo!(),
             // Rbx::Region3int16(_) => todo!(),
-            // Rbx::UDim(_) => todo!(),
-            // Rbx::UDim2(_) => todo!(),
             v => Err(DatatypeConversionError::FromRbxVariant {
                 from: v.variant_name(),
                 to: "LuaValue",
@@ -171,7 +171,11 @@ impl<'lua> ToRbxVariant for LuaAnyUserData<'lua> {
         desired_type: Option<RbxVariantType>,
     ) -> DatatypeConversionResult<RbxVariant> {
         use super::types::*;
-        if let Ok(v2) = self.borrow::<Vector2>() {
+        if let Ok(u) = self.borrow::<UDim>() {
+            u.to_rbx_variant(desired_type)
+        } else if let Ok(u2) = self.borrow::<UDim2>() {
+            u2.to_rbx_variant(desired_type)
+        } else if let Ok(v2) = self.borrow::<Vector2>() {
             v2.to_rbx_variant(desired_type)
         } else if let Ok(v2i) = self.borrow::<Vector2int16>() {
             v2i.to_rbx_variant(desired_type)

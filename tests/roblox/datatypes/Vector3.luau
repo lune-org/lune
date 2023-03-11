@@ -2,7 +2,7 @@
 -- crate all globals are also present in _G
 local Vector3 = _G.Vector3
 
--- Constructors
+-- Constructors & properties
 
 Vector3.new()
 Vector3.new(0)
@@ -20,6 +20,10 @@ end))
 assert(not pcall(function()
 	return Vector3.new(newproxy(true))
 end))
+
+assert(Vector3.new(1, 2, 3).X == 1)
+assert(Vector3.new(1, 2, 3).Y == 2)
+assert(Vector3.new(1, 2, 3).Z == 3)
 
 -- Constants
 

@@ -38,6 +38,8 @@ macro_rules! create_tests {
 }
 
 create_tests! {
+    datatypes_udim:         "datatypes/UDim",
+    datatypes_udim2:        "datatypes/UDim2",
     datatypes_vector2:      "datatypes/Vector2",
     datatypes_vector2int16: "datatypes/Vector2int16",
     datatypes_vector3:      "datatypes/Vector3",
