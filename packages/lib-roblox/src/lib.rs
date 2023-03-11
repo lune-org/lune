@@ -17,8 +17,14 @@ where
     Ok(tab)
 }
 
+#[rustfmt::skip]
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    let datatypes = vec![("Vector3", make_dt(lua, Vector3::make_dt_table)?)];
+    let datatypes = vec![
+        ("Vector2",      make_dt(lua, Vector2::make_dt_table)?),
+        ("Vector2int16", make_dt(lua, Vector2int16::make_dt_table)?),
+        ("Vector3",      make_dt(lua, Vector3::make_dt_table)?),
+        ("Vector3int16", make_dt(lua, Vector3int16::make_dt_table)?),
+    ];
     let exports = lua.create_table()?;
     for (name, tab) in datatypes {
         exports.set(name, tab)?;
