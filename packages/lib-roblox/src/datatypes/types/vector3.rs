@@ -171,34 +171,3 @@ impl From<&Vector3> for RbxVector3 {
         }
     }
 }
-
-impl FromRbxVariant for Vector3 {
-    fn from_rbx_variant(variant: &RbxVariant) -> DatatypeConversionResult<Self> {
-        if let RbxVariant::Vector3(v) = variant {
-            Ok(v.into())
-        } else {
-            Err(DatatypeConversionError::FromRbxVariant {
-                from: variant.variant_name(),
-                to: "Vector3",
-                detail: None,
-            })
-        }
-    }
-}
-
-impl ToRbxVariant for Vector3 {
-    fn to_rbx_variant(
-        &self,
-        desired_type: Option<RbxVariantType>,
-    ) -> DatatypeConversionResult<RbxVariant> {
-        if matches!(desired_type, None | Some(RbxVariantType::Vector3)) {
-            Ok(RbxVariant::Vector3(self.into()))
-        } else {
-            Err(DatatypeConversionError::ToRbxVariant {
-                to: desired_type.map(|d| d.variant_name()).unwrap_or("?"),
-                from: "Vector2",
-                detail: None,
-            })
-        }
-    }
-}

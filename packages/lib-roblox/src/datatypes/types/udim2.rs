@@ -175,34 +175,3 @@ impl From<&UDim2> for RbxUDim2 {
         }
     }
 }
-
-impl FromRbxVariant for UDim2 {
-    fn from_rbx_variant(variant: &RbxVariant) -> DatatypeConversionResult<Self> {
-        if let RbxVariant::UDim2(u) = variant {
-            Ok(u.into())
-        } else {
-            Err(DatatypeConversionError::FromRbxVariant {
-                from: variant.variant_name(),
-                to: "UDim2",
-                detail: None,
-            })
-        }
-    }
-}
-
-impl ToRbxVariant for UDim2 {
-    fn to_rbx_variant(
-        &self,
-        desired_type: Option<RbxVariantType>,
-    ) -> DatatypeConversionResult<RbxVariant> {
-        if matches!(desired_type, None | Some(RbxVariantType::UDim2)) {
-            Ok(RbxVariant::UDim2(self.into()))
-        } else {
-            Err(DatatypeConversionError::ToRbxVariant {
-                to: desired_type.map(|d| d.variant_name()).unwrap_or("?"),
-                from: "UDim2",
-                detail: None,
-            })
-        }
-    }
-}

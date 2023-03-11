@@ -7,7 +7,5 @@ mod shared;
 
 pub mod types;
 
-use conversion::*;
-use extension::*;
 use result::*;
 use shared::*;
