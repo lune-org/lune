@@ -5,11 +5,15 @@ pub(crate) use rbx_dom_weak::types::{Variant as RbxVariant, VariantType as RbxVa
 // NOTE: We create a new inner module scope here to make imports of datatypes more ergonomic
 
 mod vector2;
+mod vector2int16;
 mod vector3;
+mod vector3int16;
 
 pub mod types {
     pub use super::vector2::Vector2;
+    pub use super::vector2int16::Vector2int16;
     pub use super::vector3::Vector3;
+    pub use super::vector3int16::Vector3int16;
 }
 
 // Trait definitions for conversion between rbx_dom_weak variant <-> our custom datatypes
@@ -142,12 +146,12 @@ impl RbxVariantDisplayName for RbxVariant {
 // Generic impls for converting from lua values <-> rbx_dom_weak variants
 // We use a separate trait here since creating lua stuff needs the lua context
 
-pub(crate) trait FromRbxVariantLua<'lua>: Sized {
-    fn from_rbx_variant_lua(variant: &RbxVariant, lua: &'lua Lua) -> RbxConversionResult<Self>;
+pub(crate) trait RbxVariantToLua<'lua>: Sized {
+    fn rbx_variant_to_lua(variant: &RbxVariant, lua: &'lua Lua) -> RbxConversionResult<Self>;
 }
 
-impl<'lua> FromRbxVariantLua<'lua> for LuaValue<'lua> {
-    fn from_rbx_variant_lua(variant: &RbxVariant, lua: &'lua Lua) -> RbxConversionResult<Self> {
+impl<'lua> RbxVariantToLua<'lua> for LuaValue<'lua> {
+    fn rbx_variant_to_lua(variant: &RbxVariant, lua: &'lua Lua) -> RbxConversionResult<Self> {
         use self::types::*;
         use base64::engine::general_purpose::STANDARD_NO_PAD;
         use base64::engine::Engine as _;
@@ -179,7 +183,13 @@ impl<'lua> FromRbxVariantLua<'lua> for LuaValue<'lua> {
             Rbx::Vector2(_) => Vector2::from_rbx_variant(variant)?
                 .to_lua(lua)
                 .map_err(RbxConversionError::external),
+            Rbx::Vector2int16(_) => Vector2int16::from_rbx_variant(variant)?
+                .to_lua(lua)
+                .map_err(RbxConversionError::external),
             Rbx::Vector3(_) => Vector3::from_rbx_variant(variant)?
+                .to_lua(lua)
+                .map_err(RbxConversionError::external),
+            Rbx::Vector3int16(_) => Vector3int16::from_rbx_variant(variant)?
                 .to_lua(lua)
                 .map_err(RbxConversionError::external),
             // Not yet implemented datatypes
@@ -201,8 +211,6 @@ impl<'lua> FromRbxVariantLua<'lua> for LuaValue<'lua> {
             Rbx::Region3int16(_) => todo!(),
             Rbx::UDim(_) => todo!(),
             Rbx::UDim2(_) => todo!(),
-            Rbx::Vector2int16(_) => todo!(),
-            Rbx::Vector3int16(_) => todo!(),
             v => Err(RbxConversionError::FromRbxVariant {
                 from: v.display_name(),
                 to: "LuaValue",
@@ -256,8 +264,12 @@ impl<'lua> ToRbxVariant for LuaValue<'lua> {
                 (LuaValue::UserData(u), d) => {
                     if let Ok(v2) = u.borrow::<Vector2>() {
                         v2.to_rbx_variant(Some(d))
+                    } else if let Ok(v2i) = u.borrow::<Vector2int16>() {
+                        v2i.to_rbx_variant(Some(d))
                     } else if let Ok(v3) = u.borrow::<Vector3>() {
                         v3.to_rbx_variant(Some(d))
+                    } else if let Ok(v3i) = u.borrow::<Vector3int16>() {
+                        v3i.to_rbx_variant(Some(d))
                     } else {
                         Err(RbxConversionError::ToRbxVariant {
                             to: d.display_name(),
@@ -289,8 +301,12 @@ impl<'lua> ToRbxVariant for LuaValue<'lua> {
                 LuaValue::UserData(u) => {
                     if let Ok(v2) = u.borrow::<Vector2>() {
                         v2.to_rbx_variant(None)
+                    } else if let Ok(v2i) = u.borrow::<Vector2int16>() {
+                        v2i.to_rbx_variant(None)
                     } else if let Ok(v3) = u.borrow::<Vector3>() {
                         v3.to_rbx_variant(None)
+                    } else if let Ok(v3i) = u.borrow::<Vector3int16>() {
+                        v3i.to_rbx_variant(None)
                     } else {
                         Err(RbxConversionError::ToRbxVariant {
                             to: "Variant",
