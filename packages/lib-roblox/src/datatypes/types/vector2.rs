@@ -4,7 +4,7 @@ use glam::{Vec2, Vec3};
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector2 as RbxVector2;
 
-use super::*;
+use super::super::*;
 
 /**
     An implementation of the [Vector2](https://create.roblox.com/docs/reference/engine/datatypes/Vector2)
@@ -15,6 +15,26 @@ use super::*;
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2(pub Vec2);
+
+impl Vector2 {
+    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+        // Constants
+        datatype_table.set("xAxis", Vector2(Vec2::X))?;
+        datatype_table.set("yAxis", Vector2(Vec2::Y))?;
+        datatype_table.set("zero", Vector2(Vec2::ZERO))?;
+        datatype_table.set("one", Vector2(Vec2::ONE))?;
+        // Constructors
+        datatype_table.set(
+            "new",
+            lua.create_function(|_, (x, y): (Option<f32>, Option<f32>)| {
+                Ok(Vector2(Vec2 {
+                    x: x.unwrap_or_default(),
+                    y: y.unwrap_or_default(),
+                }))
+            })?,
+        )
+    }
+}
 
 impl fmt::Display for Vector2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -48,8 +68,8 @@ impl LuaUserData for Vector2 {
             Ok(Vector2(this.0.min(rhs.0)))
         });
         // Metamethods
-        methods.add_meta_method(LuaMetaMethod::Eq, datatype_impl_eq);
-        methods.add_meta_method(LuaMetaMethod::ToString, datatype_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(Vector2(-this.0)));
         methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: Vector2| {
             Ok(Vector2(this.0 + rhs.0))
@@ -100,26 +120,6 @@ impl LuaUserData for Vector2 {
     }
 }
 
-impl DatatypeTable for Vector2 {
-    fn make_dt_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        // Constants
-        datatype_table.set("xAxis", Vector2(Vec2::X))?;
-        datatype_table.set("yAxis", Vector2(Vec2::Y))?;
-        datatype_table.set("zero", Vector2(Vec2::ZERO))?;
-        datatype_table.set("one", Vector2(Vec2::ONE))?;
-        // Constructors
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y): (Option<f32>, Option<f32>)| {
-                Ok(Vector2(Vec2 {
-                    x: x.unwrap_or_default(),
-                    y: y.unwrap_or_default(),
-                }))
-            })?,
-        )
-    }
-}
-
 impl From<&RbxVector2> for Vector2 {
     fn from(v: &RbxVector2) -> Self {
         Vector2(Vec2 { x: v.x, y: v.y })
@@ -133,12 +133,12 @@ impl From<&Vector2> for RbxVector2 {
 }
 
 impl FromRbxVariant for Vector2 {
-    fn from_rbx_variant(variant: &RbxVariant) -> RbxConversionResult<Self> {
+    fn from_rbx_variant(variant: &RbxVariant) -> DatatypeConversionResult<Self> {
         if let RbxVariant::Vector2(v) = variant {
             Ok(v.into())
         } else {
-            Err(RbxConversionError::FromRbxVariant {
-                from: variant.display_name(),
+            Err(DatatypeConversionError::FromRbxVariant {
+                from: variant.variant_name(),
                 to: "Vector2",
                 detail: None,
             })
@@ -150,12 +150,13 @@ impl ToRbxVariant for Vector2 {
     fn to_rbx_variant(
         &self,
         desired_type: Option<RbxVariantType>,
-    ) -> RbxConversionResult<RbxVariant> {
+    ) -> DatatypeConversionResult<RbxVariant> {
         if matches!(desired_type, None | Some(RbxVariantType::Vector2)) {
             Ok(RbxVariant::Vector2(self.into()))
         } else {
-            Err(RbxConversionError::DesiredTypeMismatch {
-                can_convert_to: Some(RbxVariantType::Vector2.display_name()),
+            Err(DatatypeConversionError::ToRbxVariant {
+                to: desired_type.map(|d| d.variant_name()).unwrap_or("?"),
+                from: "Vector2",
                 detail: None,
             })
         }

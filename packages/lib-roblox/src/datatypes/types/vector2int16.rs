@@ -4,7 +4,7 @@ use glam::IVec2;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector2int16 as RbxVector2int16;
 
-use super::*;
+use super::super::*;
 
 /**
     An implementation of the [Vector2int16](https://create.roblox.com/docs/reference/engine/datatypes/Vector2int16)
@@ -15,6 +15,20 @@ use super::*;
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2int16(pub IVec2);
+
+impl Vector2int16 {
+    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+        datatype_table.set(
+            "new",
+            lua.create_function(|_, (x, y): (Option<i16>, Option<i16>)| {
+                Ok(Vector2int16(IVec2 {
+                    x: x.unwrap_or_default() as i32,
+                    y: y.unwrap_or_default() as i32,
+                }))
+            })?,
+        )
+    }
+}
 
 impl fmt::Display for Vector2int16 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -29,8 +43,8 @@ impl LuaUserData for Vector2int16 {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_meta_method(LuaMetaMethod::Eq, datatype_impl_eq);
-        methods.add_meta_method(LuaMetaMethod::ToString, datatype_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(Vector2int16(-this.0)));
         methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: Vector2int16| {
             Ok(Vector2int16(this.0 + rhs.0))
@@ -81,20 +95,6 @@ impl LuaUserData for Vector2int16 {
     }
 }
 
-impl DatatypeTable for Vector2int16 {
-    fn make_dt_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y): (Option<i16>, Option<i16>)| {
-                Ok(Vector2int16(IVec2 {
-                    x: x.unwrap_or_default() as i32,
-                    y: y.unwrap_or_default() as i32,
-                }))
-            })?,
-        )
-    }
-}
-
 impl From<&RbxVector2int16> for Vector2int16 {
     fn from(v: &RbxVector2int16) -> Self {
         Vector2int16(IVec2 {
@@ -114,12 +114,12 @@ impl From<&Vector2int16> for RbxVector2int16 {
 }
 
 impl FromRbxVariant for Vector2int16 {
-    fn from_rbx_variant(variant: &RbxVariant) -> RbxConversionResult<Self> {
+    fn from_rbx_variant(variant: &RbxVariant) -> DatatypeConversionResult<Self> {
         if let RbxVariant::Vector2int16(v) = variant {
             Ok(v.into())
         } else {
-            Err(RbxConversionError::FromRbxVariant {
-                from: variant.display_name(),
+            Err(DatatypeConversionError::FromRbxVariant {
+                from: variant.variant_name(),
                 to: "Vector2int16",
                 detail: None,
             })
@@ -131,12 +131,13 @@ impl ToRbxVariant for Vector2int16 {
     fn to_rbx_variant(
         &self,
         desired_type: Option<RbxVariantType>,
-    ) -> RbxConversionResult<RbxVariant> {
+    ) -> DatatypeConversionResult<RbxVariant> {
         if matches!(desired_type, None | Some(RbxVariantType::Vector2int16)) {
             Ok(RbxVariant::Vector2int16(self.into()))
         } else {
-            Err(RbxConversionError::DesiredTypeMismatch {
-                can_convert_to: Some(RbxVariantType::Vector2int16.display_name()),
+            Err(DatatypeConversionError::ToRbxVariant {
+                to: desired_type.map(|d| d.variant_name()).unwrap_or("?"),
+                from: "Vector2",
                 detail: None,
             })
         }

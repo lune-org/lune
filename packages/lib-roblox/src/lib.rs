@@ -8,7 +8,6 @@ pub mod instance;
 mod tests;
 
 use datatypes::types::*;
-use datatypes::DatatypeTable;
 
 fn make_dt<F>(lua: &Lua, f: F) -> LuaResult<LuaTable>
 where
@@ -23,10 +22,10 @@ where
 #[rustfmt::skip]
 fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaTable)>> {
     Ok(vec![
-        ("Vector2",      make_dt(lua, Vector2::make_dt_table)?),
-        ("Vector2int16", make_dt(lua, Vector2int16::make_dt_table)?),
-        ("Vector3",      make_dt(lua, Vector3::make_dt_table)?),
-        ("Vector3int16", make_dt(lua, Vector3int16::make_dt_table)?),
+        ("Vector2",      make_dt(lua, Vector2::make_table)?),
+        ("Vector2int16", make_dt(lua, Vector2int16::make_table)?),
+        ("Vector3",      make_dt(lua, Vector3::make_table)?),
+        ("Vector3int16", make_dt(lua, Vector3int16::make_table)?),
     ])
 }
 

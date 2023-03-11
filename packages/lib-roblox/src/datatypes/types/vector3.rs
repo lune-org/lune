@@ -4,7 +4,7 @@ use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector3 as RbxVector3;
 
-use super::*;
+use super::super::*;
 
 /**
     An implementation of the [Vector3](https://create.roblox.com/docs/reference/engine/datatypes/Vector3)
@@ -18,6 +18,29 @@ use super::*;
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3(pub Vec3);
+
+impl Vector3 {
+    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+        // Constants
+        datatype_table.set("xAxis", Vector3(Vec3::X))?;
+        datatype_table.set("yAxis", Vector3(Vec3::Y))?;
+        datatype_table.set("zAxis", Vector3(Vec3::Z))?;
+        datatype_table.set("zero", Vector3(Vec3::ZERO))?;
+        datatype_table.set("one", Vector3(Vec3::ONE))?;
+        // Constructors
+        datatype_table.set(
+            "new",
+            lua.create_function(|_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
+                Ok(Vector3(Vec3 {
+                    x: x.unwrap_or_default(),
+                    y: y.unwrap_or_default(),
+                    z: z.unwrap_or_default(),
+                }))
+            })?,
+        )
+        // FUTURE: Implement FromNormalId and FromAxis constructors?
+    }
+}
 
 impl fmt::Display for Vector3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -59,8 +82,8 @@ impl LuaUserData for Vector3 {
             Ok(Vector3(this.0.min(rhs.0)))
         });
         // Metamethods
-        methods.add_meta_method(LuaMetaMethod::Eq, datatype_impl_eq);
-        methods.add_meta_method(LuaMetaMethod::ToString, datatype_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, |_, this, ()| Ok(Vector3(-this.0)));
         methods.add_meta_method(LuaMetaMethod::Add, |_, this, rhs: Vector3| {
             Ok(Vector3(this.0 + rhs.0))
@@ -111,29 +134,6 @@ impl LuaUserData for Vector3 {
     }
 }
 
-impl DatatypeTable for Vector3 {
-    fn make_dt_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        // Constants
-        datatype_table.set("xAxis", Vector3(Vec3::X))?;
-        datatype_table.set("yAxis", Vector3(Vec3::Y))?;
-        datatype_table.set("zAxis", Vector3(Vec3::Z))?;
-        datatype_table.set("zero", Vector3(Vec3::ZERO))?;
-        datatype_table.set("one", Vector3(Vec3::ONE))?;
-        // Constructors
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
-                Ok(Vector3(Vec3 {
-                    x: x.unwrap_or_default(),
-                    y: y.unwrap_or_default(),
-                    z: z.unwrap_or_default(),
-                }))
-            })?,
-        )
-        // FUTURE: Implement FromNormalId and FromAxis constructors?
-    }
-}
-
 impl From<&RbxVector3> for Vector3 {
     fn from(v: &RbxVector3) -> Self {
         Vector3(Vec3 {
@@ -155,12 +155,12 @@ impl From<&Vector3> for RbxVector3 {
 }
 
 impl FromRbxVariant for Vector3 {
-    fn from_rbx_variant(variant: &RbxVariant) -> RbxConversionResult<Self> {
+    fn from_rbx_variant(variant: &RbxVariant) -> DatatypeConversionResult<Self> {
         if let RbxVariant::Vector3(v) = variant {
             Ok(v.into())
         } else {
-            Err(RbxConversionError::FromRbxVariant {
-                from: variant.display_name(),
+            Err(DatatypeConversionError::FromRbxVariant {
+                from: variant.variant_name(),
                 to: "Vector3",
                 detail: None,
             })
@@ -172,12 +172,13 @@ impl ToRbxVariant for Vector3 {
     fn to_rbx_variant(
         &self,
         desired_type: Option<RbxVariantType>,
-    ) -> RbxConversionResult<RbxVariant> {
+    ) -> DatatypeConversionResult<RbxVariant> {
         if matches!(desired_type, None | Some(RbxVariantType::Vector3)) {
             Ok(RbxVariant::Vector3(self.into()))
         } else {
-            Err(RbxConversionError::DesiredTypeMismatch {
-                can_convert_to: Some(RbxVariantType::Vector3.display_name()),
+            Err(DatatypeConversionError::ToRbxVariant {
+                to: desired_type.map(|d| d.variant_name()).unwrap_or("?"),
+                from: "Vector2",
                 detail: None,
             })
         }
