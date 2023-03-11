@@ -1,6 +1,6 @@
 use core::fmt;
 
-use glam::{Vec2, Vec3A};
+use glam::{Vec2, Vec3};
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector2 as RbxVector2;
 
@@ -33,8 +33,8 @@ impl LuaUserData for Vector2 {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Cross", |_, this, rhs: Vector2| {
-            let this_v3 = Vec3A::new(this.0.x, this.0.y, 0f32);
-            let rhs_v3 = Vec3A::new(rhs.0.x, rhs.0.y, 0f32);
+            let this_v3 = Vec3::new(this.0.x, this.0.y, 0f32);
+            let rhs_v3 = Vec3::new(rhs.0.x, rhs.0.y, 0f32);
             Ok(this_v3.cross(rhs_v3).z)
         });
         methods.add_method("Dot", |_, this, rhs: Vector2| Ok(this.0.dot(rhs.0)));

@@ -1,6 +1,6 @@
 use core::fmt;
 
-use glam::Vec3A;
+use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector3 as RbxVector3;
 
@@ -8,7 +8,7 @@ use super::*;
 
 /**
     An implementation of the [Vector3](https://create.roblox.com/docs/reference/engine/datatypes/Vector3)
-    Roblox datatype, backed by [`glam::Vec3A`].
+    Roblox datatype, backed by [`glam::Vec3`].
 
     This implements all documented properties & methods of the Vector3
     class as of March 2023, as well as the `new(x, y, z)` constructor.
@@ -17,7 +17,7 @@ use super::*;
     and instead allow us to implement all abovementioned APIs accurately.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Vector3(pub Vec3A);
+pub struct Vector3(pub Vec3);
 
 impl fmt::Display for Vector3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -70,7 +70,7 @@ impl LuaUserData for Vector3 {
         });
         methods.add_meta_method(LuaMetaMethod::Mul, |_, this, rhs: LuaValue| {
             match &rhs {
-                LuaValue::Number(n) => return Ok(Vector3(this.0 * Vec3A::splat(*n as f32))),
+                LuaValue::Number(n) => return Ok(Vector3(this.0 * Vec3::splat(*n as f32))),
                 LuaValue::UserData(ud) => {
                     if let Ok(vec) = ud.borrow::<Vector3>() {
                         return Ok(Vector3(this.0 * vec.0));
@@ -89,7 +89,7 @@ impl LuaUserData for Vector3 {
         });
         methods.add_meta_method(LuaMetaMethod::Div, |_, this, rhs: LuaValue| {
             match &rhs {
-                LuaValue::Number(n) => return Ok(Vector3(this.0 / Vec3A::splat(*n as f32))),
+                LuaValue::Number(n) => return Ok(Vector3(this.0 / Vec3::splat(*n as f32))),
                 LuaValue::UserData(ud) => {
                     if let Ok(vec) = ud.borrow::<Vector3>() {
                         return Ok(Vector3(this.0 / vec.0));
@@ -112,16 +112,16 @@ impl LuaUserData for Vector3 {
 impl DatatypeTable for Vector3 {
     fn make_dt_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         // Constants
-        datatype_table.set("xAxis", Vector3(Vec3A::X))?;
-        datatype_table.set("yAxis", Vector3(Vec3A::Y))?;
-        datatype_table.set("zAxis", Vector3(Vec3A::Z))?;
-        datatype_table.set("zero", Vector3(Vec3A::ZERO))?;
-        datatype_table.set("one", Vector3(Vec3A::ONE))?;
+        datatype_table.set("xAxis", Vector3(Vec3::X))?;
+        datatype_table.set("yAxis", Vector3(Vec3::Y))?;
+        datatype_table.set("zAxis", Vector3(Vec3::Z))?;
+        datatype_table.set("zero", Vector3(Vec3::ZERO))?;
+        datatype_table.set("one", Vector3(Vec3::ONE))?;
         // Constructors
         datatype_table.set(
             "new",
             lua.create_function(|_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
-                Ok(Vector3(Vec3A {
+                Ok(Vector3(Vec3 {
                     x: x.unwrap_or_default(),
                     y: y.unwrap_or_default(),
                     z: z.unwrap_or_default(),
@@ -135,7 +135,7 @@ impl DatatypeTable for Vector3 {
 impl FromRbxVariant for Vector3 {
     fn from_rbx_variant(variant: &RbxVariant) -> RbxConversionResult<Self> {
         if let RbxVariant::Vector3(v) = variant {
-            Ok(Vector3(Vec3A {
+            Ok(Vector3(Vec3 {
                 x: v.x,
                 y: v.y,
                 z: v.z,
