@@ -19,8 +19,9 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn fs_read_file(_: &'static Lua, path: String) -> LuaResult<String> {
-    fs::read_to_string(&path).await.map_err(LuaError::external)
+async fn fs_read_file(lua: &'static Lua, path: String) -> LuaResult<LuaString> {
+    let bytes = fs::read(&path).await.map_err(LuaError::external)?;
+    lua.create_string(&bytes)
 }
 
 async fn fs_read_dir(_: &'static Lua, path: String) -> LuaResult<Vec<String>> {
@@ -52,8 +53,11 @@ async fn fs_read_dir(_: &'static Lua, path: String) -> LuaResult<Vec<String>> {
     Ok(dir_strings_no_prefix)
 }
 
-async fn fs_write_file(_: &'static Lua, (path, contents): (String, String)) -> LuaResult<()> {
-    fs::write(&path, &contents)
+async fn fs_write_file(
+    _: &'static Lua,
+    (path, contents): (String, LuaString<'_>),
+) -> LuaResult<()> {
+    fs::write(&path, &contents.as_bytes())
         .await
         .map_err(LuaError::external)
 }

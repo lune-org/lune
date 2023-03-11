@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     print("Hello, world!")
     ```
 
+### Fixed
+
+-   Fixed `fs.writeFile` and `fs.readFile` not working with strings / files that are invalid utf-8
+
 ## `0.5.5` - March 8th, 2023
 
 ### Added
