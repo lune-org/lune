@@ -60,6 +60,7 @@ impl LuaUserData for Vector2 {
         methods.add_meta_method(LuaMetaMethod::Mul, |_, this, rhs: LuaValue| {
             match &rhs {
                 LuaValue::Number(n) => return Ok(Vector2(this.0 * Vec2::splat(*n as f32))),
+                LuaValue::Integer(i) => return Ok(Vector2(this.0 * Vec2::splat(*i as f32))),
                 LuaValue::UserData(ud) => {
                     if let Ok(vec) = ud.borrow::<Vector2>() {
                         return Ok(Vector2(this.0 * vec.0));
@@ -79,6 +80,7 @@ impl LuaUserData for Vector2 {
         methods.add_meta_method(LuaMetaMethod::Div, |_, this, rhs: LuaValue| {
             match &rhs {
                 LuaValue::Number(n) => return Ok(Vector2(this.0 / Vec2::splat(*n as f32))),
+                LuaValue::Integer(i) => return Ok(Vector2(this.0 / Vec2::splat(*i as f32))),
                 LuaValue::UserData(ud) => {
                     if let Ok(vec) = ud.borrow::<Vector2>() {
                         return Ok(Vector2(this.0 / vec.0));

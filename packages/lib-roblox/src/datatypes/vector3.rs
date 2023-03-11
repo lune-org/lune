@@ -71,6 +71,7 @@ impl LuaUserData for Vector3 {
         methods.add_meta_method(LuaMetaMethod::Mul, |_, this, rhs: LuaValue| {
             match &rhs {
                 LuaValue::Number(n) => return Ok(Vector3(this.0 * Vec3::splat(*n as f32))),
+                LuaValue::Integer(i) => return Ok(Vector3(this.0 * Vec3::splat(*i as f32))),
                 LuaValue::UserData(ud) => {
                     if let Ok(vec) = ud.borrow::<Vector3>() {
                         return Ok(Vector3(this.0 * vec.0));
@@ -90,6 +91,7 @@ impl LuaUserData for Vector3 {
         methods.add_meta_method(LuaMetaMethod::Div, |_, this, rhs: LuaValue| {
             match &rhs {
                 LuaValue::Number(n) => return Ok(Vector3(this.0 / Vec3::splat(*n as f32))),
+                LuaValue::Integer(i) => return Ok(Vector3(this.0 / Vec3::splat(*i as f32))),
                 LuaValue::UserData(ud) => {
                     if let Ok(vec) = ud.borrow::<Vector3>() {
                         return Ok(Vector3(this.0 / vec.0));

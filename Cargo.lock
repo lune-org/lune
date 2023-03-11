@@ -861,6 +861,7 @@ dependencies = [
 name = "lune-roblox"
 version = "0.5.6"
 dependencies = [
+ "anyhow",
  "base64 0.21.0",
  "glam",
  "mlua",
