@@ -5,14 +5,11 @@
 
 # Lune 🌙
 
-	<div>
-
 [![Current Lune library version](https://img.shields.io/crates/v/lune.svg?label=Version)](https://crates.io/crates/lune)
-[![CI status](https://github.com/filiptibell/lune/workflows/ci/badge.svg)](https://github.com/filiptibell/lune/actions)
+[![CI status](https://github.com/filiptibell/lune/workflows/CI/badge.svg)](https://github.com/filiptibell/lune/actions)
 [![Release status](https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/release.yaml)](https://github.com/filiptibell/lune/actions)
 [![Current Lune library version](https://img.shields.io/github/license/filiptibell/lune.svg?label=License&color=informational)](https://github.com/filiptibell/lune/blob/main/LICENSE.txt)
 
-	</div>
 </div>
 
 ---
