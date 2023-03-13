@@ -16,18 +16,18 @@
 
 Lune is a standalone [Luau](https://luau-lang.org) script runtime meant to be an alternative to traditional shell scripts, with the goal of drastically simplifying the typical tasks shell scripts are used for, making them easier to read and maintain.
 
-## Features {#features}
+## Features
 
 - A strictly minimal but powerful interface that is easy to read and remember, just like Lua itself
 - Fully featured APIs for the filesystem, networking, stdio, all included in the small (~2mb) executable
 - World-class documentation, on the web *or* directly in your editor, no network connection necessary
 - A familiar scripting environment for Roblox developers, with an included 1-to-1 task scheduler port
 
-## Non-goals {#non-goals}
+## Non-goals
 
 - Making scripts short and terse - proper autocomplete / intellisense make scripting using Lune just as quick, and readability is important
 - Running full Roblox game scripts outside of Roblox - there is some compatibility here already, but Lune is meant for different purposes
 
-## Where do I start? {#starting-guide}
+## Where do I start?
 
 Head over to the [wiki](https://github.com/filiptibell/lune/wiki) to get started using Lune!
