@@ -19,7 +19,7 @@
 	</div>
 </div>
 
-<hr />
+---
 
 Lune is a standalone [Luau](https://luau-lang.org) script runtime meant to be an alternative to traditional shell scripts, with the goal of drastically simplifying the typical tasks shell scripts are used for, making them easier to read and maintain.
 
