@@ -36,9 +36,15 @@ reqwest = { version = "0.11", default-features = false, features = [
 ] }
 
 # Profile for building the release binary, with the following options set:
+#
 # 1. Optimize for size
 # 2. Automatically strip symbols from the binary
 # 3. Enable link-time optimization
+#
+# Note that we could abort instead of panicking to cut down on size
+# even more, but because we use the filesystem & some other APIs we
+# need the panic unwinding to properly handle usage of said APIs
+#
 [profile.release]
 opt-level = "z"
 strip = true
