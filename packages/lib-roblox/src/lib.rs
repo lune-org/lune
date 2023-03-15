@@ -4,9 +4,6 @@ pub mod datatypes;
 pub mod document;
 pub mod instance;
 
-#[cfg(test)]
-mod tests;
-
 fn make_dt<F>(lua: &Lua, f: F) -> LuaResult<LuaValue>
 where
     F: Fn(&Lua, &LuaTable) -> LuaResult<()>,
