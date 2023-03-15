@@ -4,7 +4,7 @@ use mlua::prelude::*;
 use rand::seq::SliceRandom;
 use rbx_dom_weak::types::BrickColor as RbxBrickColor;
 
-use super::super::*;
+use super::{super::*, Color3};
 
 /**
     An implementation of the [BrickColor](https://create.roblox.com/docs/reference/engine/datatypes/BrickColor) Roblox datatype.
@@ -25,6 +25,7 @@ impl BrickColor {
         type ArgsNumber = u16;
         type ArgsName = String;
         type ArgsRgb = (u8, u8, u8);
+        type ArgsColor3 = Color3;
         datatype_table.set(
             "new",
             lua.create_function(|lua, args: LuaMultiValue| {
@@ -34,8 +35,9 @@ impl BrickColor {
                     Ok(color_from_name(name))
                 } else if let Ok((r, g, b)) = ArgsRgb::from_lua_multi(args.clone(), lua) {
                     Ok(color_from_rgb(r, g, b))
+                } else if let Ok(color) = ArgsColor3::from_lua_multi(args.clone(), lua) {
+                    Ok(Self::from(color))
                 } else {
-                    // TODO: Add support for constructing from a Color3 here
                     // FUTURE: Better error message here using given arg types
                     Err(LuaError::RuntimeError(
                         "Invalid arguments to constructor".to_string(),
@@ -82,8 +84,7 @@ impl LuaUserData for BrickColor {
         fields.add_field_method_get("r", |_, this| Ok(this.rgb.0 as f32 / 255f32));
         fields.add_field_method_get("g", |_, this| Ok(this.rgb.1 as f32 / 255f32));
         fields.add_field_method_get("b", |_, this| Ok(this.rgb.2 as f32 / 255f32));
-        // TODO: Add support for getting a Color3 out of this here
-        // fields.add_field_method_get("Color", |_, this| Ok(this.color));
+        fields.add_field_method_get("Color", |_, this| Ok(Color3::from(*this)));
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -101,6 +102,25 @@ impl Default for BrickColor {
 impl fmt::Display for BrickColor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
+    }
+}
+
+impl From<Color3> for BrickColor {
+    fn from(value: Color3) -> Self {
+        let r = value.r.clamp(u8::MIN as f32, u8::MAX as f32) as u8;
+        let g = value.g.clamp(u8::MIN as f32, u8::MAX as f32) as u8;
+        let b = value.b.clamp(u8::MIN as f32, u8::MAX as f32) as u8;
+        color_from_rgb(r, g, b)
+    }
+}
+
+impl From<BrickColor> for Color3 {
+    fn from(value: BrickColor) -> Self {
+        Self {
+            r: (value.rgb.0 as f32) / 255.0,
+            g: (value.rgb.1 as f32) / 255.0,
+            b: (value.rgb.2 as f32) / 255.0,
+        }
     }
 }
 
