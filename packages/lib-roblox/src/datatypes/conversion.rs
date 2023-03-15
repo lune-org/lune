@@ -136,6 +136,9 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 
             Rbx::BrickColor(value) => lua.create_userdata(BrickColor::from(value))?,
 
+            Rbx::Color3(value)      => lua.create_userdata(Color3::from(value))?,
+            Rbx::Color3uint8(value) => lua.create_userdata(Color3::from(value))?,
+
             Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
             Rbx::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
 
@@ -167,6 +170,9 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
 
         let f = match variant_type {
             RbxVariantType::BrickColor => convert::<BrickColor, rbx::BrickColor>,
+
+            RbxVariantType::Color3      => convert::<Color3, rbx::Color3>,
+            RbxVariantType::Color3uint8 => convert::<Color3, rbx::Color3uint8>,
 
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,

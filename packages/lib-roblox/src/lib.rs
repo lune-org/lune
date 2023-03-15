@@ -22,6 +22,7 @@ fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaTable)>> {
 	use datatypes::types::*;
     Ok(vec![
         ("BrickColor",   make_dt(lua, BrickColor::make_table)?),
+        ("Color3",       make_dt(lua, Color3::make_table)?),
         ("UDim",         make_dt(lua, UDim::make_table)?),
         ("UDim2",        make_dt(lua, UDim2::make_table)?),
         ("Vector2",      make_dt(lua, Vector2::make_table)?),
