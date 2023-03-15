@@ -173,6 +173,8 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::Color3uint8   => convert::<Color3,        rbx::Color3uint8>,
             RbxVariantType::ColorSequence => convert::<ColorSequence, rbx::ColorSequence>,
 
+            RbxVariantType::Enum => convert::<EnumItem, rbx::Enum>,
+
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
 

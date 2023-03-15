@@ -7,20 +7,21 @@ pub mod instance;
 #[cfg(test)]
 mod tests;
 
-fn make_dt<F>(lua: &Lua, f: F) -> LuaResult<LuaTable>
+fn make_dt<F>(lua: &Lua, f: F) -> LuaResult<LuaValue>
 where
     F: Fn(&Lua, &LuaTable) -> LuaResult<()>,
 {
     let tab = lua.create_table()?;
     f(lua, &tab)?;
     tab.set_readonly(true);
-    Ok(tab)
+    Ok(LuaValue::Table(tab))
 }
 
 #[rustfmt::skip]
-fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaTable)>> {
+fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
 	use datatypes::types::*;
     Ok(vec![
+		// Classes
         ("BrickColor",            make_dt(lua, BrickColor::make_table)?),
         ("Color3",                make_dt(lua, Color3::make_table)?),
         ("ColorSequence",         make_dt(lua, ColorSequence::make_table)?),
@@ -31,6 +32,8 @@ fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaTable)>> {
         ("Vector2int16",          make_dt(lua, Vector2int16::make_table)?),
         ("Vector3",               make_dt(lua, Vector3::make_table)?),
         ("Vector3int16",          make_dt(lua, Vector3int16::make_table)?),
+		// Singletons
+        ("Enum", LuaValue::UserData(Enums::make_singleton(lua)?)),
     ])
 }
 
