@@ -3,7 +3,7 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_reflection::EnumDescriptor;
 
-use super::EnumItem;
+use super::{super::*, EnumItem};
 
 /**
     An implementation of the [Enum](https://create.roblox.com/docs/reference/engine/datatypes/Enum) Roblox datatype.
@@ -17,6 +17,7 @@ pub struct Enum {
 
 impl LuaUserData for Enum {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // Methods
         methods.add_method("GetEnumItems", |_, this, ()| {
             Ok(this
                 .desc
@@ -41,7 +42,10 @@ impl LuaUserData for Enum {
                     name, this.desc.name
                 ))),
             }
-        })
+        });
+        // Metamethods
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 

@@ -2,7 +2,7 @@ use core::fmt;
 
 use mlua::prelude::*;
 
-use super::Enum;
+use super::{super::*, Enum};
 
 /**
     An implementation of the [Enums](https://create.roblox.com/docs/reference/engine/datatypes/Enums) Roblox datatype.
@@ -20,6 +20,7 @@ impl Enums {
 
 impl LuaUserData for Enums {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // Methods
         methods.add_method("GetEnums", |_, _, ()| {
             let db = rbx_reflection_database::get();
             Ok(db.enums.values().map(Enum::from).collect::<Vec<_>>())
@@ -33,7 +34,10 @@ impl LuaUserData for Enums {
                     name
                 ))),
             }
-        })
+        });
+        // Metamethods
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 

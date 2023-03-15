@@ -4,7 +4,7 @@ use mlua::prelude::*;
 use rbx_dom_weak::types::Enum as RbxEnum;
 use rbx_reflection::DataType as RbxDataType;
 
-use super::Enum;
+use super::{super::*, Enum};
 
 /**
     An implementation of the [EnumItem](https://create.roblox.com/docs/reference/engine/datatypes/EnumItem) Roblox datatype.
@@ -64,6 +64,11 @@ impl LuaUserData for EnumItem {
         fields.add_field_method_get("Name", |_, this| Ok(this.name.clone()));
         fields.add_field_method_get("Value", |_, this| Ok(this.value));
         fields.add_field_method_get("EnumType", |_, this| Ok(this.parent.clone()));
+    }
+
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 
