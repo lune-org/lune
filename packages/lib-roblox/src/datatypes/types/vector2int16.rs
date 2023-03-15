@@ -43,46 +43,8 @@ impl LuaUserData for Vector2int16 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, |_, this, rhs: LuaValue| {
-            match &rhs {
-                LuaValue::Number(n) => return Ok(Vector2int16(this.0 * IVec2::splat(*n as i32))),
-                LuaValue::Integer(i) => return Ok(Vector2int16(this.0 * IVec2::splat(*i))),
-                LuaValue::UserData(ud) => {
-                    if let Ok(vec) = ud.borrow::<Vector2int16>() {
-                        return Ok(Vector2int16(this.0 * vec.0));
-                    }
-                }
-                _ => {}
-            };
-            Err(LuaError::FromLuaConversionError {
-                from: rhs.type_name(),
-                to: "Vector2int16",
-                message: Some(format!(
-                    "Expected Vector2int16 or number, got {}",
-                    rhs.type_name()
-                )),
-            })
-        });
-        methods.add_meta_method(LuaMetaMethod::Div, |_, this, rhs: LuaValue| {
-            match &rhs {
-                LuaValue::Number(n) => return Ok(Vector2int16(this.0 / IVec2::splat(*n as i32))),
-                LuaValue::Integer(i) => return Ok(Vector2int16(this.0 / IVec2::splat(*i))),
-                LuaValue::UserData(ud) => {
-                    if let Ok(vec) = ud.borrow::<Vector2int16>() {
-                        return Ok(Vector2int16(this.0 / vec.0));
-                    }
-                }
-                _ => {}
-            };
-            Err(LuaError::FromLuaConversionError {
-                from: rhs.type_name(),
-                to: "Vector2int16",
-                message: Some(format!(
-                    "Expected Vector2int16 or number, got {}",
-                    rhs.type_name()
-                )),
-            })
-        });
+        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_i32);
+        methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_i32);
     }
 }
 
@@ -110,6 +72,34 @@ impl ops::Sub for Vector2int16 {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         Vector2int16(self.0 - rhs.0)
+    }
+}
+
+impl ops::Mul for Vector2int16 {
+    type Output = Vector2int16;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+
+impl ops::Mul<i32> for Vector2int16 {
+    type Output = Vector2int16;
+    fn mul(self, rhs: i32) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+
+impl ops::Div for Vector2int16 {
+    type Output = Vector2int16;
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0 / rhs.0)
+    }
+}
+
+impl ops::Div<i32> for Vector2int16 {
+    type Output = Vector2int16;
+    fn div(self, rhs: i32) -> Self::Output {
+        Self(self.0 / rhs)
     }
 }
 

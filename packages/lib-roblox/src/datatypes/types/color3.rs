@@ -1,4 +1,5 @@
 use core::fmt;
+use std::ops;
 
 use glam::Vec3;
 use mlua::prelude::*;
@@ -10,6 +11,9 @@ use super::super::*;
     An implementation of the [Color3](https://create.roblox.com/docs/reference/engine/datatypes/Color3) Roblox datatype.
 
     This implements all documented properties, methods & constructors of the Color3 class as of March 2023.
+
+    It also implements math operations for addition, subtraction, multiplication, and division,
+    all of which are suspiciously missing from the Roblox implementation of the Color3 datatype.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color3 {
@@ -151,6 +155,11 @@ impl LuaUserData for Color3 {
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
+        methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
+        methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
+        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
+        methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
     }
 }
 
@@ -167,6 +176,83 @@ impl Default for Color3 {
 impl fmt::Display for Color3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}, {}, {}", self.r, self.g, self.b)
+    }
+}
+
+impl ops::Neg for Color3 {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Color3 {
+            r: -self.r,
+            g: -self.g,
+            b: -self.b,
+        }
+    }
+}
+
+impl ops::Add for Color3 {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Color3 {
+            r: self.r + rhs.r,
+            g: self.g + rhs.g,
+            b: self.b + rhs.b,
+        }
+    }
+}
+
+impl ops::Sub for Color3 {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Color3 {
+            r: self.r - rhs.r,
+            g: self.g - rhs.g,
+            b: self.b - rhs.b,
+        }
+    }
+}
+
+impl ops::Mul for Color3 {
+    type Output = Color3;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Color3 {
+            r: self.r * rhs.r,
+            g: self.g * rhs.g,
+            b: self.b * rhs.b,
+        }
+    }
+}
+
+impl ops::Mul<f32> for Color3 {
+    type Output = Color3;
+    fn mul(self, rhs: f32) -> Self::Output {
+        Color3 {
+            r: self.r * rhs,
+            g: self.g * rhs,
+            b: self.b * rhs,
+        }
+    }
+}
+
+impl ops::Div for Color3 {
+    type Output = Color3;
+    fn div(self, rhs: Self) -> Self::Output {
+        Color3 {
+            r: self.r / rhs.r,
+            g: self.g / rhs.g,
+            b: self.b / rhs.b,
+        }
+    }
+}
+
+impl ops::Div<f32> for Color3 {
+    type Output = Color3;
+    fn div(self, rhs: f32) -> Self::Output {
+        Color3 {
+            r: self.r / rhs,
+            g: self.g / rhs,
+            b: self.b / rhs,
+        }
     }
 }
 

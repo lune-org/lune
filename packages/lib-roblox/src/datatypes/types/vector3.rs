@@ -82,46 +82,8 @@ impl LuaUserData for Vector3 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, |_, this, rhs: LuaValue| {
-            match &rhs {
-                LuaValue::Number(n) => return Ok(Vector3(this.0 * Vec3::splat(*n as f32))),
-                LuaValue::Integer(i) => return Ok(Vector3(this.0 * Vec3::splat(*i as f32))),
-                LuaValue::UserData(ud) => {
-                    if let Ok(vec) = ud.borrow::<Vector3>() {
-                        return Ok(Vector3(this.0 * vec.0));
-                    }
-                }
-                _ => {}
-            };
-            Err(LuaError::FromLuaConversionError {
-                from: rhs.type_name(),
-                to: "Vector3",
-                message: Some(format!(
-                    "Expected Vector3 or number, got {}",
-                    rhs.type_name()
-                )),
-            })
-        });
-        methods.add_meta_method(LuaMetaMethod::Div, |_, this, rhs: LuaValue| {
-            match &rhs {
-                LuaValue::Number(n) => return Ok(Vector3(this.0 / Vec3::splat(*n as f32))),
-                LuaValue::Integer(i) => return Ok(Vector3(this.0 / Vec3::splat(*i as f32))),
-                LuaValue::UserData(ud) => {
-                    if let Ok(vec) = ud.borrow::<Vector3>() {
-                        return Ok(Vector3(this.0 / vec.0));
-                    }
-                }
-                _ => {}
-            };
-            Err(LuaError::FromLuaConversionError {
-                from: rhs.type_name(),
-                to: "Vector3",
-                message: Some(format!(
-                    "Expected Vector3 or number, got {}",
-                    rhs.type_name()
-                )),
-            })
-        });
+        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
+        methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
     }
 }
 
@@ -149,6 +111,34 @@ impl ops::Sub for Vector3 {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         Vector3(self.0 - rhs.0)
+    }
+}
+
+impl ops::Mul for Vector3 {
+    type Output = Vector3;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+
+impl ops::Mul<f32> for Vector3 {
+    type Output = Vector3;
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+
+impl ops::Div for Vector3 {
+    type Output = Vector3;
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0 / rhs.0)
+    }
+}
+
+impl ops::Div<f32> for Vector3 {
+    type Output = Vector3;
+    fn div(self, rhs: f32) -> Self::Output {
+        Self(self.0 / rhs)
     }
 }
 
