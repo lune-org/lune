@@ -1,3 +1,4 @@
+mod axes;
 mod brick_color;
 mod color3;
 mod color_sequence;
@@ -12,6 +13,7 @@ mod vector2int16;
 mod vector3;
 mod vector3int16;
 
+pub use axes::Axes;
 pub use brick_color::BrickColor;
 pub use color3::Color3;
 pub use color_sequence::ColorSequence;
@@ -68,6 +70,7 @@ mod tests {
 	}
 
     create_tests! {
+        axes:                    "datatypes/Axes",
         brick_color:             "datatypes/BrickColor",
         color3:                  "datatypes/Color3",
         color_sequence:          "datatypes/ColorSequence",

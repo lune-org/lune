@@ -116,11 +116,12 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
         use super::types::*;
         use RbxVariant as Rbx;
 
+		// NOTE: Enum is intentionally left out here, it has a custom
+		// conversion going from instance property > datatype instead,
+		// check `EnumItem::from_instance_property` for specifics
         Ok(match variant.clone() {
             // Not yet implemented datatypes
-            // Rbx::Axes(_) => todo!(),
             // Rbx::CFrame(_) => todo!(),
-            // Rbx::Enum(_) => todo!(),
             // Rbx::Faces(_) => todo!(),
             // Rbx::NumberRange(_) => todo!(),
             // Rbx::NumberSequence(_) => todo!(),
@@ -131,8 +132,9 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::Region3(_) => todo!(),
             // Rbx::Region3int16(_) => todo!(),
 
-            Rbx::BrickColor(value) => lua.create_userdata(BrickColor::from(value))?,
+            Rbx::Axes(value) => lua.create_userdata(Axes::from(value))?,
 
+            Rbx::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
             Rbx::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
             Rbx::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
@@ -167,8 +169,9 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
         use rbx_dom_weak::types as rbx;
 
         let f = match variant_type {
-            RbxVariantType::BrickColor => convert::<BrickColor, rbx::BrickColor>,
+            RbxVariantType::Axes => convert::<Axes, rbx::Axes>,
 
+            RbxVariantType::BrickColor    => convert::<BrickColor,    rbx::BrickColor>,
             RbxVariantType::Color3        => convert::<Color3,        rbx::Color3>,
             RbxVariantType::Color3uint8   => convert::<Color3,        rbx::Color3uint8>,
             RbxVariantType::ColorSequence => convert::<ColorSequence, rbx::ColorSequence>,
