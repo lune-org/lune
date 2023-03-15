@@ -38,13 +38,15 @@ macro_rules! create_tests {
 }
 
 create_tests! {
-    datatypes_brick_color:  "datatypes/BrickColor",
-    datatypes_color3:       "datatypes/Color3",
-    datatypes_enum:         "datatypes/Enum",
-    datatypes_udim:         "datatypes/UDim",
-    datatypes_udim2:        "datatypes/UDim2",
-    datatypes_vector2:      "datatypes/Vector2",
-    datatypes_vector2int16: "datatypes/Vector2int16",
-    datatypes_vector3:      "datatypes/Vector3",
-    datatypes_vector3int16: "datatypes/Vector3int16",
+    datatypes_brick_color:             "datatypes/BrickColor",
+    datatypes_color3:                  "datatypes/Color3",
+    datatypes_color_sequence:          "datatypes/ColorSequence",
+    datatypes_color_sequence_keypoint: "datatypes/ColorSequenceKeypoint",
+    datatypes_enum:                    "datatypes/Enum",
+    datatypes_udim:                    "datatypes/UDim",
+    datatypes_udim2:                   "datatypes/UDim2",
+    datatypes_vector2:                 "datatypes/Vector2",
+    datatypes_vector2int16:            "datatypes/Vector2int16",
+    datatypes_vector3:                 "datatypes/Vector3",
+    datatypes_vector3int16:            "datatypes/Vector3int16",
 }

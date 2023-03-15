@@ -5,7 +5,7 @@ use rbx_dom_weak::types::{
     ColorSequence as RbxColorSequence, ColorSequenceKeypoint as RbxColorSequenceKeypoint,
 };
 
-use super::{Color3, ColorSequenceKeypoint};
+use super::{super::*, Color3, ColorSequenceKeypoint};
 
 /**
     An implementation of the [ColorSequence](https://create.roblox.com/docs/reference/engine/datatypes/ColorSequence) Roblox datatype.
@@ -61,6 +61,11 @@ impl ColorSequence {
 impl LuaUserData for ColorSequence {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("Keypoints", |_, this| Ok(this.keypoints.clone()));
+    }
+
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 

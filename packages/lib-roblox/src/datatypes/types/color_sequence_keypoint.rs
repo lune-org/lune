@@ -3,7 +3,7 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::ColorSequenceKeypoint as RbxColorSequenceKeypoint;
 
-use super::Color3;
+use super::{super::*, Color3};
 
 /**
     An implementation of the [ColorSequenceKeypoint](https://create.roblox.com/docs/reference/engine/datatypes/ColorSequenceKeypoint) Roblox datatype.
@@ -32,6 +32,11 @@ impl LuaUserData for ColorSequenceKeypoint {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("Time", |_, this| Ok(this.time));
         fields.add_field_method_get("Value", |_, this| Ok(this.color));
+    }
+
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
+        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 
