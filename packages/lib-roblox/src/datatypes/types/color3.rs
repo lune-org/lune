@@ -132,24 +132,29 @@ impl LuaUserData for Color3 {
             let min = r.min(g).min(b);
             let max = r.max(g).max(b);
             let diff = max - min;
-            let hue = match max {
+
+            let hue = (match max {
                 max if max == min => 0.0,
-                max if max == this.r => (g - b) + diff * (if g < b { 6.0 } else { 0.0 }),
-                max if max == this.g => (b - r) + diff * 2.0,
-                max if max == this.b => (r - g) + diff * 4.0,
+                max if max == r => (g - b) / diff + (if g < b { 6.0 } else { 0.0 }),
+                max if max == g => (b - r) / diff + 2.0,
+                max if max == b => (r - g) / diff + 4.0,
                 _ => unreachable!(),
+            }) / 6.0;
+
+            let sat = if max == 0.0 {
+                0.0
+            } else {
+                (diff / max).clamp(0.0, 1.0)
             };
-            let hue = hue / 6.0 * diff;
-            let sat = if max == 0.0 { 0.0 } else { diff / max };
-            let sat = sat.clamp(0.0, 1.0);
+
             Ok((hue, sat, max))
         });
         methods.add_method("ToHex", |_, this, ()| {
             Ok(format!(
                 "{:02X}{:02X}{:02X}",
-                this.r.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-                this.g.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-                this.b.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
+                (this.r * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as u8,
+                (this.g * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as u8,
+                (this.b * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as u8,
             ))
         });
         // Metamethods

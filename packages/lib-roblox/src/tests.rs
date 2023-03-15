@@ -38,6 +38,8 @@ macro_rules! create_tests {
 }
 
 create_tests! {
+    datatypes_brick_color:  "datatypes/BrickColor",
+    datatypes_color3:       "datatypes/Color3",
     datatypes_udim:         "datatypes/UDim",
     datatypes_udim2:        "datatypes/UDim2",
     datatypes_vector2:      "datatypes/Vector2",
