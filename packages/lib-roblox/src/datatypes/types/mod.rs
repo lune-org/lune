@@ -1,3 +1,4 @@
+mod brick_color;
 mod udim;
 mod udim2;
 mod vector2;
@@ -5,6 +6,7 @@ mod vector2int16;
 mod vector3;
 mod vector3int16;
 
+pub use brick_color::BrickColor;
 pub use udim::UDim;
 pub use udim2::UDim2;
 pub use vector2::Vector2;

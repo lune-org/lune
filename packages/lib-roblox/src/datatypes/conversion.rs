@@ -1,3 +1,5 @@
+use std::any::type_name;
+
 use mlua::prelude::*;
 
 use rbx_dom_weak::types::{Variant as RbxVariant, VariantType as RbxVariantType};
@@ -117,7 +119,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
         Ok(match variant.clone() {
             // Not yet implemented datatypes
             // Rbx::Axes(_) => todo!(),
-            // Rbx::BrickColor(_) => todo!(),
             // Rbx::CFrame(_) => todo!(),
             // Rbx::Color3(_) => todo!(),
             // Rbx::Color3uint8(_) => todo!(),
@@ -132,6 +133,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::Rect(_) => todo!(),
             // Rbx::Region3(_) => todo!(),
             // Rbx::Region3int16(_) => todo!(),
+
+            Rbx::BrickColor(value) => lua.create_userdata(BrickColor::from(value))?,
 
             Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
             Rbx::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
@@ -163,6 +166,8 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
         use rbx_dom_weak::types as rbx;
 
         let f = match variant_type {
+            RbxVariantType::BrickColor => convert::<BrickColor, rbx::BrickColor>,
+
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
 
@@ -194,12 +199,12 @@ where
         Ok(value) => Ok(RbxType::from(value.clone()).into()),
         Err(LuaError::UserDataTypeMismatch) => Err(DatatypeConversionError::ToRbxVariant {
             to: variant_type.variant_name(),
-            from: "userdata",
+            from: type_name::<Datatype>(),
             detail: Some("Type mismatch".to_string()),
         }),
         Err(e) => Err(DatatypeConversionError::ToRbxVariant {
             to: variant_type.variant_name(),
-            from: "userdata",
+            from: type_name::<Datatype>(),
             detail: Some(format!("Internal error: {e}")),
         }),
     }

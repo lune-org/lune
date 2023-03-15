@@ -19,6 +19,7 @@ mlua.workspace = true
 
 base64 = "0.21"
 glam = "0.23"
+rand = "0.8"
 thiserror = "1.0"
 
 rbx_binary = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "ce4c5bf7b18c813417ad14cc37e5abe281dfb51a" }

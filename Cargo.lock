@@ -865,6 +865,7 @@ dependencies = [
  "base64 0.21.0",
  "glam",
  "mlua",
+ "rand",
  "rbx_binary",
  "rbx_dom_weak",
  "rbx_reflection",
