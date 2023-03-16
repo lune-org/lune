@@ -127,7 +127,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::OptionalCFrame(_) => todo!(),
             // Rbx::PhysicalProperties(_) => todo!(),
             // Rbx::Ray(_) => todo!(),
-            // Rbx::Rect(_) => todo!(),
             // Rbx::Region3(_) => todo!(),
             // Rbx::Region3int16(_) => todo!(),
 
@@ -139,6 +138,7 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             Rbx::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
             Rbx::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
 
+            Rbx::Rect(value)  => lua.create_userdata(Rect::from(value))?,
             Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
             Rbx::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
 
@@ -179,6 +179,7 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
 
             RbxVariantType::Enum => convert::<EnumItem, rbx::Enum>,
 
+            RbxVariantType::Rect  => convert::<Rect,  rbx::Rect>,
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
 

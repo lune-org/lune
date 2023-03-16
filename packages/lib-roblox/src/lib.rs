@@ -25,6 +25,7 @@ fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
         ("ColorSequence",         make_dt(lua, ColorSequence::make_table)?),
         ("ColorSequenceKeypoint", make_dt(lua, ColorSequenceKeypoint::make_table)?),
         ("Faces",                 make_dt(lua, Faces::make_table)?),
+        ("Rect",                  make_dt(lua, Rect::make_table)?),
         ("UDim",                  make_dt(lua, UDim::make_table)?),
         ("UDim2",                 make_dt(lua, UDim2::make_table)?),
         ("Vector2",               make_dt(lua, Vector2::make_table)?),

@@ -7,6 +7,7 @@ mod r#enum;
 mod r#enum_item;
 mod r#enums;
 mod faces;
+mod rect;
 mod udim;
 mod udim2;
 mod vector2;
@@ -23,6 +24,7 @@ pub use faces::Faces;
 pub use r#enum::Enum;
 pub use r#enum_item::EnumItem;
 pub use r#enums::Enums;
+pub use rect::Rect;
 pub use udim::UDim;
 pub use udim2::UDim2;
 pub use vector2::Vector2;
@@ -79,6 +81,7 @@ mod tests {
         color_sequence_keypoint: "datatypes/ColorSequenceKeypoint",
         r#enum:                  "datatypes/Enum",
         faces:                   "datatypes/Faces",
+        rect:                    "datatypes/Rect",
         udim:                    "datatypes/UDim",
         udim2:                   "datatypes/UDim2",
         vector2:                 "datatypes/Vector2",

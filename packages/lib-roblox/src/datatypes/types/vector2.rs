@@ -14,7 +14,7 @@ use super::super::*;
     This implements all documented properties, methods &
     constructors of the Vector2 class as of March 2023.
 */
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Vector2(pub Vec2);
 
 impl Vector2 {
