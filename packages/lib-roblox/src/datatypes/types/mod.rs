@@ -6,6 +6,7 @@ mod color_sequence_keypoint;
 mod r#enum;
 mod r#enum_item;
 mod r#enums;
+mod faces;
 mod udim;
 mod udim2;
 mod vector2;
@@ -18,6 +19,7 @@ pub use brick_color::BrickColor;
 pub use color3::Color3;
 pub use color_sequence::ColorSequence;
 pub use color_sequence_keypoint::ColorSequenceKeypoint;
+pub use faces::Faces;
 pub use r#enum::Enum;
 pub use r#enum_item::EnumItem;
 pub use r#enums::Enums;
@@ -76,6 +78,7 @@ mod tests {
         color_sequence:          "datatypes/ColorSequence",
         color_sequence_keypoint: "datatypes/ColorSequenceKeypoint",
         r#enum:                  "datatypes/Enum",
+        faces:                   "datatypes/Faces",
         udim:                    "datatypes/UDim",
         udim2:                   "datatypes/UDim2",
         vector2:                 "datatypes/Vector2",

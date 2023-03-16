@@ -88,26 +88,10 @@ impl LuaUserData for Axes {
 
 impl fmt::Display for Axes {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut got_value = false;
-        if self.x {
-            write!(f, "X")?;
-            got_value = true;
-        }
-        if self.y {
-            if got_value {
-                write!(f, ", Y")?;
-            } else {
-                write!(f, "Y")?;
-                got_value = true;
-            }
-        }
-        if self.z {
-            if got_value {
-                write!(f, ", Z")?;
-            } else {
-                write!(f, "Z")?;
-            }
-        }
+        let write = make_list_writer();
+        write(f, self.x, "X")?;
+        write(f, self.y, "Y")?;
+        write(f, self.z, "Z")?;
         Ok(())
     }
 }
@@ -115,10 +99,11 @@ impl fmt::Display for Axes {
 impl From<RbxAxes> for Axes {
     fn from(v: RbxAxes) -> Self {
         let bits = v.bits();
-        let x = (bits & 1) == 1;
-        let y = ((bits >> 1) & 1) == 1;
-        let z = ((bits >> 2) & 1) == 1;
-        Self { x, y, z }
+        Self {
+            x: (bits & 1) == 1,
+            y: ((bits >> 1) & 1) == 1,
+            z: ((bits >> 2) & 1) == 1,
+        }
     }
 }
 

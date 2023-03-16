@@ -122,7 +122,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
         Ok(match variant.clone() {
             // Not yet implemented datatypes
             // Rbx::CFrame(_) => todo!(),
-            // Rbx::Faces(_) => todo!(),
             // Rbx::NumberRange(_) => todo!(),
             // Rbx::NumberSequence(_) => todo!(),
             // Rbx::OptionalCFrame(_) => todo!(),
@@ -132,7 +131,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::Region3(_) => todo!(),
             // Rbx::Region3int16(_) => todo!(),
 
-            Rbx::Axes(value) => lua.create_userdata(Axes::from(value))?,
+            Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
+            Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
 
             Rbx::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
@@ -169,7 +169,8 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
         use rbx_dom_weak::types as rbx;
 
         let f = match variant_type {
-            RbxVariantType::Axes => convert::<Axes, rbx::Axes>,
+            RbxVariantType::Axes  => convert::<Axes,  rbx::Axes>,
+            RbxVariantType::Faces => convert::<Faces, rbx::Faces>,
 
             RbxVariantType::BrickColor    => convert::<BrickColor,    rbx::BrickColor>,
             RbxVariantType::Color3        => convert::<Color3,        rbx::Color3>,

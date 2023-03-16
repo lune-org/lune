@@ -1,6 +1,25 @@
-use std::{any::type_name, ops};
+use std::{any::type_name, cell::RefCell, fmt, ops};
 
 use mlua::prelude::*;
+
+// Utility functions
+
+type ListWriter = dyn Fn(&mut fmt::Formatter<'_>, bool, &str) -> fmt::Result;
+pub(super) fn make_list_writer() -> Box<ListWriter> {
+    let first = RefCell::new(true);
+    Box::new(move |f, flag, literal| {
+        if flag {
+            if first.take() {
+                write!(f, "{}", literal)?;
+            } else {
+                write!(f, ", {}", literal)?;
+            }
+        }
+        Ok::<_, fmt::Error>(())
+    })
+}
+
+// Userdata metamethod implementations
 
 pub(super) fn userdata_impl_to_string<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<String>
 where
