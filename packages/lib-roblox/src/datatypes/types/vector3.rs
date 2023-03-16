@@ -5,14 +5,14 @@ use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector3 as RbxVector3;
 
-use super::super::*;
+use super::{super::*, EnumItem};
 
 /**
     An implementation of the [Vector3](https://create.roblox.com/docs/reference/engine/datatypes/Vector3)
     Roblox datatype, backed by [`glam::Vec3`].
 
-    This implements all documented properties & methods of the Vector3
-    class as of March 2023, as well as the `new(x, y, z)` constructor.
+    This implements all documented properties, methods &
+    constructors of the Vector3 class as of March 2023.
 
     Note that this does not use native Luau vectors to simplify implementation
     and instead allow us to implement all abovementioned APIs accurately.
@@ -30,6 +30,55 @@ impl Vector3 {
         datatype_table.set("one", Vector3(Vec3::ONE))?;
         // Constructors
         datatype_table.set(
+            "fromAxis",
+            lua.create_function(|_, normal_id: EnumItem| {
+                if normal_id.parent.desc.name == "Axis" {
+                    Ok(match normal_id.name.as_str() {
+                        "X" => Vector3(Vec3::X),
+                        "Y" => Vector3(Vec3::Y),
+                        "Z" => Vector3(Vec3::Z),
+                        name => {
+                            return Err(LuaError::RuntimeError(format!(
+                                "Axis '{}' is not known",
+                                name
+                            )))
+                        }
+                    })
+                } else {
+                    Err(LuaError::RuntimeError(format!(
+                        "EnumItem must be a Axis, got {}",
+                        normal_id.parent.desc.name
+                    )))
+                }
+            })?,
+        )?;
+        datatype_table.set(
+            "fromNormalId",
+            lua.create_function(|_, normal_id: EnumItem| {
+                if normal_id.parent.desc.name == "NormalId" {
+                    Ok(match normal_id.name.as_str() {
+                        "Left" => Vector3(Vec3::X),
+                        "Top" => Vector3(Vec3::Y),
+                        "Front" => Vector3(-Vec3::Z),
+                        "Right" => Vector3(-Vec3::X),
+                        "Bottom" => Vector3(-Vec3::Y),
+                        "Back" => Vector3(Vec3::Z),
+                        name => {
+                            return Err(LuaError::RuntimeError(format!(
+                                "NormalId '{}' is not known",
+                                name
+                            )))
+                        }
+                    })
+                } else {
+                    Err(LuaError::RuntimeError(format!(
+                        "EnumItem must be a NormalId, got {}",
+                        normal_id.parent.desc.name
+                    )))
+                }
+            })?,
+        )?;
+        datatype_table.set(
             "new",
             lua.create_function(|_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
                 Ok(Vector3(Vec3 {
@@ -39,7 +88,6 @@ impl Vector3 {
                 }))
             })?,
         )
-        // FUTURE: Implement FromNormalId and FromAxis constructors?
     }
 }
 
