@@ -21,6 +21,7 @@ fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
 		// Classes
         ("Axes",                  make_dt(lua, Axes::make_table)?),
         ("BrickColor",            make_dt(lua, BrickColor::make_table)?),
+        ("CFrame",                make_dt(lua, CFrame::make_table)?),
         ("Color3",                make_dt(lua, Color3::make_table)?),
         ("ColorSequence",         make_dt(lua, ColorSequence::make_table)?),
         ("ColorSequenceKeypoint", make_dt(lua, ColorSequenceKeypoint::make_table)?),

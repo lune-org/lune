@@ -1,5 +1,6 @@
 mod axes;
 mod brick_color;
+mod cframe;
 mod color3;
 mod color_sequence;
 mod color_sequence_keypoint;
@@ -17,6 +18,7 @@ mod vector3int16;
 
 pub use axes::Axes;
 pub use brick_color::BrickColor;
+pub use cframe::CFrame;
 pub use color3::Color3;
 pub use color_sequence::ColorSequence;
 pub use color_sequence_keypoint::ColorSequenceKeypoint;
@@ -76,6 +78,7 @@ mod tests {
     create_tests! {
         axes:                    "datatypes/Axes",
         brick_color:             "datatypes/BrickColor",
+        cframe:                  "datatypes/CFrame",
         color3:                  "datatypes/Color3",
         color_sequence:          "datatypes/ColorSequence",
         color_sequence_keypoint: "datatypes/ColorSequenceKeypoint",

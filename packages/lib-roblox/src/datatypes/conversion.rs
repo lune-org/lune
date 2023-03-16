@@ -121,7 +121,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 		// check `EnumItem::from_instance_property` for specifics
         Ok(match variant.clone() {
             // Not yet implemented datatypes
-            // Rbx::CFrame(_) => todo!(),
             // Rbx::NumberRange(_) => todo!(),
             // Rbx::NumberSequence(_) => todo!(),
             // Rbx::OptionalCFrame(_) => todo!(),
@@ -132,6 +131,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 
             Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
             Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
+
+            Rbx::CFrame(value) => lua.create_userdata(CFrame::from(value))?,
 
             Rbx::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
@@ -171,6 +172,8 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
         let f = match variant_type {
             RbxVariantType::Axes  => convert::<Axes,  rbx::Axes>,
             RbxVariantType::Faces => convert::<Faces, rbx::Faces>,
+
+            RbxVariantType::CFrame => convert::<CFrame, rbx::CFrame>,
 
             RbxVariantType::BrickColor    => convert::<BrickColor,    rbx::BrickColor>,
             RbxVariantType::Color3        => convert::<Color3,        rbx::Color3>,
