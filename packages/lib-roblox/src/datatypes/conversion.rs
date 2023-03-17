@@ -128,9 +128,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 
         */
         Ok(match variant.clone() {
-            // Not yet implemented datatypes
-            // Rbx::Font(_) => todo!(),
-
             Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
             Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
 
@@ -140,6 +137,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
             Rbx::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
             Rbx::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
+
+            Rbx::Font(value) => lua.create_userdata(Font::from(value))?,
 
             Rbx::NumberRange(value)    => lua.create_userdata(NumberRange::from(value))?,
             Rbx::NumberSequence(value) => lua.create_userdata(NumberSequence::from(value))?,
@@ -199,6 +198,8 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::ColorSequence => convert::<ColorSequence, rbx::ColorSequence>,
 
             RbxVariantType::Enum => convert::<EnumItem, rbx::Enum>,
+
+            RbxVariantType::Font => convert::<Font, rbx::Font>,
 
             RbxVariantType::NumberRange    => convert::<NumberRange,    rbx::NumberRange>,
             RbxVariantType::NumberSequence => convert::<NumberSequence, rbx::NumberSequence>,

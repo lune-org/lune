@@ -19,6 +19,21 @@ pub struct EnumItem {
 }
 
 impl EnumItem {
+    pub(crate) fn from_enum_and_name(parent: &Enum, name: impl AsRef<str>) -> Option<Self> {
+        let enum_name = name.as_ref();
+        parent.desc.items.iter().find_map(|(name, v)| {
+            if *name == enum_name {
+                Some(Self {
+                    parent: parent.clone(),
+                    name: enum_name.to_string(),
+                    value: *v,
+                })
+            } else {
+                None
+            }
+        })
+    }
+
     /**
         Converts an instance property into an [`EnumItem`] datatype, if the property is known.
 

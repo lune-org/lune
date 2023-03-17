@@ -15,6 +15,13 @@ pub struct Enum {
     pub(crate) desc: &'static EnumDescriptor<'static>,
 }
 
+impl Enum {
+    pub(crate) fn from_name(name: impl AsRef<str>) -> Option<Self> {
+        let db = rbx_reflection_database::get();
+        db.enums.get(name.as_ref()).map(Enum::from)
+    }
+}
+
 impl LuaUserData for Enum {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
@@ -31,12 +38,8 @@ impl LuaUserData for Enum {
                 .collect::<Vec<_>>())
         });
         methods.add_meta_method(LuaMetaMethod::Index, |_, this, name: String| {
-            match this.desc.items.get(name.as_str()) {
-                Some(value) => Ok(EnumItem {
-                    parent: this.clone(),
-                    name: name.to_string(),
-                    value: *value,
-                }),
+            match EnumItem::from_enum_and_name(this, &name) {
+                Some(item) => Ok(item),
                 None => Err(LuaError::RuntimeError(format!(
                     "The enum item '{}' does not exist for enum '{}'",
                     name, this.desc.name

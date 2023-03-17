@@ -25,16 +25,16 @@ impl LuaUserData for Enums {
             let db = rbx_reflection_database::get();
             Ok(db.enums.values().map(Enum::from).collect::<Vec<_>>())
         });
-        methods.add_meta_method(LuaMetaMethod::Index, |_, _, name: String| {
-            let db = rbx_reflection_database::get();
-            match db.enums.get(name.as_str()) {
-                Some(desc) => Ok(Enum::from(desc)),
+        methods.add_meta_method(
+            LuaMetaMethod::Index,
+            |_, _, name: String| match Enum::from_name(&name) {
+                Some(e) => Ok(e),
                 None => Err(LuaError::RuntimeError(format!(
                     "The enum '{}' does not exist",
                     name
                 ))),
-            }
-        });
+            },
+        );
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);

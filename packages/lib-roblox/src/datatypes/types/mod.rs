@@ -8,6 +8,7 @@ mod r#enum;
 mod r#enum_item;
 mod r#enums;
 mod faces;
+mod font;
 mod number_range;
 mod number_sequence;
 mod number_sequence_keypoint;
@@ -30,6 +31,7 @@ pub use color3::Color3;
 pub use color_sequence::ColorSequence;
 pub use color_sequence_keypoint::ColorSequenceKeypoint;
 pub use faces::Faces;
+pub use font::Font;
 pub use number_range::NumberRange;
 pub use number_sequence::NumberSequence;
 pub use number_sequence_keypoint::NumberSequenceKeypoint;
@@ -98,6 +100,7 @@ mod tests {
         color_sequence_keypoint:  "datatypes/ColorSequenceKeypoint",
         r#enum:                   "datatypes/Enum",
         faces:                    "datatypes/Faces",
+        font:                     "datatypes/Font",
         number_range:             "datatypes/NumberRange",
         number_sequence:          "datatypes/NumberSequence",
         number_sequence_keypoint: "datatypes/NumberSequenceKeypoint",
