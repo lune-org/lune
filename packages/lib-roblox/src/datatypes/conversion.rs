@@ -113,23 +113,28 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
     fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self> {
         use super::types::*;
         use RbxVariant as Rbx;
+        use rbx_dom_weak::types as rbx;
 
-		// NOTE: Enum is intentionally left out here, it has a custom
-		// conversion going from instance property > datatype instead,
-		// check `EnumItem::from_instance_property` for specifics
+        /*
+            NOTES:
+
+            1. Enum is intentionally left out here, it has a custom
+               conversion going from instance property > datatype instead,
+               check `EnumItem::from_instance_property` for specifics
+
+            2. PhysicalProperties can only be converted if they are custom
+               physical properties, since default physical properties values
+               depend on what other related properties an instance might have
+
+        */
         Ok(match variant.clone() {
             // Not yet implemented datatypes
             // Rbx::Font(_) => todo!(),
-            // Rbx::PhysicalProperties(_) => todo!(),
 
             Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
             Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
 
             Rbx::CFrame(value) => lua.create_userdata(CFrame::from(value))?,
-            Rbx::OptionalCFrame(value) => match value {
-				Some(value) => lua.create_userdata(CFrame::from(value))?,
-				None => lua.create_userdata(CFrame::IDENTITY)?
-			},
 
             Rbx::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
@@ -151,6 +156,15 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             Rbx::Vector2int16(value) => lua.create_userdata(Vector2int16::from(value))?,
             Rbx::Vector3(value)      => lua.create_userdata(Vector3::from(value))?,
             Rbx::Vector3int16(value) => lua.create_userdata(Vector3int16::from(value))?,
+
+            Rbx::OptionalCFrame(value) => match value {
+                Some(value) => lua.create_userdata(CFrame::from(value))?,
+                None => lua.create_userdata(CFrame::IDENTITY)?
+            },
+
+            Rbx::PhysicalProperties(rbx::PhysicalProperties::Custom(value)) => {
+                lua.create_userdata(PhysicalProperties::from(value))?
+            },
 
             v => {
                 return Err(DatatypeConversionError::FromRbxVariant {
@@ -177,11 +191,7 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::Axes  => convert::<Axes,  rbx::Axes>,
             RbxVariantType::Faces => convert::<Faces, rbx::Faces>,
 
-            RbxVariantType::CFrame         => convert::<CFrame, rbx::CFrame>,
-            RbxVariantType::OptionalCFrame => return match self.borrow::<CFrame>() {
-				Ok(value) => Ok(RbxVariant::OptionalCFrame(Some(rbx::CFrame::from(*value)))),
-				Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
-			},
+            RbxVariantType::CFrame => convert::<CFrame, rbx::CFrame>,
 
             RbxVariantType::BrickColor    => convert::<BrickColor,    rbx::BrickColor>,
             RbxVariantType::Color3        => convert::<Color3,        rbx::Color3>,
@@ -206,6 +216,20 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::Vector3      => convert::<Vector3,      rbx::Vector3>,
             RbxVariantType::Vector3int16 => convert::<Vector3int16, rbx::Vector3int16>,
 
+            RbxVariantType::OptionalCFrame => return match self.borrow::<CFrame>() {
+                Ok(value) => Ok(RbxVariant::OptionalCFrame(Some(rbx::CFrame::from(*value)))),
+                Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
+            },
+
+            RbxVariantType::PhysicalProperties => return match self.borrow::<PhysicalProperties>() {
+                Ok(value) => {
+                    let props = rbx::CustomPhysicalProperties::from(*value);
+                    let custom = rbx::PhysicalProperties::Custom(props);
+                    Ok(RbxVariant::PhysicalProperties(custom))
+                },
+                Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
+            },
+
             _ => return Err(DatatypeConversionError::ToRbxVariant {
                 to: variant_type.variant_name(),
                 from: "userdata",
@@ -213,7 +237,7 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             }),
         };
 
-		f(self, variant_type)
+        f(self, variant_type)
     }
 }
 
