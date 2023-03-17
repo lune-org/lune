@@ -121,7 +121,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Not yet implemented datatypes
             // Rbx::Font(_) => todo!(),
             // Rbx::PhysicalProperties(_) => todo!(),
-            // Rbx::Ray(_) => todo!(),
 
             Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
             Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
@@ -139,6 +138,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 
             Rbx::NumberRange(value)    => lua.create_userdata(NumberRange::from(value))?,
             Rbx::NumberSequence(value) => lua.create_userdata(NumberSequence::from(value))?,
+
+            Rbx::Ray(value) => lua.create_userdata(Ray::from(value))?,
 
             Rbx::Rect(value)  => lua.create_userdata(Rect::from(value))?,
             Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
@@ -195,6 +196,8 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::Rect  => convert::<Rect,  rbx::Rect>,
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
+
+            RbxVariantType::Ray => convert::<Ray, rbx::Ray>,
 
             RbxVariantType::Region3      => convert::<Region3,      rbx::Region3>,
             RbxVariantType::Region3int16 => convert::<Region3int16, rbx::Region3int16>,

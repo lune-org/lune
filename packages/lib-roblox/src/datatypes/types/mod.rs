@@ -11,6 +11,7 @@ mod faces;
 mod number_range;
 mod number_sequence;
 mod number_sequence_keypoint;
+mod ray;
 mod rect;
 mod region3;
 mod region3int16;
@@ -34,6 +35,7 @@ pub use number_sequence_keypoint::NumberSequenceKeypoint;
 pub use r#enum::Enum;
 pub use r#enum_item::EnumItem;
 pub use r#enums::Enums;
+pub use ray::Ray;
 pub use rect::Rect;
 pub use region3::Region3;
 pub use region3int16::Region3int16;
@@ -97,6 +99,7 @@ mod tests {
         number_range:             "datatypes/NumberRange",
         number_sequence:          "datatypes/NumberSequence",
         number_sequence_keypoint: "datatypes/NumberSequenceKeypoint",
+        ray:                      "datatypes/Ray",
         rect:                     "datatypes/Rect",
         udim:                     "datatypes/UDim",
         udim2:                    "datatypes/UDim2",
