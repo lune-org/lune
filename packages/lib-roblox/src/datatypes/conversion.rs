@@ -119,6 +119,7 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 		// check `EnumItem::from_instance_property` for specifics
         Ok(match variant.clone() {
             // Not yet implemented datatypes
+            // Rbx::Font(_) => todo!(),
             // Rbx::PhysicalProperties(_) => todo!(),
             // Rbx::Ray(_) => todo!(),
             // Rbx::Region3(_) => todo!(),
