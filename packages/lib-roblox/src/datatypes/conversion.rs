@@ -122,8 +122,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             // Rbx::Font(_) => todo!(),
             // Rbx::PhysicalProperties(_) => todo!(),
             // Rbx::Ray(_) => todo!(),
-            // Rbx::Region3(_) => todo!(),
-            // Rbx::Region3int16(_) => todo!(),
 
             Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
             Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
@@ -146,6 +144,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
             Rbx::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
 
+            Rbx::Region3(value)      => lua.create_userdata(Region3::from(value))?,
+            Rbx::Region3int16(value) => lua.create_userdata(Region3int16::from(value))?,
             Rbx::Vector2(value)      => lua.create_userdata(Vector2::from(value))?,
             Rbx::Vector2int16(value) => lua.create_userdata(Vector2int16::from(value))?,
             Rbx::Vector3(value)      => lua.create_userdata(Vector3::from(value))?,
@@ -189,13 +189,15 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
 
             RbxVariantType::Enum => convert::<EnumItem, rbx::Enum>,
 
+            RbxVariantType::NumberRange    => convert::<NumberRange,    rbx::NumberRange>,
+            RbxVariantType::NumberSequence => convert::<NumberSequence, rbx::NumberSequence>,
+
             RbxVariantType::Rect  => convert::<Rect,  rbx::Rect>,
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
 
-            RbxVariantType::NumberRange    => convert::<NumberRange,    rbx::NumberRange>,
-            RbxVariantType::NumberSequence => convert::<NumberSequence, rbx::NumberSequence>,
-
+            RbxVariantType::Region3      => convert::<Region3,      rbx::Region3>,
+            RbxVariantType::Region3int16 => convert::<Region3int16, rbx::Region3int16>,
             RbxVariantType::Vector2      => convert::<Vector2,      rbx::Vector2>,
             RbxVariantType::Vector2int16 => convert::<Vector2int16, rbx::Vector2int16>,
             RbxVariantType::Vector3      => convert::<Vector3,      rbx::Vector3>,

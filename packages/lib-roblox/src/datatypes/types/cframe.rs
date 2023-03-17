@@ -15,7 +15,7 @@ use super::{super::*, Vector3};
     constructors of the CFrame class as of March 2023.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct CFrame(Mat4);
+pub struct CFrame(pub Mat4);
 
 impl CFrame {
     pub const IDENTITY: Self = Self(Mat4::IDENTITY);
