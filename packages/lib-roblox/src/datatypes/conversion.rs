@@ -121,8 +121,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 		// check `EnumItem::from_instance_property` for specifics
         Ok(match variant.clone() {
             // Not yet implemented datatypes
-            // Rbx::NumberRange(_) => todo!(),
-            // Rbx::NumberSequence(_) => todo!(),
             // Rbx::OptionalCFrame(_) => todo!(),
             // Rbx::PhysicalProperties(_) => todo!(),
             // Rbx::Ray(_) => todo!(),
@@ -138,6 +136,9 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
             Rbx::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
             Rbx::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
+
+            Rbx::NumberRange(value)    => lua.create_userdata(NumberRange::from(value))?,
+            Rbx::NumberSequence(value) => lua.create_userdata(NumberSequence::from(value))?,
 
             Rbx::Rect(value)  => lua.create_userdata(Rect::from(value))?,
             Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
@@ -185,6 +186,9 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::Rect  => convert::<Rect,  rbx::Rect>,
             RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
             RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
+
+            RbxVariantType::NumberRange    => convert::<NumberRange,    rbx::NumberRange>,
+            RbxVariantType::NumberSequence => convert::<NumberSequence, rbx::NumberSequence>,
 
             RbxVariantType::Vector2      => convert::<Vector2,      rbx::Vector2>,
             RbxVariantType::Vector2int16 => convert::<Vector2int16, rbx::Vector2int16>,

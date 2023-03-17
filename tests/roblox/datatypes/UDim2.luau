@@ -47,6 +47,6 @@ assert(UDim2.new(2, 4, 6, 8) - UDim2.new(1, 1, 1, 1) == UDim2.new(1, 3, 5, 7))
 
 -- Methods
 
-assert(UDim2.new(2, 4, 6, 8):Lerp(UDim2.new(1, 2, 3, 4), 0.0) == UDim2.new(2, 3, 6, 8))
+assert(UDim2.new(2, 4, 6, 8):Lerp(UDim2.new(1, 2, 3, 4), 0.0) == UDim2.new(2, 4, 6, 8))
 assert(UDim2.new(2, 4, 6, 8):Lerp(UDim2.new(1, 2, 3, 4), 0.5) == UDim2.new(1.5, 3, 4.5, 6))
 assert(UDim2.new(2, 4, 6, 8):Lerp(UDim2.new(1, 2, 3, 4), 1.0) == UDim2.new(1, 2, 3, 4))

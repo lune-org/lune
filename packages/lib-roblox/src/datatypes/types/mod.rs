@@ -8,6 +8,9 @@ mod r#enum;
 mod r#enum_item;
 mod r#enums;
 mod faces;
+mod number_range;
+mod number_sequence;
+mod number_sequence_keypoint;
 mod rect;
 mod udim;
 mod udim2;
@@ -23,6 +26,9 @@ pub use color3::Color3;
 pub use color_sequence::ColorSequence;
 pub use color_sequence_keypoint::ColorSequenceKeypoint;
 pub use faces::Faces;
+pub use number_range::NumberRange;
+pub use number_sequence::NumberSequence;
+pub use number_sequence_keypoint::NumberSequenceKeypoint;
 pub use r#enum::Enum;
 pub use r#enum_item::EnumItem;
 pub use r#enums::Enums;
@@ -76,20 +82,23 @@ mod tests {
 	}
 
     create_tests! {
-        axes:                    "datatypes/Axes",
-        brick_color:             "datatypes/BrickColor",
-        cframe:                  "datatypes/CFrame",
-        color3:                  "datatypes/Color3",
-        color_sequence:          "datatypes/ColorSequence",
-        color_sequence_keypoint: "datatypes/ColorSequenceKeypoint",
-        r#enum:                  "datatypes/Enum",
-        faces:                   "datatypes/Faces",
-        rect:                    "datatypes/Rect",
-        udim:                    "datatypes/UDim",
-        udim2:                   "datatypes/UDim2",
-        vector2:                 "datatypes/Vector2",
-        vector2int16:            "datatypes/Vector2int16",
-        vector3:                 "datatypes/Vector3",
-        vector3int16:            "datatypes/Vector3int16",
+        axes:                     "datatypes/Axes",
+        brick_color:              "datatypes/BrickColor",
+        cframe:                   "datatypes/CFrame",
+        color3:                   "datatypes/Color3",
+        color_sequence:           "datatypes/ColorSequence",
+        color_sequence_keypoint:  "datatypes/ColorSequenceKeypoint",
+        r#enum:                   "datatypes/Enum",
+        faces:                    "datatypes/Faces",
+        number_range:             "datatypes/NumberRange",
+        number_sequence:          "datatypes/NumberSequence",
+        number_sequence_keypoint: "datatypes/NumberSequenceKeypoint",
+        rect:                     "datatypes/Rect",
+        udim:                     "datatypes/UDim",
+        udim2:                    "datatypes/UDim2",
+        vector2:                  "datatypes/Vector2",
+        vector2int16:             "datatypes/Vector2int16",
+        vector3:                  "datatypes/Vector3",
+        vector3int16:             "datatypes/Vector3int16",
     }
 }

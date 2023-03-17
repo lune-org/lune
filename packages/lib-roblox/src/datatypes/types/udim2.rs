@@ -76,7 +76,7 @@ impl LuaUserData for UDim2 {
         // Methods
         methods.add_method("Lerp", |_, this, (goal, alpha): (UDim2, f32)| {
             let this_x = Vec2::new(this.x.scale, this.x.offset as f32);
-            let goal_x = Vec2::new(goal.x.scale, this.x.offset as f32);
+            let goal_x = Vec2::new(goal.x.scale, goal.x.offset as f32);
 
             let this_y = Vec2::new(this.y.scale, this.y.offset as f32);
             let goal_y = Vec2::new(goal.y.scale, goal.y.offset as f32);
