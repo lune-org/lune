@@ -1,5 +1,3 @@
-use std::any::type_name;
-
 use mlua::prelude::*;
 
 use rbx_dom_weak::types::{Variant as RbxVariant, VariantType as RbxVariantType};
@@ -121,7 +119,6 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 		// check `EnumItem::from_instance_property` for specifics
         Ok(match variant.clone() {
             // Not yet implemented datatypes
-            // Rbx::OptionalCFrame(_) => todo!(),
             // Rbx::PhysicalProperties(_) => todo!(),
             // Rbx::Ray(_) => todo!(),
             // Rbx::Region3(_) => todo!(),
@@ -131,6 +128,10 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
             Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
 
             Rbx::CFrame(value) => lua.create_userdata(CFrame::from(value))?,
+            Rbx::OptionalCFrame(value) => match value {
+				Some(value) => lua.create_userdata(CFrame::from(value))?,
+				None => lua.create_userdata(CFrame::IDENTITY)?
+			},
 
             Rbx::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
             Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
@@ -174,7 +175,11 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
             RbxVariantType::Axes  => convert::<Axes,  rbx::Axes>,
             RbxVariantType::Faces => convert::<Faces, rbx::Faces>,
 
-            RbxVariantType::CFrame => convert::<CFrame, rbx::CFrame>,
+            RbxVariantType::CFrame         => convert::<CFrame, rbx::CFrame>,
+            RbxVariantType::OptionalCFrame => return match self.borrow::<CFrame>() {
+				Ok(value) => Ok(RbxVariant::OptionalCFrame(Some(rbx::CFrame::from(*value)))),
+				Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
+			},
 
             RbxVariantType::BrickColor    => convert::<BrickColor,    rbx::BrickColor>,
             RbxVariantType::Color3        => convert::<Color3,        rbx::Color3>,
@@ -216,15 +221,24 @@ where
 {
     match userdata.borrow::<Datatype>() {
         Ok(value) => Ok(RbxType::from(value.clone()).into()),
-        Err(LuaError::UserDataTypeMismatch) => Err(DatatypeConversionError::ToRbxVariant {
+        Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
+    }
+}
+
+fn lua_userdata_error_to_conversion_error(
+    variant_type: RbxVariantType,
+    error: LuaError,
+) -> DatatypeConversionError {
+    match error {
+        LuaError::UserDataTypeMismatch => DatatypeConversionError::ToRbxVariant {
             to: variant_type.variant_name(),
-            from: type_name::<Datatype>(),
+            from: "userdata",
             detail: Some("Type mismatch".to_string()),
-        }),
-        Err(e) => Err(DatatypeConversionError::ToRbxVariant {
+        },
+        e => DatatypeConversionError::ToRbxVariant {
             to: variant_type.variant_name(),
-            from: type_name::<Datatype>(),
+            from: "userdata",
             detail: Some(format!("Internal error: {e}")),
-        }),
+        },
     }
 }

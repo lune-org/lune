@@ -18,6 +18,8 @@ use super::{super::*, Vector3};
 pub struct CFrame(Mat4);
 
 impl CFrame {
+    pub const IDENTITY: Self = Self(Mat4::IDENTITY);
+
     fn position(&self) -> Vec3 {
         self.0.w_axis.truncate()
     }
