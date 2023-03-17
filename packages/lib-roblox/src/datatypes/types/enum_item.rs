@@ -34,6 +34,14 @@ impl EnumItem {
         })
     }
 
+    pub(crate) fn from_enum_name_and_name(
+        enum_name: impl AsRef<str>,
+        name: impl AsRef<str>,
+    ) -> Option<Self> {
+        let parent = Enum::from_name(enum_name)?;
+        Self::from_enum_and_name(&parent, name)
+    }
+
     /**
         Converts an instance property into an [`EnumItem`] datatype, if the property is known.
 

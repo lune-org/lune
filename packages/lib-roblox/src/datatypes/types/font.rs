@@ -1,4 +1,5 @@
 use core::fmt;
+use std::str::FromStr;
 
 use mlua::prelude::*;
 use rbx_dom_weak::types::{
@@ -60,9 +61,60 @@ impl Font {
 
 impl LuaUserData for Font {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        // Getters
         fields.add_field_method_get("Family", |_, this| Ok(this.family.clone()));
-        // TODO: Getters & setters for weight, style
+        fields.add_field_method_get("Weight", |_, this| {
+            Ok(EnumItem::from_enum_name_and_name(
+                "FontWeight",
+                this.weight.to_string(),
+            ))
+        });
+        fields.add_field_method_get("Style", |_, this| {
+            Ok(EnumItem::from_enum_name_and_name(
+                "FontStyle",
+                this.style.to_string(),
+            ))
+        });
         fields.add_field_method_get("Bold", |_, this| Ok(this.weight.clone().as_u16() >= 600));
+        // Setters
+        fields.add_field_method_set("Weight", |_, this, value: EnumItem| {
+            if value.parent.desc.name == "FontWeight" {
+                match FontWeight::from_str(&value.name) {
+                    Ok(weight) => {
+                        this.weight = weight;
+                        Ok(())
+                    }
+                    Err(e) => Err(LuaError::RuntimeError(format!(
+                        "Failed to set value to FontWeight '{}' - {}",
+                        value.name, e
+                    ))),
+                }
+            } else {
+                Err(LuaError::RuntimeError(format!(
+                    "Expected value to be a FontWeight, got {}",
+                    value.parent.desc.name
+                )))
+            }
+        });
+        fields.add_field_method_set("Style", |_, this, value: EnumItem| {
+            if value.parent.desc.name == "FontStyle" {
+                match FontStyle::from_str(&value.name) {
+                    Ok(style) => {
+                        this.style = style;
+                        Ok(())
+                    }
+                    Err(e) => Err(LuaError::RuntimeError(format!(
+                        "Failed to set value to FontStyle '{}' - {}",
+                        value.name, e
+                    ))),
+                }
+            } else {
+                Err(LuaError::RuntimeError(format!(
+                    "Expected value to be a FontStyle, got {}",
+                    value.parent.desc.name
+                )))
+            }
+        });
         fields.add_field_method_set("Bold", |_, this, value: bool| {
             if value {
                 this.weight = FontWeight::Bold;
@@ -81,7 +133,7 @@ impl LuaUserData for Font {
 
 impl fmt::Display for Font {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Font({}, {}, {})", self.family, self.weight, self.style)
+        write!(f, "{}, {}, {}", self.family, self.weight, self.style)
     }
 }
 
