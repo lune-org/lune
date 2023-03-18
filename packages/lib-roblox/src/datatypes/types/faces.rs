@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::Faces as RbxFaces;
+use rbx_dom_weak::types::Faces as DomFaces;
 
 use super::{super::*, EnumItem};
 
@@ -105,8 +105,8 @@ impl fmt::Display for Faces {
     }
 }
 
-impl From<RbxFaces> for Faces {
-    fn from(v: RbxFaces) -> Self {
+impl From<DomFaces> for Faces {
+    fn from(v: DomFaces) -> Self {
         let bits = v.bits();
         Self {
             right: (bits & 1) == 1,
@@ -119,7 +119,7 @@ impl From<RbxFaces> for Faces {
     }
 }
 
-impl From<Faces> for RbxFaces {
+impl From<Faces> for DomFaces {
     fn from(v: Faces) -> Self {
         let mut bits = 0;
         bits += v.right as u8;
@@ -128,6 +128,6 @@ impl From<Faces> for RbxFaces {
         bits += (v.left as u8) << 3;
         bits += (v.bottom as u8) << 4;
         bits += (v.front as u8) << 5;
-        RbxFaces::from_bits(bits).expect("Invalid bits")
+        DomFaces::from_bits(bits).expect("Invalid bits")
     }
 }

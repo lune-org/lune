@@ -3,7 +3,7 @@ use std::ops;
 
 use glam::{EulerRot, Mat4, Quat, Vec3};
 use mlua::prelude::*;
-use rbx_dom_weak::types::{CFrame as RbxCFrame, Matrix3 as RbxMatrix3, Vector3 as RbxVector3};
+use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
 use super::{super::*, Vector3};
 
@@ -305,8 +305,8 @@ impl ops::Sub<Vector3> for CFrame {
     }
 }
 
-impl From<RbxCFrame> for CFrame {
-    fn from(v: RbxCFrame) -> Self {
+impl From<DomCFrame> for CFrame {
+    fn from(v: DomCFrame) -> Self {
         CFrame(Mat4::from_cols(
             Vector3::from(v.orientation.x).0.extend(0.0),
             Vector3::from(v.orientation.y).0.extend(0.0),
@@ -316,15 +316,15 @@ impl From<RbxCFrame> for CFrame {
     }
 }
 
-impl From<CFrame> for RbxCFrame {
+impl From<CFrame> for DomCFrame {
     fn from(v: CFrame) -> Self {
         let (rx, ry, rz) = v.orientation();
-        RbxCFrame {
-            position: RbxVector3::from(Vector3(v.position())),
-            orientation: RbxMatrix3::new(
-                RbxVector3::from(Vector3(rx)),
-                RbxVector3::from(Vector3(ry)),
-                RbxVector3::from(Vector3(rz)),
+        DomCFrame {
+            position: DomVector3::from(Vector3(v.position())),
+            orientation: DomMatrix3::new(
+                DomVector3::from(Vector3(rx)),
+                DomVector3::from(Vector3(ry)),
+                DomVector3::from(Vector3(rz)),
             ),
         }
     }

@@ -2,7 +2,7 @@ use core::fmt;
 
 use glam::Vec3;
 use mlua::prelude::*;
-use rbx_dom_weak::types::Ray as RbxRay;
+use rbx_dom_weak::types::Ray as DomRay;
 
 use super::{super::*, Vector3};
 
@@ -73,8 +73,8 @@ impl fmt::Display for Ray {
     }
 }
 
-impl From<RbxRay> for Ray {
-    fn from(v: RbxRay) -> Self {
+impl From<DomRay> for Ray {
+    fn from(v: DomRay) -> Self {
         Ray {
             origin: Vector3::from(v.origin).0,
             direction: Vector3::from(v.direction).0,
@@ -82,9 +82,9 @@ impl From<RbxRay> for Ray {
     }
 }
 
-impl From<Ray> for RbxRay {
+impl From<Ray> for DomRay {
     fn from(v: Ray) -> Self {
-        RbxRay {
+        DomRay {
             origin: Vector3(v.origin).into(),
             direction: Vector3(v.direction).into(),
         }

@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::CustomPhysicalProperties as RbxCustomPhysicalProperties;
+use rbx_dom_weak::types::CustomPhysicalProperties as DomCustomPhysicalProperties;
 
 use super::{super::*, EnumItem};
 
@@ -109,8 +109,8 @@ impl fmt::Display for PhysicalProperties {
     }
 }
 
-impl From<RbxCustomPhysicalProperties> for PhysicalProperties {
-    fn from(v: RbxCustomPhysicalProperties) -> Self {
+impl From<DomCustomPhysicalProperties> for PhysicalProperties {
+    fn from(v: DomCustomPhysicalProperties) -> Self {
         Self {
             density: v.density,
             friction: v.friction,
@@ -121,9 +121,9 @@ impl From<RbxCustomPhysicalProperties> for PhysicalProperties {
     }
 }
 
-impl From<PhysicalProperties> for RbxCustomPhysicalProperties {
+impl From<PhysicalProperties> for DomCustomPhysicalProperties {
     fn from(v: PhysicalProperties) -> Self {
-        RbxCustomPhysicalProperties {
+        DomCustomPhysicalProperties {
             density: v.density,
             friction: v.friction,
             friction_weight: v.friction_weight,

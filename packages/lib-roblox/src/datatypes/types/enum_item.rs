@@ -1,8 +1,8 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::Enum as RbxEnum;
-use rbx_reflection::DataType as RbxDataType;
+use rbx_dom_weak::types::Enum as DomEnum;
+use rbx_reflection::DataType as DomDataType;
 
 use super::{super::*, Enum};
 
@@ -64,7 +64,7 @@ impl EnumItem {
             .properties
             .get(prop_name.as_ref())?;
         let prop_enum = match &prop.data_type {
-            RbxDataType::Enum(name) => db.enums.get(name.as_ref()),
+            DomDataType::Enum(name) => db.enums.get(name.as_ref()),
             _ => None,
         }?;
         let enum_name = prop_enum.items.iter().find_map(|(name, v)| {
@@ -107,8 +107,8 @@ impl PartialEq for EnumItem {
     }
 }
 
-impl From<EnumItem> for RbxEnum {
+impl From<EnumItem> for DomEnum {
     fn from(v: EnumItem) -> Self {
-        RbxEnum::from_u32(v.value)
+        DomEnum::from_u32(v.value)
     }
 }

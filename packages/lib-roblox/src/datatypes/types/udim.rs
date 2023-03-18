@@ -2,7 +2,7 @@ use core::fmt;
 use std::ops;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::UDim as RbxUDim;
+use rbx_dom_weak::types::UDim as DomUDim;
 
 use super::super::*;
 
@@ -95,8 +95,8 @@ impl ops::Sub for UDim {
     }
 }
 
-impl From<RbxUDim> for UDim {
-    fn from(v: RbxUDim) -> Self {
+impl From<DomUDim> for UDim {
+    fn from(v: DomUDim) -> Self {
         UDim {
             scale: v.scale,
             offset: v.offset,
@@ -104,9 +104,9 @@ impl From<RbxUDim> for UDim {
     }
 }
 
-impl From<UDim> for RbxUDim {
+impl From<UDim> for DomUDim {
     fn from(v: UDim) -> Self {
-        RbxUDim {
+        DomUDim {
             scale: v.scale,
             offset: v.offset,
         }

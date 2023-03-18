@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::NumberSequenceKeypoint as RbxNumberSequenceKeypoint;
+use rbx_dom_weak::types::NumberSequenceKeypoint as DomNumberSequenceKeypoint;
 
 use super::super::*;
 
@@ -52,8 +52,8 @@ impl fmt::Display for NumberSequenceKeypoint {
     }
 }
 
-impl From<RbxNumberSequenceKeypoint> for NumberSequenceKeypoint {
-    fn from(v: RbxNumberSequenceKeypoint) -> Self {
+impl From<DomNumberSequenceKeypoint> for NumberSequenceKeypoint {
+    fn from(v: DomNumberSequenceKeypoint) -> Self {
         Self {
             time: v.time,
             value: v.value,
@@ -62,7 +62,7 @@ impl From<RbxNumberSequenceKeypoint> for NumberSequenceKeypoint {
     }
 }
 
-impl From<NumberSequenceKeypoint> for RbxNumberSequenceKeypoint {
+impl From<NumberSequenceKeypoint> for DomNumberSequenceKeypoint {
     fn from(v: NumberSequenceKeypoint) -> Self {
         Self {
             time: v.time,

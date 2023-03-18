@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::Axes as RbxAxes;
+use rbx_dom_weak::types::Axes as DomAxes;
 
 use super::{super::*, EnumItem};
 
@@ -96,8 +96,8 @@ impl fmt::Display for Axes {
     }
 }
 
-impl From<RbxAxes> for Axes {
-    fn from(v: RbxAxes) -> Self {
+impl From<DomAxes> for Axes {
+    fn from(v: DomAxes) -> Self {
         let bits = v.bits();
         Self {
             x: (bits & 1) == 1,
@@ -107,12 +107,12 @@ impl From<RbxAxes> for Axes {
     }
 }
 
-impl From<Axes> for RbxAxes {
+impl From<Axes> for DomAxes {
     fn from(v: Axes) -> Self {
         let mut bits = 0;
         bits += v.x as u8;
         bits += (v.y as u8) << 1;
         bits += (v.z as u8) << 2;
-        RbxAxes::from_bits(bits).expect("Invalid bits")
+        DomAxes::from_bits(bits).expect("Invalid bits")
     }
 }

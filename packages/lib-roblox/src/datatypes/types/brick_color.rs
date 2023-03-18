@@ -2,7 +2,7 @@ use core::fmt;
 
 use mlua::prelude::*;
 use rand::seq::SliceRandom;
-use rbx_dom_weak::types::BrickColor as RbxBrickColor;
+use rbx_dom_weak::types::BrickColor as DomBrickColor;
 
 use super::{super::*, Color3};
 
@@ -13,7 +13,7 @@ use super::{super::*, Color3};
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BrickColor {
-    // Unfortunately we can't use RbxBrickColor as the backing type here
+    // Unfortunately we can't use DomBrickColor as the backing type here
     // because it does not expose any way of getting the actual rgb colors :-(
     pub(crate) number: u16,
     pub(crate) name: &'static str,
@@ -124,15 +124,15 @@ impl From<BrickColor> for Color3 {
     }
 }
 
-impl From<RbxBrickColor> for BrickColor {
-    fn from(v: RbxBrickColor) -> Self {
+impl From<DomBrickColor> for BrickColor {
+    fn from(v: DomBrickColor) -> Self {
         color_from_name(v.to_string())
     }
 }
 
-impl From<BrickColor> for RbxBrickColor {
+impl From<BrickColor> for DomBrickColor {
     fn from(v: BrickColor) -> Self {
-        RbxBrickColor::from_number(v.number).unwrap_or(RbxBrickColor::MediumStoneGrey)
+        DomBrickColor::from_number(v.number).unwrap_or(DomBrickColor::MediumStoneGrey)
     }
 }
 

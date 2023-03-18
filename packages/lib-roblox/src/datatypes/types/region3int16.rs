@@ -2,7 +2,7 @@ use core::fmt;
 
 use glam::IVec3;
 use mlua::prelude::*;
-use rbx_dom_weak::types::Region3int16 as RbxRegion3int16;
+use rbx_dom_weak::types::Region3int16 as DomRegion3int16;
 
 use super::{super::*, Vector3int16};
 
@@ -50,8 +50,8 @@ impl fmt::Display for Region3int16 {
     }
 }
 
-impl From<RbxRegion3int16> for Region3int16 {
-    fn from(v: RbxRegion3int16) -> Self {
+impl From<DomRegion3int16> for Region3int16 {
+    fn from(v: DomRegion3int16) -> Self {
         Region3int16 {
             min: Vector3int16::from(v.min).0,
             max: Vector3int16::from(v.max).0,
@@ -59,9 +59,9 @@ impl From<RbxRegion3int16> for Region3int16 {
     }
 }
 
-impl From<Region3int16> for RbxRegion3int16 {
+impl From<Region3int16> for DomRegion3int16 {
     fn from(v: Region3int16) -> Self {
-        RbxRegion3int16 {
+        DomRegion3int16 {
             min: Vector3int16(v.min).into(),
             max: Vector3int16(v.max).into(),
         }

@@ -1,21 +1,21 @@
 use mlua::prelude::*;
 
-use rbx_dom_weak::types::{Variant as RbxVariant, VariantType as RbxVariantType};
+use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 
-use crate::datatypes::extension::RbxVariantExt;
+use crate::datatypes::extension::DomValueExt;
 
 use super::*;
 
-pub(crate) trait LuaToRbxVariant<'lua> {
-    fn lua_to_rbx_variant(
+pub(crate) trait LuaToDomValue<'lua> {
+    fn lua_to_dom_value(
         &self,
         lua: &'lua Lua,
-        variant_type: RbxVariantType,
-    ) -> DatatypeConversionResult<RbxVariant>;
+        variant_type: DomType,
+    ) -> DomConversionResult<DomValue>;
 }
 
-pub(crate) trait RbxVariantToLua<'lua>: Sized {
-    fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self>;
+pub(crate) trait DomValueToLua<'lua>: Sized {
+    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self>;
 }
 
 /*
@@ -28,27 +28,26 @@ pub(crate) trait RbxVariantToLua<'lua>: Sized {
 
 */
 
-impl<'lua> RbxVariantToLua<'lua> for LuaValue<'lua> {
-    fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self> {
+impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
+    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
         use base64::engine::general_purpose::STANDARD_NO_PAD;
         use base64::engine::Engine as _;
 
-        use rbx_dom_weak::types as rbx;
-        use RbxVariant as Rbx;
+        use rbx_dom_weak::types as dom;
 
-        match LuaAnyUserData::rbx_variant_to_lua(lua, variant) {
+        match LuaAnyUserData::dom_value_to_lua(lua, variant) {
             Ok(value) => Ok(LuaValue::UserData(value)),
             Err(e) => match variant {
-                Rbx::Bool(b) => Ok(LuaValue::Boolean(*b)),
-                Rbx::Int64(i) => Ok(LuaValue::Number(*i as f64)),
-                Rbx::Int32(i) => Ok(LuaValue::Number(*i as f64)),
-                Rbx::Float64(n) => Ok(LuaValue::Number(*n)),
-                Rbx::Float32(n) => Ok(LuaValue::Number(*n as f64)),
-                Rbx::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
-                Rbx::Content(s) => Ok(LuaValue::String(
+                DomValue::Bool(b) => Ok(LuaValue::Boolean(*b)),
+                DomValue::Int64(i) => Ok(LuaValue::Number(*i as f64)),
+                DomValue::Int32(i) => Ok(LuaValue::Number(*i as f64)),
+                DomValue::Float64(n) => Ok(LuaValue::Number(*n)),
+                DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
+                DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
+                DomValue::Content(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
-                Rbx::BinaryString(s) => {
+                DomValue::BinaryString(s) => {
                     let encoded = STANDARD_NO_PAD.encode(AsRef::<[u8]>::as_ref(s));
                     Ok(LuaValue::String(lua.create_string(&encoded)?))
                 }
@@ -56,7 +55,7 @@ impl<'lua> RbxVariantToLua<'lua> for LuaValue<'lua> {
                 // NOTE: We need this special case here to handle default (nil)
                 // physical properties since our PhysicalProperties datatype
                 // implementation does not handle default at all, only custom
-                Rbx::PhysicalProperties(rbx::PhysicalProperties::Default) => Ok(LuaValue::Nil),
+                DomValue::PhysicalProperties(dom::PhysicalProperties::Default) => Ok(LuaValue::Nil),
 
                 _ => Err(e),
             },
@@ -64,50 +63,48 @@ impl<'lua> RbxVariantToLua<'lua> for LuaValue<'lua> {
     }
 }
 
-impl<'lua> LuaToRbxVariant<'lua> for LuaValue<'lua> {
-    fn lua_to_rbx_variant(
+impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
+    fn lua_to_dom_value(
         &self,
         lua: &'lua Lua,
-        variant_type: RbxVariantType,
-    ) -> DatatypeConversionResult<RbxVariant> {
+        variant_type: DomType,
+    ) -> DomConversionResult<DomValue> {
         use base64::engine::general_purpose::STANDARD_NO_PAD;
         use base64::engine::Engine as _;
 
-        use rbx_dom_weak::types as rbx;
-        use RbxVariant as Rbx;
-        use RbxVariantType as RbxType;
+        use rbx_dom_weak::types as dom;
 
         match (self, variant_type) {
-            (LuaValue::Boolean(b), RbxType::Bool) => Ok(Rbx::Bool(*b)),
+            (LuaValue::Boolean(b), DomType::Bool) => Ok(DomValue::Bool(*b)),
 
-            (LuaValue::Integer(i), RbxType::Int64) => Ok(Rbx::Int64(*i as i64)),
-            (LuaValue::Integer(i), RbxType::Int32) => Ok(Rbx::Int32(*i)),
-            (LuaValue::Integer(i), RbxType::Float64) => Ok(Rbx::Float64(*i as f64)),
-            (LuaValue::Integer(i), RbxType::Float32) => Ok(Rbx::Float32(*i as f32)),
+            (LuaValue::Integer(i), DomType::Int64) => Ok(DomValue::Int64(*i as i64)),
+            (LuaValue::Integer(i), DomType::Int32) => Ok(DomValue::Int32(*i)),
+            (LuaValue::Integer(i), DomType::Float64) => Ok(DomValue::Float64(*i as f64)),
+            (LuaValue::Integer(i), DomType::Float32) => Ok(DomValue::Float32(*i as f32)),
 
-            (LuaValue::Number(n), RbxType::Int64) => Ok(Rbx::Int64(*n as i64)),
-            (LuaValue::Number(n), RbxType::Int32) => Ok(Rbx::Int32(*n as i32)),
-            (LuaValue::Number(n), RbxType::Float64) => Ok(Rbx::Float64(*n)),
-            (LuaValue::Number(n), RbxType::Float32) => Ok(Rbx::Float32(*n as f32)),
+            (LuaValue::Number(n), DomType::Int64) => Ok(DomValue::Int64(*n as i64)),
+            (LuaValue::Number(n), DomType::Int32) => Ok(DomValue::Int32(*n as i32)),
+            (LuaValue::Number(n), DomType::Float64) => Ok(DomValue::Float64(*n)),
+            (LuaValue::Number(n), DomType::Float32) => Ok(DomValue::Float32(*n as f32)),
 
-            (LuaValue::String(s), RbxType::String) => Ok(Rbx::String(s.to_str()?.to_string())),
-            (LuaValue::String(s), RbxType::Content) => {
-                Ok(Rbx::Content(s.to_str()?.to_string().into()))
+            (LuaValue::String(s), DomType::String) => Ok(DomValue::String(s.to_str()?.to_string())),
+            (LuaValue::String(s), DomType::Content) => {
+                Ok(DomValue::Content(s.to_str()?.to_string().into()))
             }
-            (LuaValue::String(s), RbxType::BinaryString) => {
-                Ok(Rbx::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
+            (LuaValue::String(s), DomType::BinaryString) => {
+                Ok(DomValue::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
             }
 
             // NOTE: We need this special case here to handle default (nil)
             // physical properties since our PhysicalProperties datatype
             // implementation does not handle default at all, only custom
-            (LuaValue::Nil, RbxType::PhysicalProperties) => {
-                Ok(Rbx::PhysicalProperties(rbx::PhysicalProperties::Default))
-            }
+            (LuaValue::Nil, DomType::PhysicalProperties) => Ok(DomValue::PhysicalProperties(
+                dom::PhysicalProperties::Default,
+            )),
 
-            (LuaValue::UserData(u), d) => u.lua_to_rbx_variant(lua, d),
+            (LuaValue::UserData(u), d) => u.lua_to_dom_value(lua, d),
 
-            (v, d) => Err(DatatypeConversionError::ToRbxVariant {
+            (v, d) => Err(DomConversionError::ToDomValue {
                 to: d.variant_name(),
                 from: v.type_name(),
                 detail: None,
@@ -126,13 +123,12 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaValue<'lua> {
 
 */
 
-impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
+impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
     #[rustfmt::skip]
-    fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self> {
+    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
 		use super::types::*;
 
-        use rbx_dom_weak::types as rbx;
-        use RbxVariant as Rbx;
+        use rbx_dom_weak::types as dom;
 
         /*
             NOTES:
@@ -147,45 +143,45 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
 
         */
         Ok(match variant.clone() {
-            Rbx::Axes(value)  => lua.create_userdata(Axes::from(value))?,
-            Rbx::Faces(value) => lua.create_userdata(Faces::from(value))?,
+            DomValue::Axes(value)  => lua.create_userdata(Axes::from(value))?,
+            DomValue::Faces(value) => lua.create_userdata(Faces::from(value))?,
 
-            Rbx::CFrame(value) => lua.create_userdata(CFrame::from(value))?,
+            DomValue::CFrame(value) => lua.create_userdata(CFrame::from(value))?,
 
-            Rbx::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
-            Rbx::Color3(value)        => lua.create_userdata(Color3::from(value))?,
-            Rbx::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
-            Rbx::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
+            DomValue::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
+            DomValue::Color3(value)        => lua.create_userdata(Color3::from(value))?,
+            DomValue::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
+            DomValue::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
 
-            Rbx::Font(value) => lua.create_userdata(Font::from(value))?,
+            DomValue::Font(value) => lua.create_userdata(Font::from(value))?,
 
-            Rbx::NumberRange(value)    => lua.create_userdata(NumberRange::from(value))?,
-            Rbx::NumberSequence(value) => lua.create_userdata(NumberSequence::from(value))?,
+            DomValue::NumberRange(value)    => lua.create_userdata(NumberRange::from(value))?,
+            DomValue::NumberSequence(value) => lua.create_userdata(NumberSequence::from(value))?,
 
-            Rbx::Ray(value) => lua.create_userdata(Ray::from(value))?,
+            DomValue::Ray(value) => lua.create_userdata(Ray::from(value))?,
 
-            Rbx::Rect(value)  => lua.create_userdata(Rect::from(value))?,
-            Rbx::UDim(value)  => lua.create_userdata(UDim::from(value))?,
-            Rbx::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
+            DomValue::Rect(value)  => lua.create_userdata(Rect::from(value))?,
+            DomValue::UDim(value)  => lua.create_userdata(UDim::from(value))?,
+            DomValue::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
 
-            Rbx::Region3(value)      => lua.create_userdata(Region3::from(value))?,
-            Rbx::Region3int16(value) => lua.create_userdata(Region3int16::from(value))?,
-            Rbx::Vector2(value)      => lua.create_userdata(Vector2::from(value))?,
-            Rbx::Vector2int16(value) => lua.create_userdata(Vector2int16::from(value))?,
-            Rbx::Vector3(value)      => lua.create_userdata(Vector3::from(value))?,
-            Rbx::Vector3int16(value) => lua.create_userdata(Vector3int16::from(value))?,
+            DomValue::Region3(value)      => lua.create_userdata(Region3::from(value))?,
+            DomValue::Region3int16(value) => lua.create_userdata(Region3int16::from(value))?,
+            DomValue::Vector2(value)      => lua.create_userdata(Vector2::from(value))?,
+            DomValue::Vector2int16(value) => lua.create_userdata(Vector2int16::from(value))?,
+            DomValue::Vector3(value)      => lua.create_userdata(Vector3::from(value))?,
+            DomValue::Vector3int16(value) => lua.create_userdata(Vector3int16::from(value))?,
 
-            Rbx::OptionalCFrame(value) => match value {
+            DomValue::OptionalCFrame(value) => match value {
                 Some(value) => lua.create_userdata(CFrame::from(value))?,
                 None => lua.create_userdata(CFrame::IDENTITY)?
             },
 
-            Rbx::PhysicalProperties(rbx::PhysicalProperties::Custom(value)) => {
+            DomValue::PhysicalProperties(dom::PhysicalProperties::Custom(value)) => {
                 lua.create_userdata(PhysicalProperties::from(value))?
             },
 
             v => {
-                return Err(DatatypeConversionError::FromRbxVariant {
+                return Err(DomConversionError::FromDomValue {
                     from: v.variant_name(),
                     to: "userdata",
                     detail: Some("Type not supported".to_string()),
@@ -195,63 +191,63 @@ impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
     }
 }
 
-impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
+impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
     #[rustfmt::skip]
-    fn lua_to_rbx_variant(
+    fn lua_to_dom_value(
         &self,
         _: &'lua Lua,
-        variant_type: RbxVariantType,
-    ) -> DatatypeConversionResult<RbxVariant> {
+        variant_type: DomType,
+    ) -> DomConversionResult<DomValue> {
         use super::types::*;
 
-        use rbx_dom_weak::types as rbx;
+        use rbx_dom_weak::types as dom;
 
         let f = match variant_type {
-            RbxVariantType::Axes  => convert::<Axes,  rbx::Axes>,
-            RbxVariantType::Faces => convert::<Faces, rbx::Faces>,
+            DomType::Axes  => convert::<Axes,  dom::Axes>,
+            DomType::Faces => convert::<Faces, dom::Faces>,
 
-            RbxVariantType::CFrame => convert::<CFrame, rbx::CFrame>,
+            DomType::CFrame => convert::<CFrame, dom::CFrame>,
 
-            RbxVariantType::BrickColor    => convert::<BrickColor,    rbx::BrickColor>,
-            RbxVariantType::Color3        => convert::<Color3,        rbx::Color3>,
-            RbxVariantType::Color3uint8   => convert::<Color3,        rbx::Color3uint8>,
-            RbxVariantType::ColorSequence => convert::<ColorSequence, rbx::ColorSequence>,
+            DomType::BrickColor    => convert::<BrickColor,    dom::BrickColor>,
+            DomType::Color3        => convert::<Color3,        dom::Color3>,
+            DomType::Color3uint8   => convert::<Color3,        dom::Color3uint8>,
+            DomType::ColorSequence => convert::<ColorSequence, dom::ColorSequence>,
 
-            RbxVariantType::Enum => convert::<EnumItem, rbx::Enum>,
+            DomType::Enum => convert::<EnumItem, dom::Enum>,
 
-            RbxVariantType::Font => convert::<Font, rbx::Font>,
+            DomType::Font => convert::<Font, dom::Font>,
 
-            RbxVariantType::NumberRange    => convert::<NumberRange,    rbx::NumberRange>,
-            RbxVariantType::NumberSequence => convert::<NumberSequence, rbx::NumberSequence>,
+            DomType::NumberRange    => convert::<NumberRange,    dom::NumberRange>,
+            DomType::NumberSequence => convert::<NumberSequence, dom::NumberSequence>,
 
-            RbxVariantType::Rect  => convert::<Rect,  rbx::Rect>,
-            RbxVariantType::UDim  => convert::<UDim,  rbx::UDim>,
-            RbxVariantType::UDim2 => convert::<UDim2, rbx::UDim2>,
+            DomType::Rect  => convert::<Rect,  dom::Rect>,
+            DomType::UDim  => convert::<UDim,  dom::UDim>,
+            DomType::UDim2 => convert::<UDim2, dom::UDim2>,
 
-            RbxVariantType::Ray => convert::<Ray, rbx::Ray>,
+            DomType::Ray => convert::<Ray, dom::Ray>,
 
-            RbxVariantType::Region3      => convert::<Region3,      rbx::Region3>,
-            RbxVariantType::Region3int16 => convert::<Region3int16, rbx::Region3int16>,
-            RbxVariantType::Vector2      => convert::<Vector2,      rbx::Vector2>,
-            RbxVariantType::Vector2int16 => convert::<Vector2int16, rbx::Vector2int16>,
-            RbxVariantType::Vector3      => convert::<Vector3,      rbx::Vector3>,
-            RbxVariantType::Vector3int16 => convert::<Vector3int16, rbx::Vector3int16>,
+            DomType::Region3      => convert::<Region3,      dom::Region3>,
+            DomType::Region3int16 => convert::<Region3int16, dom::Region3int16>,
+            DomType::Vector2      => convert::<Vector2,      dom::Vector2>,
+            DomType::Vector2int16 => convert::<Vector2int16, dom::Vector2int16>,
+            DomType::Vector3      => convert::<Vector3,      dom::Vector3>,
+            DomType::Vector3int16 => convert::<Vector3int16, dom::Vector3int16>,
 
-            RbxVariantType::OptionalCFrame => return match self.borrow::<CFrame>() {
-                Ok(value) => Ok(RbxVariant::OptionalCFrame(Some(rbx::CFrame::from(*value)))),
+            DomType::OptionalCFrame => return match self.borrow::<CFrame>() {
+                Ok(value) => Ok(DomValue::OptionalCFrame(Some(dom::CFrame::from(*value)))),
                 Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
             },
 
-            RbxVariantType::PhysicalProperties => return match self.borrow::<PhysicalProperties>() {
+            DomType::PhysicalProperties => return match self.borrow::<PhysicalProperties>() {
                 Ok(value) => {
-                    let props = rbx::CustomPhysicalProperties::from(*value);
-                    let custom = rbx::PhysicalProperties::Custom(props);
-                    Ok(RbxVariant::PhysicalProperties(custom))
+                    let props = dom::CustomPhysicalProperties::from(*value);
+                    let custom = dom::PhysicalProperties::Custom(props);
+                    Ok(DomValue::PhysicalProperties(custom))
                 },
                 Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
             },
 
-            _ => return Err(DatatypeConversionError::ToRbxVariant {
+            _ => return Err(DomConversionError::ToDomValue {
                 to: variant_type.variant_name(),
                 from: "userdata",
                 detail: Some("Type not supported".to_string()),
@@ -262,31 +258,31 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
     }
 }
 
-fn convert<Datatype, RbxType>(
+fn convert<TypeFrom, TypeTo>(
     userdata: &LuaAnyUserData,
-    variant_type: RbxVariantType,
-) -> DatatypeConversionResult<RbxVariant>
+    variant_type: DomType,
+) -> DomConversionResult<DomValue>
 where
-    Datatype: LuaUserData + Clone + 'static,
-    RbxType: From<Datatype> + Into<RbxVariant>,
+    TypeFrom: LuaUserData + Clone + 'static,
+    TypeTo: From<TypeFrom> + Into<DomValue>,
 {
-    match userdata.borrow::<Datatype>() {
-        Ok(value) => Ok(RbxType::from(value.clone()).into()),
+    match userdata.borrow::<TypeFrom>() {
+        Ok(value) => Ok(TypeTo::from(value.clone()).into()),
         Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
     }
 }
 
 fn lua_userdata_error_to_conversion_error(
-    variant_type: RbxVariantType,
+    variant_type: DomType,
     error: LuaError,
-) -> DatatypeConversionError {
+) -> DomConversionError {
     match error {
-        LuaError::UserDataTypeMismatch => DatatypeConversionError::ToRbxVariant {
+        LuaError::UserDataTypeMismatch => DomConversionError::ToDomValue {
             to: variant_type.variant_name(),
             from: "userdata",
             detail: Some("Type mismatch".to_string()),
         },
-        e => DatatypeConversionError::ToRbxVariant {
+        e => DomConversionError::ToDomValue {
             to: variant_type.variant_name(),
             from: "userdata",
             detail: Some(format!("Internal error: {e}")),

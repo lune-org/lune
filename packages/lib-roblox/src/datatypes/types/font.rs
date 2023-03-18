@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use mlua::prelude::*;
 use rbx_dom_weak::types::{
-    Font as RbxFont, FontStyle as RbxFontStyle, FontWeight as RbxFontWeight,
+    Font as DomFont, FontStyle as DomFontStyle, FontWeight as DomFontWeight,
 };
 
 use super::{super::*, EnumItem};
@@ -135,8 +135,8 @@ impl fmt::Display for Font {
     }
 }
 
-impl From<RbxFont> for Font {
-    fn from(v: RbxFont) -> Self {
+impl From<DomFont> for Font {
+    fn from(v: DomFont) -> Self {
         Self {
             family: v.family,
             weight: v.weight.into(),
@@ -146,9 +146,9 @@ impl From<RbxFont> for Font {
     }
 }
 
-impl From<Font> for RbxFont {
+impl From<Font> for DomFont {
     fn from(v: Font) -> Self {
-        RbxFont {
+        DomFont {
             family: v.family,
             weight: v.weight.into(),
             style: v.style.into(),
@@ -157,27 +157,27 @@ impl From<Font> for RbxFont {
     }
 }
 
-impl From<RbxFontWeight> for FontWeight {
-    fn from(v: RbxFontWeight) -> Self {
+impl From<DomFontWeight> for FontWeight {
+    fn from(v: DomFontWeight) -> Self {
         FontWeight::from_u16(v.as_u16()).expect("Missing font weight")
     }
 }
 
-impl From<FontWeight> for RbxFontWeight {
+impl From<FontWeight> for DomFontWeight {
     fn from(v: FontWeight) -> Self {
-        RbxFontWeight::from_u16(v.as_u16()).expect("Missing rbx font weight")
+        DomFontWeight::from_u16(v.as_u16()).expect("Missing rbx font weight")
     }
 }
 
-impl From<RbxFontStyle> for FontStyle {
-    fn from(v: RbxFontStyle) -> Self {
+impl From<DomFontStyle> for FontStyle {
+    fn from(v: DomFontStyle) -> Self {
         FontStyle::from_u8(v.as_u8()).expect("Missing font weight")
     }
 }
 
-impl From<FontStyle> for RbxFontStyle {
+impl From<FontStyle> for DomFontStyle {
     fn from(v: FontStyle) -> Self {
-        RbxFontStyle::from_u8(v.as_u8()).expect("Missing rbx font weight")
+        DomFontStyle::from_u8(v.as_u8()).expect("Missing rbx font weight")
     }
 }
 

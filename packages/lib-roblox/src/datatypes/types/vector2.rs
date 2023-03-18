@@ -3,7 +3,7 @@ use std::ops;
 
 use glam::{Vec2, Vec3};
 use mlua::prelude::*;
-use rbx_dom_weak::types::Vector2 as RbxVector2;
+use rbx_dom_weak::types::Vector2 as DomVector2;
 
 use super::super::*;
 
@@ -128,14 +128,14 @@ impl ops::Div<f32> for Vector2 {
     }
 }
 
-impl From<RbxVector2> for Vector2 {
-    fn from(v: RbxVector2) -> Self {
+impl From<DomVector2> for Vector2 {
+    fn from(v: DomVector2) -> Self {
         Vector2(Vec2 { x: v.x, y: v.y })
     }
 }
 
-impl From<Vector2> for RbxVector2 {
+impl From<Vector2> for DomVector2 {
     fn from(v: Vector2) -> Self {
-        RbxVector2 { x: v.0.x, y: v.0.y }
+        DomVector2 { x: v.0.x, y: v.0.y }
     }
 }

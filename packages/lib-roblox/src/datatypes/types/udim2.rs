@@ -3,7 +3,7 @@ use std::ops;
 
 use glam::Vec2;
 use mlua::prelude::*;
-use rbx_dom_weak::types::UDim2 as RbxUDim2;
+use rbx_dom_weak::types::UDim2 as DomUDim2;
 
 use super::{super::*, UDim};
 
@@ -140,8 +140,8 @@ impl ops::Sub for UDim2 {
     }
 }
 
-impl From<RbxUDim2> for UDim2 {
-    fn from(v: RbxUDim2) -> Self {
+impl From<DomUDim2> for UDim2 {
+    fn from(v: DomUDim2) -> Self {
         UDim2 {
             x: v.x.into(),
             y: v.y.into(),
@@ -149,9 +149,9 @@ impl From<RbxUDim2> for UDim2 {
     }
 }
 
-impl From<UDim2> for RbxUDim2 {
+impl From<UDim2> for DomUDim2 {
     fn from(v: UDim2) -> Self {
-        RbxUDim2 {
+        DomUDim2 {
             x: v.x.into(),
             y: v.y.into(),
         }

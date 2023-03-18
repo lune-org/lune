@@ -1,4 +1,4 @@
-pub(crate) use rbx_dom_weak::types::{Variant as RbxVariant, VariantType as RbxVariantType};
+pub(crate) use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 
 mod conversion;
 mod extension;

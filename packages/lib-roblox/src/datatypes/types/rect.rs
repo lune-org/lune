@@ -3,7 +3,7 @@ use std::ops;
 
 use glam::Vec2;
 use mlua::prelude::*;
-use rbx_dom_weak::types::Rect as RbxRect;
+use rbx_dom_weak::types::Rect as DomRect;
 
 use super::{super::*, Vector2};
 
@@ -99,8 +99,8 @@ impl ops::Sub for Rect {
     }
 }
 
-impl From<RbxRect> for Rect {
-    fn from(v: RbxRect) -> Self {
+impl From<DomRect> for Rect {
+    fn from(v: DomRect) -> Self {
         Rect {
             min: Vec2::new(v.min.x, v.min.y),
             max: Vec2::new(v.max.x, v.max.y),
@@ -108,9 +108,9 @@ impl From<RbxRect> for Rect {
     }
 }
 
-impl From<Rect> for RbxRect {
+impl From<Rect> for DomRect {
     fn from(v: Rect) -> Self {
-        RbxRect {
+        DomRect {
             min: Vector2(v.min).into(),
             max: Vector2(v.max).into(),
         }

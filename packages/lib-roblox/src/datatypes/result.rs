@@ -7,24 +7,24 @@ use mlua::Error as LuaError;
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub(crate) enum DatatypeConversionError {
+pub(crate) enum DomConversionError {
     LuaError(LuaError),
     External {
         message: String,
     },
-    FromRbxVariant {
+    FromDomValue {
         from: &'static str,
         to: &'static str,
         detail: Option<String>,
     },
-    ToRbxVariant {
+    ToDomValue {
         to: &'static str,
         from: &'static str,
         detail: Option<String>,
     },
 }
 
-impl fmt::Display for DatatypeConversionError {
+impl fmt::Display for DomConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -32,8 +32,7 @@ impl fmt::Display for DatatypeConversionError {
             match self {
                 Self::LuaError(error) => error.to_string(),
                 Self::External { message } => message.to_string(),
-                Self::FromRbxVariant { from, to, detail }
-                | Self::ToRbxVariant { from, to, detail } => {
+                Self::FromDomValue { from, to, detail } | Self::ToDomValue { from, to, detail } => {
                     match detail {
                         Some(d) => format!("Failed to convert from '{from}' into '{to}' - {d}"),
                         None => format!("Failed to convert from '{from}' into '{to}'",),
@@ -44,28 +43,28 @@ impl fmt::Display for DatatypeConversionError {
     }
 }
 
-impl Error for DatatypeConversionError {}
+impl Error for DomConversionError {}
 
-impl From<LuaError> for DatatypeConversionError {
+impl From<LuaError> for DomConversionError {
     fn from(value: LuaError) -> Self {
         Self::LuaError(value)
     }
 }
 
-impl From<IoError> for DatatypeConversionError {
+impl From<IoError> for DomConversionError {
     fn from(value: IoError) -> Self {
-        DatatypeConversionError::External {
+        DomConversionError::External {
             message: value.to_string(),
         }
     }
 }
 
-impl From<base64::DecodeError> for DatatypeConversionError {
+impl From<base64::DecodeError> for DomConversionError {
     fn from(value: base64::DecodeError) -> Self {
-        DatatypeConversionError::External {
+        DomConversionError::External {
             message: value.to_string(),
         }
     }
 }
 
-pub(crate) type DatatypeConversionResult<T> = Result<T, DatatypeConversionError>;
+pub(crate) type DomConversionResult<T> = Result<T, DomConversionError>;

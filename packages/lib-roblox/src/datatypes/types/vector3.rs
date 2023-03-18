@@ -3,7 +3,7 @@ use std::ops;
 
 use glam::Vec3;
 use mlua::prelude::*;
-use rbx_dom_weak::types::Vector3 as RbxVector3;
+use rbx_dom_weak::types::Vector3 as DomVector3;
 
 use super::{super::*, EnumItem};
 
@@ -190,8 +190,8 @@ impl ops::Div<f32> for Vector3 {
     }
 }
 
-impl From<RbxVector3> for Vector3 {
-    fn from(v: RbxVector3) -> Self {
+impl From<DomVector3> for Vector3 {
+    fn from(v: DomVector3) -> Self {
         Vector3(Vec3 {
             x: v.x,
             y: v.y,
@@ -200,9 +200,9 @@ impl From<RbxVector3> for Vector3 {
     }
 }
 
-impl From<Vector3> for RbxVector3 {
+impl From<Vector3> for DomVector3 {
     fn from(v: Vector3) -> Self {
-        RbxVector3 {
+        DomVector3 {
             x: v.0.x,
             y: v.0.y,
             z: v.0.z,

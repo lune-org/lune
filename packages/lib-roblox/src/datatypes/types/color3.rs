@@ -3,7 +3,7 @@ use std::ops;
 
 use glam::Vec3;
 use mlua::prelude::*;
-use rbx_dom_weak::types::{Color3 as RbxColor3, Color3uint8 as RbxColor3uint8};
+use rbx_dom_weak::types::{Color3 as DomColor3, Color3uint8 as DomColor3uint8};
 
 use super::super::*;
 
@@ -261,8 +261,8 @@ impl ops::Div<f32> for Color3 {
     }
 }
 
-impl From<RbxColor3> for Color3 {
-    fn from(v: RbxColor3) -> Self {
+impl From<DomColor3> for Color3 {
+    fn from(v: DomColor3) -> Self {
         Self {
             r: v.r,
             g: v.g,
@@ -271,7 +271,7 @@ impl From<RbxColor3> for Color3 {
     }
 }
 
-impl From<Color3> for RbxColor3 {
+impl From<Color3> for DomColor3 {
     fn from(v: Color3) -> Self {
         Self {
             r: v.r,
@@ -281,8 +281,8 @@ impl From<Color3> for RbxColor3 {
     }
 }
 
-impl From<RbxColor3uint8> for Color3 {
-    fn from(v: RbxColor3uint8) -> Self {
+impl From<DomColor3uint8> for Color3 {
+    fn from(v: DomColor3uint8) -> Self {
         Self {
             r: (v.r as f32) / 255f32,
             g: (v.g as f32) / 255f32,
@@ -291,7 +291,7 @@ impl From<RbxColor3uint8> for Color3 {
     }
 }
 
-impl From<Color3> for RbxColor3uint8 {
+impl From<Color3> for DomColor3uint8 {
     fn from(v: Color3) -> Self {
         Self {
             r: v.r.clamp(u8::MIN as f32, u8::MAX as f32) as u8,

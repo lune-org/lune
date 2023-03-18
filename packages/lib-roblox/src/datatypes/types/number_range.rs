@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::NumberRange as RbxNumberRange;
+use rbx_dom_weak::types::NumberRange as DomNumberRange;
 
 use super::super::*;
 
@@ -51,8 +51,8 @@ impl fmt::Display for NumberRange {
     }
 }
 
-impl From<RbxNumberRange> for NumberRange {
-    fn from(v: RbxNumberRange) -> Self {
+impl From<DomNumberRange> for NumberRange {
+    fn from(v: DomNumberRange) -> Self {
         Self {
             min: v.min,
             max: v.max,
@@ -60,7 +60,7 @@ impl From<RbxNumberRange> for NumberRange {
     }
 }
 
-impl From<NumberRange> for RbxNumberRange {
+impl From<NumberRange> for DomNumberRange {
     fn from(v: NumberRange) -> Self {
         Self {
             min: v.min,

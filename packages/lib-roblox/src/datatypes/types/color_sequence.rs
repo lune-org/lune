@@ -2,7 +2,7 @@ use core::fmt;
 
 use mlua::prelude::*;
 use rbx_dom_weak::types::{
-    ColorSequence as RbxColorSequence, ColorSequenceKeypoint as RbxColorSequenceKeypoint,
+    ColorSequence as DomColorSequence, ColorSequenceKeypoint as DomColorSequenceKeypoint,
 };
 
 use super::{super::*, Color3, ColorSequenceKeypoint};
@@ -82,8 +82,8 @@ impl fmt::Display for ColorSequence {
     }
 }
 
-impl From<RbxColorSequence> for ColorSequence {
-    fn from(v: RbxColorSequence) -> Self {
+impl From<DomColorSequence> for ColorSequence {
+    fn from(v: DomColorSequence) -> Self {
         Self {
             keypoints: v
                 .keypoints
@@ -95,14 +95,14 @@ impl From<RbxColorSequence> for ColorSequence {
     }
 }
 
-impl From<ColorSequence> for RbxColorSequence {
+impl From<ColorSequence> for DomColorSequence {
     fn from(v: ColorSequence) -> Self {
         Self {
             keypoints: v
                 .keypoints
                 .iter()
                 .cloned()
-                .map(RbxColorSequenceKeypoint::from)
+                .map(DomColorSequenceKeypoint::from)
                 .collect(),
         }
     }

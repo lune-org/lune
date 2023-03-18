@@ -1,12 +1,12 @@
 use super::*;
 
-pub(super) trait RbxVariantExt {
+pub(super) trait DomValueExt {
     fn variant_name(&self) -> &'static str;
 }
 
-impl RbxVariantExt for RbxVariantType {
+impl DomValueExt for DomType {
     fn variant_name(&self) -> &'static str {
-        use RbxVariantType::*;
+        use DomType::*;
         match self {
             Axes => "Axes",
             BinaryString => "BinaryString",
@@ -45,7 +45,7 @@ impl RbxVariantExt for RbxVariantType {
     }
 }
 
-impl RbxVariantExt for RbxVariant {
+impl DomValueExt for DomValue {
     fn variant_name(&self) -> &'static str {
         self.ty().variant_name()
     }
