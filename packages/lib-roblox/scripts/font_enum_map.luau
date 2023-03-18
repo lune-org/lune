@@ -12,13 +12,13 @@ pub(crate) enum <<ENUM_NAME>> {
 }
 
 impl <<ENUM_NAME>> {
-	pub fn as_<<NUMBER_TYPE>>(&self) -> <<NUMBER_TYPE>> {
+	pub(crate) fn as_<<NUMBER_TYPE>>(&self) -> <<NUMBER_TYPE>> {
 		match self {
 			<<ENUM_TO_NUMBERS>>
 		}
 	}
 
-	pub fn from_<<NUMBER_TYPE>>(n: <<NUMBER_TYPE>>) -> Option<Self> {
+	pub(crate) fn from_<<NUMBER_TYPE>>(n: <<NUMBER_TYPE>>) -> Option<Self> {
 		match n {
 			<<NUMBERS_TO_ENUM>>
 			_ => None,
@@ -26,25 +26,73 @@ impl <<ENUM_NAME>> {
 	}
 }
 
+impl Default for <<ENUM_NAME>> {
+	fn default() -> Self {
+		Self::<<DEFAULT_NAME>>
+	}
+}
+
 impl std::str::FromStr for <<ENUM_NAME>> {
-    type Err = &'static str;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+	type Err = &'static str;
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
 			<<STRINGS_TO_ENUM>>
-            _ => Err("Unknown <<ENUM_NAME>>"),
-        }
-    }
+			_ => Err("Unknown <<ENUM_NAME>>"),
+		}
+	}
 }
 
 impl std::fmt::Display for <<ENUM_NAME>> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
 			f,
 			"{}",
 			match self {
 				<<ENUM_TO_STRINGS>>
 			}
 		)
+	}
+}
+
+impl<'lua> FromLua<'lua> for <<ENUM_NAME>> {
+    fn from_lua(lua_value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        let mut message = None;
+        if let LuaValue::UserData(ud) = &lua_value {
+            let value = ud.borrow::<EnumItem>()?;
+            if value.parent.desc.name == "<<ENUM_NAME>>" {
+                if let Ok(value) = <<ENUM_NAME>>::from_str(&value.name) {
+                    return Ok(value);
+                } else {
+                    message = Some(format!(
+                        "Found unknown Enum.<<ENUM_NAME>> value '{}'",
+                        value.name
+                    ));
+                }
+            } else {
+                message = Some(format!(
+                    "Expected Enum.<<ENUM_NAME>>, got Enum.{}",
+                    value.parent.desc.name
+                ));
+            }
+        }
+        Err(LuaError::FromLuaConversionError {
+            from: lua_value.type_name(),
+            to: "Enum.<<ENUM_NAME>>",
+            message,
+        })
+    }
+}
+
+impl<'lua> ToLua<'lua> for <<ENUM_NAME>> {
+    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+        match EnumItem::from_enum_name_and_name("<<ENUM_NAME>>", self.to_string()) {
+            Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
+            None => Err(LuaError::ToLuaConversionError {
+                from: "<<ENUM_NAME>>",
+                to: "EnumItem",
+                message: Some(format!("Found unknown Enum.<<ENUM_NAME>> value '{}'", self)),
+            }),
+        }
     }
 }
 
@@ -52,8 +100,13 @@ impl std::fmt::Display for <<ENUM_NAME>> {
 
 -- FontWeight enum and implementation
 
-local function makeRustEnum(enum, numType: string)
-	local name = string.gsub(tostring(enum), "^Enum.", "")
+local function makeRustEnum(enum, default, numType: string)
+	local name = tostring(enum)
+	name = string.gsub(name, "^Enum.", "")
+
+	local defaultName = tostring(default)
+	defaultName = string.gsub(defaultName, "^Enum.", "")
+	defaultName = string.gsub(defaultName, "^" .. name .. ".", "")
 
 	local enumNames = ""
 	local enumToNumbers = ""
@@ -71,6 +124,7 @@ local function makeRustEnum(enum, numType: string)
 
 	local mappings: { [string]: string } = {
 		["<<ENUM_NAME>>"] = name,
+		["<<DEFAULT_NAME>>"] = defaultName,
 		["<<NUMBER_TYPE>>"] = numType,
 		["<<ENUM_NAMES>>"] = enumNames,
 		["<<ENUM_TO_NUMBERS>>"] = enumToNumbers,
@@ -91,10 +145,10 @@ local function makeRustEnum(enum, numType: string)
 	return result
 end
 
-contents ..= makeRustEnum(Enum.FontWeight, "u16")
+contents ..= makeRustEnum(Enum.FontWeight, Enum.FontWeight.Regular, "u16")
 contents ..= "\n"
 
-contents ..= makeRustEnum(Enum.FontStyle, "u8")
+contents ..= makeRustEnum(Enum.FontStyle, Enum.FontStyle.Normal, "u8")
 contents ..= "\n"
 
 -- Font constant map from enum to font data
