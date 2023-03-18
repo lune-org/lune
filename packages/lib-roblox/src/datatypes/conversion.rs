@@ -32,6 +32,8 @@ impl<'lua> RbxVariantToLua<'lua> for LuaValue<'lua> {
     fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self> {
         use base64::engine::general_purpose::STANDARD_NO_PAD;
         use base64::engine::Engine as _;
+
+        use rbx_dom_weak::types as rbx;
         use RbxVariant as Rbx;
 
         match LuaAnyUserData::rbx_variant_to_lua(lua, variant) {
@@ -50,6 +52,12 @@ impl<'lua> RbxVariantToLua<'lua> for LuaValue<'lua> {
                     let encoded = STANDARD_NO_PAD.encode(AsRef::<[u8]>::as_ref(s));
                     Ok(LuaValue::String(lua.create_string(&encoded)?))
                 }
+
+                // NOTE: We need this special case here to handle default (nil)
+                // physical properties since our PhysicalProperties datatype
+                // implementation does not handle default at all, only custom
+                Rbx::PhysicalProperties(rbx::PhysicalProperties::Default) => Ok(LuaValue::Nil),
+
                 _ => Err(e),
             },
         }
@@ -64,27 +72,37 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaValue<'lua> {
     ) -> DatatypeConversionResult<RbxVariant> {
         use base64::engine::general_purpose::STANDARD_NO_PAD;
         use base64::engine::Engine as _;
-        use RbxVariantType as Rbx;
+
+        use rbx_dom_weak::types as rbx;
+        use RbxVariant as Rbx;
+        use RbxVariantType as RbxType;
 
         match (self, variant_type) {
-            (LuaValue::Boolean(b), Rbx::Bool) => Ok(RbxVariant::Bool(*b)),
+            (LuaValue::Boolean(b), RbxType::Bool) => Ok(Rbx::Bool(*b)),
 
-            (LuaValue::Integer(i), Rbx::Int64) => Ok(RbxVariant::Int64(*i as i64)),
-            (LuaValue::Integer(i), Rbx::Int32) => Ok(RbxVariant::Int32(*i)),
-            (LuaValue::Integer(i), Rbx::Float64) => Ok(RbxVariant::Float64(*i as f64)),
-            (LuaValue::Integer(i), Rbx::Float32) => Ok(RbxVariant::Float32(*i as f32)),
+            (LuaValue::Integer(i), RbxType::Int64) => Ok(Rbx::Int64(*i as i64)),
+            (LuaValue::Integer(i), RbxType::Int32) => Ok(Rbx::Int32(*i)),
+            (LuaValue::Integer(i), RbxType::Float64) => Ok(Rbx::Float64(*i as f64)),
+            (LuaValue::Integer(i), RbxType::Float32) => Ok(Rbx::Float32(*i as f32)),
 
-            (LuaValue::Number(n), Rbx::Int64) => Ok(RbxVariant::Int64(*n as i64)),
-            (LuaValue::Number(n), Rbx::Int32) => Ok(RbxVariant::Int32(*n as i32)),
-            (LuaValue::Number(n), Rbx::Float64) => Ok(RbxVariant::Float64(*n)),
-            (LuaValue::Number(n), Rbx::Float32) => Ok(RbxVariant::Float32(*n as f32)),
+            (LuaValue::Number(n), RbxType::Int64) => Ok(Rbx::Int64(*n as i64)),
+            (LuaValue::Number(n), RbxType::Int32) => Ok(Rbx::Int32(*n as i32)),
+            (LuaValue::Number(n), RbxType::Float64) => Ok(Rbx::Float64(*n)),
+            (LuaValue::Number(n), RbxType::Float32) => Ok(Rbx::Float32(*n as f32)),
 
-            (LuaValue::String(s), Rbx::String) => Ok(RbxVariant::String(s.to_str()?.to_string())),
-            (LuaValue::String(s), Rbx::Content) => {
-                Ok(RbxVariant::Content(s.to_str()?.to_string().into()))
+            (LuaValue::String(s), RbxType::String) => Ok(Rbx::String(s.to_str()?.to_string())),
+            (LuaValue::String(s), RbxType::Content) => {
+                Ok(Rbx::Content(s.to_str()?.to_string().into()))
             }
-            (LuaValue::String(s), Rbx::BinaryString) => {
-                Ok(RbxVariant::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
+            (LuaValue::String(s), RbxType::BinaryString) => {
+                Ok(Rbx::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
+            }
+
+            // NOTE: We need this special case here to handle default (nil)
+            // physical properties since our PhysicalProperties datatype
+            // implementation does not handle default at all, only custom
+            (LuaValue::Nil, RbxType::PhysicalProperties) => {
+                Ok(Rbx::PhysicalProperties(rbx::PhysicalProperties::Default))
             }
 
             (LuaValue::UserData(u), d) => u.lua_to_rbx_variant(lua, d),
@@ -111,9 +129,10 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaValue<'lua> {
 impl<'lua> RbxVariantToLua<'lua> for LuaAnyUserData<'lua> {
     #[rustfmt::skip]
     fn rbx_variant_to_lua(lua: &'lua Lua, variant: &RbxVariant) -> DatatypeConversionResult<Self> {
-        use super::types::*;
-        use RbxVariant as Rbx;
+		use super::types::*;
+
         use rbx_dom_weak::types as rbx;
+        use RbxVariant as Rbx;
 
         /*
             NOTES:
@@ -184,6 +203,7 @@ impl<'lua> LuaToRbxVariant<'lua> for LuaAnyUserData<'lua> {
         variant_type: RbxVariantType,
     ) -> DatatypeConversionResult<RbxVariant> {
         use super::types::*;
+
         use rbx_dom_weak::types as rbx;
 
         let f = match variant_type {
