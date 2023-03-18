@@ -15,9 +15,10 @@ use super::{super::*, EnumItem};
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct Font {
-    family: String,
-    weight: FontWeight,
-    style: FontStyle,
+    pub(crate) family: String,
+    pub(crate) weight: FontWeight,
+    pub(crate) style: FontStyle,
+    pub(crate) cached_id: Option<String>,
 }
 
 impl Font {
@@ -30,6 +31,7 @@ impl Font {
                 family: props.0.to_string(),
                 weight: props.1,
                 style: props.2,
+                cached_id: None,
             })
     }
 
@@ -42,6 +44,7 @@ impl Font {
                         family,
                         weight: weight.unwrap_or_default(),
                         style: style.unwrap_or_default(),
+                        cached_id: None,
                     })
                 },
             )?,
@@ -73,6 +76,7 @@ impl Font {
                         family: format!("rbxasset://fonts/families/{}.json", file),
                         weight: weight.unwrap_or_default(),
                         style: style.unwrap_or_default(),
+                        cached_id: None,
                     })
                 },
             )?,
@@ -85,6 +89,7 @@ impl Font {
                         family: format!("rbxassetid://{}", id),
                         weight: weight.unwrap_or_default(),
                         style: style.unwrap_or_default(),
+                        cached_id: None,
                     })
                 },
             )?,
@@ -136,6 +141,7 @@ impl From<RbxFont> for Font {
             family: v.family,
             weight: v.weight.into(),
             style: v.style.into(),
+            cached_id: v.cached_face_id,
         }
     }
 }
@@ -146,7 +152,7 @@ impl From<Font> for RbxFont {
             family: v.family,
             weight: v.weight.into(),
             style: v.style.into(),
-            cached_face_id: None,
+            cached_face_id: v.cached_id,
         }
     }
 }
