@@ -1,11 +1,10 @@
 pub(crate) use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 
-mod conversion;
-mod extension;
-mod result;
-mod shared;
-
+pub mod conversion;
+pub mod extension;
+pub mod result;
 pub mod types;
 
 use result::*;
-use shared::*;
+
+pub use crate::shared::userdata::*;

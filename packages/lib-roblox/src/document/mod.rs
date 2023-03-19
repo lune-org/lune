@@ -1,6 +1,6 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock};
 
-use rbx_dom_weak::{types::Ref, WeakDom};
+use rbx_dom_weak::WeakDom;
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -189,43 +189,9 @@ impl Document {
     }
 
     /**
-        Retrieves the root referent of the underlying weak dom.
+        Gets the underlying weak dom for this document.
     */
-    pub fn get_root_ref(&self) -> Ref {
-        let dom = self.dom.try_read().expect("Failed to lock dom");
-        dom.root_ref()
-    }
-
-    /**
-        Retrieves all root child referents of the underlying weak dom.
-    */
-    pub fn get_root_child_refs(&self) -> Vec<Ref> {
-        let dom = self.dom.try_read().expect("Failed to lock dom");
-        dom.root().children().to_vec()
-    }
-
-    /**
-        Retrieves a reference to the underlying weak dom.
-    */
-    pub fn get_dom(&self) -> RwLockReadGuard<WeakDom> {
-        self.dom.try_read().expect("Failed to lock dom")
-    }
-
-    /**
-        Retrieves a mutable reference to the underlying weak dom.
-    */
-    pub fn get_dom_mut(&mut self) -> RwLockWriteGuard<WeakDom> {
-        self.dom.try_write().expect("Failed to lock dom")
-    }
-
-    /**
-        Consumes the document, returning the underlying weak dom.
-
-        This may panic if the document has been cloned
-        and still has another owner in memory.
-    */
-    pub fn into_dom(self) -> WeakDom {
-        let lock = Arc::try_unwrap(self.dom).expect("Document has multiple owners in memory");
-        lock.into_inner().expect("Failed to lock dom")
+    pub fn dom(&self) -> Arc<RwLock<WeakDom>> {
+        Arc::clone(&self.dom)
     }
 }

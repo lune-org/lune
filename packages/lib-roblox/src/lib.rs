@@ -1,10 +1,17 @@
+use std::sync::{Arc, RwLock};
+
 use mlua::prelude::*;
+use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
+
+use crate::instance::Instance;
 
 pub mod datatypes;
 pub mod document;
 pub mod instance;
 
-fn make_dt<F>(lua: &Lua, f: F) -> LuaResult<LuaValue>
+pub(crate) mod shared;
+
+fn make<F>(lua: &Lua, f: F) -> LuaResult<LuaValue>
 where
     F: Fn(&Lua, &LuaTable) -> LuaResult<()>,
 {
@@ -18,35 +25,43 @@ where
 fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
 	use datatypes::types::*;
     Ok(vec![
+		// Datatypes
+        ("Axes",                   make(lua, Axes::make_table)?),
+        ("BrickColor",             make(lua, BrickColor::make_table)?),
+        ("CFrame",                 make(lua, CFrame::make_table)?),
+        ("Color3",                 make(lua, Color3::make_table)?),
+        ("ColorSequence",          make(lua, ColorSequence::make_table)?),
+        ("ColorSequenceKeypoint",  make(lua, ColorSequenceKeypoint::make_table)?),
+        ("Faces",                  make(lua, Faces::make_table)?),
+        ("Font",                   make(lua, Font::make_table)?),
+        ("NumberRange",            make(lua, NumberRange::make_table)?),
+        ("NumberSequence",         make(lua, NumberSequence::make_table)?),
+        ("NumberSequenceKeypoint", make(lua, NumberSequenceKeypoint::make_table)?),
+        ("PhysicalProperties",     make(lua, PhysicalProperties::make_table)?),
+        ("Ray",                    make(lua, Ray::make_table)?),
+        ("Rect",                   make(lua, Rect::make_table)?),
+        ("UDim",                   make(lua, UDim::make_table)?),
+        ("UDim2",                  make(lua, UDim2::make_table)?),
+        ("Region3",                make(lua, Region3::make_table)?),
+        ("Region3int16",           make(lua, Region3int16::make_table)?),
+        ("Vector2",                make(lua, Vector2::make_table)?),
+        ("Vector2int16",           make(lua, Vector2int16::make_table)?),
+        ("Vector3",                make(lua, Vector3::make_table)?),
+        ("Vector3int16",           make(lua, Vector3int16::make_table)?),
 		// Classes
-        ("Axes",                   make_dt(lua, Axes::make_table)?),
-        ("BrickColor",             make_dt(lua, BrickColor::make_table)?),
-        ("CFrame",                 make_dt(lua, CFrame::make_table)?),
-        ("Color3",                 make_dt(lua, Color3::make_table)?),
-        ("ColorSequence",          make_dt(lua, ColorSequence::make_table)?),
-        ("ColorSequenceKeypoint",  make_dt(lua, ColorSequenceKeypoint::make_table)?),
-        ("Faces",                  make_dt(lua, Faces::make_table)?),
-        ("Font",                   make_dt(lua, Font::make_table)?),
-        ("NumberRange",            make_dt(lua, NumberRange::make_table)?),
-        ("NumberSequence",         make_dt(lua, NumberSequence::make_table)?),
-        ("NumberSequenceKeypoint", make_dt(lua, NumberSequenceKeypoint::make_table)?),
-        ("PhysicalProperties",     make_dt(lua, PhysicalProperties::make_table)?),
-        ("Ray",                    make_dt(lua, Ray::make_table)?),
-        ("Rect",                   make_dt(lua, Rect::make_table)?),
-        ("UDim",                   make_dt(lua, UDim::make_table)?),
-        ("UDim2",                  make_dt(lua, UDim2::make_table)?),
-        ("Region3",                make_dt(lua, Region3::make_table)?),
-        ("Region3int16",           make_dt(lua, Region3int16::make_table)?),
-        ("Vector2",                make_dt(lua, Vector2::make_table)?),
-        ("Vector2int16",           make_dt(lua, Vector2int16::make_table)?),
-        ("Vector3",                make_dt(lua, Vector3::make_table)?),
-        ("Vector3int16",           make_dt(lua, Vector3int16::make_table)?),
+        ("Instance", make(lua, Instance::make_table)?),
 		// Singletons
-        ("Enum", LuaValue::UserData(Enums::make_singleton(lua)?)),
+        ("Enum", Enums.to_lua(lua)?),
     ])
 }
 
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+    // Create an internal weak dom that will be used
+    // for any instance that does not yet have a parent
+    let internal_root = DomInstanceBuilder::new("<<<ROOT>>>");
+    let internal_dom = Arc::new(RwLock::new(WeakDom::new(internal_root)));
+    lua.set_app_data(internal_dom);
+    // Create all datatypes and singletons and export them
     let exports = lua.create_table()?;
     for (name, tab) in make_all_datatypes(lua)? {
         exports.set(name, tab)?;

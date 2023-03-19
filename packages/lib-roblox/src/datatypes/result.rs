@@ -45,6 +45,19 @@ impl fmt::Display for DomConversionError {
 
 impl Error for DomConversionError {}
 
+impl From<DomConversionError> for LuaError {
+    fn from(value: DomConversionError) -> Self {
+        use DomConversionError as E;
+        match value {
+            E::LuaError(e) => e,
+            E::External { message } => LuaError::external(message),
+            E::FromDomValue { .. } | E::ToDomValue { .. } => {
+                LuaError::RuntimeError(value.to_string())
+            }
+        }
+    }
+}
+
 impl From<LuaError> for DomConversionError {
     fn from(value: LuaError) -> Self {
         Self::LuaError(value)

@@ -12,12 +12,6 @@ use super::{super::*, Enum};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Enums;
 
-impl Enums {
-    pub(crate) fn make_singleton(lua: &Lua) -> LuaResult<LuaAnyUserData> {
-        lua.create_userdata(Self)
-    }
-}
-
 impl LuaUserData for Enums {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods

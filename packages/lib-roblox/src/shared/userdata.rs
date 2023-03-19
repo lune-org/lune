@@ -5,7 +5,7 @@ use mlua::prelude::*;
 // Utility functions
 
 type ListWriter = dyn Fn(&mut fmt::Formatter<'_>, bool, &str) -> fmt::Result;
-pub(super) fn make_list_writer() -> Box<ListWriter> {
+pub fn make_list_writer() -> Box<ListWriter> {
     let first = RefCell::new(true);
     Box::new(move |f, flag, literal| {
         if flag {
@@ -21,14 +21,14 @@ pub(super) fn make_list_writer() -> Box<ListWriter> {
 
 // Userdata metamethod implementations
 
-pub(super) fn userdata_impl_to_string<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<String>
+pub fn userdata_impl_to_string<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<String>
 where
     D: LuaUserData + ToString + 'static,
 {
     Ok(datatype.to_string())
 }
 
-pub(super) fn userdata_impl_eq<D>(_: &Lua, datatype: &D, value: LuaValue) -> LuaResult<bool>
+pub fn userdata_impl_eq<D>(_: &Lua, datatype: &D, value: LuaValue) -> LuaResult<bool>
 where
     D: LuaUserData + PartialEq + 'static,
 {
@@ -43,28 +43,28 @@ where
     }
 }
 
-pub(super) fn userdata_impl_unm<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<D>
+pub fn userdata_impl_unm<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<D>
 where
     D: LuaUserData + ops::Neg<Output = D> + Copy,
 {
     Ok(-*datatype)
 }
 
-pub(super) fn userdata_impl_add<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
+pub fn userdata_impl_add<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
 where
     D: LuaUserData + ops::Add<Output = D> + Copy,
 {
     Ok(*datatype + value)
 }
 
-pub(super) fn userdata_impl_sub<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
+pub fn userdata_impl_sub<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
 where
     D: LuaUserData + ops::Sub<Output = D> + Copy,
 {
     Ok(*datatype - value)
 }
 
-pub(super) fn userdata_impl_mul_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+pub fn userdata_impl_mul_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
 where
     D: LuaUserData + ops::Mul<D, Output = D> + ops::Mul<f32, Output = D> + Copy + 'static,
 {
@@ -89,7 +89,7 @@ where
     })
 }
 
-pub(super) fn userdata_impl_mul_i32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+pub fn userdata_impl_mul_i32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
 where
     D: LuaUserData + ops::Mul<D, Output = D> + ops::Mul<i32, Output = D> + Copy + 'static,
 {
@@ -114,7 +114,7 @@ where
     })
 }
 
-pub(super) fn userdata_impl_div_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+pub fn userdata_impl_div_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
 where
     D: LuaUserData + ops::Div<D, Output = D> + ops::Div<f32, Output = D> + Copy + 'static,
 {
@@ -139,7 +139,7 @@ where
     })
 }
 
-pub(super) fn userdata_impl_div_i32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+pub fn userdata_impl_div_i32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
 where
     D: LuaUserData + ops::Div<D, Output = D> + ops::Div<i32, Output = D> + Copy + 'static,
 {

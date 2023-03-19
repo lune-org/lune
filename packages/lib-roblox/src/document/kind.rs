@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rbx_dom_weak::WeakDom;
 
-use crate::instance::util::instance_is_a_service;
+use crate::shared::instance::class_is_a_service;
 
 /**
     A document kind specifier.
@@ -65,7 +65,7 @@ impl DocumentKind {
         for child_ref in dom.root().children() {
             if let Some(child_inst) = dom.get_by_ref(*child_ref) {
                 has_top_level_child = true;
-                if instance_is_a_service(&child_inst.class).unwrap_or(false) {
+                if class_is_a_service(&child_inst.class).unwrap_or(false) {
                     has_top_level_service = true;
                     break;
                 }
