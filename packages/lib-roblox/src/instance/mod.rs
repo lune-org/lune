@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     fmt,
     sync::{Arc, RwLock},
 };
@@ -36,6 +37,7 @@ impl Instance {
         let instance = reader
             .get_by_ref(dom_ref)
             .expect("Failed to find instance in document");
+
         Self {
             dom: Arc::clone(dom),
             dom_ref,
@@ -90,8 +92,10 @@ impl Instance {
                 .expect("Failed to find instance in document")
                 .parent()
         };
+
         let new_ref = Self::clone_inner(lua, self.dom_ref, parent_ref);
         let new_inst = Self::new(&self.dom, new_ref);
+
         new_inst.set_parent_to_nil(lua);
         new_inst
     }
@@ -153,8 +157,11 @@ impl Instance {
                 .dom
                 .try_write()
                 .expect("Failed to get write access to document");
+
             dom.destroy(self.dom_ref);
+
             self.is_destroyed = true;
+
             true
         }
     }
@@ -167,6 +174,28 @@ impl Instance {
             )))
         } else {
             Ok(())
+        }
+    }
+
+    /**
+        Destroys all child instances.
+
+        See [`Instance::destroy`] for more info about
+        what happens when an instance gets destroyed.
+    */
+    pub fn clear_all_children(&mut self) {
+        let mut dom = self
+            .dom
+            .try_write()
+            .expect("Failed to get write access to document");
+
+        let instance = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document");
+
+        let child_refs = instance.children().to_vec();
+        for child_ref in child_refs {
+            dom.destroy(child_ref);
         }
     }
 
@@ -185,6 +214,7 @@ impl Instance {
             .dom
             .read()
             .expect("Failed to get read access to document");
+
         dom.get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document")
             .name
@@ -199,6 +229,7 @@ impl Instance {
             .dom
             .write()
             .expect("Failed to get write access to document");
+
         dom.get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document")
             .name = name.into()
@@ -212,10 +243,12 @@ impl Instance {
             .dom
             .read()
             .expect("Failed to get read access to document");
+
         let parent_ref = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document")
             .parent();
+
         if parent_ref == dom.root_ref() {
             None
         } else {
@@ -236,20 +269,24 @@ impl Instance {
             .dom
             .write()
             .expect("Failed to get read access to source document");
+
         let dom_target = parent
             .dom
             .read()
             .expect("Failed to get read access to target document");
+
         let target_ref = dom_target
             .get_by_ref(parent.dom_ref)
             .expect("Failed to find instance in target document")
             .parent();
+
         if dom_source.root_ref() == dom_target.root_ref() {
             dom_source.transfer_within(self.dom_ref, target_ref);
         } else {
             // NOTE: We must drop the previous dom_target read handle here first so
             // that we can get exclusive write access for transferring across doms
             drop(dom_target);
+
             let mut dom_target = parent
                 .dom
                 .try_write()
@@ -270,12 +307,15 @@ impl Instance {
             .dom
             .write()
             .expect("Failed to get read access to source document");
+
         let dom_lua = lua
             .app_data_mut::<Arc<RwLock<WeakDom>>>()
             .expect("Failed to find internal lua weak dom");
+
         let mut dom_target = dom_lua
             .write()
             .expect("Failed to get write access to target document");
+
         let target_ref = dom_target.root_ref();
         dom_source.transfer(self.dom_ref, &mut dom_target, target_ref)
     }
@@ -311,6 +351,93 @@ impl Instance {
     }
 
     /**
+        Gets all of the current children of this `Instance`.
+
+        Note that this is a somewhat expensive operation and that other
+        operations using weak dom referents should be preferred if possible.
+    */
+    pub fn get_children(&self) -> Vec<Instance> {
+        let dom = self
+            .dom
+            .read()
+            .expect("Failed to get read access to document");
+
+        let children = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document")
+            .children();
+
+        children
+            .iter()
+            .map(|child_ref| Self::new(&self.dom, *child_ref))
+            .collect()
+    }
+
+    /**
+        Gets all of the current descendants of this `Instance` using a breadth-first search.
+
+        Note that this is a somewhat expensive operation and that other
+        operations using weak dom referents should be preferred if possible.
+    */
+    pub fn get_descendants(&self) -> Vec<Instance> {
+        let dom = self
+            .dom
+            .read()
+            .expect("Failed to get read access to document");
+
+        let mut descendants = Vec::new();
+        let mut queue = VecDeque::from_iter(
+            dom.get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .children(),
+        );
+
+        while let Some(queue_ref) = queue.pop_front() {
+            descendants.push(*queue_ref);
+            let queue_inst = dom.get_by_ref(*queue_ref).unwrap();
+            for queue_ref_inner in queue_inst.children().iter().rev() {
+                queue.push_front(queue_ref_inner);
+            }
+        }
+
+        descendants
+            .iter()
+            .map(|child_ref| Self::new(&self.dom, *child_ref))
+            .collect()
+    }
+
+    /**
+        Gets the "full name" of this instance.
+
+        This will be a path composed of instance names from the top-level
+        ancestor of this instance down to itself, in the following format:
+
+        `Ancestor.Child.Descendant.Instance`
+    */
+    pub fn get_full_name(&self) -> String {
+        let dom = self
+            .dom
+            .read()
+            .expect("Failed to get read access to document");
+        let dom_root = dom.root_ref();
+
+        let mut parts = Vec::new();
+        let mut instance_ref = self.dom_ref;
+
+        while let Some(instance) = dom.get_by_ref(instance_ref) {
+            if instance_ref != dom_root && instance.class != "DataModel" {
+                instance_ref = instance.parent();
+                parts.push(instance.name.clone());
+            } else {
+                break;
+            }
+        }
+
+        parts.reverse();
+        parts.join(".")
+    }
+
+    /**
         Finds a child of the instance using the given predicate callback.
     */
     pub fn find_child<F>(&self, predicate: F) -> Option<Instance>
@@ -321,10 +448,12 @@ impl Instance {
             .dom
             .read()
             .expect("Failed to get read access to document");
+
         let children = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document")
             .children();
+
         children.iter().find_map(|child_ref| {
             if let Some(child_inst) = dom.get_by_ref(*child_ref) {
                 if predicate(child_inst) {
@@ -349,10 +478,12 @@ impl Instance {
             .dom
             .read()
             .expect("Failed to get read access to document");
+
         let mut ancestor_ref = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document")
             .parent();
+
         while let Some(ancestor) = dom.get_by_ref(ancestor_ref) {
             if predicate(ancestor) {
                 return Some(Self::new(&self.dom, ancestor_ref));
@@ -360,6 +491,40 @@ impl Instance {
                 ancestor_ref = ancestor.parent();
             }
         }
+
+        None
+    }
+
+    /**
+        Finds a descendant of the instance using the given
+        predicate callback and a breadth-first search.
+    */
+    pub fn find_descendant<F>(&self, predicate: F) -> Option<Instance>
+    where
+        F: Fn(&DomInstance) -> bool,
+    {
+        let dom = self
+            .dom
+            .read()
+            .expect("Failed to get read access to document");
+
+        let mut queue = VecDeque::from_iter(
+            dom.get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .children(),
+        );
+
+        while let Some(queue_item) = queue
+            .pop_front()
+            .and_then(|queue_ref| dom.get_by_ref(*queue_ref))
+        {
+            if predicate(queue_item) {
+                return Some(Self::new(&self.dom, queue_item.referent()));
+            } else {
+                queue.extend(queue_item.children())
+            }
+        }
+
         None
     }
 }
@@ -536,6 +701,7 @@ impl LuaUserData for Instance {
 
             * Clone
             * Destroy
+            * ClearAllChildren
 
             * FindFirstAncestor
             * FindFirstAncestorOfClass
@@ -543,19 +709,25 @@ impl LuaUserData for Instance {
             * FindFirstChild
             * FindFirstChildOfClass
             * FindFirstChildWhichIsA
+            * FindFirstDescendant
 
+            * GetChildren
+            * GetDescendants
+            * GetFullName
+
+            * IsA
             * IsAncestorOf
             * IsDescendantOf
 
             Not yet implemented, but planned:
 
-            * FindFirstDescendant
-            * GetChildren
-            * GetDescendants
-            * GetFullName
             * GetAttribute
             * GetAttributes
             * SetAttribute
+
+            It should be noted that any methods that deal with events
+            and/or have functionality that affects instances other
+            than this instance itself are intentionally left out.
         */
         methods.add_method("Clone", |lua, this, ()| {
             this.ensure_not_destroyed()?;
@@ -564,6 +736,22 @@ impl LuaUserData for Instance {
         methods.add_method_mut("Destroy", |_, this, ()| {
             this.destroy();
             Ok(())
+        });
+        methods.add_method_mut("ClearAllChildren", |_, this, ()| {
+            this.clear_all_children();
+            Ok(())
+        });
+        methods.add_method("GetChildren", |lua, this, ()| {
+            this.ensure_not_destroyed()?;
+            this.get_children().to_lua(lua)
+        });
+        methods.add_method("GetDescendants", |lua, this, ()| {
+            this.ensure_not_destroyed()?;
+            this.get_children().to_lua(lua)
+        });
+        methods.add_method("GetFullName", |lua, this, ()| {
+            this.ensure_not_destroyed()?;
+            this.get_full_name().to_lua(lua)
         });
         methods.add_method("FindFirstAncestor", |lua, this, name: String| {
             this.ensure_not_destroyed()?;
@@ -598,6 +786,14 @@ impl LuaUserData for Instance {
             this.ensure_not_destroyed()?;
             this.find_child(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
                 .to_lua(lua)
+        });
+        methods.add_method("FindFirstDescendant", |lua, this, name: String| {
+            this.ensure_not_destroyed()?;
+            this.find_descendant(|child| child.name == name).to_lua(lua)
+        });
+        methods.add_method("IsA", |_, this, class_name: String| {
+            this.ensure_not_destroyed()?;
+            Ok(class_is_a(&this.class_name, class_name).unwrap_or(false))
         });
         methods.add_method("IsAncestorOf", |_, this, instance: Instance| {
             this.ensure_not_destroyed()?;
