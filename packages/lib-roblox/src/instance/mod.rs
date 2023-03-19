@@ -22,9 +22,9 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Instance {
-    dom: Arc<RwLock<WeakDom>>,
-    dom_ref: DomRef,
-    class_name: String,
+    pub(crate) dom: Arc<RwLock<WeakDom>>,
+    pub(crate) dom_ref: DomRef,
+    pub(crate) class_name: String,
 }
 
 impl Instance {
@@ -261,6 +261,31 @@ impl Instance {
             }
         })
     }
+
+    /**
+        Finds an ancestor of the instance using the given predicate callback.
+    */
+    pub fn find_ancestor<F>(&self, predicate: F) -> Option<Instance>
+    where
+        F: Fn(&DomInstance) -> bool,
+    {
+        let dom = self
+            .dom
+            .read()
+            .expect("Failed to get read access to document");
+        let mut ancestor_ref = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document")
+            .parent();
+        while let Some(ancestor) = dom.get_by_ref(ancestor_ref) {
+            if predicate(ancestor) {
+                return Some(Self::new(&self.dom, ancestor_ref));
+            } else {
+                ancestor_ref = ancestor.parent();
+            }
+        }
+        None
+    }
 }
 
 impl Instance {
@@ -391,20 +416,20 @@ impl LuaUserData for Instance {
 
             Currently implemented:
 
+            * FindFirstAncestor
+            * FindFirstAncestorOfClass
+            * FindFirstAncestorWhichIsA
             * FindFirstChild
             * FindFirstChildOfClass
             * FindFirstChildWhichIsA
+            * IsAncestorOf
+            * IsDescendantOf
 
             Not yet implemented, but planned:
 
             * Clone
             * Destroy
             * FindFirstDescendant
-            * FindFirstAncestor
-            * FindFirstAncestorOfClass
-            * FindFirstAncestorWhichIsA
-            * IsAncestorOf
-            * IsDescendantOf
             * GetChildren
             * GetDescendants
             * GetFullName
@@ -412,6 +437,23 @@ impl LuaUserData for Instance {
             * GetAttributes
             * SetAttribute
         */
+        methods.add_method("FindFirstAncestor", |lua, this, name: String| {
+            this.find_ancestor(|child| child.name == name).to_lua(lua)
+        });
+        methods.add_method(
+            "FindFirstAncestorOfClass",
+            |lua, this, class_name: String| {
+                this.find_ancestor(|child| child.class == class_name)
+                    .to_lua(lua)
+            },
+        );
+        methods.add_method(
+            "FindFirstAncestorWhichIsA",
+            |lua, this, class_name: String| {
+                this.find_ancestor(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
+                    .to_lua(lua)
+            },
+        );
         methods.add_method("FindFirstChild", |lua, this, name: String| {
             this.find_child(|child| child.name == name).to_lua(lua)
         });
@@ -422,6 +464,16 @@ impl LuaUserData for Instance {
         methods.add_method("FindFirstChildWhichIsA", |lua, this, class_name: String| {
             this.find_child(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
                 .to_lua(lua)
+        });
+        methods.add_method("IsAncestorOf", |_, this, instance: Instance| {
+            Ok(instance
+                .find_ancestor(|ancestor| ancestor.referent() == this.dom_ref)
+                .is_some())
+        });
+        methods.add_method("IsDescendantOf", |_, this, instance: Instance| {
+            Ok(this
+                .find_ancestor(|ancestor| ancestor.referent() == instance.dom_ref)
+                .is_some())
         });
         // FUTURE: We could pass the "methods" struct to some other functions
         // here to add inheritance-like behavior and class-specific methods
