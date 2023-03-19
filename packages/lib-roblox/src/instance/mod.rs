@@ -77,6 +77,10 @@ impl Instance {
 
         To then save the new instance it must be re-parented,
         which matches the exact behavior of Roblox's instances.
+
+        ### See Also
+        * [`Clone`](https://create.roblox.com/docs/reference/engine/classes/Instance#Clone)
+        on the Roblox Developer Hub
     */
     pub fn clone_instance(&self, lua: &Lua) -> Instance {
         // NOTE: We create a new scope here to avoid deadlocking since
@@ -145,6 +149,10 @@ impl Instance {
         when called from rust after the instance has been destroyed.
 
         Returns `true` if destroyed successfully, `false` if already destroyed.
+
+        ### See Also
+        * [`Destroy`](https://create.roblox.com/docs/reference/engine/classes/Instance#Destroy)
+        on the Roblox Developer Hub
     */
     pub fn destroy(&mut self) -> bool {
         if self.is_root || self.is_destroyed() {
@@ -185,8 +193,10 @@ impl Instance {
     /**
         Destroys all child instances.
 
-        See [`Instance::destroy`] for more info about
-        what happens when an instance gets destroyed.
+        ### See Also
+        * [`Instance::Destroy`] for more info about what happens when an instance gets destroyed
+        * [`ClearAllChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClearAllChildren)
+        on the Roblox Developer Hub
     */
     pub fn clear_all_children(&mut self) {
         let mut dom = self
@@ -206,6 +216,10 @@ impl Instance {
 
     /**
         Checks if the instance matches or inherits a given class name.
+
+        ### See Also
+        * [`IsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsA)
+        on the Roblox Developer Hub
     */
     pub fn is_a(&self, class_name: impl AsRef<str>) -> bool {
         class_is_a(&self.class_name, class_name).unwrap_or(false)
@@ -213,6 +227,10 @@ impl Instance {
 
     /**
         Gets the name of the instance, if it exists.
+
+        ### See Also
+        * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
+        on the Roblox Developer Hub
     */
     pub fn get_name(&self) -> String {
         let dom = self
@@ -228,6 +246,10 @@ impl Instance {
 
     /**
         Sets the name of the instance, if it exists.
+
+        ### See Also
+        * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
+        on the Roblox Developer Hub
     */
     pub fn set_name(&self, name: impl Into<String>) {
         let mut dom = self
@@ -242,6 +264,10 @@ impl Instance {
 
     /**
         Gets the parent of the instance, if it exists.
+
+        ### See Also
+        * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
+        on the Roblox Developer Hub
     */
     pub fn get_parent(&self) -> Option<Instance> {
         if self.is_root {
@@ -272,6 +298,10 @@ impl Instance {
         and assumes that separate doms always have unique root referents.
 
         If doms do not have unique root referents then this operation may panic.
+
+        ### See Also
+        * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
+        on the Roblox Developer Hub
     */
     pub fn set_parent(&self, parent: Instance) {
         if self.is_root {
@@ -314,6 +344,10 @@ impl Instance {
         An orphaned instance does not belong to any particular document and
         is instead part of the internal weak dom for orphaned lua instances,
         it can however be re-parented to a "real" document and weak dom.
+
+        ### See Also
+        * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
+        on the Roblox Developer Hub
     */
     pub fn set_parent_to_nil(&self, lua: &Lua) {
         if self.is_root {
@@ -372,6 +406,10 @@ impl Instance {
 
         Note that this is a somewhat expensive operation and that other
         operations using weak dom referents should be preferred if possible.
+
+        ### See Also
+        * [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
+        on the Roblox Developer Hub
     */
     pub fn get_children(&self) -> Vec<Instance> {
         let dom = self
@@ -395,6 +433,10 @@ impl Instance {
 
         Note that this is a somewhat expensive operation and that other
         operations using weak dom referents should be preferred if possible.
+
+        ### See Also
+        * [`GetDescendants`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetDescendants)
+        on the Roblox Developer Hub
     */
     pub fn get_descendants(&self) -> Vec<Instance> {
         let dom = self
@@ -430,6 +472,10 @@ impl Instance {
         ancestor of this instance down to itself, in the following format:
 
         `Ancestor.Child.Descendant.Instance`
+
+        ### See Also
+        * [`GetFullName`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetFullName)
+        on the Roblox Developer Hub
     */
     pub fn get_full_name(&self) -> String {
         let dom = self
@@ -456,6 +502,11 @@ impl Instance {
 
     /**
         Finds a child of the instance using the given predicate callback.
+
+        ### See Also
+        * [`FindFirstChild`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChild) on the Roblox Developer Hub
+        * [`FindFirstChildOfClass`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChildOfClass) on the Roblox Developer Hub
+        * [`FindFirstChildWhichIsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChildWhichIsA) on the Roblox Developer Hub
     */
     pub fn find_child<F>(&self, predicate: F) -> Option<Instance>
     where
@@ -486,6 +537,11 @@ impl Instance {
 
     /**
         Finds an ancestor of the instance using the given predicate callback.
+
+        ### See Also
+        * [`FindFirstAncestor`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstAncestor) on the Roblox Developer Hub
+        * [`FindFirstAncestorOfClass`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstAncestorOfClass) on the Roblox Developer Hub
+        * [`FindFirstAncestorWhichIsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstAncestorWhichIsA) on the Roblox Developer Hub
     */
     pub fn find_ancestor<F>(&self, predicate: F) -> Option<Instance>
     where
@@ -515,6 +571,10 @@ impl Instance {
     /**
         Finds a descendant of the instance using the given
         predicate callback and a breadth-first search.
+
+        ### See Also
+        * [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant)
+        on the Roblox Developer Hub
     */
     pub fn find_descendant<F>(&self, predicate: F) -> Option<Instance>
     where
@@ -555,7 +615,7 @@ impl Instance {
                     Instance::new_orphaned(lua, class_name).to_lua(lua)
                 } else {
                     Err(LuaError::RuntimeError(format!(
-                        "{} is not a valid class name",
+                        "'{}' is not a valid class name",
                         class_name
                     )))
                 }
