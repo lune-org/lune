@@ -13,7 +13,7 @@ use crate::{
     datatypes::{
         conversion::{DomValueToLua, LuaToDomValue},
         types::EnumItem,
-        userdata_impl_to_string,
+        userdata_impl_eq, userdata_impl_to_string,
     },
     shared::instance::{
         class_exists, class_is_a, find_property_enum, find_property_type, property_is_enum,
@@ -309,6 +309,7 @@ impl Instance {
 impl LuaUserData for Instance {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         /*
             Getting a value does the following:
 
@@ -483,5 +484,11 @@ impl LuaUserData for Instance {
 impl fmt::Display for Instance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.get_name())
+    }
+}
+
+impl PartialEq for Instance {
+    fn eq(&self, other: &Self) -> bool {
+        self.dom_ref == other.dom_ref
     }
 }
