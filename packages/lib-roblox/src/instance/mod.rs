@@ -25,6 +25,8 @@ pub struct Instance {
     pub(crate) dom: Arc<RwLock<WeakDom>>,
     pub(crate) dom_ref: DomRef,
     pub(crate) class_name: String,
+    pub(crate) is_root: bool,
+    pub(crate) is_destroyed: bool,
 }
 
 impl Instance {
@@ -32,17 +34,16 @@ impl Instance {
         Creates a new `Instance` from a document and dom object ref.
     */
     pub fn new(dom: &Arc<RwLock<WeakDom>>, dom_ref: DomRef) -> Self {
-        let class_name = dom
-            .read()
-            .expect("Failed to get read access to document")
+        let reader = dom.read().expect("Failed to get read access to document");
+        let instance = reader
             .get_by_ref(dom_ref)
-            .expect("Failed to find instance in document")
-            .class
-            .clone();
+            .expect("Failed to find instance in document");
         Self {
             dom: Arc::clone(dom),
             dom_ref,
-            class_name,
+            class_name: instance.class.clone(),
+            is_root: dom_ref == reader.root_ref(),
+            is_destroyed: false,
         }
     }
 
@@ -69,6 +70,105 @@ impl Instance {
             dom: Arc::clone(&dom_lua),
             dom_ref,
             class_name: class_name.to_string(),
+            is_root: false,
+            is_destroyed: false,
+        }
+    }
+
+    /**
+        Clones the instance and all of its descendants, and orphans it.
+
+        To then save the new instance it must be re-parented,
+        which matches the exact behavior of Roblox's instances.
+    */
+    pub fn clone_instance(&self, lua: &Lua) -> Instance {
+        // NOTE: We create a new scope here to avoid deadlocking since
+        // our clone implementation must have exclusive write access
+        let parent_ref = {
+            self.dom
+                .read()
+                .expect("Failed to get read access to document")
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .parent()
+        };
+        let new_ref = Self::clone_inner(lua, self.dom_ref, parent_ref);
+        let new_inst = Self::new(&self.dom, new_ref);
+        new_inst.set_parent_to_nil(lua);
+        new_inst
+    }
+
+    pub fn clone_inner(lua: &Lua, dom_ref: DomRef, parent_ref: DomRef) -> DomRef {
+        // NOTE: We create a new scope here to avoid deadlocking since
+        // our clone implementation must have exclusive write access
+        let (new_ref, child_refs) = {
+            let dom_lua = lua
+                .app_data_mut::<Arc<RwLock<WeakDom>>>()
+                .expect("Failed to find internal lua weak dom");
+            let mut dom = dom_lua
+                .try_write()
+                .expect("Failed to get write access to document");
+
+            let (new_class, new_name, new_props, child_refs) = {
+                let instance = dom
+                    .get_by_ref(dom_ref)
+                    .expect("Failed to find instance in document");
+                (
+                    instance.class.to_string(),
+                    instance.name.to_string(),
+                    instance.properties.clone(),
+                    instance.children().to_vec(),
+                )
+            };
+
+            let new_ref = dom.insert(
+                parent_ref,
+                DomInstanceBuilder::new(new_class)
+                    .with_name(new_name)
+                    .with_properties(new_props),
+            );
+
+            (new_ref, child_refs)
+        };
+
+        for child_ref in child_refs {
+            Self::clone_inner(lua, child_ref, new_ref);
+        }
+
+        new_ref
+    }
+
+    /**
+        Destroys the instance, unless it is the root instance, removing
+        it completely from the weak dom with no way of recovering it.
+
+        All member methods will throw errors when called from lua and panic
+        when called from rust after the instance has been destroyed.
+
+        Returns `true` if destroyed successfully, `false` if already destroyed.
+    */
+    pub fn destroy(&mut self) -> bool {
+        if self.is_root || self.is_destroyed {
+            false
+        } else {
+            let mut dom = self
+                .dom
+                .try_write()
+                .expect("Failed to get write access to document");
+            dom.destroy(self.dom_ref);
+            self.is_destroyed = true;
+            true
+        }
+    }
+
+    fn ensure_not_destroyed(&self) -> LuaResult<()> {
+        if self.is_destroyed {
+            Err(LuaError::RuntimeError(format!(
+                "Tried to access destroyed instance '{}'",
+                self
+            )))
+        } else {
+            Ok(())
         }
     }
 
@@ -77,28 +177,6 @@ impl Instance {
     */
     pub fn is_a(&self, class_name: impl AsRef<str>) -> bool {
         class_is_a(&self.class_name, class_name).unwrap_or(false)
-    }
-
-    /**
-        Checks if the instance has been destroyed.
-    */
-    pub fn is_destroyed(&self) -> bool {
-        self.dom
-            .read()
-            .expect("Failed to get read access to document")
-            .get_by_ref(self.dom_ref)
-            .is_none()
-    }
-
-    /**
-        Checks if the instance is the root instance.
-    */
-    pub fn is_root(&self) -> bool {
-        self.dom
-            .read()
-            .expect("Failed to get read access to document")
-            .root_ref()
-            == self.dom_ref
     }
 
     /**
@@ -319,6 +397,8 @@ impl LuaUserData for Instance {
             4. No valid property or instance found, throw error
         */
         methods.add_meta_method(LuaMetaMethod::Index, |lua, this, prop_name: String| {
+            this.ensure_not_destroyed()?;
+
             match prop_name.as_str() {
                 "ClassName" => return this.class_name.clone().to_lua(lua),
                 "Name" => {
@@ -355,6 +435,8 @@ impl LuaUserData for Instance {
         methods.add_meta_method_mut(
             LuaMetaMethod::NewIndex,
             |lua, this, (prop_name, prop_value): (String, LuaValue)| {
+                this.ensure_not_destroyed()?;
+
                 match prop_name.as_str() {
                     "ClassName" => {
                         return Err(LuaError::RuntimeError(
@@ -417,19 +499,21 @@ impl LuaUserData for Instance {
 
             Currently implemented:
 
+            * Clone
+            * Destroy
+
             * FindFirstAncestor
             * FindFirstAncestorOfClass
             * FindFirstAncestorWhichIsA
             * FindFirstChild
             * FindFirstChildOfClass
             * FindFirstChildWhichIsA
+
             * IsAncestorOf
             * IsDescendantOf
 
             Not yet implemented, but planned:
 
-            * Clone
-            * Destroy
             * FindFirstDescendant
             * GetChildren
             * GetDescendants
@@ -438,12 +522,22 @@ impl LuaUserData for Instance {
             * GetAttributes
             * SetAttribute
         */
+        methods.add_method("Clone", |lua, this, ()| {
+            this.ensure_not_destroyed()?;
+            this.clone_instance(lua).to_lua(lua)
+        });
+        methods.add_method_mut("Destroy", |_, this, ()| {
+            this.destroy();
+            Ok(())
+        });
         methods.add_method("FindFirstAncestor", |lua, this, name: String| {
+            this.ensure_not_destroyed()?;
             this.find_ancestor(|child| child.name == name).to_lua(lua)
         });
         methods.add_method(
             "FindFirstAncestorOfClass",
             |lua, this, class_name: String| {
+                this.ensure_not_destroyed()?;
                 this.find_ancestor(|child| child.class == class_name)
                     .to_lua(lua)
             },
@@ -451,27 +545,33 @@ impl LuaUserData for Instance {
         methods.add_method(
             "FindFirstAncestorWhichIsA",
             |lua, this, class_name: String| {
+                this.ensure_not_destroyed()?;
                 this.find_ancestor(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
                     .to_lua(lua)
             },
         );
         methods.add_method("FindFirstChild", |lua, this, name: String| {
+            this.ensure_not_destroyed()?;
             this.find_child(|child| child.name == name).to_lua(lua)
         });
         methods.add_method("FindFirstChildOfClass", |lua, this, class_name: String| {
+            this.ensure_not_destroyed()?;
             this.find_child(|child| child.class == class_name)
                 .to_lua(lua)
         });
         methods.add_method("FindFirstChildWhichIsA", |lua, this, class_name: String| {
+            this.ensure_not_destroyed()?;
             this.find_child(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
                 .to_lua(lua)
         });
         methods.add_method("IsAncestorOf", |_, this, instance: Instance| {
+            this.ensure_not_destroyed()?;
             Ok(instance
                 .find_ancestor(|ancestor| ancestor.referent() == this.dom_ref)
                 .is_some())
         });
         methods.add_method("IsDescendantOf", |_, this, instance: Instance| {
+            this.ensure_not_destroyed()?;
             Ok(this
                 .find_ancestor(|ancestor| ancestor.referent() == instance.dom_ref)
                 .is_some())
