@@ -25,7 +25,6 @@ pub struct Instance {
     pub(crate) dom_ref: DomRef,
     pub(crate) class_name: String,
     pub(crate) is_root: bool,
-    pub(crate) is_destroyed: bool,
 }
 
 impl Instance {
@@ -43,7 +42,6 @@ impl Instance {
             dom_ref,
             class_name: instance.class.clone(),
             is_root: dom_ref == reader.root_ref(),
-            is_destroyed: false,
         }
     }
 
@@ -71,7 +69,6 @@ impl Instance {
             dom_ref,
             class_name: class_name.to_string(),
             is_root: false,
-            is_destroyed: false,
         }
     }
 
@@ -150,7 +147,7 @@ impl Instance {
         Returns `true` if destroyed successfully, `false` if already destroyed.
     */
     pub fn destroy(&mut self) -> bool {
-        if self.is_root || self.is_destroyed {
+        if self.is_root || self.is_destroyed() {
             false
         } else {
             let mut dom = self
@@ -159,15 +156,12 @@ impl Instance {
                 .expect("Failed to get write access to document");
 
             dom.destroy(self.dom_ref);
-
-            self.is_destroyed = true;
-
             true
         }
     }
 
     fn ensure_not_destroyed(&self) -> LuaResult<()> {
-        if self.is_destroyed {
+        if self.is_destroyed() {
             Err(LuaError::RuntimeError(format!(
                 "Tried to access destroyed instance '{}'",
                 self
@@ -175,6 +169,17 @@ impl Instance {
         } else {
             Ok(())
         }
+    }
+
+    fn is_destroyed(&self) -> bool {
+        // NOTE: This property can not be cached since instance references
+        // other than this one may have destroyed this one, and we don't
+        // keep track of all current instance reference structs
+        let dom = self
+            .dom
+            .read()
+            .expect("Failed to get write access to document");
+        dom.get_by_ref(self.dom_ref).is_none()
     }
 
     /**
@@ -239,6 +244,10 @@ impl Instance {
         Gets the parent of the instance, if it exists.
     */
     pub fn get_parent(&self) -> Option<Instance> {
+        if self.is_root {
+            return None;
+        }
+
         let dom = self
             .dom
             .read()
@@ -265,6 +274,10 @@ impl Instance {
         If doms do not have unique root referents then this operation may panic.
     */
     pub fn set_parent(&self, parent: Instance) {
+        if self.is_root {
+            panic!("Root instance can not be reparented")
+        }
+
         let mut dom_source = self
             .dom
             .write()
@@ -303,6 +316,10 @@ impl Instance {
         it can however be re-parented to a "real" document and weak dom.
     */
     pub fn set_parent_to_nil(&self, lua: &Lua) {
+        if self.is_root {
+            panic!("Root instance can not be reparented")
+        }
+
         let mut dom_source = self
             .dom
             .write()
@@ -636,9 +653,10 @@ impl LuaUserData for Instance {
 
                 match prop_name.as_str() {
                     "ClassName" => {
-                        return Err(LuaError::RuntimeError(
-                            "ClassName can not be written to".to_string(),
-                        ))
+                        return Err(LuaError::RuntimeError(format!(
+                            "Failed to set property '{}' - property is read-only",
+                            prop_name
+                        )));
                     }
                     "Name" => {
                         let name = String::from_lua(prop_value, lua)?;
@@ -646,6 +664,12 @@ impl LuaUserData for Instance {
                         return Ok(());
                     }
                     "Parent" => {
+                        if this.is_root {
+                            return Err(LuaError::RuntimeError(format!(
+                                "Failed to set property '{}' - root instance can not be reparented",
+                                prop_name
+                            )));
+                        }
                         type Parent = Option<Instance>;
                         match Parent::from_lua(prop_value, lua)? {
                             Some(parent) => this.set_parent(parent),
