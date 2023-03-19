@@ -1,61 +1,53 @@
 use std::borrow::{Borrow, Cow};
 
-use rbx_dom_weak::types::VariantType as DomType;
+use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 use rbx_reflection::{ClassTag, DataType};
 
+pub(crate) struct PropertyInfo {
+    pub enum_name: Option<Cow<'static, str>>,
+    pub enum_default: Option<u32>,
+    pub value_type: Option<DomType>,
+    pub value_default: Option<&'static DomValue>,
+}
+
 /**
-    Checks if the given property is an enum.
+    Finds the info of a property of the given class.
 
     Returns `None` if the class or property does not exist.
 */
-pub fn property_is_enum(
+pub(crate) fn find_property_info(
     instance_class: impl AsRef<str>,
     property_name: impl AsRef<str>,
-) -> Option<bool> {
+) -> Option<PropertyInfo> {
     let db = rbx_reflection_database::get();
     let class = db.classes.get(instance_class.as_ref())?;
-    let prop = class.properties.get(property_name.as_ref())?;
 
-    Some(matches!(prop.data_type, DataType::Enum(_)))
-}
+    let property_name = property_name.as_ref();
+    let prop_definition = class.properties.get(property_name)?;
+    let prop_default = class.default_properties.get(property_name);
 
-/**
-    Finds the type of a property of the given class.
-
-    Returns `None` if the class or property does not exist or if the property is an enum.
-*/
-pub fn find_property_type(
-    instance_class: impl AsRef<str>,
-    property_name: impl AsRef<str>,
-) -> Option<DomType> {
-    let db = rbx_reflection_database::get();
-    let class = db.classes.get(instance_class.as_ref())?;
-    let prop = class.properties.get(property_name.as_ref())?;
-
-    if let DataType::Value(typ) = prop.data_type {
-        Some(typ)
-    } else {
-        None
-    }
-}
-
-/**
-    Finds the enum name of a property of the given class.
-
-    Returns `None` if the class or property does not exist or if the property is *not* an enum.
-*/
-pub fn find_property_enum(
-    instance_class: impl AsRef<str>,
-    property_name: impl AsRef<str>,
-) -> Option<Cow<'static, str>> {
-    let db = rbx_reflection_database::get();
-    let class = db.classes.get(instance_class.as_ref())?;
-    let prop = class.properties.get(property_name.as_ref())?;
-
-    if let DataType::Enum(name) = &prop.data_type {
-        Some(Cow::Borrowed(name))
-    } else {
-        None
+    match &prop_definition.data_type {
+        DataType::Enum(enum_name) => Some(PropertyInfo {
+            enum_name: Some(Cow::Borrowed(enum_name)),
+            enum_default: prop_default.and_then(|default| match default {
+                DomValue::Enum(enum_default) => Some(enum_default.to_u32()),
+                _ => None,
+            }),
+            value_type: None,
+            value_default: None,
+        }),
+        DataType::Value(value_type) => Some(PropertyInfo {
+            enum_name: None,
+            enum_default: None,
+            value_type: Some(*value_type),
+            value_default: prop_default,
+        }),
+        _ => Some(PropertyInfo {
+            enum_name: None,
+            enum_default: None,
+            value_type: None,
+            value_default: None,
+        }),
     }
 }
 

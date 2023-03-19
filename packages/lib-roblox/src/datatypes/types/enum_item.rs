@@ -2,7 +2,6 @@ use core::fmt;
 
 use mlua::prelude::*;
 use rbx_dom_weak::types::Enum as DomEnum;
-use rbx_reflection::DataType as DomDataType;
 
 use super::{super::*, Enum};
 
@@ -34,6 +33,20 @@ impl EnumItem {
         })
     }
 
+    pub(crate) fn from_enum_and_value(parent: &Enum, value: u32) -> Option<Self> {
+        parent.desc.items.iter().find_map(|(name, v)| {
+            if *v == value {
+                Some(Self {
+                    parent: parent.clone(),
+                    name: name.to_string(),
+                    value,
+                })
+            } else {
+                None
+            }
+        })
+    }
+
     pub(crate) fn from_enum_name_and_name(
         enum_name: impl AsRef<str>,
         name: impl AsRef<str>,
@@ -42,43 +55,9 @@ impl EnumItem {
         Self::from_enum_and_name(&parent, name)
     }
 
-    /**
-        Converts an instance property into an [`EnumItem`] datatype, if the property is known.
-
-        Enums are not strongly typed which means we can not convert directly from a [`rbx_dom_weak::types::Enum`]
-        into an `EnumItem` without losing information about its parent [`Enum`] and the `EnumItem` name.
-
-        This constructor exists as a shortcut to perform a [`rbx_reflection_database`] lookup for a particular
-        instance class and property to construct a strongly typed `EnumItem` with no loss of information.
-    */
-    #[allow(dead_code)]
-    fn from_instance_property(
-        class_name: impl AsRef<str>,
-        prop_name: impl AsRef<str>,
-        value: u32,
-    ) -> Option<Self> {
-        let db = rbx_reflection_database::get();
-        let prop = db
-            .classes
-            .get(class_name.as_ref())?
-            .properties
-            .get(prop_name.as_ref())?;
-        let prop_enum = match &prop.data_type {
-            DomDataType::Enum(name) => db.enums.get(name.as_ref()),
-            _ => None,
-        }?;
-        let enum_name = prop_enum.items.iter().find_map(|(name, v)| {
-            if v == &value {
-                Some(name.to_string())
-            } else {
-                None
-            }
-        })?;
-        Some(Self {
-            parent: prop_enum.into(),
-            name: enum_name,
-            value,
-        })
+    pub(crate) fn from_enum_name_and_value(enum_name: impl AsRef<str>, value: u32) -> Option<Self> {
+        let parent = Enum::from_name(enum_name)?;
+        Self::from_enum_and_value(&parent, value)
     }
 }
 

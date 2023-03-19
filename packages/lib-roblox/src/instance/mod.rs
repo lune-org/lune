@@ -15,9 +15,7 @@ use crate::{
         types::EnumItem,
         userdata_impl_eq, userdata_impl_to_string,
     },
-    shared::instance::{
-        class_exists, class_is_a, find_property_enum, find_property_type, property_is_enum,
-    },
+    shared::instance::{class_exists, class_is_a, find_property_info},
 };
 
 #[derive(Debug, Clone)]
@@ -392,8 +390,10 @@ impl LuaUserData for Instance {
             Getting a value does the following:
 
             1. Check if it is a special property like "ClassName", "Name" or "Parent"
-            2. Try to get a known instance property
-            3. Try to get a current child of the instance
+            2. Check if a property exists for the wanted name
+                2a. Get an existing instance property OR
+                2b. Get a property from a known default value
+            3. Get a current child of the instance
             4. No valid property or instance found, throw error
         */
         methods.add_meta_method(LuaMetaMethod::Index, |lua, this, prop_name: String| {
@@ -410,10 +410,42 @@ impl LuaUserData for Instance {
                 _ => {}
             }
 
-            if let Some(prop) = this.get_property(&prop_name) {
-                match LuaValue::dom_value_to_lua(lua, &prop) {
-                    Ok(value) => Ok(value),
-                    Err(e) => Err(e.into()),
+            if let Some(info) = find_property_info(&this.class_name, &prop_name) {
+                if let Some(prop) = this.get_property(&prop_name) {
+                    if let DomValue::Enum(enum_value) = prop {
+                        let enum_name = info.enum_name.ok_or_else(|| {
+                            LuaError::RuntimeError(format!(
+                                "Failed to get property '{}' - encountered unknown enum",
+                                prop_name
+                            ))
+                        })?;
+                        EnumItem::from_enum_name_and_value(&enum_name, enum_value.to_u32())
+                            .ok_or_else(|| {
+                                LuaError::RuntimeError(format!(
+                                    "Failed to get property '{}' - Enum.{} does not contain numeric value {}",
+                                    prop_name, enum_name, enum_value.to_u32()
+                                ))
+                            })?
+                            .to_lua(lua)
+                    } else {
+                        Ok(LuaValue::dom_value_to_lua(lua, &prop)?)
+                    }
+                } else if let (Some(enum_name), Some(enum_value)) = (info.enum_name, info.enum_default) {
+                    EnumItem::from_enum_name_and_value(&enum_name, enum_value)
+                        .ok_or_else(|| {
+                            LuaError::RuntimeError(format!(
+                                "Failed to get property '{}' - Enum.{} does not contain numeric value {}",
+                                prop_name, enum_name, enum_value
+                            ))
+                        })?
+                        .to_lua(lua)
+                } else if let Some(prop_default) = info.value_default {
+                    Ok(LuaValue::dom_value_to_lua(lua, prop_default)?)
+                } else {
+                    Err(LuaError::RuntimeError(format!(
+                        "Failed to get property '{}' - malformed property info",
+                        prop_name
+                    )))
                 }
             } else if let Some(inst) = this.find_child(|inst| inst.name == prop_name) {
                 Ok(LuaValue::UserData(lua.create_userdata(inst)?))
@@ -429,8 +461,8 @@ impl LuaUserData for Instance {
 
             1. Check if it is a special property like "ClassName", "Name" or "Parent"
             2. Check if a property exists for the wanted name
-            3a. Set a strict enum from a given EnumItem OR
-            3b. Set a normal property from a given value
+                2a. Set a strict enum from a given EnumItem OR
+                2b. Set a normal property from a given value
         */
         methods.add_meta_method_mut(
             LuaMetaMethod::NewIndex,
@@ -459,7 +491,7 @@ impl LuaUserData for Instance {
                     _ => {}
                 }
 
-                let is_enum = match property_is_enum(&this.class_name, &prop_name) {
+                let info = match find_property_info(&this.class_name, &prop_name) {
                     Some(b) => b,
                     None => {
                         return Err(LuaError::RuntimeError(format!(
@@ -469,21 +501,19 @@ impl LuaUserData for Instance {
                     }
                 };
 
-                if is_enum {
-                    let enum_name = find_property_enum(&this.class_name, &prop_name).unwrap();
+                if let Some(enum_name) = info.enum_name {
                     match EnumItem::from_lua(prop_value, lua) {
                         Ok(given_enum) if given_enum.name == enum_name => {
                             this.set_property(prop_name, DomValue::Enum(given_enum.into()));
                             Ok(())
                         }
                         Ok(given_enum) => Err(LuaError::RuntimeError(format!(
-                            "Expected Enum.{}, got Enum.{}",
-                            enum_name, given_enum.name
+                            "Failed to set property '{}' - expected Enum.{}, got Enum.{}",
+                            prop_name, enum_name, given_enum.name
                         ))),
                         Err(e) => Err(e),
                     }
-                } else {
-                    let dom_type = find_property_type(&this.class_name, &prop_name).unwrap();
+                } else if let Some(dom_type) = info.value_type {
                     match prop_value.lua_to_dom_value(lua, dom_type) {
                         Ok(dom_value) => {
                             this.set_property(prop_name, dom_value);
@@ -491,6 +521,11 @@ impl LuaUserData for Instance {
                         }
                         Err(e) => Err(e.into()),
                     }
+                } else {
+                    Err(LuaError::RuntimeError(format!(
+                        "Failed to set property '{}' - malformed property info",
+                        prop_name
+                    )))
                 }
             },
         );
