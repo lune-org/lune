@@ -87,9 +87,15 @@ fn resume_next_blocking_task(
         task
     } {
         None => TaskSchedulerState::new(scheduler),
-        Some(task) => match scheduler.resume_task(task, override_args) {
-            Ok(_) => TaskSchedulerState::new(scheduler),
-            Err(task_err) => TaskSchedulerState::err(scheduler, task_err),
+        Some(task) => match override_args {
+            Some(args) => match scheduler.resume_task_override(task, args) {
+                Ok(_) => TaskSchedulerState::new(scheduler),
+                Err(task_err) => TaskSchedulerState::err(scheduler, task_err),
+            },
+            None => match scheduler.resume_task(task) {
+                Ok(_) => TaskSchedulerState::new(scheduler),
+                Err(task_err) => TaskSchedulerState::err(scheduler, task_err),
+            },
         },
     }
 }

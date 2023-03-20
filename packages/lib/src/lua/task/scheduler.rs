@@ -9,11 +9,12 @@ use std::{
 use futures_util::{future::LocalBoxFuture, stream::FuturesUnordered, Future};
 use mlua::prelude::*;
 
-use tokio::sync::{mpsc, Mutex as AsyncMutex};
+use tokio::sync::{mpsc, oneshot, Mutex as AsyncMutex};
 
 use super::scheduler_message::TaskSchedulerMessage;
 pub use super::{task_kind::TaskKind, task_reference::TaskReference};
 
+type TaskResultSender = oneshot::Sender<LuaResult<LuaMultiValue<'static>>>;
 type TaskFutureRets<'fut> = LuaResult<Option<LuaMultiValue<'fut>>>;
 type TaskFuture<'fut> = LocalBoxFuture<'fut, (Option<TaskReference>, TaskFutureRets<'fut>)>;
 
@@ -48,6 +49,7 @@ pub struct TaskScheduler<'fut> {
     pub(super) tasks_count: Cell<usize>,
     pub(super) tasks_current: Cell<Option<TaskReference>>,
     pub(super) tasks_queue_blocking: RefCell<VecDeque<TaskReference>>,
+    pub(super) tasks_result_senders: RefCell<HashMap<TaskReference, TaskResultSender>>,
     pub(super) tasks_current_lua_error: Arc<RefCell<Option<LuaError>>>,
     // Future tasks & objects for waking
     pub(super) futures: AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>,
@@ -77,6 +79,7 @@ impl<'fut> TaskScheduler<'fut> {
             tasks_count: Cell::new(0),
             tasks_current: Cell::new(None),
             tasks_queue_blocking: RefCell::new(VecDeque::new()),
+            tasks_result_senders: RefCell::new(HashMap::new()),
             tasks_current_lua_error,
             futures: AsyncMutex::new(FuturesUnordered::new()),
             futures_tx: tx,
@@ -270,6 +273,8 @@ impl<'fut> TaskScheduler<'fut> {
                     TaskKind::Future => self.futures_count.set(self.futures_count.get() - 1),
                     _ => self.tasks_count.set(self.tasks_count.get() - 1),
                 }
+                // Remove any sender
+                self.tasks_result_senders.borrow_mut().remove(task_ref);
                 // NOTE: We need to close the thread here to
                 // make 100% sure that nothing can resume it
                 let close: LuaFunction = self.lua.named_registry_value("co.close")?;
@@ -291,10 +296,60 @@ impl<'fut> TaskScheduler<'fut> {
 
         This will be a no-op if the task no longer exists.
     */
-    pub fn resume_task<'a>(
+    pub fn resume_task(&self, reference: TaskReference) -> LuaResult<LuaMultiValue> {
+        // Fetch and check if the task was removed, if it got
+        // removed it means it was intentionally cancelled
+        let task = {
+            let mut tasks = self.tasks.borrow_mut();
+            match tasks.remove(&reference) {
+                Some(task) => task,
+                None => return Ok(LuaMultiValue::new()),
+            }
+        };
+        // Decrement the corresponding task counter
+        match task.kind {
+            TaskKind::Future => self.futures_count.set(self.futures_count.get() - 1),
+            _ => self.tasks_count.set(self.tasks_count.get() - 1),
+        }
+        // Fetch and remove the thread to resume + its arguments
+        let thread: LuaThread = self.lua.registry_value(&task.thread)?;
+        let thread_args: Option<LuaMultiValue> = {
+            self.lua
+                .registry_value::<Option<Vec<LuaValue>>>(&task.args)
+                .expect("Failed to get stored args for task")
+                .map(LuaMultiValue::from_vec)
+        };
+        self.lua.remove_registry_value(task.thread)?;
+        self.lua.remove_registry_value(task.args)?;
+        // We got everything we need and our references
+        // were cleaned up properly, resume the thread
+        self.tasks_current.set(Some(reference));
+        let rets = match thread_args {
+            Some(args) => thread.resume(args),
+            None => thread.resume(()),
+        };
+        self.tasks_current.set(None);
+        // If we have a result sender for this task, we should run it if the thread finished
+        if thread.status() != LuaThreadStatus::Resumable {
+            if let Some(sender) = self.tasks_result_senders.borrow_mut().remove(&reference) {
+                let _ = sender.send(rets.clone());
+            }
+        }
+        rets
+    }
+
+    /**
+        Resumes a task, if the task still exists in the scheduler, using the given arguments.
+
+        A task may no longer exist in the scheduler if it has been manually
+        cancelled and removed by calling [`TaskScheduler::cancel_task()`].
+
+        This will be a no-op if the task no longer exists.
+    */
+    pub fn resume_task_override<'a>(
         &self,
         reference: TaskReference,
-        override_args: Option<LuaResult<LuaMultiValue<'a>>>,
+        override_args: LuaResult<LuaMultiValue<'a>>,
     ) -> LuaResult<LuaMultiValue<'a>> {
         // Fetch and check if the task was removed, if it got
         // removed it means it was intentionally cancelled
@@ -312,51 +367,27 @@ impl<'fut> TaskScheduler<'fut> {
         }
         // Fetch and remove the thread to resume + its arguments
         let thread: LuaThread = self.lua.registry_value(&task.thread)?;
-        let args_opt_res = override_args.or_else(|| {
-            Ok(self
-                .lua
-                .registry_value::<Option<Vec<LuaValue>>>(&task.args)
-                .expect("Failed to get stored args for task")
-                .map(LuaMultiValue::from_vec))
-            .transpose()
-        });
         self.lua.remove_registry_value(task.thread)?;
         self.lua.remove_registry_value(task.args)?;
         // We got everything we need and our references
         // were cleaned up properly, resume the thread
         self.tasks_current.set(Some(reference));
-        let rets = match args_opt_res {
-            Some(args_res) => match args_res {
-                Err(e) => {
-                    // NOTE: Setting this error here means that when the thread
-                    // is resumed it will error instantly, so we don't need
-                    // to call it with proper args, empty args is fine
-                    self.tasks_current_lua_error.replace(Some(e));
-                    thread.resume(())
-                }
-                Ok(args) => thread.resume(args),
-            },
-            None => thread.resume(()),
+        let rets = match override_args {
+            Err(e) => {
+                // NOTE: Setting this error here means that when the thread
+                // is resumed it will error instantly, so we don't need
+                // to call it with proper args, empty args is fine
+                self.tasks_current_lua_error.replace(Some(e));
+                thread.resume(())
+            }
+            Ok(args) => thread.resume(args),
         };
         self.tasks_current.set(None);
         rets
     }
 
     /**
-        Queues a new task to run on the task scheduler.
-
-        When we want to schedule a task to resume instantly after the
-        currently running task we should pass `after_current_resume = true`.
-
-        This is useful in cases such as our task.spawn implementation:
-
-        ```lua
-        task.spawn(function()
-            -- This will be a new task, but it should
-            -- also run right away, until the first yield
-        end)
-        -- Here we have either yielded or finished the above task
-        ```
+        Queues a new blocking task to run on the task scheduler.
     */
     pub(crate) fn queue_blocking_task(
         &self,
@@ -413,5 +444,11 @@ impl<'fut> TaskScheduler<'fut> {
             (Some(task_ref), result)
         }));
         Ok(task_ref)
+    }
+
+    pub(crate) fn set_task_result_sender(&self, task_ref: TaskReference, sender: TaskResultSender) {
+        self.tasks_result_senders
+            .borrow_mut()
+            .insert(task_ref, sender);
     }
 }
