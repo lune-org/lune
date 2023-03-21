@@ -64,10 +64,14 @@ end
     * `"co.yield"` -> `coroutine.yield`
     * `"co.close"` -> `coroutine.close`
     ---
+    * `"tab.pack"` -> `table.pack`
+    * `"tab.unpack"` -> `table.unpack`
+    * `"tab.freeze"` -> `table.freeze`
+    * `"tab.getmeta"` -> `getmetatable`
+    * `"tab.setmeta"` -> `setmetatable`
+    ---
     * `"dbg.info"` -> `debug.info`
     * `"dbg.trace"` -> `debug.traceback`
-    * `"dbg.iserr"` -> `<custom function>`
-    * `"dbg.makeerr"` -> `<custom function>`
     ---
 */
 pub fn create() -> LuaResult<&'static Lua> {
@@ -93,6 +97,15 @@ pub fn create() -> LuaResult<&'static Lua> {
     lua.set_named_registry_value("dbg.info", debug.get::<_, LuaFunction>("info")?)?;
     lua.set_named_registry_value("tab.pack", table.get::<_, LuaFunction>("pack")?)?;
     lua.set_named_registry_value("tab.unpack", table.get::<_, LuaFunction>("unpack")?)?;
+    lua.set_named_registry_value("tab.freeze", table.get::<_, LuaFunction>("freeze")?)?;
+    lua.set_named_registry_value(
+        "tab.getmeta",
+        globals.get::<_, LuaFunction>("getmetatable")?,
+    )?;
+    lua.set_named_registry_value(
+        "tab.setmeta",
+        globals.get::<_, LuaFunction>("setmetatable")?,
+    )?;
     // Create a trace function that can be called to obtain a full stack trace from
     // lua, this is not possible to do from rust when using our manual scheduler
     let dbg_trace_env = lua.create_table_with_capacity(0, 1)?;

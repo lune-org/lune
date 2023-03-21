@@ -1,6 +1,14 @@
 use std::{cell::Cell, sync::Arc};
 
+use hyper::upgrade::Upgraded;
 use mlua::prelude::*;
+
+use futures_util::{SinkExt, StreamExt};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    net::TcpStream,
+    sync::Mutex as AsyncMutex,
+};
 
 use hyper_tungstenite::{
     tungstenite::{
@@ -9,19 +17,43 @@ use hyper_tungstenite::{
     },
     WebSocketStream,
 };
-
-use futures_util::{SinkExt, StreamExt};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::Mutex,
-};
+use tokio_tungstenite::MaybeTlsStream;
 
 use crate::lua::table::TableBuilder;
 
-#[derive(Debug, Clone)]
+const WEB_SOCKET_IMPL_LUA: &str = r#"
+return freeze(setmetatable({
+	close = function(...)
+		return close(websocket, ...)
+	end,
+	send = function(...)
+		return send(websocket, ...)
+	end,
+	next = function(...)
+		return next(websocket, ...)
+	end,
+}, {
+	__index = function(self, key)
+		if key == "closeCode" then
+			return close_code()
+		end
+	end,
+}))
+"#;
+
+#[derive(Debug)]
 pub struct NetWebSocket<T> {
-    close_code: Cell<Option<u16>>,
-    stream: Arc<Mutex<WebSocketStream<T>>>,
+    close_code: Arc<Cell<Option<u16>>>,
+    stream: Arc<AsyncMutex<WebSocketStream<T>>>,
+}
+
+impl<T> Clone for NetWebSocket<T> {
+    fn clone(&self) -> Self {
+        Self {
+            close_code: Arc::clone(&self.close_code),
+            stream: Arc::clone(&self.stream),
+        }
+    }
 }
 
 impl<T> NetWebSocket<T>
@@ -30,107 +62,142 @@ where
 {
     pub fn new(value: WebSocketStream<T>) -> Self {
         Self {
-            close_code: Cell::new(None),
-            stream: Arc::new(Mutex::new(value)),
+            close_code: Arc::new(Cell::new(None)),
+            stream: Arc::new(AsyncMutex::new(value)),
         }
     }
 
-    pub fn get_lua_close_code(&self) -> LuaValue {
-        match self.close_code.get() {
-            Some(code) => LuaValue::Number(code as f64),
-            None => LuaValue::Nil,
-        }
-    }
-
-    pub async fn close(&self, code: Option<u16>) -> LuaResult<()> {
-        let mut ws = self.stream.lock().await;
-        let res = ws.close(Some(WsCloseFrame {
-            code: match code {
-                Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
-                Some(code) => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Close code must be between 1000 and 4999, got {code}"
-                    )))
-                }
-                None => WsCloseCode::Normal,
-            },
-            reason: "".into(),
-        }));
-        res.await.map_err(LuaError::external)
-    }
-
-    pub async fn send(&self, msg: WsMessage) -> LuaResult<()> {
-        let mut ws = self.stream.lock().await;
-        ws.send(msg).await.map_err(LuaError::external)
-    }
-
-    pub async fn send_lua_string<'lua>(
-        &self,
-        string: LuaString<'lua>,
-        as_binary: Option<bool>,
-    ) -> LuaResult<()> {
-        let msg = if matches!(as_binary, Some(true)) {
-            WsMessage::Binary(string.as_bytes().to_vec())
-        } else {
-            let s = string.to_str().map_err(LuaError::external)?;
-            WsMessage::Text(s.to_string())
-        };
-        self.send(msg).await
-    }
-
-    pub async fn next(&self) -> LuaResult<Option<WsMessage>> {
-        let mut ws = self.stream.lock().await;
-        let item = ws.next().await.transpose().map_err(LuaError::external);
-        match item {
-            Ok(Some(WsMessage::Close(msg))) => {
-                if let Some(msg) = &msg {
-                    self.close_code.replace(Some(msg.code.into()));
-                }
-                Ok(Some(WsMessage::Close(msg)))
-            }
-            val => val,
-        }
-    }
-
-    pub async fn next_lua_string<'lua>(&'lua self, lua: &'lua Lua) -> LuaResult<LuaValue> {
-        while let Some(msg) = self.next().await? {
-            let msg_string_opt = match msg {
-                WsMessage::Binary(bin) => Some(lua.create_string(&bin)?),
-                WsMessage::Text(txt) => Some(lua.create_string(&txt)?),
-                // Stop waiting for next message if we get a close message
-                WsMessage::Close(_) => return Ok(LuaValue::Nil),
-                // Ignore ping/pong/frame messages, they are handled by tungstenite
-                _ => None,
-            };
-            if let Some(msg_string) = msg_string_opt {
-                return Ok(LuaValue::String(msg_string));
-            }
-        }
-        Ok(LuaValue::Nil)
+    fn into_lua_table_with_env<'lua>(
+        lua: &'lua Lua,
+        env: LuaTable<'lua>,
+    ) -> LuaResult<LuaTable<'lua>> {
+        lua.load(WEB_SOCKET_IMPL_LUA)
+            .set_name("websocket")?
+            .set_environment(env)?
+            .eval()
     }
 }
 
-impl<T> NetWebSocket<T>
-where
-    T: AsyncRead + AsyncWrite + Unpin + 'static,
-{
+type NetWebSocketStreamClient = MaybeTlsStream<TcpStream>;
+impl NetWebSocket<NetWebSocketStreamClient> {
     pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
-        let ws = Box::leak(Box::new(self));
-        TableBuilder::new(lua)?
-            .with_async_function("close", |_, code| ws.close(code))?
-            .with_async_function("send", |_, (msg, bin)| ws.send_lua_string(msg, bin))?
-            .with_async_function("next", |lua, _: ()| ws.next_lua_string(lua))?
-            .with_metatable(
-                TableBuilder::new(lua)?
-                    .with_function(LuaMetaMethod::Index.name(), |_, key: String| {
-                        if key == "closeCode" {
-                            Ok(ws.get_lua_close_code())
-                        } else {
-                            Ok(LuaValue::Nil)
-                        }
-                    })?
-                    .build_readonly()?,
+        let socket_env = TableBuilder::new(lua)?
+            .with_value("websocket", self)?
+            .with_function("close_code", close_code::<NetWebSocketStreamClient>)?
+            .with_async_function("close", close::<NetWebSocketStreamClient>)?
+            .with_async_function("send", send::<NetWebSocketStreamClient>)?
+            .with_async_function("next", next::<NetWebSocketStreamClient>)?
+            .with_value(
+                "setmetatable",
+                lua.named_registry_value::<_, LuaFunction>("tab.setmeta")?,
             )?
-            .build_readonly()
+            .with_value(
+                "freeze",
+                lua.named_registry_value::<_, LuaFunction>("tab.freeze")?,
+            )?
+            .build_readonly()?;
+        Self::into_lua_table_with_env(lua, socket_env)
     }
+}
+
+type NetWebSocketStreamServer = Upgraded;
+impl NetWebSocket<NetWebSocketStreamServer> {
+    pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
+        let socket_env = TableBuilder::new(lua)?
+            .with_value("websocket", self)?
+            .with_function("close_code", close_code::<NetWebSocketStreamServer>)?
+            .with_async_function("close", close::<NetWebSocketStreamServer>)?
+            .with_async_function("send", send::<NetWebSocketStreamServer>)?
+            .with_async_function("next", next::<NetWebSocketStreamServer>)?
+            .with_value(
+                "setmetatable",
+                lua.named_registry_value::<_, LuaFunction>("tab.setmeta")?,
+            )?
+            .with_value(
+                "freeze",
+                lua.named_registry_value::<_, LuaFunction>("tab.freeze")?,
+            )?
+            .build_readonly()?;
+        Self::into_lua_table_with_env(lua, socket_env)
+    }
+}
+
+impl<T> LuaUserData for NetWebSocket<T> {}
+
+fn close_code<T>(_lua: &Lua, socket: NetWebSocket<T>) -> LuaResult<LuaValue>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    Ok(match socket.close_code.get() {
+        Some(code) => LuaValue::Number(code as f64),
+        None => LuaValue::Nil,
+    })
+}
+
+async fn close<T>(_lua: &Lua, (socket, code): (NetWebSocket<T>, Option<u16>)) -> LuaResult<()>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    let mut ws = socket.stream.lock().await;
+    let res = ws.close(Some(WsCloseFrame {
+        code: match code {
+            Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
+            Some(code) => {
+                return Err(LuaError::RuntimeError(format!(
+                    "Close code must be between 1000 and 4999, got {code}"
+                )))
+            }
+            None => WsCloseCode::Normal,
+        },
+        reason: "".into(),
+    }));
+    res.await.map_err(LuaError::external)
+}
+
+async fn send<T>(
+    _lua: &Lua,
+    (socket, string, as_binary): (NetWebSocket<T>, LuaString<'_>, Option<bool>),
+) -> LuaResult<()>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    let msg = if matches!(as_binary, Some(true)) {
+        WsMessage::Binary(string.as_bytes().to_vec())
+    } else {
+        let s = string.to_str().map_err(LuaError::external)?;
+        WsMessage::Text(s.to_string())
+    };
+    let mut ws = socket.stream.lock().await;
+    ws.send(msg).await.map_err(LuaError::external)
+}
+
+async fn next<T>(lua: &Lua, socket: NetWebSocket<T>) -> LuaResult<LuaValue>
+where
+    T: AsyncRead + AsyncWrite + Unpin,
+{
+    let mut ws = socket.stream.lock().await;
+    let item = ws.next().await.transpose().map_err(LuaError::external);
+    let msg = match item {
+        Ok(Some(WsMessage::Close(msg))) => {
+            if let Some(msg) = &msg {
+                socket.close_code.replace(Some(msg.code.into()));
+            }
+            Ok(Some(WsMessage::Close(msg)))
+        }
+        val => val,
+    }?;
+    while let Some(msg) = &msg {
+        let msg_string_opt = match msg {
+            WsMessage::Binary(bin) => Some(lua.create_string(&bin)?),
+            WsMessage::Text(txt) => Some(lua.create_string(&txt)?),
+            // Stop waiting for next message if we get a close message
+            WsMessage::Close(_) => return Ok(LuaValue::Nil),
+            // Ignore ping/pong/frame messages, they are handled by tungstenite
+            _ => None,
+        };
+        if let Some(msg_string) = msg_string_opt {
+            return Ok(LuaValue::String(msg_string));
+        }
+    }
+    Ok(LuaValue::Nil)
 }
