@@ -1,7 +1,7 @@
 use mlua::prelude::*;
 
 use crate::lua::{
-    net::{EncodeDecodeConfig, EncodeDecodeFormat},
+    serde::{EncodeDecodeConfig, EncodeDecodeFormat},
     table::TableBuilder,
 };
 

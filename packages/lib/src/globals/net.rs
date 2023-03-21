@@ -8,9 +8,10 @@ use tokio::{sync::mpsc, task};
 
 use crate::lua::{
     net::{
-        EncodeDecodeConfig, EncodeDecodeFormat, NetClient, NetClientBuilder, NetLocalExec,
-        NetService, NetWebSocket, RequestConfig, ServeConfig,
+        NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocket, RequestConfig,
+        ServeConfig,
     },
+    serde::{EncodeDecodeConfig, EncodeDecodeFormat},
     table::TableBuilder,
     task::{TaskScheduler, TaskSchedulerAsyncExt},
 };

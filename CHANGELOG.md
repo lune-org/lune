@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     This built-in contains previously available functions `encode` and `decode` from the `net` global. <br />
     Note that this is **_only_** available using the new `require` syntax, and is not available as a global.
 
+### Changed
+
+-   Renamed the global `info` function to `printinfo` to make it less ambiguous
+
 ### Removed
 
 -   Removed experimental `net.encode` and `net.decode` functions, since they are now available using `require("@lune/serde")`
