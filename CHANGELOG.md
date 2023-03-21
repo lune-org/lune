@@ -12,7 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Builtin modules such as `fs`, `net` and others can now be imported using `require("@lune/fs")`, `require("@lune/net")` ..
+-   `require` has been reimplemented and overhauled in several ways:
+
+    -   Builtin modules such as `fs`, `net` and others can now be imported using `require("@lune/fs")`, `require("@lune/net")` ... <br />
+        This is the first step towards moving away from adding each library as a global, and allowing Lune to have more built-in libraries.
+
+    -   Requiring a script is now completely asynchronous and will not block lua threads other than the caller.
+    -   Requiring a script will no longer error when using async APIs in the main body of the required script.
+
+    Behavior otherwise stays the same, and requires are still relative to file unless the special `@` prefix is used.
 
 ### Removed
 

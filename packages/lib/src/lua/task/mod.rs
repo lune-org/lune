@@ -6,6 +6,7 @@ mod scheduler_message;
 mod scheduler_state;
 mod task_kind;
 mod task_reference;
+mod task_waiter;
 
 pub use ext::*;
 pub use proxy::*;

@@ -158,13 +158,13 @@ fn coroutine_resume<'lua>(
     let result = match value {
         LuaThreadOrTaskReference::Thread(t) => {
             let task = sched.create_task(TaskKind::Instant, t, None, true)?;
-            sched.resume_task(task)
+            sched.resume_task(task, None)
         }
-        LuaThreadOrTaskReference::TaskReference(t) => sched.resume_task(t),
+        LuaThreadOrTaskReference::TaskReference(t) => sched.resume_task(t, None),
     };
     sched.force_set_current_task(Some(current));
     match result {
-        Ok(rets) => Ok((true, rets)),
+        Ok(rets) => Ok((true, rets.1)),
         Err(e) => Ok((false, e.to_lua_multi(lua)?)),
     }
 }
@@ -187,8 +187,11 @@ fn coroutine_wrap<'lua>(lua: &'lua Lua, func: LuaFunction) -> LuaResult<LuaFunct
         let result = lua
             .app_data_ref::<&TaskScheduler>()
             .unwrap()
-            .resume_task_override(task, Ok(args));
+            .resume_task(task, Some(Ok(args)));
         sched.force_set_current_task(Some(current));
-        result
+        match result {
+            Ok(rets) => Ok(rets.1),
+            Err(e) => Err(e),
+        }
     })
 }

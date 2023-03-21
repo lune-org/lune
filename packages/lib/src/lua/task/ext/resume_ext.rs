@@ -76,10 +76,13 @@ impl TaskSchedulerResumeExt for TaskScheduler<'_> {
     Resumes the next queued Lua task, if one exists, blocking
     the current thread until it either yields or finishes.
 */
-fn resume_next_blocking_task(
-    scheduler: &TaskScheduler<'_>,
-    override_args: Option<LuaResult<LuaMultiValue>>,
-) -> TaskSchedulerState {
+fn resume_next_blocking_task<'sched, 'args>(
+    scheduler: &TaskScheduler<'sched>,
+    override_args: Option<LuaResult<LuaMultiValue<'args>>>,
+) -> TaskSchedulerState
+where
+    'args: 'sched,
+{
     match {
         let mut queue_guard = scheduler.tasks_queue_blocking.borrow_mut();
         let task = queue_guard.pop_front();
@@ -87,15 +90,16 @@ fn resume_next_blocking_task(
         task
     } {
         None => TaskSchedulerState::new(scheduler),
-        Some(task) => match override_args {
-            Some(args) => match scheduler.resume_task_override(task, args) {
-                Ok(_) => TaskSchedulerState::new(scheduler),
-                Err(task_err) => TaskSchedulerState::err(scheduler, task_err),
-            },
-            None => match scheduler.resume_task(task) {
-                Ok(_) => TaskSchedulerState::new(scheduler),
-                Err(task_err) => TaskSchedulerState::err(scheduler, task_err),
-            },
+        Some(task) => match scheduler.resume_task(task, override_args) {
+            Err(task_err) => {
+                scheduler.wake_completed_task(task, Err(task_err.clone()));
+                TaskSchedulerState::err(scheduler, task_err)
+            }
+            Ok(rets) if rets.0 == LuaThreadStatus::Unresumable => {
+                scheduler.wake_completed_task(task, Ok(rets.1));
+                TaskSchedulerState::new(scheduler)
+            }
+            Ok(_) => TaskSchedulerState::new(scheduler),
         },
     }
 }
@@ -158,9 +162,9 @@ async fn receive_next_message(scheduler: &TaskScheduler<'_>) -> TaskSchedulerSta
                 if prev == 0 {
                     panic!(
                         r#"
-                            Terminated a background task without it running - this is an internal error!
-                            Please report it at {}
-                            "#,
+                        Terminated a background task without it running - this is an internal error!
+                        Please report it at {}
+                        "#,
                         env!("CARGO_PKG_REPOSITORY")
                     )
                 }

@@ -136,7 +136,7 @@ fn process_env_iter<'lua>(
     lua: &'lua Lua,
     (_, _): (LuaValue<'lua>, ()),
 ) -> LuaResult<LuaFunction<'lua>> {
-    let mut vars = env::vars_os();
+    let mut vars = env::vars_os().collect::<Vec<_>>().into_iter();
     lua.create_function_mut(move |lua, _: ()| match vars.next() {
         Some((key, value)) => {
             let raw_key = RawOsString::new(key);
