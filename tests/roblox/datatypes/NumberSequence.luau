@@ -1,7 +1,6 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local NumberSequence = _G.NumberSequence
-local NumberSequenceKeypoint = _G.NumberSequenceKeypoint
+local roblox = require("@lune/roblox") :: any
+local NumberSequence = roblox.NumberSequence
+local NumberSequenceKeypoint = roblox.NumberSequenceKeypoint
 
 -- Constructors & properties
 

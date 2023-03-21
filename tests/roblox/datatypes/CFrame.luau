@@ -1,7 +1,6 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local CFrame = _G.CFrame
-local Vector3 = _G.Vector3
+local roblox = require("@lune/roblox") :: any
+local CFrame = roblox.CFrame
+local Vector3 = roblox.Vector3
 
 -- Constructors & properties
 

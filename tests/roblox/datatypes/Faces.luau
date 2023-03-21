@@ -1,7 +1,6 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local Faces = _G.Faces
-local Enum = _G.Enum
+local roblox = require("@lune/roblox") :: any
+local Faces = roblox.Faces
+local Enum = roblox.Enum
 
 -- Constructors & properties
 

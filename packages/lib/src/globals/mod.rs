@@ -4,6 +4,8 @@ mod fs;
 mod net;
 mod process;
 mod require;
+#[cfg(feature = "roblox")]
+mod roblox;
 mod serde;
 mod stdio;
 mod task;
@@ -17,6 +19,8 @@ pub fn create(lua: &'static Lua, args: Vec<String>) -> LuaResult<()> {
         ("fs", fs::create(lua)?),
         ("net", net::create(lua)?),
         ("process", process::create(lua, args)?),
+        #[cfg(feature = "roblox")]
+        ("roblox", roblox::create(lua)?),
         ("serde", self::serde::create(lua)?),
         ("stdio", stdio::create(lua)?),
         ("task", task::create(lua)?),

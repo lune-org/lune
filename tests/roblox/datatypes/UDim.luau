@@ -1,6 +1,5 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local UDim = _G.UDim
+local roblox = require("@lune/roblox") :: any
+local UDim = roblox.UDim
 
 -- Constructors & properties
 

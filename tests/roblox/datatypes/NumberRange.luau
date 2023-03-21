@@ -1,6 +1,5 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local NumberRange = _G.NumberRange
+local roblox = require("@lune/roblox") :: any
+local NumberRange = roblox.NumberRange
 
 -- Constructors & properties
 

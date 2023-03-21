@@ -90,3 +90,30 @@ create_tests! {
     task_spawn: "task/spawn",
     task_wait: "task/wait",
 }
+
+#[cfg(feature = "roblox")]
+create_tests! {
+    roblox_axes: "roblox/datatypes/Axes",
+    roblox_brick_color: "roblox/datatypes/BrickColor",
+    roblox_cframe: "roblox/datatypes/CFrame",
+    roblox_color3: "roblox/datatypes/Color3",
+    roblox_color_sequence: "roblox/datatypes/ColorSequence",
+    roblox_color_sequence_keypoint: "roblox/datatypes/ColorSequenceKeypoint",
+    roblox_enum: "roblox/datatypes/Enum",
+    roblox_faces: "roblox/datatypes/Faces",
+    roblox_font: "roblox/datatypes/Font",
+    roblox_number_range: "roblox/datatypes/NumberRange",
+    roblox_number_sequence: "roblox/datatypes/NumberSequence",
+    roblox_number_sequence_keypoint: "roblox/datatypes/NumberSequenceKeypoint",
+    roblox_physical_properties: "roblox/datatypes/PhysicalProperties",
+    roblox_ray: "roblox/datatypes/Ray",
+    roblox_rect: "roblox/datatypes/Rect",
+    roblox_udim: "roblox/datatypes/UDim",
+    roblox_udim2: "roblox/datatypes/UDim2",
+    roblox_region3: "roblox/datatypes/Region3",
+    roblox_region3int16: "roblox/datatypes/Region3int16",
+    roblox_vector2: "roblox/datatypes/Vector2",
+    roblox_vector2int16: "roblox/datatypes/Vector2int16",
+    roblox_vector3: "roblox/datatypes/Vector3",
+    roblox_vector3int16: "roblox/datatypes/Vector3int16",
+}

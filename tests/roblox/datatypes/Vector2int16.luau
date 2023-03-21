@@ -1,6 +1,5 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local Vector2int16 = _G.Vector2int16
+local roblox = require("@lune/roblox") :: any
+local Vector2int16 = roblox.Vector2int16
 
 -- Constructors & properties
 

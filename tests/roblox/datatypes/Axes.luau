@@ -1,7 +1,6 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local Axes = _G.Axes
-local Enum = _G.Enum
+local roblox = require("@lune/roblox") :: any
+local Axes = roblox.Axes
+local Enum = roblox.Enum
 
 -- Constructors & properties
 

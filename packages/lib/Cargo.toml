@@ -14,7 +14,7 @@ name = "lune"
 path = "src/lib.rs"
 
 [features]
-default = []
+default = ["roblox"]
 roblox = ["dep:lune-roblox"]
 
 [dependencies]

@@ -66,5 +66,6 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     for (name, tab) in make_all_datatypes(lua)? {
         exports.set(name, tab)?;
     }
+    exports.set_readonly(true);
     Ok(exports)
 }

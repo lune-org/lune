@@ -1,8 +1,7 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local Region3 = _G.Region3
-local Vector3 = _G.Vector3
-local CFrame = _G.CFrame
+local roblox = require("@lune/roblox") :: any
+local Region3 = roblox.Region3
+local Vector3 = roblox.Vector3
+local CFrame = roblox.CFrame
 
 local min = Vector3.new(-2, -2, -2)
 local max = Vector3.new(2, 2, 2)

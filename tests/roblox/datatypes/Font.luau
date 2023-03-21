@@ -1,7 +1,6 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local Enum = _G.Enum
-local Font = _G.Font
+local roblox = require("@lune/roblox") :: any
+local Enum = roblox.Enum
+local Font = roblox.Font
 
 -- Constructors
 

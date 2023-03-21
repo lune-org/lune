@@ -1,7 +1,6 @@
--- HACK: Make luau happy, with the mlua rust
--- crate all globals are also present in _G
-local Ray = _G.Ray
-local Vector3 = _G.Vector3
+local roblox = require("@lune/roblox") :: any
+local Ray = roblox.Ray
+local Vector3 = roblox.Vector3
 
 local origin = Vector3.zero
 local direction = Vector3.zAxis * 10
