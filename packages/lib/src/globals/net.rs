@@ -25,8 +25,6 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     lua.set_named_registry_value("net.client", client)?;
     // Create the global table for net
     TableBuilder::new(lua)?
-        .with_function("encode", net_encode)?
-        .with_function("decode", net_decode)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
         .with_async_function("request", net_request)?
@@ -41,22 +39,6 @@ fn create_user_agent_header() -> String {
         .split_once('/')
         .unwrap();
     format!("{github_owner}-{github_repo}-cli")
-}
-
-fn net_encode<'a>(
-    lua: &'static Lua,
-    (format, val, pretty): (EncodeDecodeFormat, LuaValue<'a>, Option<bool>),
-) -> LuaResult<LuaString<'a>> {
-    let config = EncodeDecodeConfig::from((format, pretty.unwrap_or_default()));
-    config.serialize_to_string(lua, val)
-}
-
-fn net_decode<'a>(
-    lua: &'static Lua,
-    (format, str): (EncodeDecodeFormat, LuaString<'a>),
-) -> LuaResult<LuaValue<'a>> {
-    let config = EncodeDecodeConfig::from(format);
-    config.deserialize_from_string(lua, str)
 }
 
 fn net_json_encode<'a>(

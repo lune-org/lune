@@ -14,16 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   `require` has been reimplemented and overhauled in several ways:
 
-    -   Builtin modules such as `fs`, `net` and others can now be imported using `require("@lune/fs")`, `require("@lune/net")` ... <br />
-        This is the first step towards moving away from adding each library as a global, and allowing Lune to have more built-in libraries.
+    -   Globals such as `fs`, `net` and others can now be imported using `require("@lune/fs")`, `require("@lune/net")` ...
+
+        All new built-ins will be added using this syntax and new built-ins will no longer be available in the global scope, and current globals will stay available as globals until proper editor and LSP support is available to ensure Lune users have a good development experience. This is the first step towards moving away from adding each library as a global, and allowing Lune to have more built-in libraries in general.
 
     -   Requiring a script is now completely asynchronous and will not block lua threads other than the caller.
     -   Requiring a script will no longer error when using async APIs in the main body of the required script.
 
     Behavior otherwise stays the same, and requires are still relative to file unless the special `@` prefix is used.
 
+-   Added a `serde` built-in
+
+    This built-in contains previously available functions `encode` and `decode` from the `net` global. <br />
+    Note that this is **_only_** available using the new `require` syntax, and is not available as a global.
+
 ### Removed
 
+-   Removed experimental `net.encode` and `net.decode` functions, since they are now available using `require("@lune/serde")`
 -   Removed option to preserve default Luau require behavior
 
 ## `0.5.6` - March 11th, 2023

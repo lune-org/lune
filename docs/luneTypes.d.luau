@@ -162,8 +162,6 @@ declare fs: {
 
 type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
 
-type NetEncodeDecodeFormat = "json" | "yaml" | "toml"
-
 --[=[
 	@type NetFetchParams
 	@within Net
@@ -369,13 +367,16 @@ declare net: {
 		@return The decoded lua value
 	]=]
 	jsonDecode: (encoded: string) -> any,
+}
+
+-- TODO: Somehow link this up to require("@lune/serde")
+
+type SerdeEncodeDecodeFormat = "json" | "yaml" | "toml"
+
+type Serde = {
 	--[=[
-		@within Net
+		@within Serde
 		@must_use
-
-		***WARNING:** Unstable API*
-
-		*This API is unstable and may change or be removed in the next major version of Lune.*
 
 		Encodes the given value using the given format.
 
@@ -384,22 +385,18 @@ declare net: {
 		@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
 		@return The encoded string
 	]=]
-	encode: (format: NetEncodeDecodeFormat, value: any, pretty: boolean?) -> string,
+	encode: (format: SerdeEncodeDecodeFormat, value: any, pretty: boolean?) -> string,
 	--[=[
-		@within Net
+		@within Serde
 		@must_use
-
-		***WARNING:** Unstable API*
-
-		*This API is unstable and may change or be removed in the next major version of Lune.*
 
 		Decodes the given string using the given format into a lua value.
 
 		@param format The format to use
-		@param encoded The JSON string to decode
+		@param encoded The string to decode
 		@return The decoded lua value
 	]=]
-	decode: (format: NetEncodeDecodeFormat, encoded: string) -> any,
+	decode: (format: SerdeEncodeDecodeFormat, encoded: string) -> any,
 }
 
 type ProcessSpawnOptionsStdio = "inherit" | "default"
