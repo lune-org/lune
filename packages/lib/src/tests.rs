@@ -51,6 +51,8 @@ create_tests! {
     net_request_methods: "net/request/methods",
     net_request_query: "net/request/query",
     net_request_redirect: "net/request/redirect",
+    net_url_encode: "net/url/encode",
+    net_url_decode: "net/url/decode",
     net_serve_requests: "net/serve/requests",
     net_serve_websockets: "net/serve/websockets",
     process_args: "process/args",

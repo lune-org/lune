@@ -367,6 +367,28 @@ declare net: {
 		@return The decoded lua value
 	]=]
 	jsonDecode: (encoded: string) -> any,
+	--[=[
+		@within Net
+		@must_use
+
+		Encodes the given string using URL encoding.
+
+		@param s The string to encode
+		@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
+		@return The encoded string
+	]=]
+	urlEncode: (s: string, binary: boolean?) -> string,
+	--[=[
+		@within Net
+		@must_use
+
+		Decodes the given string using URL decoding.
+
+		@param s The string to decode
+		@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
+		@return The decoded string
+	]=]
+	urlDecode: (s: string, binary: boolean?) -> string,
 }
 
 -- TODO: Somehow link this up to require("@lune/serde")

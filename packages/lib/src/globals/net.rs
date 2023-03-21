@@ -31,6 +31,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("request", net_request)?
         .with_async_function("socket", net_socket)?
         .with_async_function("serve", net_serve)?
+        .with_function("urlEncode", net_url_encode)?
+        .with_function("urlDecode", net_url_decode)?
         .build_readonly()
 }
 
@@ -158,4 +160,28 @@ async fn net_serve<'a>(
     TableBuilder::new(lua)?
         .with_function("stop", handle_stop)?
         .build_readonly()
+}
+
+fn net_url_encode<'a>(
+    lua: &'static Lua,
+    (lua_string, as_binary): (LuaString<'a>, Option<bool>),
+) -> LuaResult<LuaValue<'a>> {
+    if matches!(as_binary, Some(true)) {
+        urlencoding::encode_binary(lua_string.as_bytes()).to_lua(lua)
+    } else {
+        urlencoding::encode(lua_string.to_str()?).to_lua(lua)
+    }
+}
+
+fn net_url_decode<'a>(
+    lua: &'static Lua,
+    (lua_string, as_binary): (LuaString<'a>, Option<bool>),
+) -> LuaResult<LuaValue<'a>> {
+    if matches!(as_binary, Some(true)) {
+        urlencoding::decode_binary(lua_string.as_bytes()).to_lua(lua)
+    } else {
+        urlencoding::decode(lua_string.to_str()?)
+            .map_err(|e| LuaError::RuntimeError(format!("Encountered invalid encoding - {e}")))?
+            .to_lua(lua)
+    }
 }

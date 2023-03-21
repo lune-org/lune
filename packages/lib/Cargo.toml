@@ -39,6 +39,7 @@ directories = "4.0"
 dunce = "1.0"
 pin-project = "1.0"
 os_str_bytes = "6.4"
+urlencoding = "2.1.2"
 
 hyper = { version = "0.14", features = ["full"] }
 hyper-tungstenite = { version = "0.9" }
