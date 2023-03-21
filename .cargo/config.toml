@@ -1,6 +1,0 @@
-[env]
-# We only use these blocking::unblock threads for prompting
-# for interactive input using stdin, the default amount of
-# threads is 500 which is unnecessarily high, we probably
-# only need one thread here but lets do 10 just in case
-BLOCKING_MAX_THREADS = "10"

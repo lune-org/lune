@@ -73,6 +73,12 @@ impl DocumentFormat {
     }
 }
 
+impl Default for DocumentFormat {
+    fn default() -> Self {
+        Self::Binary
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
