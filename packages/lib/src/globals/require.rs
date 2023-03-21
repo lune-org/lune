@@ -35,7 +35,11 @@ struct RequireContext<'lua> {
 }
 
 impl<'lua> RequireContext<'lua> {
-    pub fn new() -> Self {
+    pub fn new<K, V>(lua: &'static Lua, builtins_vec: Vec<(K, V)>) -> LuaResult<Self>
+    where
+        K: Into<String>,
+        V: ToLua<'static>,
+    {
         let mut pwd = current_dir()
             .expect("Failed to access current working directory")
             .to_string_lossy()
@@ -43,10 +47,15 @@ impl<'lua> RequireContext<'lua> {
         if !pwd.ends_with(path::MAIN_SEPARATOR) {
             pwd = format!("{pwd}{}", path::MAIN_SEPARATOR)
         }
-        Self {
-            pwd,
-            ..Default::default()
+        let mut builtins = HashMap::new();
+        for (key, value) in builtins_vec {
+            builtins.insert(key.into(), value.to_lua_multi(lua)?);
         }
+        Ok(Self {
+            pwd,
+            builtins: Arc::new(builtins),
+            ..Default::default()
+        })
     }
 
     pub fn is_locked(&self, absolute_path: &str) -> bool {
@@ -206,8 +215,12 @@ async fn load<'lua>(
     result
 }
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
-    let require_context = RequireContext::new();
+pub fn create<K, V>(lua: &'static Lua, builtins: Vec<(K, V)>) -> LuaResult<LuaFunction>
+where
+    K: Clone + Into<String>,
+    V: Clone + ToLua<'static>,
+{
+    let require_context = RequireContext::new(lua, builtins)?;
     let require_yield: LuaFunction = lua.named_registry_value("co.yield")?;
     let require_info: LuaFunction = lua.named_registry_value("dbg.info")?;
     let require_print: LuaFunction = lua.named_registry_value("print")?;
@@ -244,8 +257,5 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .set_name("require")?
         .set_environment(require_env)?
         .into_function()?;
-
-    TableBuilder::new(lua)?
-        .with_value("require", require_fn_lua)?
-        .build_readonly()
+    Ok(require_fn_lua)
 }

@@ -12,8 +12,6 @@ mod error;
 mod tests;
 
 pub use error::LuneError;
-pub use globals::LuneGlobal;
-pub use lua::create_lune_lua;
 
 #[derive(Clone, Debug, Default)]
 pub struct Lune {
@@ -52,39 +50,28 @@ impl Lune {
         both live for the remainer of the program, and that this leaks memory using
         [`Box::leak`] that will then get deallocated when the program exits.
     */
-    pub async fn try_run(
-        &self,
-        script_name: impl AsRef<str>,
-        script_contents: impl AsRef<[u8]>,
-    ) -> Result<ExitCode, LuneError> {
-        self.run(script_name, script_contents, true)
-            .await
-            .map_err(LuneError::from_lua_error)
-    }
-
-    /**
-        Tries to run a Lune script directly, returning the underlying
-        result type if loading the script raises a lua error.
-
-        Passing `false` as the third argument `emit_prettified_errors` will
-        bypass any additional error formatting automatically done by Lune
-        for errors that are emitted while the script is running.
-
-        Behavior is otherwise exactly the same as `try_run`
-        and `try_run` should be preferred in all other cases.
-    */
-    #[doc(hidden)]
     pub async fn run(
         &self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-        emit_prettified_errors: bool,
+    ) -> Result<ExitCode, LuneError> {
+        self.run_inner(script_name, script_contents)
+            .await
+            .map_err(LuneError::from_lua_error)
+    }
+
+    async fn run_inner(
+        &self,
+        script_name: impl AsRef<str>,
+        script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuaError> {
         // Create our special lune-flavored Lua object with extra registry values
-        let lua = create_lune_lua()?;
-        // Create our task scheduler
+        let lua = lua::create_lune_lua()?;
+        // Create our task scheduler and all globals
+        // NOTE: Some globals require the task scheduler to exist on startup
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);
+        globals::create(lua, self.args.clone())?;
         // Create the main thread and schedule it
         let main_chunk = lua
             .load(script_contents.as_ref())
@@ -93,11 +80,6 @@ impl Lune {
         let main_thread = lua.create_thread(main_chunk)?;
         let main_thread_args = LuaValue::Nil.to_lua_multi(lua)?;
         sched.schedule_blocking(main_thread, main_thread_args)?;
-        // Create our wanted lune globals, some of these need
-        // the task scheduler be available during construction
-        for global in LuneGlobal::all(&self.args) {
-            global.inject(lua)?;
-        }
         // Keep running the scheduler until there are either no tasks
         // left to run, or until a task requests to exit the process
         let exit_code = LocalSet::new()
@@ -106,11 +88,7 @@ impl Lune {
                 loop {
                     let result = sched.resume_queue().await;
                     if let Some(err) = result.get_lua_error() {
-                        if emit_prettified_errors {
-                            eprintln!("{}", LuneError::from_lua_error(err));
-                        } else {
-                            eprintln!("{err}");
-                        }
+                        eprintln!("{}", LuneError::from_lua_error(err));
                         got_error = true;
                     }
                     if result.is_done() {

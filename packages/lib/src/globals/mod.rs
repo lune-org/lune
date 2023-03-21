@@ -1,5 +1,3 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
-
 use mlua::prelude::*;
 
 mod fs;
@@ -10,119 +8,42 @@ mod stdio;
 mod task;
 mod top_level;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum LuneGlobal {
-    Fs,
-    Net,
-    Process { args: Vec<String> },
-    Require,
-    Stdio,
-    Task,
-    TopLevel,
-}
+pub fn create(lua: &'static Lua, args: Vec<String>) -> LuaResult<()> {
+    // Create all builtins
+    let builtins = vec![
+        ("fs", fs::create(lua)?),
+        ("net", net::create(lua)?),
+        ("process", process::create(lua, args)?),
+        ("stdio", stdio::create(lua)?),
+        ("task", task::create(lua)?),
+    ];
 
-impl Display for LuneGlobal {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Fs => "fs",
-                Self::Net => "net",
-                Self::Process { .. } => "process",
-                Self::Require => "require",
-                Self::Stdio => "stdio",
-                Self::Task => "task",
-                Self::TopLevel => "toplevel",
-            }
-        )
-    }
-}
-
-impl LuneGlobal {
-    /**
-        Create a vector that contains all available Lune globals, with
-        the [`LuneGlobal::Process`] global containing the given args.
-    */
-    pub fn all<S: AsRef<str>>(args: &[S]) -> Vec<Self> {
-        vec![
-            Self::Fs,
-            Self::Net,
-            Self::Process {
-                args: args.iter().map(|s| s.as_ref().to_string()).collect(),
-            },
-            Self::Require,
-            Self::Stdio,
-            Self::Task,
-            Self::TopLevel,
-        ]
+    // TODO: Remove this when we have proper LSP support for custom require types
+    let lua_globals = lua.globals();
+    for (name, builtin) in &builtins {
+        lua_globals.set(*name, builtin.clone())?;
     }
 
-    /**
-        Checks if this Lune global is a proxy global.
+    // Create our importer (require) with builtins
+    let require_fn = require::create(lua, builtins)?;
 
-        A proxy global is a global that re-implements or proxies functionality of one or
-        more existing lua globals, and may store internal references to the original global(s).
+    // Create all top-level globals
+    let globals = vec![
+        ("require", require_fn),
+        ("print", lua.create_function(top_level::top_level_print)?),
+        ("warn", lua.create_function(top_level::top_level_warn)?),
+        ("error", lua.create_function(top_level::top_level_error)?),
+        (
+            "printinfo",
+            lua.create_function(top_level::top_level_printinfo)?,
+        ),
+    ];
 
-        This means that proxy globals should only be injected into a lua global
-        environment once, since injecting twice or more will potentially break the
-        functionality of the proxy global and / or cause undefined behavior.
-    */
-    pub fn is_proxy(&self) -> bool {
-        matches!(self, Self::Require | Self::TopLevel)
+    // Set top-level globals and seal them
+    for (name, global) in globals {
+        lua_globals.set(name, global)?;
     }
+    lua_globals.set_readonly(true);
 
-    /**
-        Checks if this Lune global is an injector.
-
-        An injector is similar to a proxy global but will inject
-        value(s) into the global lua environment during creation,
-        to ensure correct usage and compatibility with base Luau.
-    */
-    pub fn is_injector(&self) -> bool {
-        matches!(self, Self::Task)
-    }
-
-    /**
-        Creates the [`mlua::Table`] value for this Lune global.
-
-        Note that proxy globals should be handled with special care and that [`LuneGlobal::inject()`]
-        should be preferred over manually creating and manipulating the value(s) of any Lune global.
-    */
-    pub fn value(&self, lua: &'static Lua) -> LuaResult<LuaTable> {
-        match self {
-            LuneGlobal::Fs => fs::create(lua),
-            LuneGlobal::Net => net::create(lua),
-            LuneGlobal::Process { args } => process::create(lua, args.clone()),
-            LuneGlobal::Require => require::create(lua),
-            LuneGlobal::Stdio => stdio::create(lua),
-            LuneGlobal::Task => task::create(lua),
-            LuneGlobal::TopLevel => top_level::create(lua),
-        }
-    }
-
-    /**
-        Injects the Lune global into a lua global environment.
-
-        This takes ownership since proxy Lune globals should
-        only ever be injected into a lua global environment once.
-
-        Refer to [`LuneGlobal::is_top_level()`] for more info on proxy globals.
-    */
-    pub fn inject(self, lua: &'static Lua) -> LuaResult<()> {
-        let globals = lua.globals();
-        let table = self.value(lua)?;
-        // NOTE: Top level globals are special, the values
-        // *in* the table they return should be set directly,
-        // instead of setting the table itself as the global
-        if self.is_proxy() {
-            for pair in table.pairs::<LuaValue, LuaValue>() {
-                let (key, value) = pair?;
-                globals.raw_set(key, value)?;
-            }
-            Ok(())
-        } else {
-            globals.raw_set(self.to_string(), table)
-        }
-    }
+    Ok(())
 }

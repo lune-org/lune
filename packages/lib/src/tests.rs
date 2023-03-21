@@ -37,7 +37,7 @@ macro_rules! create_tests {
 				.trim_end_matches(".luau")
 				.trim_end_matches(".lua")
 				.to_string();
-            let exit_code = lune.try_run(&script_name, &script).await?;
+            let exit_code = lune.run(&script_name, &script).await?;
             Ok(exit_code)
         }
     )* }
@@ -63,6 +63,7 @@ create_tests! {
     require_async: "globals/require/tests/async",
     require_async_concurrent: "globals/require/tests/async_concurrent",
     require_async_sequential: "globals/require/tests/async_sequential",
+    require_builtins: "globals/require/tests/builtins",
     require_children: "globals/require/tests/children",
     require_invalid: "globals/require/tests/invalid",
     require_nested: "globals/require/tests/nested",

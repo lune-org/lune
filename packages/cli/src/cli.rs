@@ -177,7 +177,7 @@ impl Cli {
         // Create a new lune object with all globals & run the script
         let result = Lune::new()
             .with_args(self.script_args)
-            .try_run(&script_display_name, strip_shebang(script_contents))
+            .run(&script_display_name, strip_shebang(script_contents))
             .await;
         Ok(match result {
             Err(err) => {
