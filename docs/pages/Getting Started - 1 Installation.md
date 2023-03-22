@@ -26,8 +26,11 @@ Note that Lune does not make any minimum supported rust version (MSRV) guarantee
 ### Using GitHub Releases
 
 You can download pre-built binaries for most systems directly from the [GitHub Releases](https://github.com/filiptibell/lune/releases) page. <br />
-There are many tools that can install directly from releases, and it is up to you to choose what tool to use when installing using this method.
+There are many tools that can install binaries directly from releases, and it is up to you to choose what tool to use when installing here.
 
 ## Next steps
 
-Now that you've installed Lune, head over to the [Writing Scripts](https://github.com/filiptibell/lune/wiki/Getting-Started---2-Writing-Scripts) page to write your first script!
+Congratulations! You've installed Lune and are now ready to write your first script.
+
+-   If you want to write standalone scripts, head over to the [Writing Scripts](https://github.com/filiptibell/lune/wiki/Getting-Started---2-Writing-Scripts) page.
+-   If you want to write Lune scripts specifically for Roblox, check out the [Roblox](https://github.com/filiptibell/lune/wiki/Roblox) section.

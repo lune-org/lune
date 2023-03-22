@@ -764,34 +764,6 @@ impl LuaUserData for Instance {
         /*
             Implementations of base methods on the Instance class
 
-            Currently implemented:
-
-            * Clone
-            * Destroy
-            * ClearAllChildren
-
-            * FindFirstAncestor
-            * FindFirstAncestorOfClass
-            * FindFirstAncestorWhichIsA
-            * FindFirstChild
-            * FindFirstChildOfClass
-            * FindFirstChildWhichIsA
-            * FindFirstDescendant
-
-            * GetChildren
-            * GetDescendants
-            * GetFullName
-
-            * IsA
-            * IsAncestorOf
-            * IsDescendantOf
-
-            Not yet implemented, but planned:
-
-            * GetAttribute
-            * GetAttributes
-            * SetAttribute
-
             It should be noted that any methods that deal with events
             and/or have functionality that affects instances other
             than this instance itself are intentionally left out.
