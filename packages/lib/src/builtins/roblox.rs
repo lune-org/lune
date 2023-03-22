@@ -23,6 +23,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("readModelFile", read_model_file)?
         .with_async_function("writePlaceFile", write_place_file)?
         .with_async_function("writeModelFile", write_model_file)?
+        .with_async_function("getAuthCookie", get_auth_cookie)?
         .build_readonly()
 }
 
@@ -92,4 +93,15 @@ async fn write_model_file(_: &Lua, (path, instances): (String, Vec<Instance>)) -
         .await
         .map_err(LuaError::external)?;
     Ok(())
+}
+
+async fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>> {
+    unblock(move || {
+        if matches!(raw, Some(true)) {
+            Ok(rbx_cookie::get_value())
+        } else {
+            Ok(rbx_cookie::get())
+        }
+    })
+    .await
 }

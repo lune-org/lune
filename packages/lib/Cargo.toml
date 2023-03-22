@@ -15,11 +15,12 @@ path = "src/lib.rs"
 
 [features]
 default = ["roblox"]
-roblox = ["dep:lune-roblox"]
+roblox = ["dep:lune-roblox", "dep:rbx_cookie"]
 
 [dependencies]
 
 lune-roblox = { path = "../lib-roblox", optional = true }
+rbx_cookie = { version = "0.1.2", optional = true }
 
 console.workspace = true
 futures-util.workspace = true
