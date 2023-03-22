@@ -135,7 +135,7 @@ impl Instance {
         let new_ref = Self::clone_inner(self.dom_ref, parent_ref);
         let new_inst = Self::new(new_ref);
 
-        new_inst.set_parent_to_nil();
+        new_inst.set_parent(None);
         new_inst
     }
 
@@ -340,24 +340,7 @@ impl Instance {
     /**
         Sets the parent of the instance, if it exists.
 
-        ### See Also
-        * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
-        on the Roblox Developer Hub
-    */
-    pub fn set_parent(&self, parent: Instance) {
-        if self.is_root {
-            panic!("Root instance can not be reparented")
-        }
-
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to target document");
-
-        dom.transfer_within(self.dom_ref, parent.dom_ref);
-    }
-
-    /**
-        Sets the parent of the instance, if it exists, to nil, making it orphaned.
+        If the provided parent is [`None`] the instance will become orphaned.
 
         An orphaned instance is an instance at the root of a weak dom.
 
@@ -365,7 +348,7 @@ impl Instance {
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
         on the Roblox Developer Hub
     */
-    pub fn set_parent_to_nil(&self) {
+    pub fn set_parent(&self, parent: Option<Instance>) {
         if self.is_root {
             panic!("Root instance can not be reparented")
         }
@@ -374,9 +357,11 @@ impl Instance {
             .try_write()
             .expect("Failed to get write access to target document");
 
-        let nil_parent_ref = dom.root_ref();
+        let parent_ref = parent
+            .map(|parent| parent.dom_ref)
+            .unwrap_or_else(|| dom.root_ref());
 
-        dom.transfer_within(self.dom_ref, nil_parent_ref);
+        dom.transfer_within(self.dom_ref, parent_ref);
     }
 
     /**
@@ -739,10 +724,8 @@ impl LuaUserData for Instance {
                             )));
                         }
                         type Parent = Option<Instance>;
-                        match Parent::from_lua(prop_value, lua)? {
-                            Some(parent) => this.set_parent(parent),
-                            None => this.set_parent_to_nil(),
-                        }
+                        let parent = Parent::from_lua(prop_value, lua)?;
+                        this.set_parent(parent);
                         return Ok(());
                     }
                     _ => {}
