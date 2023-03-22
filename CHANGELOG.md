@@ -12,21 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   `require` has been reimplemented and overhauled in several ways:
+-   Added a `roblox` built-in
 
-    -   Globals such as `fs`, `net` and others can now be imported using `require("@lune/fs")`, `require("@lune/net")` ...
-
-        All new built-ins will be added using this syntax and new built-ins will no longer be available in the global scope, and current globals will stay available as globals until proper editor and LSP support is available to ensure Lune users have a good development experience. This is the first step towards moving away from adding each library as a global, and allowing Lune to have more built-in libraries in general.
-
-    -   Requiring a script is now completely asynchronous and will not block lua threads other than the caller.
-    -   Requiring a script will no longer error when using async APIs in the main body of the required script.
-
-    Behavior otherwise stays the same, and requires are still relative to file unless the special `@` prefix is used.
+    If you're familiar with [Remodel](https://github.com/rojo-rbx/remodel), this new built-in contains more or less the same APIs, integrated into Lune. <br />
+    There are just too many new APIs to list in this changelog, so head over to the [wiki](https://github.com/filiptibell/lune/wiki) to learn more!
 
 -   Added a `serde` built-in
 
     This built-in contains previously available functions `encode` and `decode` from the `net` global. <br />
-    Note that this is **_only_** available using the new `require` syntax, and is not available as a global.
+    The plan is for this built-in to contain more serialization and encoding functionality in the future.
+
+-   `require` has been reimplemented and overhauled in several ways:
+
+    -   New built-ins such as `roblox` and `serde` can **_only_** be imported using `require("@lune/roblox")`, `require("@lune/serde")`, ...
+    -   Previous globals such as `fs`, `net` and others can now _also_ be imported using `require("@lune/fs")`, `require("@lune/net")`, ...
+    -   Requiring a script is now completely asynchronous and will not block lua threads other than the caller.
+    -   Requiring a script will no longer error when using async APIs in the main body of the required script.
+
+    All new built-ins will be added using this syntax and new built-ins will no longer be available in the global scope, and current globals will stay available as globals until proper editor and LSP support is available to ensure Lune users have a good development experience. This is the first step towards moving away from adding each library as a global, and allowing Lune to have more built-in libraries in general.
+
+    Behavior otherwise stays the same, and requires are still relative to file unless the special `@` prefix is used.
 
 -   Added `net.urlEncode` and `net.urlDecode` for URL-encoding and decoding strings
 
