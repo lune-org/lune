@@ -1,9 +1,52 @@
-<!-- markdownlint-disable MD033 -->
-<!-- markdownlint-disable MD026 -->
+<!-- markdownlint-disable MD041 -->
 
-# Classes
+# API Reference
 
-## `Instance`
+Welcome to the API reference page for the built-in `roblox` library!
+
+All of the following static functions, classes, and datatypes can be imported using `require("@lune/roblox")`.
+
+## Static Functions
+
+### `readPlaceFile`
+
+Reads a place file into a DataModel instance.
+
+```lua
+local roblox = require("@lune/roblox")
+local game = roblox.readPlaceFile("filePath.rbxl")
+```
+
+### `readModelFile`
+
+Reads a model file into a table of instances.
+
+```lua
+local roblox = require("@lune/roblox")
+local instances = roblox.readModelFile("filePath.rbxm")
+```
+
+### `writePlaceFile`
+
+Writes a DataModel instance to a place file.
+
+```lua
+local roblox = require("@lune/roblox")
+roblox.writePlaceFile("filePath.rbxl", game)
+```
+
+### `writeModelFile`
+
+Writes one or more instances to a model file.
+
+```lua
+local roblox = require("@lune/roblox")
+roblox.writeModelFile("filePath.rbxm", { instance1, instance2, ... })
+```
+
+## Classes
+
+### `Instance`
 
 Currently implemented APIs:
 
@@ -31,14 +74,14 @@ Not yet implemented, but planned:
 -   [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
 -   [`SetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#SetAttribute)
 
-## `DataModel`
+### `DataModel`
 
 Currently implemented APIs:
 
 -   [`GetService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#GetService)
 -   [`FindService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#FindService)
 
-# Datatypes
+## Datatypes
 
 Currently implemented datatypes:
 
