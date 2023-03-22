@@ -589,11 +589,16 @@ impl Instance {
         datatype_table.set(
             "new",
             lua.create_function(|lua, class_name: String| {
-                if class_exists(&class_name) {
+                if class_name == data_model::CLASS_NAME {
+                    Err(LuaError::RuntimeError(format!(
+                        "Failed to create Instance - '{}' class is restricted",
+                        class_name
+                    )))
+                } else if class_exists(&class_name) {
                     Instance::new_orphaned(class_name).to_lua(lua)
                 } else {
                     Err(LuaError::RuntimeError(format!(
-                        "'{}' is not a valid class name",
+                        "Failed to create Instance - '{}' is not a valid class name",
                         class_name
                     )))
                 }
