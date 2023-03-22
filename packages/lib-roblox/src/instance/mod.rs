@@ -228,7 +228,7 @@ impl Instance {
         // keep track of all current instance reference structs
         let dom = INTERNAL_DOM
             .try_read()
-            .expect("Failed to get write access to document");
+            .expect("Failed to get read access to document");
         dom.get_by_ref(self.dom_ref).is_none()
     }
 
