@@ -813,7 +813,7 @@ dependencies = [
 
 [[package]]
 name = "lune"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -842,7 +842,7 @@ dependencies = [
 
 [[package]]
 name = "lune-cli"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -860,7 +860,7 @@ dependencies = [
 
 [[package]]
 name = "lune-roblox"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
