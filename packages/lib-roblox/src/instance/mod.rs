@@ -99,17 +99,19 @@ impl Instance {
     }
 
     /**
-        Transfers an instance to an external weak dom.
+        Clones an instance to an external weak dom.
 
         This will place the instance as a child of the
         root of the weak dom, and return its referent.
     */
-    pub fn into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
+    pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
+        let cloned = self.clone_instance();
+
         let mut dom = INTERNAL_DOM
             .try_write()
             .expect("Failed to get write access to document");
 
-        let internal_dom_ref = self.dom_ref;
+        let internal_dom_ref = cloned.dom_ref;
         let external_root_ref = external_dom.root_ref();
 
         dom.transfer(internal_dom_ref, external_dom, external_root_ref);
@@ -589,12 +591,7 @@ impl Instance {
         datatype_table.set(
             "new",
             lua.create_function(|lua, class_name: String| {
-                if class_name == data_model::CLASS_NAME {
-                    Err(LuaError::RuntimeError(format!(
-                        "Failed to create Instance - '{}' class is restricted",
-                        class_name
-                    )))
-                } else if class_exists(&class_name) {
+                if class_exists(&class_name) {
                     Instance::new_orphaned(class_name).to_lua(lua)
                 } else {
                     Err(LuaError::RuntimeError(format!(

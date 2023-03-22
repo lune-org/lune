@@ -241,7 +241,7 @@ impl Document {
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
 
         for data_model_child in i.get_children() {
-            data_model_child.into_external_dom(&mut dom);
+            data_model_child.clone_into_external_dom(&mut dom);
         }
 
         Ok(Self {
@@ -266,7 +266,7 @@ impl Document {
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
 
         for instance in v {
-            instance.into_external_dom(&mut dom);
+            instance.clone_into_external_dom(&mut dom);
         }
 
         Ok(Self {
