@@ -15,7 +15,7 @@ use crate::{
     shared::instance::{class_exists, class_is_a, find_property_info},
 };
 
-mod data_model;
+pub(crate) mod data_model;
 
 lazy_static::lazy_static! {
     static ref INTERNAL_DOM: RwLock<WeakDom> =
@@ -468,7 +468,7 @@ impl Instance {
         let mut instance_ref = self.dom_ref;
 
         while let Some(instance) = dom.get_by_ref(instance_ref) {
-            if instance_ref != dom_root && instance.class != "DataModel" {
+            if instance_ref != dom_root && instance.class != data_model::CLASS_NAME {
                 instance_ref = instance.parent();
                 parts.push(instance.name.clone());
             } else {
@@ -702,7 +702,7 @@ impl LuaUserData for Instance {
                         return Ok(());
                     }
                     "Parent" => {
-                        if this.get_class_name() == "DataModel" {
+                        if this.get_class_name() == data_model::CLASS_NAME {
                             return Err(LuaError::RuntimeError(format!(
                                 "Failed to set property '{}' - DataModel can not be reparented",
                                 prop_name

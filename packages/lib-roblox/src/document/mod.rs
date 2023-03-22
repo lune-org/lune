@@ -12,7 +12,7 @@ pub use error::*;
 pub use format::*;
 pub use kind::*;
 
-use crate::instance::Instance;
+use crate::instance::{data_model, Instance};
 
 pub type DocumentResult<T> = Result<T, DocumentError>;
 
@@ -196,7 +196,7 @@ impl Document {
 
         let data_model_ref = self
             .dom
-            .insert(dom_root, DomInstanceBuilder::new("DataModel"));
+            .insert(dom_root, DomInstanceBuilder::new(data_model::CLASS_NAME));
         let data_model_child_refs = self.dom.root().children().to_vec();
 
         for child_ref in data_model_child_refs {
@@ -233,14 +233,14 @@ impl Document {
 
         Will error if the instance is not a DataModel.
     */
-    pub fn from_data_model_instance(instance: Instance) -> DocumentResult<Self> {
-        if instance.get_class_name() != "DataModel" {
+    pub fn from_data_model_instance(i: Instance) -> DocumentResult<Self> {
+        if i.get_class_name() != data_model::CLASS_NAME {
             return Err(DocumentError::FromDataModelInvalidArgs);
         }
 
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
 
-        for data_model_child in instance.get_children() {
+        for data_model_child in i.get_children() {
             data_model_child.into_external_dom(&mut dom);
         }
 
@@ -256,16 +256,16 @@ impl Document {
 
         Will error if any of the instances is a DataModel.
     */
-    pub fn from_instance_array(instances: Vec<Instance>) -> DocumentResult<Self> {
-        for instance in &instances {
-            if instance.get_class_name() == "DataModel" {
+    pub fn from_instance_array(v: Vec<Instance>) -> DocumentResult<Self> {
+        for i in &v {
+            if i.get_class_name() == data_model::CLASS_NAME {
                 return Err(DocumentError::FromInstanceArrayInvalidArgs);
             }
         }
 
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
 
-        for instance in instances {
+        for instance in v {
             instance.into_external_dom(&mut dom);
         }
 
