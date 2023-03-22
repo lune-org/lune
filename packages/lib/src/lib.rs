@@ -4,7 +4,8 @@ use lua::task::{TaskScheduler, TaskSchedulerResumeExt, TaskSchedulerScheduleExt}
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
-pub(crate) mod globals;
+pub(crate) mod builtins;
+pub(crate) mod importer;
 pub(crate) mod lua;
 
 mod error;
@@ -71,7 +72,7 @@ impl Lune {
         // NOTE: Some globals require the task scheduler to exist on startup
         let sched = TaskScheduler::new(lua)?.into_static();
         lua.set_app_data(sched);
-        globals::create(lua, self.args.clone())?;
+        importer::create(lua, self.args.clone())?;
         // Create the main thread and schedule it
         let main_chunk = lua
             .load(script_contents.as_ref())

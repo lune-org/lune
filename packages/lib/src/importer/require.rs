@@ -9,11 +9,14 @@ use std::{
 use dunce::canonicalize;
 use mlua::prelude::*;
 use tokio::fs;
+use tokio::sync::Mutex as AsyncMutex;
 
 use crate::lua::{
     table::TableBuilder,
     task::{TaskScheduler, TaskSchedulerScheduleExt},
 };
+
+use super::require_waker::{RequireWakerFuture, RequireWakerState};
 
 const REQUIRE_IMPL_LUA: &str = r#"
 local source = info(1, "s")
@@ -24,21 +27,24 @@ load(context, source, ...)
 return yield()
 "#;
 
+type RequireWakersVec<'lua> = Vec<Arc<AsyncMutex<RequireWakerState<'lua>>>>;
+
 #[derive(Debug, Clone, Default)]
 struct RequireContext<'lua> {
     // NOTE: We need to use arc here so that mlua clones
     // the reference and not the entire inner value(s)
     builtins: Arc<HashMap<String, LuaMultiValue<'lua>>>,
     cached: Arc<RefCell<HashMap<String, LuaResult<LuaMultiValue<'lua>>>>>,
+    wakers: Arc<RefCell<HashMap<String, RequireWakersVec<'lua>>>>,
     locks: Arc<RefCell<HashSet<String>>>,
     pwd: String,
 }
 
 impl<'lua> RequireContext<'lua> {
-    pub fn new<K, V>(lua: &'static Lua, builtins_vec: Vec<(K, V)>) -> LuaResult<Self>
+    pub fn new<K, V>(lua: &'lua Lua, builtins_vec: Vec<(K, V)>) -> LuaResult<Self>
     where
         K: Into<String>,
-        V: ToLua<'static>,
+        V: ToLua<'lua>,
     {
         let mut pwd = current_dir()
             .expect("Failed to access current working directory")
@@ -79,10 +85,29 @@ impl<'lua> RequireContext<'lua> {
         }
     }
 
-    pub fn set_cached(&self, absolute_path: String, result: &LuaResult<LuaMultiValue<'lua>>) {
+    pub fn set_cached(&self, absolute_path: &str, result: &LuaResult<LuaMultiValue<'lua>>) {
         self.cached
             .borrow_mut()
-            .insert(absolute_path, result.clone());
+            .insert(absolute_path.to_string(), result.clone());
+        if let Some(wakers) = self.wakers.borrow_mut().remove(absolute_path) {
+            for waker in wakers {
+                waker
+                    .try_lock()
+                    .expect("Failed to lock waker")
+                    .finalize(result.clone());
+            }
+        }
+    }
+
+    pub fn wait_for_cache(self, absolute_path: &str) -> RequireWakerFuture<'lua> {
+        let state = RequireWakerState::new();
+        let fut = RequireWakerFuture::new(&state);
+        self.wakers
+            .borrow_mut()
+            .entry(absolute_path.to_string())
+            .or_insert_with(Vec::new)
+            .push(Arc::clone(&state));
+        fut
     }
 
     pub fn get_paths(
@@ -124,7 +149,7 @@ impl<'lua> LuaUserData for RequireContext<'lua> {}
 
 fn load_builtin<'lua>(
     _lua: &'lua Lua,
-    context: &RequireContext<'lua>,
+    context: RequireContext<'lua>,
     module_name: String,
     _has_acquired_lock: bool,
 ) -> LuaResult<LuaMultiValue<'lua>> {
@@ -139,7 +164,7 @@ fn load_builtin<'lua>(
 
 async fn load_file<'lua>(
     lua: &'lua Lua,
-    context: &RequireContext<'lua>,
+    context: RequireContext<'lua>,
     absolute_path: String,
     relative_path: String,
     has_acquired_lock: bool,
@@ -149,9 +174,7 @@ async fn load_file<'lua>(
         Some(cached) => cached,
         None => {
             if !has_acquired_lock {
-                return Err(LuaError::RuntimeError(
-                    "Failed to get require lock".to_string(),
-                ));
+                return context.wait_for_cache(&absolute_path).await;
             }
             // Try to read the wanted file, note that we use bytes instead of reading
             // to a string since lua scripts are not necessarily valid utf-8 strings
@@ -173,9 +196,10 @@ async fn load_file<'lua>(
                 let task = sched.schedule_blocking(loaded_thread, LuaMultiValue::new())?;
                 sched.wait_for_task_completion(task)
             };
-            // Wait for the thread to finish running, cache + return our result
+            // Wait for the thread to finish running, cache + return our result,
+            // notify any other threads that are also waiting on this to finish
             let rets = task_fut.await;
-            context.set_cached(absolute_path, &rets);
+            context.set_cached(&absolute_path, &rets);
             rets
         }
     }
@@ -190,7 +214,12 @@ async fn load<'lua>(
 ) -> LuaResult<LuaMultiValue<'lua>> {
     let result = if absolute_path == relative_path && absolute_path.starts_with('@') {
         if let Some(module_name) = absolute_path.strip_prefix("@lune/") {
-            load_builtin(lua, &context, module_name.to_string(), has_acquired_lock)
+            load_builtin(
+                lua,
+                context.clone(),
+                module_name.to_string(),
+                has_acquired_lock,
+            )
         } else {
             // FUTURE: '@' can be used a special prefix for users to set their own
             // paths relative to a project file, similar to typescript paths config
@@ -202,7 +231,7 @@ async fn load<'lua>(
     } else {
         load_file(
             lua,
-            &context,
+            context.clone(),
             absolute_path.to_string(),
             relative_path,
             has_acquired_lock,

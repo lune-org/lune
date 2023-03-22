@@ -52,7 +52,7 @@ pub struct TaskScheduler<'fut> {
     pub(super) tasks_current: Cell<Option<TaskReference>>,
     pub(super) tasks_queue_blocking: RefCell<VecDeque<TaskReference>>,
     pub(super) tasks_waiter_states:
-        RefCell<HashMap<TaskReference, Arc<AsyncMutex<TaskWaiterState<'fut>>>>>,
+        RefCell<HashMap<TaskReference, Vec<Arc<AsyncMutex<TaskWaiterState<'fut>>>>>>,
     pub(super) tasks_current_lua_error: Arc<AsyncMutex<Option<LuaError>>>,
     // Future tasks & objects for waking
     pub(super) futures: AsyncMutex<FuturesUnordered<TaskFuture<'fut>>>,
@@ -452,9 +452,13 @@ impl<'fut> TaskScheduler<'fut> {
             panic!("Task does not exist in scheduler")
         }
         let state = TaskWaiterState::new();
-        self.tasks_waiter_states
-            .borrow_mut()
-            .insert(reference, Arc::clone(&state));
+        {
+            let mut all_states = self.tasks_waiter_states.borrow_mut();
+            all_states
+                .entry(reference)
+                .or_insert_with(Vec::new)
+                .push(Arc::clone(&state));
+        }
         TaskWaiterFuture::new(&state).await
     }
 
@@ -467,8 +471,10 @@ impl<'fut> TaskScheduler<'fut> {
         reference: TaskReference,
         result: LuaResult<LuaMultiValue<'fut>>,
     ) {
-        if let Some(waiter_state) = self.tasks_waiter_states.borrow_mut().remove(&reference) {
-            waiter_state.try_lock().unwrap().finalize(result);
+        if let Some(waiter_states) = self.tasks_waiter_states.borrow_mut().remove(&reference) {
+            for waiter_state in waiter_states {
+                waiter_state.try_lock().unwrap().finalize(result.clone());
+            }
         }
     }
 }

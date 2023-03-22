@@ -7,14 +7,14 @@ use crate::lua::stdio::formatting::{format_label, pretty_format_multi_value};
 // is really tricky to do from scratch so we will just
 // proxy the default print and error functions here
 
-pub fn top_level_print(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
+pub fn print(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     let formatted = pretty_format_multi_value(&args)?;
     let print: LuaFunction = lua.named_registry_value("print")?;
     print.call(formatted)?;
     Ok(())
 }
 
-pub fn top_level_printinfo(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
+pub fn printinfo(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     let print: LuaFunction = lua.named_registry_value("print")?;
     print.call(format!(
         "{}\n{}",
@@ -24,7 +24,7 @@ pub fn top_level_printinfo(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     Ok(())
 }
 
-pub fn top_level_warn(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
+pub fn warn(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     let print: LuaFunction = lua.named_registry_value("print")?;
     print.call(format!(
         "{}\n{}",
@@ -34,7 +34,7 @@ pub fn top_level_warn(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     Ok(())
 }
 
-pub fn top_level_error(lua: &Lua, (arg, level): (LuaValue, Option<u32>)) -> LuaResult<()> {
+pub fn error(lua: &Lua, (arg, level): (LuaValue, Option<u32>)) -> LuaResult<()> {
     let error: LuaFunction = lua.named_registry_value("error")?;
     let trace: LuaFunction = lua.named_registry_value("dbg.trace")?;
     error.call((

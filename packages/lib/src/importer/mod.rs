@@ -1,29 +1,23 @@
 use mlua::prelude::*;
 
-mod fs;
-mod net;
-mod process;
 mod require;
-#[cfg(feature = "roblox")]
-mod roblox;
-mod serde;
-mod stdio;
-mod task;
-mod top_level;
+mod require_waker;
+
+use crate::builtins::{self, top_level};
 
 const BUILTINS_AS_GLOBALS: &[&str] = &["fs", "net", "process", "stdio", "task"];
 
 pub fn create(lua: &'static Lua, args: Vec<String>) -> LuaResult<()> {
     // Create all builtins
     let builtins = vec![
-        ("fs", fs::create(lua)?),
-        ("net", net::create(lua)?),
-        ("process", process::create(lua, args)?),
+        ("fs", builtins::fs::create(lua)?),
+        ("net", builtins::net::create(lua)?),
+        ("process", builtins::process::create(lua, args)?),
+        ("serde", builtins::serde::create(lua)?),
+        ("stdio", builtins::stdio::create(lua)?),
+        ("task", builtins::task::create(lua)?),
         #[cfg(feature = "roblox")]
-        ("roblox", roblox::create(lua)?),
-        ("serde", self::serde::create(lua)?),
-        ("stdio", stdio::create(lua)?),
-        ("task", task::create(lua)?),
+        ("roblox", builtins::roblox::create(lua)?),
     ];
 
     // TODO: Remove this when we have proper LSP support for custom
@@ -40,13 +34,10 @@ pub fn create(lua: &'static Lua, args: Vec<String>) -> LuaResult<()> {
     // Create all top-level globals
     let globals = vec![
         ("require", require_fn),
-        ("print", lua.create_function(top_level::top_level_print)?),
-        ("warn", lua.create_function(top_level::top_level_warn)?),
-        ("error", lua.create_function(top_level::top_level_error)?),
-        (
-            "printinfo",
-            lua.create_function(top_level::top_level_printinfo)?,
-        ),
+        ("print", lua.create_function(top_level::print)?),
+        ("warn", lua.create_function(top_level::warn)?),
+        ("error", lua.create_function(top_level::error)?),
+        ("printinfo", lua.create_function(top_level::printinfo)?),
     ];
 
     // Set top-level globals and seal them
