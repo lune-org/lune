@@ -8,7 +8,9 @@
 	// Luau - ignore type defs file in docs dir and dev scripts we use
 	"luau-lsp.ignoreGlobs": [
 		"docs/*.d.luau",
-		"packages/lib-roblox/scripts/*.luau"
+		"packages/lib-roblox/scripts/*.luau",
+		"tests/roblox/rbx-test-files/**/*.lua",
+		"tests/roblox/rbx-test-files/**/*.luau"
 	],
 	// Rust
 	"rust-analyzer.check.command": "clippy",
