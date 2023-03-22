@@ -663,7 +663,12 @@ impl LuaUserData for Instance {
                         .to_lua(lua)
                 } else if let Some(prop_default) = info.value_default {
                     Ok(LuaValue::dom_value_to_lua(lua, prop_default)?)
-                } else {
+                } else if info.value_type.is_some() {
+                    Err(LuaError::RuntimeError(format!(
+                        "Failed to get property '{}' - missing default value",
+                        prop_name
+                    )))
+				} else {
                     Err(LuaError::RuntimeError(format!(
                         "Failed to get property '{}' - malformed property info",
                         prop_name
@@ -730,13 +735,13 @@ impl LuaUserData for Instance {
 
                 if let Some(enum_name) = info.enum_name {
                     match EnumItem::from_lua(prop_value, lua) {
-                        Ok(given_enum) if given_enum.name == enum_name => {
+                        Ok(given_enum) if given_enum.parent.desc.name == enum_name => {
                             this.set_property(prop_name, DomValue::Enum(given_enum.into()));
                             Ok(())
                         }
                         Ok(given_enum) => Err(LuaError::RuntimeError(format!(
                             "Failed to set property '{}' - expected Enum.{}, got Enum.{}",
-                            prop_name, enum_name, given_enum.name
+                            prop_name, enum_name, given_enum.parent.desc.name
                         ))),
                         Err(e) => Err(e),
                     }

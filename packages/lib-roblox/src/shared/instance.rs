@@ -13,6 +13,9 @@ pub(crate) struct PropertyInfo {
 /**
     Finds the info of a property of the given class.
 
+    This will also check superclasses if the property
+    was not directly found for the given class.
+
     Returns `None` if the class or property does not exist.
 */
 pub(crate) fn find_property_info(
@@ -20,35 +23,48 @@ pub(crate) fn find_property_info(
     property_name: impl AsRef<str>,
 ) -> Option<PropertyInfo> {
     let db = rbx_reflection_database::get();
-    let class = db.classes.get(instance_class.as_ref())?;
 
+    let instance_class = instance_class.as_ref();
     let property_name = property_name.as_ref();
-    let prop_definition = class.properties.get(property_name)?;
-    let prop_default = class.default_properties.get(property_name);
 
-    match &prop_definition.data_type {
-        DataType::Enum(enum_name) => Some(PropertyInfo {
-            enum_name: Some(Cow::Borrowed(enum_name)),
-            enum_default: prop_default.and_then(|default| match default {
-                DomValue::Enum(enum_default) => Some(enum_default.to_u32()),
-                _ => None,
-            }),
-            value_type: None,
-            value_default: None,
-        }),
-        DataType::Value(value_type) => Some(PropertyInfo {
-            enum_name: None,
-            enum_default: None,
-            value_type: Some(*value_type),
-            value_default: prop_default,
-        }),
-        _ => Some(PropertyInfo {
-            enum_name: None,
-            enum_default: None,
-            value_type: None,
-            value_default: None,
-        }),
+    let mut current_class = Cow::Borrowed(instance_class);
+    while let Some(class) = db.classes.get(current_class.as_ref()) {
+        if let Some(prop_definition) = class.properties.get(property_name) {
+            // We found a property, we should map it to a property
+            // info containing name/type and default property value
+            let prop_default = class.default_properties.get(property_name);
+            return Some(match &prop_definition.data_type {
+                DataType::Enum(enum_name) => PropertyInfo {
+                    enum_name: Some(Cow::Borrowed(enum_name)),
+                    enum_default: prop_default.and_then(|default| match default {
+                        DomValue::Enum(enum_default) => Some(enum_default.to_u32()),
+                        _ => None,
+                    }),
+                    value_type: None,
+                    value_default: None,
+                },
+                DataType::Value(value_type) => PropertyInfo {
+                    enum_name: None,
+                    enum_default: None,
+                    value_type: Some(*value_type),
+                    value_default: prop_default,
+                },
+                _ => PropertyInfo {
+                    enum_name: None,
+                    enum_default: None,
+                    value_type: None,
+                    value_default: None,
+                },
+            });
+        } else if let Some(sup) = &class.superclass {
+            // No property found, we should look at the superclass
+            current_class = Cow::Borrowed(sup)
+        } else {
+            break;
+        }
     }
+
+    None
 }
 
 /**
