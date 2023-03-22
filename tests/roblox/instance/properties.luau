@@ -40,3 +40,10 @@ local meshPart = Instance.new("MeshPart")
 assert(not pcall(function()
 	meshPart.Shape = Enum.PartType.Ball
 end))
+
+-- We should be able to access properties without first setting them
+
+assert(meshPart.Anchored == false)
+assert(meshPart.Material == Enum.Material.Plastic)
+assert(meshPart.Size == Vector3.new(4, 1.2, 2))
+assert(meshPart.CustomPhysicalProperties == nil)

@@ -1,8 +1,9 @@
-use std::borrow::{Borrow, Cow};
+use std::borrow::{Borrow, BorrowMut, Cow};
 
 use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 use rbx_reflection::{ClassTag, DataType};
 
+#[derive(Debug, Clone, Default)]
 pub(crate) struct PropertyInfo {
     pub enum_name: Option<Cow<'static, str>>,
     pub enum_default: Option<u32>,
@@ -27,44 +28,66 @@ pub(crate) fn find_property_info(
     let instance_class = instance_class.as_ref();
     let property_name = property_name.as_ref();
 
-    let mut current_class = Cow::Borrowed(instance_class);
-    while let Some(class) = db.classes.get(current_class.as_ref()) {
+    // FUTURE: We can probably cache the result of calling this
+    // function, if property access is being used in a tight loop
+    // in a build step or something similar then it would be beneficial
+
+    let mut class_name = Cow::Borrowed(instance_class);
+    let mut class_info = None;
+
+    while let Some(class) = db.classes.get(class_name.as_ref()) {
         if let Some(prop_definition) = class.properties.get(property_name) {
-            // We found a property, we should map it to a property
-            // info containing name/type and default property value
-            let prop_default = class.default_properties.get(property_name);
-            return Some(match &prop_definition.data_type {
+            /*
+                We found a property, create a property info containing name/type
+
+                Note that we might have found the property in the
+                base class but the default value can be part of
+                some separate class, it will be checked below
+            */
+            class_info = Some(match &prop_definition.data_type {
                 DataType::Enum(enum_name) => PropertyInfo {
                     enum_name: Some(Cow::Borrowed(enum_name)),
-                    enum_default: prop_default.and_then(|default| match default {
-                        DomValue::Enum(enum_default) => Some(enum_default.to_u32()),
-                        _ => None,
-                    }),
-                    value_type: None,
-                    value_default: None,
+                    ..Default::default()
                 },
                 DataType::Value(value_type) => PropertyInfo {
-                    enum_name: None,
-                    enum_default: None,
                     value_type: Some(*value_type),
-                    value_default: prop_default,
+                    ..Default::default()
                 },
-                _ => PropertyInfo {
-                    enum_name: None,
-                    enum_default: None,
-                    value_type: None,
-                    value_default: None,
-                },
+                _ => Default::default(),
             });
+            break;
         } else if let Some(sup) = &class.superclass {
             // No property found, we should look at the superclass
-            current_class = Cow::Borrowed(sup)
+            class_name = Cow::Borrowed(sup)
         } else {
             break;
         }
     }
 
-    None
+    if let Some(class_info) = class_info.borrow_mut() {
+        class_name = Cow::Borrowed(instance_class);
+        while let Some(class) = db.classes.get(class_name.as_ref()) {
+            if let Some(default) = class.default_properties.get(property_name) {
+                // We found a default value, map it to a more useful value for us
+                if class_info.enum_name.is_some() {
+                    class_info.enum_default = match default {
+                        DomValue::Enum(enum_default) => Some(enum_default.to_u32()),
+                        _ => None,
+                    };
+                } else if class_info.value_type.is_some() {
+                    class_info.value_default = Some(default);
+                }
+                break;
+            } else if let Some(sup) = &class.superclass {
+                // No default value found, we should look at the superclass
+                class_name = Cow::Borrowed(sup)
+            } else {
+                break;
+            }
+        }
+    }
+
+    class_info
 }
 
 /**
