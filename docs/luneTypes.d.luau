@@ -718,7 +718,7 @@ declare print: <T...>(T...) -> ()
 
 	This will format and prettify values such as tables, numbers, booleans, and more.
 ]=]
-declare info: <T...>(T...) -> ()
+declare printinfo: <T...>(T...) -> ()
 
 --[=[
 	Prints given value(s) to stdout with a leading `[WARN]` tag.
