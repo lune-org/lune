@@ -732,6 +732,11 @@ impl LuaUserData for Instance {
                                 "Failed to set property '{}' - root instance can not be reparented",
                                 prop_name
                             )));
+                        } else if this.get_class_name() == "DataModel" {
+                            return Err(LuaError::RuntimeError(format!(
+                                "Failed to set property '{}' - DataModel can not be reparented",
+                                prop_name
+                            )));
                         }
                         type Parent = Option<Instance>;
                         match Parent::from_lua(prop_value, lua)? {
