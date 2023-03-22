@@ -15,6 +15,8 @@ use crate::{
     shared::instance::{class_exists, class_is_a, find_property_info},
 };
 
+mod data_model;
+
 lazy_static::lazy_static! {
     static ref INTERNAL_DOM: RwLock<WeakDom> =
         RwLock::new(WeakDom::new(DomInstanceBuilder::new("ROOT")));
@@ -865,8 +867,9 @@ impl LuaUserData for Instance {
                 .find_ancestor(|ancestor| ancestor.referent() == instance.dom_ref)
                 .is_some())
         });
-        // FUTURE: We could pass the "methods" struct to some other functions
-        // here to add inheritance-like behavior and class-specific methods
+        // Here we add inheritance-like behavior for instances by creating
+        // methods that are restricted to specific classnames / base classes
+        data_model::add_methods(methods);
     }
 }
 
