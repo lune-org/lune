@@ -24,28 +24,31 @@ lazy_static::lazy_static! {
 pub struct Instance {
     dom_ref: DomRef,
     class_name: String,
-    is_root: bool,
 }
 
 impl Instance {
     /**
         Creates a new `Instance` from an existing dom object ref.
 
-        Panics if the instance does not exist in the internal dom.
+        Panics if the instance does not exist in the internal dom,
+        or if the given dom object ref points to the dom root.
     */
     fn new(dom_ref: DomRef) -> Self {
-        let reader = INTERNAL_DOM
+        let dom = INTERNAL_DOM
             .try_read()
             .expect("Failed to get read access to document");
 
-        let instance = reader
+        let instance = dom
             .get_by_ref(dom_ref)
             .expect("Failed to find instance in document");
+
+        if instance.referent() == dom.root_ref() {
+            panic!("Instances can not be created from dom roots")
+        }
 
         Self {
             dom_ref,
             class_name: instance.class.clone(),
-            is_root: dom_ref == reader.root_ref(),
         }
     }
 
@@ -69,7 +72,6 @@ impl Instance {
         Self {
             dom_ref,
             class_name: class_name.to_string(),
-            is_root: false,
         }
     }
 
@@ -78,6 +80,8 @@ impl Instance {
         it from an external weak dom to the internal one.
 
         An orphaned instance is an instance at the root of a weak dom.
+
+        Panics if the given dom ref is the root dom ref of the external weak dom.
     */
     pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
         {
@@ -95,7 +99,8 @@ impl Instance {
     /**
         Transfers an instance to an external weak dom.
 
-        This will place the instance at the root of the weak dom and return its referent.
+        This will place the instance as a child of the
+        root of the weak dom, and return its referent.
     */
     pub fn into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
         let mut dom = INTERNAL_DOM
@@ -177,8 +182,8 @@ impl Instance {
     }
 
     /**
-        Destroys the instance, unless it is the root instance, removing
-        it completely from the weak dom with no way of recovering it.
+        Destroys the instance, removing it completely
+        from the weak dom with no way of recovering it.
 
         All member methods will throw errors when called from lua and panic
         when called from rust after the instance has been destroyed.
@@ -190,7 +195,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn destroy(&mut self) -> bool {
-        if self.is_root || self.is_destroyed() {
+        if self.is_destroyed() {
             false
         } else {
             let mut dom = INTERNAL_DOM
@@ -313,24 +318,16 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_parent(&self) -> Option<Instance> {
-        if self.is_root {
-            return None;
-        }
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
 
-        let (nil_parent_ref, parent_ref) = {
-            let dom = INTERNAL_DOM
-                .try_read()
-                .expect("Failed to get read access to document");
+        let parent_ref = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document")
+            .parent();
 
-            let parent_ref = dom
-                .get_by_ref(self.dom_ref)
-                .expect("Failed to find instance in document")
-                .parent();
-
-            (dom.root_ref(), parent_ref)
-        };
-
-        if parent_ref == nil_parent_ref {
+        if parent_ref == dom.root_ref() {
             None
         } else {
             Some(Self::new(parent_ref))
@@ -349,10 +346,6 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn set_parent(&self, parent: Option<Instance>) {
-        if self.is_root {
-            panic!("Root instance can not be reparented")
-        }
-
         let mut dom = INTERNAL_DOM
             .try_write()
             .expect("Failed to get write access to target document");
@@ -405,16 +398,15 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_children(&self) -> Vec<Instance> {
-        let children = {
-            let dom = INTERNAL_DOM
-                .try_read()
-                .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
 
-            dom.get_by_ref(self.dom_ref)
-                .expect("Failed to find instance in document")
-                .children()
-                .to_vec()
-        };
+        let children = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document")
+            .children()
+            .to_vec();
 
         children.into_iter().map(Self::new).collect()
     }
@@ -430,28 +422,24 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_descendants(&self) -> Vec<Instance> {
-        let descendants = {
-            let dom = INTERNAL_DOM
-                .try_read()
-                .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
 
-            let mut descendants = Vec::new();
-            let mut queue = VecDeque::from_iter(
-                dom.get_by_ref(self.dom_ref)
-                    .expect("Failed to find instance in document")
-                    .children(),
-            );
+        let mut descendants = Vec::new();
+        let mut queue = VecDeque::from_iter(
+            dom.get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .children(),
+        );
 
-            while let Some(queue_ref) = queue.pop_front() {
-                descendants.push(*queue_ref);
-                let queue_inst = dom.get_by_ref(*queue_ref).unwrap();
-                for queue_ref_inner in queue_inst.children().iter().rev() {
-                    queue.push_front(queue_ref_inner);
-                }
+        while let Some(queue_ref) = queue.pop_front() {
+            descendants.push(*queue_ref);
+            let queue_inst = dom.get_by_ref(*queue_ref).unwrap();
+            for queue_ref_inner in queue_inst.children().iter().rev() {
+                queue.push_front(queue_ref_inner);
             }
-
-            descendants
-        };
+        }
 
         descendants.into_iter().map(Self::new).collect()
     }
@@ -712,12 +700,7 @@ impl LuaUserData for Instance {
                         return Ok(());
                     }
                     "Parent" => {
-                        if this.is_root {
-                            return Err(LuaError::RuntimeError(format!(
-                                "Failed to set property '{}' - root instance can not be reparented",
-                                prop_name
-                            )));
-                        } else if this.get_class_name() == "DataModel" {
+                        if this.get_class_name() == "DataModel" {
                             return Err(LuaError::RuntimeError(format!(
                                 "Failed to set property '{}' - DataModel can not be reparented",
                                 prop_name
