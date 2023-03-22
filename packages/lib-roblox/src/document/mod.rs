@@ -1,6 +1,4 @@
-use std::sync::{Arc, RwLock};
-
-use rbx_dom_weak::WeakDom;
+use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -22,6 +20,10 @@ pub type DocumentResult<T> = Result<T, DocumentError>;
     A container for [`rbx_dom_weak::WeakDom`] that also takes care of
     reading and writing different kinds and formats of roblox files.
 
+    ---
+
+    ### Code Sample #1
+
     ```rust ignore
     // Reading a document from a file
 
@@ -37,12 +39,28 @@ pub type DocumentResult<T> = Result<T, DocumentError>;
 
     std::fs::write(&file_path, document.to_bytes()?)?;
     ```
+
+    ---
+
+    ### Code Sample #2
+
+    ```rust ignore
+    // Converting a Document to a DataModel or model child instances
+    let data_model = document.into_data_model_instance()?;
+
+    let model_children = document.into_instance_array()?;
+
+    // Converting a DataModel or model child instances into a Document
+    let place_doc = Document::from_data_model_instance(data_model)?;
+
+    let model_doc = Document::from_instance_array(model_children)?;
+    ```
 */
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Document {
     kind: DocumentKind,
     format: DocumentFormat,
-    dom: Arc<RwLock<WeakDom>>,
+    dom: WeakDom,
 }
 
 impl Document {
@@ -96,11 +114,7 @@ impl Document {
     pub fn from_bytes_auto(bytes: impl AsRef<[u8]>) -> DocumentResult<Self> {
         let (format, dom) = Self::from_bytes_inner(bytes)?;
         let kind = DocumentKind::from_weak_dom(&dom).ok_or(DocumentError::UnknownKind)?;
-        Ok(Self {
-            kind,
-            format,
-            dom: Arc::new(RwLock::new(dom)),
-        })
+        Ok(Self { kind, format, dom })
     }
 
     /**
@@ -108,17 +122,10 @@ impl Document {
 
         This will automatically handle and detect if the document
         should be decoded using a roblox binary or roblox xml format.
-
-        Note that passing [`DocumentKind`] enum values other than [`DocumentKind::Place`] and
-        [`DocumentKind::Model`] is possible but should only be done within the `lune-roblox` crate.
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>, kind: DocumentKind) -> DocumentResult<Self> {
         let (format, dom) = Self::from_bytes_inner(bytes)?;
-        Ok(Self {
-            kind,
-            format,
-            dom: Arc::new(RwLock::new(dom)),
-        })
+        Ok(Self { kind, format, dom })
     }
 
     /**
@@ -138,15 +145,16 @@ impl Document {
         be written to a file or sent over the network.
     */
     pub fn to_bytes_with_format(&self, format: DocumentFormat) -> DocumentResult<Vec<u8>> {
-        let dom = self.dom.try_read().expect("Failed to lock dom");
         let mut bytes = Vec::new();
         match format {
-            DocumentFormat::Binary => rbx_binary::to_writer(&mut bytes, &dom, &[dom.root_ref()])
-                .map_err(|err| DocumentError::WriteError(err.to_string())),
+            DocumentFormat::Binary => {
+                rbx_binary::to_writer(&mut bytes, &self.dom, &[self.dom.root_ref()])
+                    .map_err(|err| DocumentError::WriteError(err.to_string()))
+            }
             DocumentFormat::Xml => {
                 let xml_options = XmlEncodeOptions::new()
                     .property_behavior(XmlEncodePropertyBehavior::WriteUnknown);
-                rbx_xml::to_writer(&mut bytes, &dom, &[dom.root_ref()], xml_options)
+                rbx_xml::to_writer(&mut bytes, &self.dom, &[self.dom.root_ref()], xml_options)
                     .map_err(|err| DocumentError::WriteError(err.to_string()))
             }
         }?;
@@ -175,33 +183,53 @@ impl Document {
     }
 
     /**
-        Creates a DataModel instance out of this document.
+        Creates a DataModel instance out of this place document.
 
         Will error if the document is not a place.
     */
-    pub fn into_data_model_instance(self) -> DocumentResult<Instance> {
+    pub fn into_data_model_instance(mut self) -> DocumentResult<Instance> {
         if self.kind != DocumentKind::Place {
             return Err(DocumentError::IntoDataModelInvalidArgs);
         }
 
-        todo!()
+        let dom_root = self.dom.root_ref();
+
+        let data_model_ref = self
+            .dom
+            .insert(dom_root, DomInstanceBuilder::new("DataModel"));
+        let data_model_child_refs = self.dom.root().children().to_vec();
+
+        for child_ref in data_model_child_refs {
+            if child_ref != data_model_ref {
+                self.dom.transfer_within(child_ref, data_model_ref);
+            }
+        }
+
+        Ok(Instance::from_external_dom(&mut self.dom, data_model_ref))
     }
 
     /**
-        Creates an array of instances out of this document.
+        Creates an array of instances out of this model document.
 
         Will error if the document is not a model.
     */
-    pub fn into_instance_array(self) -> DocumentResult<Vec<Instance>> {
+    pub fn into_instance_array(mut self) -> DocumentResult<Vec<Instance>> {
         if self.kind != DocumentKind::Model {
             return Err(DocumentError::IntoInstanceArrayInvalidArgs);
         }
 
-        todo!()
+        let dom_child_refs = self.dom.root().children().to_vec();
+
+        let root_child_instances = dom_child_refs
+            .into_iter()
+            .map(|child_ref| Instance::from_external_dom(&mut self.dom, child_ref))
+            .collect();
+
+        Ok(root_child_instances)
     }
 
     /**
-        Creates a Document out of a DataModel instance.
+        Creates a place document out of a DataModel instance.
 
         Will error if the instance is not a DataModel.
     */
@@ -210,13 +238,23 @@ impl Document {
             return Err(DocumentError::FromDataModelInvalidArgs);
         }
 
-        todo!()
+        let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
+
+        for data_model_child in instance.get_children() {
+            data_model_child.into_external_dom(&mut dom);
+        }
+
+        Ok(Self {
+            kind: DocumentKind::Place,
+            format: DocumentFormat::default(),
+            dom,
+        })
     }
 
     /**
-        Creates an array of instances out of this document.
+        Creates a model document out of an array of instances.
 
-        Will error if the document is not a model.
+        Will error if any of the instances is a DataModel.
     */
     pub fn from_instance_array(instances: Vec<Instance>) -> DocumentResult<Self> {
         for instance in &instances {
@@ -225,6 +263,16 @@ impl Document {
             }
         }
 
-        todo!()
+        let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
+
+        for instance in instances {
+            instance.into_external_dom(&mut dom);
+        }
+
+        Ok(Self {
+            kind: DocumentKind::Model,
+            format: DocumentFormat::default(),
+            dom,
+        })
     }
 }

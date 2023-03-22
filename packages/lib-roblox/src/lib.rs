@@ -1,7 +1,4 @@
-use std::sync::{Arc, RwLock};
-
 use mlua::prelude::*;
-use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
 
 use crate::instance::Instance;
 
@@ -56,12 +53,6 @@ fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
 }
 
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    // Create an internal weak dom that will be used
-    // for any instance that does not yet have a parent
-    let internal_root = DomInstanceBuilder::new("<<<ROOT>>>");
-    let internal_dom = Arc::new(RwLock::new(WeakDom::new(internal_root)));
-    lua.set_app_data(internal_dom);
-    // Create all datatypes and singletons and export them
     let exports = lua.create_table()?;
     for (name, tab) in make_all_datatypes(lua)? {
         exports.set(name, tab)?;

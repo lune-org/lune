@@ -29,7 +29,9 @@ pub struct Instance {
 
 impl Instance {
     /**
-        Creates a new `Instance` from a document and dom object ref.
+        Creates a new `Instance` from an existing dom object ref.
+
+        Panics if the instance does not exist in the internal dom.
     */
     fn new(dom_ref: DomRef) -> Self {
         let reader = INTERNAL_DOM
@@ -50,9 +52,7 @@ impl Instance {
     /**
         Creates a new orphaned `Instance` with a given class name.
 
-        An orphaned instance does not belong to any particular document and
-        is instead part of the internal weak dom for orphaned lua instances,
-        it can however be re-parented to a "real" document and weak dom.
+        An orphaned instance is an instance at the root of a weak dom.
     */
     fn new_orphaned(class_name: impl AsRef<str>) -> Self {
         let mut dom = INTERNAL_DOM
@@ -71,6 +71,43 @@ impl Instance {
             class_name: class_name.to_string(),
             is_root: false,
         }
+    }
+
+    /**
+        Creates a new orphaned `Instance` by transferring
+        it from an external weak dom to the internal one.
+
+        An orphaned instance is an instance at the root of a weak dom.
+    */
+    pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
+        {
+            let mut dom = INTERNAL_DOM
+                .try_write()
+                .expect("Failed to get write access to document");
+            let dom_root = dom.root_ref();
+
+            external_dom.transfer(external_dom_ref, &mut dom, dom_root);
+        }
+
+        Self::new(external_dom_ref)
+    }
+
+    /**
+        Transfers an instance to an external weak dom.
+
+        This will place the instance at the root of the weak dom and return its referent.
+    */
+    pub fn into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
+        let mut dom = INTERNAL_DOM
+            .try_write()
+            .expect("Failed to get write access to document");
+
+        let internal_dom_ref = self.dom_ref;
+        let external_root_ref = external_dom.root_ref();
+
+        dom.transfer(internal_dom_ref, external_dom, external_root_ref);
+
+        internal_dom_ref
     }
 
     /**
