@@ -22,7 +22,7 @@ end)
 
 -- Send one message per second and time it
 
-for i = 1, 5 do
+for _ = 1, 5 do
 	local start = os.clock()
 	socket.send(tostring(1))
 	local response = socket.next()

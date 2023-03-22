@@ -117,10 +117,16 @@ fn doc_item_to_selene_yaml_mapping(item: &DefinitionsItem) -> Result<YamlMapping
         let mut args = YamlSequence::new();
         for arg_type in item.arg_types() {
             let mut arg_mapping = YamlMapping::new();
-            let (type_str, type_opt) = match arg_type.strip_suffix('?') {
+            let (type_str, mut type_opt) = match arg_type.strip_suffix('?') {
                 Some(stripped) => (stripped, true),
                 None => (arg_type, false),
             };
+            let simplified = simplify_type_str_into_primitives(
+                type_str.trim_start_matches('(').trim_end_matches(')'),
+            );
+            if simplified.contains("...") {
+                type_opt = true;
+            }
             if type_opt {
                 arg_mapping.insert(
                     YamlValue::String("required".to_string()),
@@ -129,9 +135,7 @@ fn doc_item_to_selene_yaml_mapping(item: &DefinitionsItem) -> Result<YamlMapping
             }
             arg_mapping.insert(
                 YamlValue::String("type".to_string()),
-                YamlValue::String(simplify_type_str_into_primitives(
-                    type_str.trim_start_matches('(').trim_end_matches(')'),
-                )),
+                YamlValue::String(simplified),
             );
             args.push(YamlValue::Mapping(arg_mapping));
         }
@@ -155,6 +159,8 @@ fn simplify_type_str_into_primitives(type_str: &str) -> String {
             primitives.push("string".to_string());
         } else if type_inner == "boolean" {
             primitives.push("bool".to_string());
+        } else if type_inner == "thread" {
+            primitives.push("any".to_string());
         } else {
             primitives.push(type_inner.to_string());
         }

@@ -11,14 +11,14 @@ local function pong(request: NetRequest): string
 	return `Pong!\n{request.path}\n{request.body}`
 end
 
-local function teapot(request: NetRequest): NetResponse
+local function teapot(_request: NetRequest): NetResponse
 	return {
 		status = 418,
 		body = "🫖",
 	}
 end
 
-local function notFound(request: NetRequest): NetResponse
+local function notFound(_request: NetRequest): NetResponse
 	return {
 		status = 404,
 		body = "Not Found",
