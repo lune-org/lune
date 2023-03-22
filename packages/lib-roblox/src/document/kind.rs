@@ -16,7 +16,6 @@ use crate::shared::instance::class_is_a_service;
 */
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum DocumentKind {
-    InternalRoot,
     Place,
     Model,
 }

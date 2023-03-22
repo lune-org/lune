@@ -865,6 +865,7 @@ dependencies = [
  "anyhow",
  "base64 0.21.0",
  "glam",
+ "lazy_static",
  "mlua",
  "rand",
  "rbx_binary",

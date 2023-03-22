@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
+use rbx_dom_weak::WeakDom;
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -56,22 +56,14 @@ impl Document {
         | Place | Xml    | `rbxlx`   |
         | Model | Binary | `rbxm`    |
         | Model | Xml    | `rbxmx`   |
-        | ?     | ?      | None      |
-
-        The last entry here signifies any kind of internal document kind
-        or format variant, which should not be used outside of this crate.
-
-        As such, if it is known that no internal specifier is being
-        passed here, the return value can be safely unwrapped.
     */
 	#[rustfmt::skip]
-    pub fn canonical_extension(kind: DocumentKind, format: DocumentFormat) -> Option<&'static str> {
+    pub fn canonical_extension(kind: DocumentKind, format: DocumentFormat) -> &'static str {
         match (kind, format) {
-            (DocumentKind::Place, DocumentFormat::Binary) => Some("rbxl"),
-            (DocumentKind::Place, DocumentFormat::Xml)    => Some("rbxlx"),
-            (DocumentKind::Model, DocumentFormat::Binary) => Some("rbxm"),
-            (DocumentKind::Model, DocumentFormat::Xml)    => Some("rbxmx"),
-            _ => None,
+            (DocumentKind::Place, DocumentFormat::Binary) => "rbxl",
+            (DocumentKind::Place, DocumentFormat::Xml)    => "rbxlx",
+            (DocumentKind::Model, DocumentFormat::Binary) => "rbxm",
+            (DocumentKind::Model, DocumentFormat::Xml)    => "rbxmx",
         }
     }
 
@@ -79,7 +71,6 @@ impl Document {
         let bytes = bytes.as_ref();
         let format = DocumentFormat::from_bytes(bytes).ok_or(DocumentError::UnknownFormat)?;
         let dom = match format {
-            DocumentFormat::InternalRoot => Err(DocumentError::InternalRootReadWrite),
             DocumentFormat::Binary => rbx_binary::from_reader(bytes)
                 .map_err(|err| DocumentError::ReadError(err.to_string())),
             DocumentFormat::Xml => {
@@ -150,7 +141,6 @@ impl Document {
         let dom = self.dom.try_read().expect("Failed to lock dom");
         let mut bytes = Vec::new();
         match format {
-            DocumentFormat::InternalRoot => Err(DocumentError::InternalRootReadWrite),
             DocumentFormat::Binary => rbx_binary::to_writer(&mut bytes, &dom, &[dom.root_ref()])
                 .map_err(|err| DocumentError::WriteError(err.to_string())),
             DocumentFormat::Xml => {
@@ -179,14 +169,8 @@ impl Document {
 
     /**
         Gets the file extension for this document.
-
-        Note that this will return `None` for an internal root
-        document, otherwise it will always return `Some`.
-
-        As such, if it is known that no internal root document is
-        being used here, the return value can be safely unwrapped.
     */
-    pub fn extension(&self) -> Option<&'static str> {
+    pub fn extension(&self) -> &'static str {
         Self::canonical_extension(self.kind, self.format)
     }
 
@@ -200,25 +184,7 @@ impl Document {
             return Err(DocumentError::IntoDataModelInvalidArgs);
         }
 
-        // NOTE: We create a new scope here to avoid deadlocking,
-        // creating a new instance will try to get the dom rwlock
-        let data_model_ref = {
-            let mut dom_handle = self.dom.write().unwrap();
-            let dom_root = dom_handle.root_ref();
-
-            let data_model_ref = dom_handle.insert(dom_root, DomInstanceBuilder::new("DataModel"));
-            let data_model_child_refs = dom_handle.root().children().to_vec();
-
-            for child_ref in data_model_child_refs {
-                if child_ref != data_model_ref {
-                    dom_handle.transfer_within(child_ref, data_model_ref);
-                }
-            }
-
-            data_model_ref
-        };
-
-        Ok(Instance::new(&self.dom, data_model_ref))
+        todo!()
     }
 
     /**
@@ -231,19 +197,7 @@ impl Document {
             return Err(DocumentError::IntoInstanceArrayInvalidArgs);
         }
 
-        // NOTE: We create a new scope here to avoid deadlocking,
-        // creating a new instance will try to get the dom rwlock
-        let root_child_refs = {
-            let dom_handle = self.dom.read().unwrap();
-            dom_handle.root().children().to_vec()
-        };
-
-        let root_child_instances = root_child_refs
-            .into_iter()
-            .map(|child_ref| Instance::new(&self.dom, child_ref))
-            .collect();
-
-        Ok(root_child_instances)
+        todo!()
     }
 
     /**
@@ -252,7 +206,7 @@ impl Document {
         Will error if the instance is not a DataModel.
     */
     pub fn from_data_model_instance(instance: Instance) -> DocumentResult<Self> {
-        if instance.class_name != "DataModel" {
+        if instance.get_class_name() != "DataModel" {
             return Err(DocumentError::FromDataModelInvalidArgs);
         }
 
@@ -266,7 +220,7 @@ impl Document {
     */
     pub fn from_instance_array(instances: Vec<Instance>) -> DocumentResult<Self> {
         for instance in &instances {
-            if instance.class_name == "DataModel" {
+            if instance.get_class_name() == "DataModel" {
                 return Err(DocumentError::FromInstanceArrayInvalidArgs);
             }
         }
