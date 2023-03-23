@@ -148,14 +148,19 @@ impl Document {
         let mut bytes = Vec::new();
         match format {
             DocumentFormat::Binary => {
-                rbx_binary::to_writer(&mut bytes, &self.dom, &[self.dom.root_ref()])
+                rbx_binary::to_writer(&mut bytes, &self.dom, self.dom.root().children())
                     .map_err(|err| DocumentError::WriteError(err.to_string()))
             }
             DocumentFormat::Xml => {
                 let xml_options = XmlEncodeOptions::new()
                     .property_behavior(XmlEncodePropertyBehavior::WriteUnknown);
-                rbx_xml::to_writer(&mut bytes, &self.dom, &[self.dom.root_ref()], xml_options)
-                    .map_err(|err| DocumentError::WriteError(err.to_string()))
+                rbx_xml::to_writer(
+                    &mut bytes,
+                    &self.dom,
+                    self.dom.root().children(),
+                    xml_options,
+                )
+                .map_err(|err| DocumentError::WriteError(err.to_string()))
             }
         }?;
         Ok(bytes)
