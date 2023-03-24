@@ -5,3 +5,7 @@ test:
 # Run tests for the Lune CLI
 test-cli:
 	cargo test --package lune-cli
+
+# Publish gitbook directory to gitbook branch
+publish-gitbook:
+	npx push-dir --dir=docs --branch=gitbook
