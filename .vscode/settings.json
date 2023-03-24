@@ -40,6 +40,6 @@
 		// Autogenerate dirs
 		"bin": true,
 		"target": true,
-		"wiki": true
+		"gitbook": true
 	}
 }
