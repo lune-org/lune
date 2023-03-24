@@ -14,7 +14,7 @@ generate-gitbook:
 	mkdir gitbook/docs
 
 	cp -R docs gitbook
-	cp README.md gitbook/README.md
+	cp README.md gitbook/docs/README.md
 	cp .gitbook.yaml gitbook/.gitbook.yaml
 
 	rm -rf gitbook/docs/typedefs
