@@ -4,15 +4,15 @@
 
 -   [Intro](pages/home/Intro.md)
 -   [Installation](pages/home/Installation.md)
--   [Writing Scripts](pages/home/WritingScripts.md)
--   [Running Scripts](pages/home/RunningScripts.md)
--   [Editor Setup](pages/home/EditorSetup.md)
+-   [Writing Scripts](pages/home/Writing-Scripts.md)
+-   [Running Scripts](pages/home/Running-Scripts.md)
+-   [Editor Setup](pages/home/Editor-Setup.md)
 
 ## Roblox
 
--   [Intro](pages/roblox/Introduction.md)
+-   [Intro](pages/roblox/Intro.md)
 -   [Examples](pages/roblox/Examples.md)
--   [API Status](pages/roblox/ApiStatus.md)
+-   [API Status](pages/roblox/Api-Status.md)
 
 ## API Reference
 

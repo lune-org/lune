@@ -32,5 +32,5 @@ There are many tools that can install binaries directly from releases, and it is
 
 Congratulations! You've installed Lune and are now ready to write your first script.
 
--   If you want to write standalone scripts, head over to the [Writing Scripts](https://github.com/filiptibell/lune/wiki/Getting-Started---2-Writing-Scripts) page.
--   If you want to write Lune scripts specifically for Roblox, check out the [Roblox](https://github.com/filiptibell/lune/wiki/Roblox) section.
+-   If you want to write standalone scripts, head over to the [Writing Scripts](https://lune.gitbook.io/lune/home/writing-scripts) page.
+-   If you want to write Lune scripts specifically for Roblox, check out the [Roblox](https://lune.gitbook.io/lune/roblox/intro) section.

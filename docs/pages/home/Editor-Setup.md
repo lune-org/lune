@@ -11,11 +11,9 @@ These steps assume you have already installed Lune and that it is available to r
 3. Modify your VSCode settings, either by using the settings menu or in `settings.json`:
 
     ```json
-    {
-    	"luau-lsp.require.mode": "relativeToFile", // Set the require mode to work with Lune
-    	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"], // Add type definitions for Lune globals
-    	"luau-lsp.types.documentationFiles": ["luneDocs.json"] // Add documentation for Lune globals
-    }
+    "luau-lsp.require.mode": "relativeToFile", // Set the require mode to work with Lune
+    "luau-lsp.types.definitionFiles": ["luneTypes.d.luau"], // Add type definitions for Lune globals
+    "luau-lsp.types.documentationFiles": ["luneDocs.json"] // Add documentation for Lune globals
     ```
 
 ## Selene
@@ -28,6 +26,6 @@ These steps assume you have already installed Lune and that it is available to r
     std = "luau+lune"
     # OR use this if your project also contains Roblox-specific Luau code:
     std = "roblox+lune"
-    # If you are also using the Luau type definitions file, it may cause issues, and can be safely ignored:
+    # If you are also using the Luau type definitions, they should be excluded:
     exclude = ["luneTypes.d.luau"]
     ```

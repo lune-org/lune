@@ -5,7 +5,7 @@
 
 If you've already written some version of Lua (or Luau) scripts before, this walkthrough will make you feel right at home.
 
-Once you have a script you want to run, head over to the [Running Scripts](https://github.com/filiptibell/lune/wiki/Getting-Started---3-Running-Scripts) page.
+Once you have a script you want to run, head over to the [Running Scripts](https://lune.gitbook.io/lune/home/running-scripts) page.
 
 ## Hello, Lune!
 

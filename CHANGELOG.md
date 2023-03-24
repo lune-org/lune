@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added a `roblox` built-in
 
     If you're familiar with [Remodel](https://github.com/rojo-rbx/remodel), this new built-in contains more or less the same APIs, integrated into Lune. <br />
-    There are just too many new APIs to list in this changelog, so head over to the [wiki](https://github.com/filiptibell/lune/wiki) to learn more!
+    There are just too many new APIs to list in this changelog, so head over to the [docs sit](https://lune.gitbook.io/lune/roblox/intro) to learn more!
 
 -   Added a `serde` built-in
 
