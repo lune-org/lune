@@ -1,15 +1,11 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD026 -->
 
-# ✏️ Writing Lune Scripts for Roblox
+# Example Lune Scripts for Roblox
 
-Lune has a powerful built-in library and set of APIs for manipulating Roblox place files and model files. It contains APIs for reading & writing files, and gives you instances to use, just as if you were scripting inside of the Roblox engine, albeit with a more limited API.
+These are a few examples of things you can do using the built-in `roblox` library.
 
-For a full list of the currently implemented APIs, check out the [API Reference](https://github.com/filiptibell/lune/wiki/Roblox---API-Reference) page.
-
-## Example Scripts
-
-### `1` - Make all parts anchored in a place file
+## `1` - Make all parts anchored in a place file
 
 ```lua
 local roblox = require("@lune/roblox")
@@ -32,7 +28,7 @@ roblox.writePlaceFile("myPlaceFile.rbxl")
 
 ---
 
-### `2` - Save instances in a place as individual model files
+## `2` - Save instances in a place as individual model files
 
 ```lua
 local roblox = require("@lune/roblox")
@@ -54,7 +50,7 @@ end
 
 ---
 
-### `3` - Make a new place from scratch
+## `3` - Make a new place from scratch
 
 ```lua
 local roblox = require("@lune/roblox")

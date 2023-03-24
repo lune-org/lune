@@ -1,48 +1,12 @@
 <!-- markdownlint-disable MD041 -->
+<!-- markdownlint-disable MD033 -->
 
-# API Reference
+# API Status
 
-Welcome to the API reference page for the built-in `roblox` library!
+This is a page indicating the current implementation status for instance methods and datatypes in the `roblox` library.
 
-All of the following static functions, classes, and datatypes can be imported using `require("@lune/roblox")`.
-
-## Static Functions
-
-### `readPlaceFile`
-
-Reads a place file into a DataModel instance.
-
-```lua
-local roblox = require("@lune/roblox")
-local game = roblox.readPlaceFile("filePath.rbxl")
-```
-
-### `readModelFile`
-
-Reads a model file into a table of instances.
-
-```lua
-local roblox = require("@lune/roblox")
-local instances = roblox.readModelFile("filePath.rbxm")
-```
-
-### `writePlaceFile`
-
-Writes a DataModel instance to a place file.
-
-```lua
-local roblox = require("@lune/roblox")
-roblox.writePlaceFile("filePath.rbxl", game)
-```
-
-### `writeModelFile`
-
-Writes one or more instances to a model file.
-
-```lua
-local roblox = require("@lune/roblox")
-roblox.writeModelFile("filePath.rbxm", { instance1, instance2, ... })
-```
+If an API on a class is not listed here it may not be within the scope for Lune and may not be implemented in the future. <br />
+However, if a recently added datatype is missing, and it can be used as an instance property, it is likely that it will be implemented.
 
 ## Classes
 
@@ -109,4 +73,4 @@ Currently implemented datatypes:
 -   [`Vector3`](https://create.roblox.com/docs/reference/engine/datatypes/Vector3)
 -   [`Vector3int16`](https://create.roblox.com/docs/reference/engine/datatypes/Vector3int16)
 
-Note that these datatypes are kept as up-to-date as possible, but some very new members may be missing.
+Note that these datatypes are kept as up-to-date as possible, but recently added members & methods may be missing.
