@@ -22,13 +22,19 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     let tree = DefinitionsTree::from_type_definitions(contents)?;
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();
-    // Create the wiki dir at the repo root
+    // Create the gitbook dir at the repo root
     let path_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../")
         .canonicalize()
         .unwrap();
-    let path_wiki_dir = path_root.join("wiki");
-    dirs_to_write.push(path_wiki_dir.clone());
+    let path_gitbook_dir = path_root.join("gitbook");
+    let path_gitbook_docs_dir = path_gitbook_dir.join("docs");
+    let path_gitbook_pages_dir = path_gitbook_docs_dir.join("pages");
+    let path_gitbook_api_dir = path_gitbook_pages_dir.join("api");
+    dirs_to_write.push(path_gitbook_dir.clone());
+    dirs_to_write.push(path_gitbook_docs_dir.clone());
+    dirs_to_write.push(path_gitbook_pages_dir.clone());
+    dirs_to_write.push(path_gitbook_api_dir.clone());
     // Sort doc items into subcategories based on globals
     let mut api_reference = HashMap::new();
     let mut no_category = Vec::new();
@@ -67,8 +73,8 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     );
     // Generate files for all subcategories
     for (category_name, category_item) in api_reference {
-        let path = path_wiki_dir
-            .join(format!("API Reference - {category_name}"))
+        let path = path_gitbook_api_dir
+            .join(category_name.to_ascii_lowercase())
             .with_extension("md");
         let mut contents = String::new();
         write!(contents, "{GENERATED_COMMENT_TAG}\n\n")?;

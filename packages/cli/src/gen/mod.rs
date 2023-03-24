@@ -2,16 +2,16 @@ use include_dir::Dir;
 use regex::Regex;
 
 mod docs_file;
+mod gitbook_dir;
 mod luau_defs;
 mod selene_defs;
-mod wiki_dir;
 
 pub mod definitions;
 
 pub use docs_file::generate_from_type_definitions as generate_docs_json_from_definitions;
+pub use gitbook_dir::generate_from_type_definitions as generate_gitbook_dir_from_definitions;
 pub use luau_defs::generate_from_type_definitions as generate_luau_defs_from_definitions;
 pub use selene_defs::generate_from_type_definitions as generate_selene_defs_from_definitions;
-pub use wiki_dir::generate_from_type_definitions as generate_wiki_dir_from_definitions;
 
 pub fn generate_typedefs_file_from_dir(dir: &Dir<'_>) -> String {
     let mut result = String::new();

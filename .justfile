@@ -6,6 +6,21 @@ test:
 test-cli:
 	cargo test --package lune-cli
 
+# Generate gitbook directory
+generate-gitbook:
+	rm -rf ./gitbook
+
+	mkdir gitbook
+	mkdir gitbook/docs
+
+	cp -R docs gitbook
+	cp README.md gitbook/README.md
+	cp .gitbook.yaml gitbook/.gitbook.yaml
+
+	rm -rf gitbook/docs/typedefs
+
+	cargo run -- --generate-gitbook-dir
+
 # Publish gitbook directory to gitbook branch
 publish-gitbook:
-	npx push-dir --dir=docs --branch=gitbook
+	npx push-dir --dir=gitbook --branch=gitbook

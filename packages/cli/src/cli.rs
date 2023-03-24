@@ -12,9 +12,9 @@ use tokio::{
 
 use crate::{
     gen::{
-        generate_docs_json_from_definitions, generate_luau_defs_from_definitions,
-        generate_selene_defs_from_definitions, generate_typedefs_file_from_dir,
-        generate_wiki_dir_from_definitions,
+        generate_docs_json_from_definitions, generate_gitbook_dir_from_definitions,
+        generate_luau_defs_from_definitions, generate_selene_defs_from_definitions,
+        generate_typedefs_file_from_dir,
     },
     utils::{
         files::{discover_script_file_path_including_lune_dirs, strip_shebang},
@@ -143,7 +143,7 @@ impl Cli {
                 .await?;
             }
             if self.generate_gitbook_dir {
-                generate_wiki_dir_from_definitions(&definitions).await?;
+                generate_gitbook_dir_from_definitions(&definitions).await?;
             }
         }
         if self.script_path.is_none() {
