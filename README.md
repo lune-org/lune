@@ -42,4 +42,4 @@ Lune provides fully asynchronous APIs wherever possible, and is built in Rust ðŸ
 
 ## Where do I start?
 
-Head over to the [docs site](https://lune.gitbook.io/lune/home/intro) to get started using Lune!
+Head over to the [installation](https://lune.gitbook.io/lune/home/installation) page to get started using Lune!

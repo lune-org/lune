@@ -2,7 +2,6 @@
 
 ## Home
 
--   [Intro](pages/home/Intro.md)
 -   [Installation](pages/home/Installation.md)
 -   [Writing Scripts](pages/home/Writing-Scripts.md)
 -   [Running Scripts](pages/home/Running-Scripts.md)
@@ -10,7 +9,7 @@
 
 ## Roblox
 
--   [Intro](pages/roblox/Intro.md)
+-   [Introduction](pages/roblox/Introduction.md)
 -   [Examples](pages/roblox/Examples.md)
 -   [API Status](pages/roblox/Api-Status.md)
 
