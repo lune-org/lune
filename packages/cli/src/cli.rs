@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser};
 
+use include_dir::{include_dir, Dir};
 use lune::Lune;
 use tokio::{
     fs::{read as read_to_vec, write},
@@ -12,7 +13,8 @@ use tokio::{
 use crate::{
     gen::{
         generate_docs_json_from_definitions, generate_luau_defs_from_definitions,
-        generate_selene_defs_from_definitions, generate_wiki_dir_from_definitions,
+        generate_selene_defs_from_definitions, generate_typedefs_file_from_dir,
+        generate_wiki_dir_from_definitions,
     },
     utils::{
         files::{discover_script_file_path_including_lune_dirs, strip_shebang},
@@ -24,7 +26,7 @@ pub(crate) const FILE_NAME_SELENE_TYPES: &str = "lune.yml";
 pub(crate) const FILE_NAME_LUAU_TYPES: &str = "luneTypes.d.luau";
 pub(crate) const FILE_NAME_DOCS: &str = "luneDocs.json";
 
-pub(crate) const FILE_CONTENTS_LUAU_TYPES: &str = include_str!("../../../docs/luneTypes.d.luau");
+pub(crate) static TYPEDEFS_DIR: Dir<'_> = include_dir!("docs/typedefs");
 
 /// A Luau script runner
 #[derive(Parser, Debug, Default, Clone)]
@@ -121,26 +123,27 @@ impl Cli {
             || self.generate_docs_file
             || self.generate_gitbook_dir;
         if generate_file_requested {
+            let definitions = generate_typedefs_file_from_dir(&TYPEDEFS_DIR);
             if self.generate_luau_types {
                 generate_and_save_file(FILE_NAME_LUAU_TYPES, "Luau type definitions", || {
-                    generate_luau_defs_from_definitions(FILE_CONTENTS_LUAU_TYPES)
+                    generate_luau_defs_from_definitions(&definitions)
                 })
                 .await?;
             }
             if self.generate_selene_types {
                 generate_and_save_file(FILE_NAME_SELENE_TYPES, "Selene type definitions", || {
-                    generate_selene_defs_from_definitions(FILE_CONTENTS_LUAU_TYPES)
+                    generate_selene_defs_from_definitions(&definitions)
                 })
                 .await?;
             }
             if self.generate_docs_file {
                 generate_and_save_file(FILE_NAME_DOCS, "Luau LSP documentation", || {
-                    generate_docs_json_from_definitions(FILE_CONTENTS_LUAU_TYPES, "roblox/global")
+                    generate_docs_json_from_definitions(&definitions, "roblox/global")
                 })
                 .await?;
             }
             if self.generate_gitbook_dir {
-                generate_wiki_dir_from_definitions(FILE_CONTENTS_LUAU_TYPES).await?;
+                generate_wiki_dir_from_definitions(&definitions).await?;
             }
         }
         if self.script_path.is_none() {
