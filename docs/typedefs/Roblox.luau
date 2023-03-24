@@ -1,7 +1,7 @@
 export type Instance = {}
 
 --[=[
-	@class Process
+	@class Roblox
 
 	Built-in library for manipulating Roblox place & model files
 
@@ -23,6 +23,9 @@ export type Instance = {}
 ]=]
 export type Roblox = {
 	--[=[
+		@within Roblox
+		@must_use
+
 		Reads a place file into a DataModel instance.
 
 		### Example usage
@@ -31,9 +34,14 @@ export type Roblox = {
 		local roblox = require("@lune/roblox")
 		local game = roblox.readPlaceFile("filePath.rbxl")
 		```
+
+		@param filePath The file path to read from
 	]=]
 	readPlaceFile: (filePath: string) -> Instance,
 	--[=[
+		@within Roblox
+		@must_use
+
 		Reads a model file into a table of instances.
 
 		### Example usage
@@ -42,9 +50,13 @@ export type Roblox = {
 		local roblox = require("@lune/roblox")
 		local instances = roblox.readModelFile("filePath.rbxm")
 		```
+
+		@param filePath The file path to read from
 	]=]
 	readModelFile: (filePath: string) -> { Instance },
 	--[=[
+		@within Roblox
+
 		Writes a DataModel instance to a place file.
 
 		### Example usage
@@ -53,9 +65,14 @@ export type Roblox = {
 		local roblox = require("@lune/roblox")
 		roblox.writePlaceFile("filePath.rbxl", game)
 		```
+
+		@param filePath The file path to write to
+		@param dataModel The DataModel to write to the file
 	]=]
 	writePlaceFile: (filePath: string, dataModel: Instance) -> (),
 	--[=[
+		@within Roblox
+
 		Writes one or more instances to a model file.
 
 		### Example usage
@@ -64,10 +81,21 @@ export type Roblox = {
 		local roblox = require("@lune/roblox")
 		roblox.writeModelFile("filePath.rbxm", { instance1, instance2, ... })
 		```
+
+		@param filePath The file path to write to
+		@param instances The array of instances to write to the file
 	]=]
 	writeModelFile: (filePath: string, instances: { Instance }) -> (),
 	--[=[
+		@within Roblox
+		@must_use
+
 		Gets the current auth cookie, for usage with Roblox web APIs.
+
+		Note that this auth cookie is formatted for use as a "Cookie" header,
+		and that it contains restrictions so that it may only be used for
+		official Roblox endpoints. To get the raw cookie value without any
+		additional formatting, you can pass `true` as the first and only parameter.
 
 		### Example usage
 
@@ -91,6 +119,8 @@ export type Roblox = {
 		local responseLocation = responseTable.locations[1].location
 		print("Download link to place: " .. responseLocation)
 		```
+
+		@param raw If the cookie should be returned as a pure value or not. Defaults to false
 	]=]
 	getAuthCookie: (raw: boolean?) -> string?,
 }
