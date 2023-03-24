@@ -1,0 +1,29 @@
+name: Gitbook
+
+on:
+  push:
+
+jobs:
+  gitbook:
+    name: Gitbook
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install project tools
+        uses: ok-nick/setup-aftman@v0.3.0
+
+      - name: Generate Gitbook
+        run: just generate-gitbook
+
+      - name: Publish Gitbook
+        run: just publish-gitbook
