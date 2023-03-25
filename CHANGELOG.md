@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+-   Added support for instance tags & `CollectionService` in the `roblox` built-in. <br />
+    Currently implemented methods are listed on the [docs site](https://lune.gitbook.io/lune/roblox/api-status).
+
 ### Fixed
 
 -   Fixed accessing a destroyed instance printing an error message even if placed inside a pcall
