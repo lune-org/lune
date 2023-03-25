@@ -8,6 +8,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.6.2` - March 25th, 2023
+
+This release adds some new features and fixes for the `roblox` built-in.
+
+### Added
+
+-   Added `GetAttribute`, `GetAttributes` and `SetAttribute` methods for instances
+-   Added support for getting & setting properties that are instance references
+
+### Changed
+
+-   Improved handling of optional property types such as optional cframes & default physical properties
+
+### Fixed
+
+-   Fixed handling of instance properties that are serialized as binary strings
+
 ## `0.6.1` - March 22nd, 2023
 
 ### Fixed
