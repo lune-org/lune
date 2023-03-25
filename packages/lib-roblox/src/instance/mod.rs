@@ -6,14 +6,14 @@ use std::{
 
 use mlua::prelude::*;
 use rbx_dom_weak::{
-    types::{Ref as DomRef, Variant as DomValue, VariantType as DomType},
+    types::{Ref as DomRef, Variant as DomValue},
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, WeakDom,
 };
 
 use crate::{
     datatypes::{
+        attributes::{ensure_valid_attribute_name, ensure_valid_attribute_value},
         conversion::{DomValueToLua, LuaToDomValue},
-        extension::DomValueExt,
         types::EnumItem,
         userdata_impl_eq, userdata_impl_to_string,
     },
@@ -400,40 +400,12 @@ impl Instance {
             .insert(name.as_ref().to_string(), value);
     }
 
-    fn ensure_valid_attribute_value(&self, value: &DomValue) -> LuaResult<()> {
-        let is_valid = matches!(
-            value.ty(),
-            DomType::Bool
-                | DomType::BrickColor
-                | DomType::CFrame
-                | DomType::Color3
-                | DomType::ColorSequence
-                | DomType::Float32
-                | DomType::Float64
-                | DomType::Int32
-                | DomType::Int64
-                | DomType::NumberRange
-                | DomType::NumberSequence
-                | DomType::Rect
-                | DomType::String
-                | DomType::UDim
-                | DomType::UDim2
-                | DomType::Vector2
-                | DomType::Vector3
-                | DomType::Font
-        );
-        if is_valid {
-            Ok(())
-        } else {
-            Err(LuaError::RuntimeError(format!(
-                "'{}' is not a valid attribute type",
-                value.ty().variant_name()
-            )))
-        }
-    }
-
     /**
         Gets an attribute for the instance, if it exists.
+
+        ### See Also
+        * [`GetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttribute)
+        on the Roblox Developer Hub
     */
     pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
         let dom = INTERNAL_DOM
@@ -451,6 +423,10 @@ impl Instance {
 
     /**
         Gets all known attributes for the instance.
+
+        ### See Also
+        * [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
+        on the Roblox Developer Hub
     */
     pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
         let dom = INTERNAL_DOM
@@ -468,6 +444,10 @@ impl Instance {
 
     /**
         Sets an attribute for the instance.
+
+        ### See Also
+        * [`SetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#SetAttribute)
+        on the Roblox Developer Hub
     */
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
         let mut dom = INTERNAL_DOM
@@ -968,9 +948,10 @@ impl LuaUserData for Instance {
             "SetAttribute",
             |lua, this, (attribute_name, lua_value): (String, LuaValue)| {
                 this.ensure_not_destroyed()?;
+                ensure_valid_attribute_name(&attribute_name)?;
                 match lua_value.lua_to_dom_value(lua, None) {
                     Ok(dom_value) => {
-                        this.ensure_valid_attribute_value(&dom_value)?;
+                        ensure_valid_attribute_value(&dom_value)?;
                         this.set_attribute(attribute_name, dom_value);
                         Ok(())
                     }
