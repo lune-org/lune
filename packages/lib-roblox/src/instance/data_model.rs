@@ -6,9 +6,9 @@ use super::Instance;
 
 pub const CLASS_NAME: &str = "DataModel";
 
-pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(methods: &mut M) {
-    add_class_restricted_method(methods, CLASS_NAME, "GetService", data_model_get_service);
-    add_class_restricted_method(methods, CLASS_NAME, "FindService", data_model_find_service);
+pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
+    add_class_restricted_method(m, CLASS_NAME, "GetService", data_model_get_service);
+    add_class_restricted_method(m, CLASS_NAME, "FindService", data_model_find_service);
 }
 
 /**

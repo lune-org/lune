@@ -21,6 +21,7 @@ use crate::{
     shared::instance::{class_exists, class_is_a, find_property_info},
 };
 
+pub(crate) mod collection_service;
 pub(crate) mod data_model;
 
 static INTERNAL_DOM: Lazy<RwLock<WeakDom>> =
@@ -478,12 +479,102 @@ impl Instance {
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
         let mut dom = INTERNAL_DOM
             .try_write()
-            .expect("Failed to get read access to document");
+            .expect("Failed to get write access to document");
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
         if let Some(DomValue::Attributes(attributes)) = inst.properties.get_mut("Attributes") {
             attributes.insert(name.as_ref().to_string(), value);
+        }
+    }
+
+    /**
+        Adds a tag to the instance.
+
+        ### See Also
+        * [`AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
+        on the Roblox Developer Hub
+    */
+    pub fn add_tag(&self, name: impl AsRef<str>) {
+        let mut dom = INTERNAL_DOM
+            .try_write()
+            .expect("Failed to get write access to document");
+        let inst = dom
+            .get_by_ref_mut(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut("Tags") {
+            tags.push(name.as_ref());
+        } else {
+            inst.properties.insert(
+                "Tags".to_string(),
+                DomValue::Tags(vec![name.as_ref().to_string()].into()),
+            );
+        }
+    }
+
+    /**
+        Gets all current tags for the instance.
+
+        ### See Also
+        * [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
+        on the Roblox Developer Hub
+    */
+    pub fn get_tags(&self) -> Vec<String> {
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
+        let inst = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Tags(tags)) = inst.properties.get("Tags") {
+            tags.iter().map(ToString::to_string).collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    /**
+        Checks if the instance has a specific tag.
+
+        ### See Also
+        * [`HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
+        on the Roblox Developer Hub
+    */
+    pub fn has_tag(&self, name: impl AsRef<str>) -> bool {
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
+        let inst = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Tags(tags)) = inst.properties.get("Tags") {
+            let name = name.as_ref();
+            tags.iter().any(|tag| tag == name)
+        } else {
+            false
+        }
+    }
+
+    /**
+        Removes a tag from the instance.
+
+        ### See Also
+        * [`RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
+        on the Roblox Developer Hub
+    */
+    pub fn remove_tag(&self, name: impl AsRef<str>) {
+        let mut dom = INTERNAL_DOM
+            .try_write()
+            .expect("Failed to get write access to document");
+        let inst = dom
+            .get_by_ref_mut(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut("Tags") {
+            let name = name.as_ref();
+            let mut new_tags = tags.iter().map(ToString::to_string).collect::<Vec<_>>();
+            new_tags.retain(|tag| tag != name);
+            inst.properties
+                .insert("Tags".to_string(), DomValue::Tags(new_tags.into()));
         }
     }
 
@@ -728,11 +819,6 @@ impl LuaUserData for Instance {
                 "Parent" => {
                     return this.get_parent().to_lua(lua);
                 }
-				// These are stored as properties in Rojo but are actually not, so we block them
-                "Attributes" | "Tags" => return Err(LuaError::RuntimeError(format!(
-                    "{} is not a valid member of {}",
-                    prop_name, this
-                ))),
                 _ => {}
             }
 
@@ -827,13 +913,6 @@ impl LuaUserData for Instance {
                         let parent = Parent::from_lua(prop_value, lua)?;
                         this.set_parent(parent);
                         return Ok(());
-                    }
-                    // These are stored as properties in Rojo but are actually not, so we block them
-                    "Attributes" | "Tags" => {
-                        return Err(LuaError::RuntimeError(format!(
-                            "{} is not a valid member of {}",
-                            prop_name, this
-                        )))
                     }
                     _ => {}
                 }
@@ -995,12 +1074,21 @@ impl LuaUserData for Instance {
         // Here we add inheritance-like behavior for instances by creating
         // methods that are restricted to specific classnames / base classes
         data_model::add_methods(methods);
+        collection_service::add_methods(methods);
     }
 }
 
 impl fmt::Display for Instance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.get_name())
+        write!(
+            f,
+            "{}",
+            if self.is_destroyed() {
+                "<<DESTROYED>>".to_string()
+            } else {
+                self.get_name()
+            }
+        )
     }
 }
 

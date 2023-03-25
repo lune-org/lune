@@ -28,6 +28,13 @@ pub(crate) fn find_property_info(
     let instance_class = instance_class.as_ref();
     let property_name = property_name.as_ref();
 
+    // Attributes and tags are *technically* properties but we don't
+    // want to treat them as such when looking up property info, any
+    // reading or modification of these should always be explicit
+    if matches!(property_name, "Attributes" | "Tags") {
+        return None;
+    }
+
     // FUTURE: We can probably cache the result of calling this
     // function, if property access is being used in a tight loop
     // in a build step or something similar then it would be beneficial
