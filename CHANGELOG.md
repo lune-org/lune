@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Fixed accessing a destroyed instance printing an error message even if placed inside a pcall
 -   Fixed cloned instances not having correct instance reference properties set (`ObjectValue.Value`, `Motor6D.Part0`, ...)
+-   Fixed `Instance::GetDescendants` returning the same thing as `Instance::GetChildren` (oops)
 
 ## `0.6.2` - March 25th, 2023
 

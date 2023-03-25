@@ -538,7 +538,7 @@ impl Instance {
             descendants.push(*queue_ref);
             let queue_inst = dom.get_by_ref(*queue_ref).unwrap();
             for queue_ref_inner in queue_inst.children().iter().rev() {
-                queue.push_front(queue_ref_inner);
+                queue.push_back(queue_ref_inner);
             }
         }
 
@@ -902,7 +902,7 @@ impl LuaUserData for Instance {
         });
         methods.add_method("GetDescendants", |lua, this, ()| {
             this.ensure_not_destroyed()?;
-            this.get_children().to_lua(lua)
+            this.get_descendants().to_lua(lua)
         });
         methods.add_method("GetFullName", |lua, this, ()| {
             this.ensure_not_destroyed()?;
