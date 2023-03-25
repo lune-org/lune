@@ -6,7 +6,7 @@ use std::{
 
 use mlua::prelude::*;
 use rbx_dom_weak::{
-    types::{Ref as DomRef, Variant as DomValue},
+    types::{Ref as DomRef, Variant as DomValue, VariantType as DomType},
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, WeakDom,
 };
 
@@ -739,10 +739,14 @@ impl LuaUserData for Instance {
                 } else if let Some(prop_default) = info.value_default {
                     Ok(LuaValue::dom_value_to_lua(lua, prop_default)?)
                 } else if info.value_type.is_some() {
-                    Err(LuaError::RuntimeError(format!(
-                        "Failed to get property '{}' - missing default value",
-                        prop_name
-                    )))
+                    if info.value_type == Some(DomType::Ref) {
+						Ok(LuaValue::Nil)
+					} else {
+						Err(LuaError::RuntimeError(format!(
+							"Failed to get property '{}' - missing default value",
+							prop_name
+						)))
+					}
                 } else {
                     Err(LuaError::RuntimeError(format!(
                         "Failed to get property '{}' - malformed property info",

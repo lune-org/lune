@@ -47,3 +47,11 @@ assert(meshPart.Anchored == false)
 assert(meshPart.Material == Enum.Material.Plastic)
 assert(meshPart.Size == Vector3.new(4, 1.2, 2))
 assert(meshPart.CustomPhysicalProperties == nil)
+
+-- Instance reference properties should work
+
+local objectValue = Instance.new("ObjectValue")
+
+assert(objectValue.Value == nil)
+objectValue.Value = meshPart
+assert(objectValue.Value == meshPart)
