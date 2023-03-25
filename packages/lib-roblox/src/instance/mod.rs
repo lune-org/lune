@@ -250,10 +250,9 @@ impl Instance {
 
     fn ensure_not_destroyed(&self) -> LuaResult<()> {
         if self.is_destroyed() {
-            Err(LuaError::RuntimeError(format!(
-                "Tried to access destroyed instance '{}'",
-                self
-            )))
+            Err(LuaError::RuntimeError(
+                "Instance has been destroyed".to_string(),
+            ))
         } else {
             Ok(())
         }
@@ -704,7 +703,10 @@ impl Instance {
 
 impl LuaUserData for Instance {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
+        methods.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
+            this.ensure_not_destroyed()?;
+            userdata_impl_to_string(lua, this, ())
+        });
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         /*
             Getting a value does the following:
