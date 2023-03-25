@@ -72,12 +72,4 @@ impl From<IoError> for DomConversionError {
     }
 }
 
-impl From<base64::DecodeError> for DomConversionError {
-    fn from(value: base64::DecodeError) -> Self {
-        DomConversionError::External {
-            message: value.to_string(),
-        }
-    }
-}
-
 pub(crate) type DomConversionResult<T> = Result<T, DomConversionError>;

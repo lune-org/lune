@@ -39,9 +39,6 @@ pub(crate) trait DomValueToLua<'lua>: Sized {
 
 impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
     fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
-        use base64::engine::general_purpose::STANDARD_NO_PAD;
-        use base64::engine::Engine as _;
-
         use rbx_dom_weak::types as dom;
 
         match LuaAnyUserData::dom_value_to_lua(lua, variant) {
@@ -53,13 +50,10 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                 DomValue::Float64(n) => Ok(LuaValue::Number(*n)),
                 DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
                 DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
+                DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(&s)?)),
                 DomValue::Content(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
-                DomValue::BinaryString(s) => {
-                    let encoded = STANDARD_NO_PAD.encode(AsRef::<[u8]>::as_ref(s));
-                    Ok(LuaValue::String(lua.create_string(&encoded)?))
-                }
 
                 // NOTE: Some values are either optional or default and we should handle
                 // that properly here since the userdata conversion above will always fail
@@ -78,9 +72,6 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
         lua: &'lua Lua,
         variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue> {
-        use base64::engine::general_purpose::STANDARD_NO_PAD;
-        use base64::engine::Engine as _;
-
         use rbx_dom_weak::types as dom;
 
         if let Some(variant_type) = variant_type {
@@ -100,11 +91,11 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
                 (LuaValue::String(s), DomType::String) => {
                     Ok(DomValue::String(s.to_str()?.to_string()))
                 }
+                (LuaValue::String(s), DomType::BinaryString) => {
+                    Ok(DomValue::BinaryString(s.as_ref().into()))
+                }
                 (LuaValue::String(s), DomType::Content) => {
                     Ok(DomValue::Content(s.to_str()?.to_string().into()))
-                }
-                (LuaValue::String(s), DomType::BinaryString) => {
-                    Ok(DomValue::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
                 }
 
                 // NOTE: Some values are either optional or default and we

@@ -1051,7 +1051,6 @@ name = "lune-roblox"
 version = "0.6.1"
 dependencies = [
  "anyhow",
- "base64 0.21.0",
  "glam",
  "lazy_static",
  "mlua",

@@ -120,6 +120,7 @@ create_tests! {
     roblox_files_read_place: "roblox/files/readPlaceFile",
     roblox_files_write_model: "roblox/files/writeModelFile",
     roblox_files_write_place: "roblox/files/writePlaceFile",
+    roblox_instance_attributes: "roblox/instance/attributes",
     roblox_instance_new: "roblox/instance/new",
     roblox_instance_properties: "roblox/instance/properties",
 }
