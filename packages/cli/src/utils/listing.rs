@@ -2,15 +2,13 @@ use std::{cmp::Ordering, fmt::Write as _};
 
 use anyhow::{bail, Result};
 use console::Style;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use tokio::{fs, io};
 
 use super::files::parse_lune_description_from_file;
 
-lazy_static! {
-    pub static ref COLOR_BLUE: Style = Style::new().blue();
-    pub static ref STYLE_DIM: Style = Style::new().dim();
-}
+pub static COLOR_BLUE: Lazy<Style> = Lazy::new(|| Style::new().blue());
+pub static STYLE_DIM: Lazy<Style> = Lazy::new(|| Style::new().dim());
 
 pub async fn find_lune_scripts() -> Result<Vec<(String, String)>> {
     let mut lune_dir = fs::read_dir("lune").await;

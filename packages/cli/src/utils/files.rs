@@ -5,12 +5,12 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use console::style;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 const LUNE_COMMENT_PREFIX: &str = "-->";
 
-lazy_static! {
-    static ref ERR_MESSAGE_HELP_NOTE: String = format!(
+static ERR_MESSAGE_HELP_NOTE: Lazy<String> = Lazy::new(|| {
+    format!(
         "To run this file, either:\n{}\n{}",
         format_args!(
             "{} rename it to use a {} or {} extension",
@@ -22,8 +22,8 @@ lazy_static! {
             "{} pass it as an absolute path instead of relative",
             style("-").dim()
         ),
-    );
-}
+    )
+});
 
 /**
     Discovers a script file path based on a given script name.

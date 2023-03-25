@@ -1,17 +1,14 @@
 use anyhow::{Context, Result};
-use lazy_static::lazy_static;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 
 use super::definitions::{DefinitionsItem, DefinitionsItemTag, DefinitionsTree};
 
-lazy_static! {
-    static ref KEY_DOCUMENTATION: String = "documentation".to_string();
-    static ref KEY_KEYS: String = "keys".to_string();
-    static ref KEY_NAME: String = "name".to_string();
-    static ref KEY_CODE_SAMPLE: String = "code_sample".to_string();
-    static ref KEY_LEARN_MORE_LINK: String = "learn_more_link".to_string();
-    static ref VALUE_EMPTY: String = String::new();
-}
+static KEY_DOCUMENTATION: &str = "documentation";
+static KEY_KEYS: &str = "keys";
+static KEY_NAME: &str = "name";
+static KEY_CODE_SAMPLE: &str = "code_sample";
+static KEY_LEARN_MORE_LINK: &str = "learn_more_link";
+static VALUE_EMPTY: &str = "";
 
 pub fn generate_from_type_definitions(contents: &str, namespace: &str) -> Result<String> {
     let tree = DefinitionsTree::from_type_definitions(contents)?;
@@ -91,24 +88,27 @@ fn parse_and_insert(
                 .context("Missing description value for doc item")?
                 .to_string(),
         );
-        item_map.insert(KEY_DOCUMENTATION.clone(), JsonValue::String(description));
+        item_map.insert(
+            KEY_DOCUMENTATION.to_string(),
+            JsonValue::String(description),
+        );
         if let Some(code_sample) = code_sample {
-            item_map.insert(KEY_CODE_SAMPLE.clone(), JsonValue::String(code_sample));
+            item_map.insert(KEY_CODE_SAMPLE.to_string(), JsonValue::String(code_sample));
         } else {
             item_map.insert(
-                KEY_CODE_SAMPLE.clone(),
-                JsonValue::String(VALUE_EMPTY.clone()),
+                KEY_CODE_SAMPLE.to_string(),
+                JsonValue::String(VALUE_EMPTY.to_string()),
             );
         }
         if let Some(learn_more_link) = learn_more_link {
             item_map.insert(
-                KEY_LEARN_MORE_LINK.clone(),
+                KEY_LEARN_MORE_LINK.to_string(),
                 JsonValue::String(learn_more_link),
             );
         } else {
             item_map.insert(
-                KEY_LEARN_MORE_LINK.clone(),
-                JsonValue::String(VALUE_EMPTY.clone()),
+                KEY_LEARN_MORE_LINK.to_string(),
+                JsonValue::String(VALUE_EMPTY.to_string()),
             );
         }
     }
@@ -134,7 +134,7 @@ fn parse_and_insert(
             })
             .collect::<Vec<_>>();
         if keys.is_empty() {
-            item_map.insert("keys".to_string(), JsonValue::Object(JsonMap::new()));
+            item_map.insert(KEY_KEYS.to_string(), JsonValue::Object(JsonMap::new()));
         } else {
             let mut keys_map = JsonMap::new();
             for key in keys.drain(..) {
@@ -143,7 +143,7 @@ fn parse_and_insert(
                     JsonValue::String(format!("@{namespace}/{item_name_full}.{key}")),
                 );
             }
-            item_map.insert("keys".to_string(), JsonValue::Object(keys_map));
+            item_map.insert(KEY_KEYS.to_string(), JsonValue::Object(keys_map));
         }
     } else if item.is_function() {
         // Add links to params
@@ -154,9 +154,9 @@ fn parse_and_insert(
             for (index, param) in params.iter().enumerate() {
                 let mut param_map = JsonMap::new();
                 if let DefinitionsItemTag::Param((name, _)) = param {
-                    param_map.insert(KEY_NAME.clone(), JsonValue::String(name.to_string()));
+                    param_map.insert(KEY_NAME.to_string(), JsonValue::String(name.to_string()));
                     param_map.insert(
-                        KEY_DOCUMENTATION.clone(),
+                        KEY_DOCUMENTATION.to_string(),
                         JsonValue::String(format!("@{namespace}/{item_name_full}/param/{index}")),
                     );
                 }
@@ -196,7 +196,7 @@ fn parse_and_insert(
             let mut param_map = JsonMap::new();
             if let DefinitionsItemTag::Param((_, doc)) = param {
                 param_map.insert(
-                    KEY_DOCUMENTATION.clone(),
+                    KEY_DOCUMENTATION.to_string(),
                     JsonValue::String(format!("{doc}\n\n---\n")),
                 );
             }
@@ -209,7 +209,7 @@ fn parse_and_insert(
             let mut return_map = JsonMap::new();
             if let DefinitionsItemTag::Return(doc) = ret {
                 return_map.insert(
-                    KEY_DOCUMENTATION.clone(),
+                    KEY_DOCUMENTATION.to_string(),
                     JsonValue::String(doc.to_string()),
                 );
             }

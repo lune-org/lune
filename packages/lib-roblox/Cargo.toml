@@ -16,7 +16,7 @@ path = "src/lib.rs"
 
 [dependencies]
 mlua.workspace = true
-lazy_static.workspace = true
+once_cell.workspace = true
 
 glam = "0.23"
 rand = "0.8"

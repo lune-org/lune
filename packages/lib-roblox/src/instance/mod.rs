@@ -5,6 +5,7 @@ use std::{
 };
 
 use mlua::prelude::*;
+use once_cell::sync::Lazy;
 use rbx_dom_weak::{
     types::{Ref as DomRef, Variant as DomValue, VariantType as DomType},
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, WeakDom,
@@ -22,10 +23,8 @@ use crate::{
 
 pub(crate) mod data_model;
 
-lazy_static::lazy_static! {
-    static ref INTERNAL_DOM: RwLock<WeakDom> =
-        RwLock::new(WeakDom::new(DomInstanceBuilder::new("ROOT")));
-}
+static INTERNAL_DOM: Lazy<RwLock<WeakDom>> =
+    Lazy::new(|| RwLock::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
 
 #[derive(Debug, Clone)]
 pub struct Instance {

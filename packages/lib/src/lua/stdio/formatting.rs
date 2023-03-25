@@ -1,8 +1,8 @@
 use std::fmt::Write;
 
 use console::{colors_enabled, set_colors_enabled, style, Style};
-use lazy_static::lazy_static;
 use mlua::prelude::*;
+use once_cell::sync::Lazy;
 
 use crate::lua::task::TaskReference;
 
@@ -12,20 +12,19 @@ const INDENT: &str = "    ";
 
 pub const STYLE_RESET_STR: &str = "\x1b[0m";
 
-lazy_static! {
-    // Colors
-    pub static ref COLOR_BLACK: Style = Style::new().black();
-    pub static ref COLOR_RED: Style = Style::new().red();
-    pub static ref COLOR_GREEN: Style = Style::new().green();
-    pub static ref COLOR_YELLOW: Style = Style::new().yellow();
-    pub static ref COLOR_BLUE: Style = Style::new().blue();
-    pub static ref COLOR_PURPLE: Style = Style::new().magenta();
-    pub static ref COLOR_CYAN: Style = Style::new().cyan();
-    pub static ref COLOR_WHITE: Style = Style::new().white();
-    // Styles
-    pub static ref STYLE_BOLD: Style = Style::new().bold();
-    pub static ref STYLE_DIM: Style = Style::new().dim();
-}
+// Colors
+pub static COLOR_BLACK: Lazy<Style> = Lazy::new(|| Style::new().black());
+pub static COLOR_RED: Lazy<Style> = Lazy::new(|| Style::new().red());
+pub static COLOR_GREEN: Lazy<Style> = Lazy::new(|| Style::new().green());
+pub static COLOR_YELLOW: Lazy<Style> = Lazy::new(|| Style::new().yellow());
+pub static COLOR_BLUE: Lazy<Style> = Lazy::new(|| Style::new().blue());
+pub static COLOR_PURPLE: Lazy<Style> = Lazy::new(|| Style::new().magenta());
+pub static COLOR_CYAN: Lazy<Style> = Lazy::new(|| Style::new().cyan());
+pub static COLOR_WHITE: Lazy<Style> = Lazy::new(|| Style::new().white());
+
+// Styles
+pub static STYLE_BOLD: Lazy<Style> = Lazy::new(|| Style::new().bold());
+pub static STYLE_DIM: Lazy<Style> = Lazy::new(|| Style::new().dim());
 
 fn can_be_plain_lua_table_key(s: &LuaString) -> bool {
     let str = s.to_string_lossy().to_string();

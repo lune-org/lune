@@ -24,8 +24,8 @@ rbx_cookie = { version = "0.1.2", optional = true }
 
 console.workspace = true
 futures-util.workspace = true
-lazy_static.workspace = true
 mlua.workspace = true
+once_cell.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
