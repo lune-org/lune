@@ -42,6 +42,15 @@ Currently implemented APIs:
 -   [`GetService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#GetService)
 -   [`FindService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#FindService)
 
+### `CollectionService`
+
+Currently implemented APIs:
+
+-   [`AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
+-   [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
+-   [`HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
+-   [`RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
+
 ## Datatypes
 
 Currently implemented datatypes:
