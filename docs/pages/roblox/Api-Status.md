@@ -25,17 +25,14 @@ Currently implemented APIs:
 -   [`FindFirstChildOfClass`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChildOfClass)
 -   [`FindFirstChildWhichIsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChildWhichIsA)
 -   [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant)
+-   [`GetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttribute)
+-   [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
 -   [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
 -   [`GetDescendants`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetDescendants)
 -   [`GetFullName`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetFullName)
 -   [`IsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsA)
 -   [`IsAncestorOf`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsAncestorOf)
 -   [`IsDescendantOf`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsDescendantOf)
-
-Not yet implemented, but planned:
-
--   [`GetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttribute)
--   [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
 -   [`SetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#SetAttribute)
 
 ### `DataModel`

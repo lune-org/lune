@@ -2,19 +2,28 @@ use mlua::prelude::*;
 
 use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 
-use crate::datatypes::extension::DomValueExt;
+use crate::{datatypes::extension::DomValueExt, instance::Instance};
 
 use super::*;
 
 pub(crate) trait LuaToDomValue<'lua> {
+    /**
+        Converts a lua value into a weak dom value.
+
+        If a `variant_type` is given the conversion will be more strict
+        and also more accurate, it should be given whenever possible.
+    */
     fn lua_to_dom_value(
         &self,
         lua: &'lua Lua,
-        variant_type: DomType,
+        variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue>;
 }
 
 pub(crate) trait DomValueToLua<'lua>: Sized {
+    /**
+        Converts a weak dom value into a lua value.
+    */
     fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self>;
 }
 
@@ -52,9 +61,9 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                     Ok(LuaValue::String(lua.create_string(&encoded)?))
                 }
 
-                // NOTE: We need this special case here to handle default (nil)
-                // physical properties since our PhysicalProperties datatype
-                // implementation does not handle default at all, only custom
+                // NOTE: Some values are either optional or default and we should handle
+                // that properly here since the userdata conversion above will always fail
+                DomValue::OptionalCFrame(None) => Ok(LuaValue::Nil),
                 DomValue::PhysicalProperties(dom::PhysicalProperties::Default) => Ok(LuaValue::Nil),
 
                 _ => Err(e),
@@ -67,48 +76,65 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
     fn lua_to_dom_value(
         &self,
         lua: &'lua Lua,
-        variant_type: DomType,
+        variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue> {
         use base64::engine::general_purpose::STANDARD_NO_PAD;
         use base64::engine::Engine as _;
 
         use rbx_dom_weak::types as dom;
 
-        match (self, variant_type) {
-            (LuaValue::Boolean(b), DomType::Bool) => Ok(DomValue::Bool(*b)),
+        if let Some(variant_type) = variant_type {
+            match (self, variant_type) {
+                (LuaValue::Boolean(b), DomType::Bool) => Ok(DomValue::Bool(*b)),
 
-            (LuaValue::Integer(i), DomType::Int64) => Ok(DomValue::Int64(*i as i64)),
-            (LuaValue::Integer(i), DomType::Int32) => Ok(DomValue::Int32(*i)),
-            (LuaValue::Integer(i), DomType::Float64) => Ok(DomValue::Float64(*i as f64)),
-            (LuaValue::Integer(i), DomType::Float32) => Ok(DomValue::Float32(*i as f32)),
+                (LuaValue::Integer(i), DomType::Int64) => Ok(DomValue::Int64(*i as i64)),
+                (LuaValue::Integer(i), DomType::Int32) => Ok(DomValue::Int32(*i)),
+                (LuaValue::Integer(i), DomType::Float64) => Ok(DomValue::Float64(*i as f64)),
+                (LuaValue::Integer(i), DomType::Float32) => Ok(DomValue::Float32(*i as f32)),
 
-            (LuaValue::Number(n), DomType::Int64) => Ok(DomValue::Int64(*n as i64)),
-            (LuaValue::Number(n), DomType::Int32) => Ok(DomValue::Int32(*n as i32)),
-            (LuaValue::Number(n), DomType::Float64) => Ok(DomValue::Float64(*n)),
-            (LuaValue::Number(n), DomType::Float32) => Ok(DomValue::Float32(*n as f32)),
+                (LuaValue::Number(n), DomType::Int64) => Ok(DomValue::Int64(*n as i64)),
+                (LuaValue::Number(n), DomType::Int32) => Ok(DomValue::Int32(*n as i32)),
+                (LuaValue::Number(n), DomType::Float64) => Ok(DomValue::Float64(*n)),
+                (LuaValue::Number(n), DomType::Float32) => Ok(DomValue::Float32(*n as f32)),
 
-            (LuaValue::String(s), DomType::String) => Ok(DomValue::String(s.to_str()?.to_string())),
-            (LuaValue::String(s), DomType::Content) => {
-                Ok(DomValue::Content(s.to_str()?.to_string().into()))
+                (LuaValue::String(s), DomType::String) => {
+                    Ok(DomValue::String(s.to_str()?.to_string()))
+                }
+                (LuaValue::String(s), DomType::Content) => {
+                    Ok(DomValue::Content(s.to_str()?.to_string().into()))
+                }
+                (LuaValue::String(s), DomType::BinaryString) => {
+                    Ok(DomValue::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
+                }
+
+                // NOTE: Some values are either optional or default and we
+                // should handle that here before trying to convert as userdata
+                (LuaValue::Nil, DomType::OptionalCFrame) => Ok(DomValue::OptionalCFrame(None)),
+                (LuaValue::Nil, DomType::PhysicalProperties) => Ok(DomValue::PhysicalProperties(
+                    dom::PhysicalProperties::Default,
+                )),
+
+                (LuaValue::UserData(u), d) => u.lua_to_dom_value(lua, Some(d)),
+
+                (v, d) => Err(DomConversionError::ToDomValue {
+                    to: d.variant_name(),
+                    from: v.type_name(),
+                    detail: None,
+                }),
             }
-            (LuaValue::String(s), DomType::BinaryString) => {
-                Ok(DomValue::BinaryString(STANDARD_NO_PAD.decode(s)?.into()))
+        } else {
+            match self {
+                LuaValue::Boolean(b) => Ok(DomValue::Bool(*b)),
+                LuaValue::Integer(i) => Ok(DomValue::Int32(*i)),
+                LuaValue::Number(n) => Ok(DomValue::Float64(*n)),
+                LuaValue::String(s) => Ok(DomValue::String(s.to_str()?.to_string())),
+                LuaValue::UserData(u) => u.lua_to_dom_value(lua, None),
+                v => Err(DomConversionError::ToDomValue {
+                    to: "unknown",
+                    from: v.type_name(),
+                    detail: None,
+                }),
             }
-
-            // NOTE: We need this special case here to handle default (nil)
-            // physical properties since our PhysicalProperties datatype
-            // implementation does not handle default at all, only custom
-            (LuaValue::Nil, DomType::PhysicalProperties) => Ok(DomValue::PhysicalProperties(
-                dom::PhysicalProperties::Default,
-            )),
-
-            (LuaValue::UserData(u), d) => u.lua_to_dom_value(lua, d),
-
-            (v, d) => Err(DomConversionError::ToDomValue {
-                to: d.variant_name(),
-                from: v.type_name(),
-                detail: None,
-            }),
         }
     }
 }
@@ -123,6 +149,32 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
 
 */
 
+macro_rules! dom_to_userdata {
+    ($lua:expr, $value:ident => $to_type:ty) => {
+        Ok($lua.create_userdata(Into::<$to_type>::into($value.clone()))?)
+    };
+}
+
+macro_rules! userdata_to_dom {
+    ($userdata:ident as $from_type:ty => $to_type:ty) => {
+        match $userdata.borrow::<$from_type>() {
+            Ok(value) => Ok(From::<$to_type>::from(value.clone().into())),
+            Err(error) => match error {
+                LuaError::UserDataTypeMismatch => Err(DomConversionError::ToDomValue {
+                    to: stringify!($to_type),
+                    from: "userdata",
+                    detail: Some("Type mismatch".to_string()),
+                }),
+                e => Err(DomConversionError::ToDomValue {
+                    to: stringify!($to_type),
+                    from: "userdata",
+                    detail: Some(format!("Internal error: {e}")),
+                }),
+            },
+        }
+    };
+}
+
 impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
     #[rustfmt::skip]
     fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
@@ -130,64 +182,44 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
 
         use rbx_dom_weak::types as dom;
 
-        /*
-            NOTES:
+        match variant {
+            DomValue::Axes(value)           => dom_to_userdata!(lua, value => Axes),
+            DomValue::BrickColor(value)     => dom_to_userdata!(lua, value => BrickColor),
+            DomValue::CFrame(value)         => dom_to_userdata!(lua, value => CFrame),
+            DomValue::Color3(value)         => dom_to_userdata!(lua, value => Color3),
+            DomValue::Color3uint8(value)    => dom_to_userdata!(lua, value => Color3),
+            DomValue::ColorSequence(value)  => dom_to_userdata!(lua, value => ColorSequence),
+            DomValue::Faces(value)          => dom_to_userdata!(lua, value => Faces),
+            DomValue::Font(value)           => dom_to_userdata!(lua, value => Font),
+            DomValue::NumberRange(value)    => dom_to_userdata!(lua, value => NumberRange),
+            DomValue::NumberSequence(value) => dom_to_userdata!(lua, value => NumberSequence),
+            DomValue::Ray(value)            => dom_to_userdata!(lua, value => Ray),
+            DomValue::Rect(value)           => dom_to_userdata!(lua, value => Rect),
+            DomValue::Ref(value)            => dom_to_userdata!(lua, value => Instance),
+            DomValue::Region3(value)        => dom_to_userdata!(lua, value => Region3),
+            DomValue::Region3int16(value)   => dom_to_userdata!(lua, value => Region3int16),
+            DomValue::UDim(value)           => dom_to_userdata!(lua, value => UDim),
+            DomValue::UDim2(value)          => dom_to_userdata!(lua, value => UDim2),
+            DomValue::Vector2(value)        => dom_to_userdata!(lua, value => Vector2),
+            DomValue::Vector2int16(value)   => dom_to_userdata!(lua, value => Vector2int16),
+            DomValue::Vector3(value)        => dom_to_userdata!(lua, value => Vector3),
+            DomValue::Vector3int16(value)   => dom_to_userdata!(lua, value => Vector3int16),
 
-            1. Enum is intentionally left out here, it has a custom
-               conversion going from instance property > datatype instead,
-               check `EnumItem::from_instance_property` for specifics
-
-            2. PhysicalProperties can only be converted if they are custom
-               physical properties, since default physical properties values
-               depend on what other related properties an instance might have
-
-        */
-        Ok(match variant.clone() {
-            DomValue::Axes(value)  => lua.create_userdata(Axes::from(value))?,
-            DomValue::Faces(value) => lua.create_userdata(Faces::from(value))?,
-
-            DomValue::CFrame(value) => lua.create_userdata(CFrame::from(value))?,
-
-            DomValue::BrickColor(value)    => lua.create_userdata(BrickColor::from(value))?,
-            DomValue::Color3(value)        => lua.create_userdata(Color3::from(value))?,
-            DomValue::Color3uint8(value)   => lua.create_userdata(Color3::from(value))?,
-            DomValue::ColorSequence(value) => lua.create_userdata(ColorSequence::from(value))?,
-
-            DomValue::Font(value) => lua.create_userdata(Font::from(value))?,
-
-            DomValue::NumberRange(value)    => lua.create_userdata(NumberRange::from(value))?,
-            DomValue::NumberSequence(value) => lua.create_userdata(NumberSequence::from(value))?,
-
-            DomValue::Ray(value) => lua.create_userdata(Ray::from(value))?,
-
-            DomValue::Rect(value)  => lua.create_userdata(Rect::from(value))?,
-            DomValue::UDim(value)  => lua.create_userdata(UDim::from(value))?,
-            DomValue::UDim2(value) => lua.create_userdata(UDim2::from(value))?,
-
-            DomValue::Region3(value)      => lua.create_userdata(Region3::from(value))?,
-            DomValue::Region3int16(value) => lua.create_userdata(Region3int16::from(value))?,
-            DomValue::Vector2(value)      => lua.create_userdata(Vector2::from(value))?,
-            DomValue::Vector2int16(value) => lua.create_userdata(Vector2int16::from(value))?,
-            DomValue::Vector3(value)      => lua.create_userdata(Vector3::from(value))?,
-            DomValue::Vector3int16(value) => lua.create_userdata(Vector3int16::from(value))?,
-
-            DomValue::OptionalCFrame(value) => match value {
-                Some(value) => lua.create_userdata(CFrame::from(value))?,
-                None => lua.create_userdata(CFrame::IDENTITY)?
-            },
-
+            // NOTE: The none and default variants of these types are handled in
+			// DomValueToLua for the LuaValue type instead, allowing for nil/default
+            DomValue::OptionalCFrame(Some(value)) => dom_to_userdata!(lua, value => CFrame),
             DomValue::PhysicalProperties(dom::PhysicalProperties::Custom(value)) => {
-                lua.create_userdata(PhysicalProperties::from(value))?
+				dom_to_userdata!(lua, value => PhysicalProperties)
             },
 
             v => {
-                return Err(DomConversionError::FromDomValue {
+                Err(DomConversionError::FromDomValue {
                     from: v.variant_name(),
                     to: "userdata",
                     detail: Some("Type not supported".to_string()),
                 })
             }
-        })
+        }
     }
 }
 
@@ -196,96 +228,105 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
     fn lua_to_dom_value(
         &self,
         _: &'lua Lua,
-        variant_type: DomType,
+        variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue> {
         use super::types::*;
 
         use rbx_dom_weak::types as dom;
 
-        let f = match variant_type {
-            DomType::Axes  => convert::<Axes,  dom::Axes>,
-            DomType::Faces => convert::<Faces, dom::Faces>,
+        if let Some(variant_type) = variant_type {
+			/*
+				Strict target type, use it to skip checking the actual
+				type of the userdata and try to just do a pure conversion
+			*/
+            match variant_type {
+                DomType::Axes           => userdata_to_dom!(self as Axes           => dom::Axes),
+                DomType::BrickColor     => userdata_to_dom!(self as BrickColor     => dom::BrickColor),
+                DomType::CFrame         => userdata_to_dom!(self as CFrame         => dom::CFrame),
+                DomType::Color3         => userdata_to_dom!(self as Color3         => dom::Color3),
+                DomType::Color3uint8    => userdata_to_dom!(self as Color3         => dom::Color3uint8),
+                DomType::ColorSequence  => userdata_to_dom!(self as ColorSequence  => dom::ColorSequence),
+                DomType::Enum           => userdata_to_dom!(self as EnumItem       => dom::Enum),
+                DomType::Faces          => userdata_to_dom!(self as Faces          => dom::Faces),
+                DomType::Font           => userdata_to_dom!(self as Font           => dom::Font),
+                DomType::NumberRange    => userdata_to_dom!(self as NumberRange    => dom::NumberRange),
+                DomType::NumberSequence => userdata_to_dom!(self as NumberSequence => dom::NumberSequence),
+                DomType::Ray            => userdata_to_dom!(self as Ray            => dom::Ray),
+                DomType::Rect           => userdata_to_dom!(self as Rect           => dom::Rect),
+                DomType::Ref            => userdata_to_dom!(self as Instance       => dom::Ref),
+                DomType::Region3        => userdata_to_dom!(self as Region3        => dom::Region3),
+                DomType::Region3int16   => userdata_to_dom!(self as Region3int16   => dom::Region3int16),
+                DomType::UDim           => userdata_to_dom!(self as UDim           => dom::UDim),
+                DomType::UDim2          => userdata_to_dom!(self as UDim2          => dom::UDim2),
+                DomType::Vector2        => userdata_to_dom!(self as Vector2        => dom::Vector2),
+                DomType::Vector2int16   => userdata_to_dom!(self as Vector2int16   => dom::Vector2int16),
+                DomType::Vector3        => userdata_to_dom!(self as Vector3        => dom::Vector3),
+                DomType::Vector3int16   => userdata_to_dom!(self as Vector3int16   => dom::Vector3int16),
 
-            DomType::CFrame => convert::<CFrame, dom::CFrame>,
+	            // NOTE: The none and default variants of these types are handled in
+				// LuaToDomValue for the LuaValue type instead, allowing for nil/default
+                DomType::OptionalCFrame => {
+                    return match self.borrow::<CFrame>() {
+                        Err(_) => unreachable!("Invalid use of conversion method, should be using LuaValue"),
+                        Ok(value) => Ok(DomValue::OptionalCFrame(Some(dom::CFrame::from(*value)))),
+                    }
+                }
+                DomType::PhysicalProperties => {
+                    return match self.borrow::<PhysicalProperties>() {
+                        Err(_) => unreachable!("Invalid use of conversion method, should be using LuaValue"),
+                        Ok(value) => {
+                            let props = dom::CustomPhysicalProperties::from(*value);
+                            let custom = dom::PhysicalProperties::Custom(props);
+                            Ok(DomValue::PhysicalProperties(custom))
+                        }
+                    }
+                }
 
-            DomType::BrickColor    => convert::<BrickColor,    dom::BrickColor>,
-            DomType::Color3        => convert::<Color3,        dom::Color3>,
-            DomType::Color3uint8   => convert::<Color3,        dom::Color3uint8>,
-            DomType::ColorSequence => convert::<ColorSequence, dom::ColorSequence>,
+                ty => {
+                    return Err(DomConversionError::ToDomValue {
+                        to: ty.variant_name(),
+                        from: "userdata",
+                        detail: Some("Type not supported".to_string()),
+                    })
+                }
+            }
+        } else {
+			/*
+				Non-strict target type, here we need to do manual typechecks
+				on the userdata to see what we should be converting it into
 
-            DomType::Enum => convert::<EnumItem, dom::Enum>,
+				This is used for example for attributes, where the wanted
+				type is not known by the dom and instead determined by the user
+			*/
+            match self {
+                value if value.is::<Axes>()           => userdata_to_dom!(value as Axes           => dom::Axes),
+                value if value.is::<BrickColor>()     => userdata_to_dom!(value as BrickColor     => dom::BrickColor),
+                value if value.is::<CFrame>()         => userdata_to_dom!(value as CFrame         => dom::CFrame),
+                value if value.is::<Color3>()         => userdata_to_dom!(value as Color3         => dom::Color3),
+                value if value.is::<ColorSequence>()  => userdata_to_dom!(value as ColorSequence  => dom::ColorSequence),
+                value if value.is::<Enum>()           => userdata_to_dom!(value as EnumItem       => dom::Enum),
+                value if value.is::<Faces>()          => userdata_to_dom!(value as Faces          => dom::Faces),
+                value if value.is::<Font>()           => userdata_to_dom!(value as Font           => dom::Font),
+                value if value.is::<NumberRange>()    => userdata_to_dom!(value as NumberRange    => dom::NumberRange),
+                value if value.is::<NumberSequence>() => userdata_to_dom!(value as NumberSequence => dom::NumberSequence),
+                value if value.is::<Ray>()            => userdata_to_dom!(value as Ray            => dom::Ray),
+                value if value.is::<Rect>()           => userdata_to_dom!(value as Rect           => dom::Rect),
+                value if value.is::<Instance>()       => userdata_to_dom!(value as Instance       => dom::Ref),
+                value if value.is::<Region3>()        => userdata_to_dom!(value as Region3        => dom::Region3),
+                value if value.is::<Region3int16>()   => userdata_to_dom!(value as Region3int16   => dom::Region3int16),
+                value if value.is::<UDim>()           => userdata_to_dom!(value as UDim           => dom::UDim),
+                value if value.is::<UDim2>()          => userdata_to_dom!(value as UDim2          => dom::UDim2),
+                value if value.is::<Vector2>()        => userdata_to_dom!(value as Vector2        => dom::Vector2),
+                value if value.is::<Vector2int16>()   => userdata_to_dom!(value as Vector2int16   => dom::Vector2int16),
+                value if value.is::<Vector3>()        => userdata_to_dom!(value as Vector3        => dom::Vector3),
+                value if value.is::<Vector3int16>()   => userdata_to_dom!(value as Vector3int16   => dom::Vector3int16),
 
-            DomType::Font => convert::<Font, dom::Font>,
-
-            DomType::NumberRange    => convert::<NumberRange,    dom::NumberRange>,
-            DomType::NumberSequence => convert::<NumberSequence, dom::NumberSequence>,
-
-            DomType::Rect  => convert::<Rect,  dom::Rect>,
-            DomType::UDim  => convert::<UDim,  dom::UDim>,
-            DomType::UDim2 => convert::<UDim2, dom::UDim2>,
-
-            DomType::Ray => convert::<Ray, dom::Ray>,
-
-            DomType::Region3      => convert::<Region3,      dom::Region3>,
-            DomType::Region3int16 => convert::<Region3int16, dom::Region3int16>,
-            DomType::Vector2      => convert::<Vector2,      dom::Vector2>,
-            DomType::Vector2int16 => convert::<Vector2int16, dom::Vector2int16>,
-            DomType::Vector3      => convert::<Vector3,      dom::Vector3>,
-            DomType::Vector3int16 => convert::<Vector3int16, dom::Vector3int16>,
-
-            DomType::OptionalCFrame => return match self.borrow::<CFrame>() {
-                Ok(value) => Ok(DomValue::OptionalCFrame(Some(dom::CFrame::from(*value)))),
-                Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
-            },
-
-            DomType::PhysicalProperties => return match self.borrow::<PhysicalProperties>() {
-                Ok(value) => {
-                    let props = dom::CustomPhysicalProperties::from(*value);
-                    let custom = dom::PhysicalProperties::Custom(props);
-                    Ok(DomValue::PhysicalProperties(custom))
-                },
-                Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
-            },
-
-            _ => return Err(DomConversionError::ToDomValue {
-                to: variant_type.variant_name(),
-                from: "userdata",
-                detail: Some("Type not supported".to_string()),
-            }),
-        };
-
-        f(self, variant_type)
-    }
-}
-
-fn convert<TypeFrom, TypeTo>(
-    userdata: &LuaAnyUserData,
-    variant_type: DomType,
-) -> DomConversionResult<DomValue>
-where
-    TypeFrom: LuaUserData + Clone + 'static,
-    TypeTo: From<TypeFrom> + Into<DomValue>,
-{
-    match userdata.borrow::<TypeFrom>() {
-        Ok(value) => Ok(TypeTo::from(value.clone()).into()),
-        Err(e) => Err(lua_userdata_error_to_conversion_error(variant_type, e)),
-    }
-}
-
-fn lua_userdata_error_to_conversion_error(
-    variant_type: DomType,
-    error: LuaError,
-) -> DomConversionError {
-    match error {
-        LuaError::UserDataTypeMismatch => DomConversionError::ToDomValue {
-            to: variant_type.variant_name(),
-            from: "userdata",
-            detail: Some("Type mismatch".to_string()),
-        },
-        e => DomConversionError::ToDomValue {
-            to: variant_type.variant_name(),
-            from: "userdata",
-            detail: Some(format!("Internal error: {e}")),
-        },
+                _ => Err(DomConversionError::ToDomValue {
+                    to: "unknown",
+                    from: "userdata",
+                    detail: Some("Type not supported".to_string()),
+                })
+            }
+        }
     }
 }

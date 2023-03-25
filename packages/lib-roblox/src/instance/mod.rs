@@ -1,14 +1,19 @@
-use std::{collections::VecDeque, fmt, sync::RwLock};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    fmt,
+    sync::RwLock,
+};
 
 use mlua::prelude::*;
 use rbx_dom_weak::{
-    types::{Ref as DomRef, Variant as DomValue},
+    types::{Ref as DomRef, Variant as DomValue, VariantType as DomType},
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, WeakDom,
 };
 
 use crate::{
     datatypes::{
         conversion::{DomValueToLua, LuaToDomValue},
+        extension::DomValueExt,
         types::EnumItem,
         userdata_impl_eq, userdata_impl_to_string,
     },
@@ -140,6 +145,10 @@ impl Instance {
                 .expect("Failed to find instance in document")
                 .parent()
         };
+
+        // TODO: We should keep track of a map from old ref -> new ref
+        // for each instance so that we can then transform properties
+        // that are instance refs into ones pointing at the new instances
 
         let new_ref = Self::clone_inner(self.dom_ref, parent_ref);
         let new_inst = Self::new(new_ref);
@@ -391,6 +400,87 @@ impl Instance {
             .insert(name.as_ref().to_string(), value);
     }
 
+    fn ensure_valid_attribute_value(&self, value: &DomValue) -> LuaResult<()> {
+        let is_valid = matches!(
+            value.ty(),
+            DomType::Bool
+                | DomType::BrickColor
+                | DomType::CFrame
+                | DomType::Color3
+                | DomType::ColorSequence
+                | DomType::Float32
+                | DomType::Float64
+                | DomType::Int32
+                | DomType::Int64
+                | DomType::NumberRange
+                | DomType::NumberSequence
+                | DomType::Rect
+                | DomType::String
+                | DomType::UDim
+                | DomType::UDim2
+                | DomType::Vector2
+                | DomType::Vector3
+                | DomType::Font
+        );
+        if is_valid {
+            Ok(())
+        } else {
+            Err(LuaError::RuntimeError(format!(
+                "'{}' is not a valid attribute type",
+                value.ty().variant_name()
+            )))
+        }
+    }
+
+    /**
+        Gets an attribute for the instance, if it exists.
+    */
+    pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
+        let inst = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Attributes(attributes)) = inst.properties.get("Attributes") {
+            attributes.get(name.as_ref()).cloned()
+        } else {
+            None
+        }
+    }
+
+    /**
+        Gets all known attributes for the instance.
+    */
+    pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
+        let inst = dom
+            .get_by_ref(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Attributes(attributes)) = inst.properties.get("Attributes") {
+            attributes.clone().into_iter().collect()
+        } else {
+            BTreeMap::new()
+        }
+    }
+
+    /**
+        Sets an attribute for the instance.
+    */
+    pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
+        let mut dom = INTERNAL_DOM
+            .try_write()
+            .expect("Failed to get read access to document");
+        let inst = dom
+            .get_by_ref_mut(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Attributes(attributes)) = inst.properties.get_mut("Attributes") {
+            attributes.insert(name.as_ref().to_string(), value);
+        }
+    }
+
     /**
         Gets all of the current children of this `Instance`.
 
@@ -629,6 +719,11 @@ impl LuaUserData for Instance {
                 "Parent" => {
                     return this.get_parent().to_lua(lua);
                 }
+				// These are stored as properties in Rojo but are actually not, so we block them
+                "Attributes" | "Tags" => return Err(LuaError::RuntimeError(format!(
+                    "{} is not a valid member of {}",
+                    prop_name, this
+                ))),
                 _ => {}
             }
 
@@ -668,7 +763,7 @@ impl LuaUserData for Instance {
                         "Failed to get property '{}' - missing default value",
                         prop_name
                     )))
-				} else {
+                } else {
                     Err(LuaError::RuntimeError(format!(
                         "Failed to get property '{}' - malformed property info",
                         prop_name
@@ -720,6 +815,13 @@ impl LuaUserData for Instance {
                         this.set_parent(parent);
                         return Ok(());
                     }
+                    // These are stored as properties in Rojo but are actually not, so we block them
+                    "Attributes" | "Tags" => {
+                        return Err(LuaError::RuntimeError(format!(
+                            "{} is not a valid member of {}",
+                            prop_name, this
+                        )))
+                    }
                     _ => {}
                 }
 
@@ -746,7 +848,7 @@ impl LuaUserData for Instance {
                         Err(e) => Err(e),
                     }
                 } else if let Some(dom_type) = info.value_type {
-                    match prop_value.lua_to_dom_value(lua, dom_type) {
+                    match prop_value.lua_to_dom_value(lua, Some(dom_type)) {
                         Ok(dom_value) => {
                             this.set_property(prop_name, dom_value);
                             Ok(())
@@ -846,6 +948,36 @@ impl LuaUserData for Instance {
                 .find_ancestor(|ancestor| ancestor.referent() == instance.dom_ref)
                 .is_some())
         });
+        methods.add_method("GetAttribute", |lua, this, name: String| {
+            this.ensure_not_destroyed()?;
+            match this.get_attribute(name) {
+                Some(attribute) => Ok(LuaValue::dom_value_to_lua(lua, &attribute)?),
+                None => Ok(LuaValue::Nil),
+            }
+        });
+        methods.add_method("GetAttributes", |lua, this, ()| {
+            this.ensure_not_destroyed()?;
+            let attributes = this.get_attributes();
+            let tab = lua.create_table_with_capacity(0, attributes.len() as i32)?;
+            for (key, value) in attributes.into_iter() {
+                tab.set(key, LuaValue::dom_value_to_lua(lua, &value)?)?;
+            }
+            Ok(tab)
+        });
+        methods.add_method(
+            "SetAttribute",
+            |lua, this, (attribute_name, lua_value): (String, LuaValue)| {
+                this.ensure_not_destroyed()?;
+                match lua_value.lua_to_dom_value(lua, None) {
+                    Ok(dom_value) => {
+                        this.ensure_valid_attribute_value(&dom_value)?;
+                        this.set_attribute(attribute_name, dom_value);
+                        Ok(())
+                    }
+                    Err(e) => Err(e.into()),
+                }
+            },
+        );
         // Here we add inheritance-like behavior for instances by creating
         // methods that are restricted to specific classnames / base classes
         data_model::add_methods(methods);
@@ -861,5 +993,17 @@ impl fmt::Display for Instance {
 impl PartialEq for Instance {
     fn eq(&self, other: &Self) -> bool {
         self.dom_ref == other.dom_ref
+    }
+}
+
+impl From<Instance> for DomRef {
+    fn from(value: Instance) -> Self {
+        value.dom_ref
+    }
+}
+
+impl From<DomRef> for Instance {
+    fn from(value: DomRef) -> Self {
+        Instance::new(value)
     }
 }

@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) trait DomValueExt {
+pub(crate) trait DomValueExt {
     fn variant_name(&self) -> &'static str;
 }
 
