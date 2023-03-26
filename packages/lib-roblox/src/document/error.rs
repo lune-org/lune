@@ -7,9 +7,9 @@ pub enum DocumentError {
     UnknownKind,
     #[error("Unknown document format")]
     UnknownFormat,
-    #[error("Failed to read document from buffer")]
+    #[error("Failed to read document from buffer - {0}")]
     ReadError(String),
-    #[error("Failed to write document to buffer")]
+    #[error("Failed to write document to buffer - {0}")]
     WriteError(String),
     #[error("Failed to convert into a DataModel - the given document is not a place")]
     IntoDataModelInvalidArgs,
