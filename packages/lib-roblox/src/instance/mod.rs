@@ -516,6 +516,12 @@ impl Instance {
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
+        // NOTE: Attributes do not support integers, only floats
+        let value = match value {
+            DomValue::Int32(i) => DomValue::Float32(i as f32),
+            DomValue::Int64(i) => DomValue::Float64(i as f64),
+            value => value,
+        };
         if let Some(DomValue::Attributes(attributes)) =
             inst.properties.get_mut(PROPERTY_NAME_ATTRIBUTES)
         {

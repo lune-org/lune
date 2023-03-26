@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+-   Fixed instances with attributes not saving if they container integer attributes
 -   Fixed attributes not being set properly if the instance has an empty attributes property
 -   Fixed error messages for reading & writing roblox files not containing the full error message
 -   Fixed crash when trying to access an instance reference property that points to a destroyed instance
