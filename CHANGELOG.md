@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Fixed error messages for reading & writing roblox files not containing the full error message
 -   Fixed crash when trying to access an instance reference property that points to a destroyed instance
+-   Fixed crash when trying to save instances that contain unsupported attribute types
 
 ## `0.6.3` - March 26th, 2023
 
