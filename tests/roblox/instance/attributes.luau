@@ -66,6 +66,30 @@ for name, value in ATTRS_EXPECTED do
 	end
 end
 
+-- Cloning instances should also clone attributes
+
+local cloned = model:Clone()
+ATTRS_ACTUAL = cloned:GetAttributes()
+
+for name, value in ATTRS_EXPECTED do
+	local actual = ATTRS_ACTUAL[name]
+	if actual ~= value then
+		if value ~= value and actual ~= actual then
+			continue -- NaN
+		end
+		error(
+			string.format(
+				"Expected cloned attribute '%s' to have value '%s', got value '%s'",
+				name,
+				tostring(value),
+				tostring(actual)
+			)
+		)
+	end
+end
+
+-- Writing files with modified attributes should work
+
 local game = Instance.new("DataModel")
 model.Parent = game
 
