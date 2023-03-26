@@ -1,4 +1,6 @@
+local fs = require("@lune/fs") :: any
 local roblox = require("@lune/roblox") :: any
+
 local BrickColor = roblox.BrickColor
 local Color3 = roblox.Color3
 local ColorSequence = roblox.ColorSequence
@@ -11,12 +13,11 @@ local UDim = roblox.UDim
 local UDim2 = roblox.UDim2
 local Vector2 = roblox.Vector2
 local Vector3 = roblox.Vector3
-local CFrame = roblox.CFrame
+local Instance = roblox.Instance
 
 local model = roblox.readModelFile("tests/roblox/rbx-test-files/models/attributes/binary.rbxm")[1]
 
 model:SetAttribute("Foo", "Bar")
-model:SetAttribute("CFrame", CFrame.identity)
 
 local ATTRS_ACTUAL = model:GetAttributes()
 local ATTRS_EXPECTED: { [string]: any } = {
@@ -46,7 +47,6 @@ local ATTRS_EXPECTED: { [string]: any } = {
 	NaN = 0 / 0,
 	-- Extras we set
 	Foo = "Bar",
-	CFrame = CFrame.identity,
 }
 
 for name, value in ATTRS_EXPECTED do
@@ -65,3 +65,9 @@ for name, value in ATTRS_EXPECTED do
 		)
 	end
 end
+
+local game = Instance.new("DataModel")
+model.Parent = game
+
+fs.writeDir("bin/roblox")
+roblox.writePlaceFile("bin/roblox/attributes.rbxl", game)

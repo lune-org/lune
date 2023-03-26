@@ -55,6 +55,14 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
 
+                // NOTE: Dom references may point to instances that
+                // no longer exist, so we handle that here instead of
+                // in the userdata conversion to be able to return nils
+                DomValue::Ref(value) => match Instance::new_opt(*value) {
+                    Some(inst) => Ok(inst.to_lua(lua)?),
+                    None => Ok(LuaValue::Nil),
+                },
+
                 // NOTE: Some values are either optional or default and we should handle
                 // that properly here since the userdata conversion above will always fail
                 DomValue::OptionalCFrame(None) => Ok(LuaValue::Nil),
@@ -186,7 +194,6 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
             DomValue::NumberSequence(value) => dom_to_userdata!(lua, value => NumberSequence),
             DomValue::Ray(value)            => dom_to_userdata!(lua, value => Ray),
             DomValue::Rect(value)           => dom_to_userdata!(lua, value => Rect),
-            DomValue::Ref(value)            => dom_to_userdata!(lua, value => Instance),
             DomValue::Region3(value)        => dom_to_userdata!(lua, value => Region3),
             DomValue::Region3int16(value)   => dom_to_userdata!(lua, value => Region3int16),
             DomValue::UDim(value)           => dom_to_userdata!(lua, value => UDim),

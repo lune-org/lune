@@ -60,6 +60,30 @@ impl Instance {
     }
 
     /**
+        Creates a new `Instance` from a dom object ref, if the instance exists.
+
+        Panics if the given dom object ref points to the dom root.
+    */
+    pub(crate) fn new_opt(dom_ref: DomRef) -> Option<Self> {
+        let dom = INTERNAL_DOM
+            .try_read()
+            .expect("Failed to get read access to document");
+
+        if let Some(instance) = dom.get_by_ref(dom_ref) {
+            if instance.referent() == dom.root_ref() {
+                panic!("Instances can not be created from dom roots")
+            }
+
+            Some(Self {
+                dom_ref,
+                class_name: instance.class.clone(),
+            })
+        } else {
+            None
+        }
+    }
+
+    /**
         Creates a new orphaned `Instance` with a given class name.
 
         An orphaned instance is an instance at the root of a weak dom.
@@ -1101,11 +1125,5 @@ impl PartialEq for Instance {
 impl From<Instance> for DomRef {
     fn from(value: Instance) -> Self {
         value.dom_ref
-    }
-}
-
-impl From<DomRef> for Instance {
-    fn from(value: DomRef) -> Self {
-        Instance::new(value)
     }
 }
