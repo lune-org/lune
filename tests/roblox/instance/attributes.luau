@@ -88,6 +88,12 @@ for name, value in ATTRS_EXPECTED do
 	end
 end
 
+-- Setting attributes on a new empty instance should work
+
+local folder = Instance.new("Folder")
+folder:SetAttribute("Foo", "Bar")
+assert(folder:GetAttribute("Foo") == "Bar")
+
 -- Writing files with modified attributes should work
 
 local game = Instance.new("DataModel")

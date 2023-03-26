@@ -7,7 +7,9 @@ use std::{
 use mlua::prelude::*;
 use once_cell::sync::Lazy;
 use rbx_dom_weak::{
-    types::{Ref as DomRef, Variant as DomValue, VariantType as DomType},
+    types::{
+        Attributes as DomAttributes, Ref as DomRef, Variant as DomValue, VariantType as DomType,
+    },
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, WeakDom,
 };
 
@@ -23,6 +25,9 @@ use crate::{
 
 pub(crate) mod collection_service;
 pub(crate) mod data_model;
+
+const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
+const PROPERTY_NAME_TAGS: &str = "Tags";
 
 static INTERNAL_DOM: Lazy<RwLock<WeakDom>> =
     Lazy::new(|| RwLock::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
@@ -465,7 +470,9 @@ impl Instance {
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Attributes(attributes)) = inst.properties.get("Attributes") {
+        if let Some(DomValue::Attributes(attributes)) =
+            inst.properties.get(PROPERTY_NAME_ATTRIBUTES)
+        {
             attributes.get(name.as_ref()).cloned()
         } else {
             None
@@ -486,7 +493,9 @@ impl Instance {
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Attributes(attributes)) = inst.properties.get("Attributes") {
+        if let Some(DomValue::Attributes(attributes)) =
+            inst.properties.get(PROPERTY_NAME_ATTRIBUTES)
+        {
             attributes.clone().into_iter().collect()
         } else {
             BTreeMap::new()
@@ -507,8 +516,17 @@ impl Instance {
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Attributes(attributes)) = inst.properties.get_mut("Attributes") {
+        if let Some(DomValue::Attributes(attributes)) =
+            inst.properties.get_mut(PROPERTY_NAME_ATTRIBUTES)
+        {
             attributes.insert(name.as_ref().to_string(), value);
+        } else {
+            let mut attributes = DomAttributes::new();
+            attributes.insert(name.as_ref().to_string(), value);
+            inst.properties.insert(
+                PROPERTY_NAME_ATTRIBUTES.to_string(),
+                DomValue::Attributes(attributes),
+            );
         }
     }
 
@@ -526,11 +544,11 @@ impl Instance {
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut("Tags") {
+        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut(PROPERTY_NAME_TAGS) {
             tags.push(name.as_ref());
         } else {
             inst.properties.insert(
-                "Tags".to_string(),
+                PROPERTY_NAME_TAGS.to_string(),
                 DomValue::Tags(vec![name.as_ref().to_string()].into()),
             );
         }
@@ -550,7 +568,7 @@ impl Instance {
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get("Tags") {
+        if let Some(DomValue::Tags(tags)) = inst.properties.get(PROPERTY_NAME_TAGS) {
             tags.iter().map(ToString::to_string).collect()
         } else {
             Vec::new()
@@ -571,7 +589,7 @@ impl Instance {
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get("Tags") {
+        if let Some(DomValue::Tags(tags)) = inst.properties.get(PROPERTY_NAME_TAGS) {
             let name = name.as_ref();
             tags.iter().any(|tag| tag == name)
         } else {
@@ -593,12 +611,14 @@ impl Instance {
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut("Tags") {
+        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut(PROPERTY_NAME_TAGS) {
             let name = name.as_ref();
             let mut new_tags = tags.iter().map(ToString::to_string).collect::<Vec<_>>();
             new_tags.retain(|tag| tag != name);
-            inst.properties
-                .insert("Tags".to_string(), DomValue::Tags(new_tags.into()));
+            inst.properties.insert(
+                PROPERTY_NAME_TAGS.to_string(),
+                DomValue::Tags(new_tags.into()),
+            );
         }
     }
 
