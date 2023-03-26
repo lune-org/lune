@@ -116,13 +116,18 @@ create_tests! {
     roblox_datatype_vector2int16: "roblox/datatypes/Vector2int16",
     roblox_datatype_vector3: "roblox/datatypes/Vector3",
     roblox_datatype_vector3int16: "roblox/datatypes/Vector3int16",
+
     roblox_files_read_model: "roblox/files/readModelFile",
     roblox_files_read_place: "roblox/files/readPlaceFile",
     roblox_files_write_model: "roblox/files/writeModelFile",
     roblox_files_write_place: "roblox/files/writePlaceFile",
+
     roblox_instance_attributes: "roblox/instance/attributes",
+    roblox_instance_datamodel: "roblox/instance/datamodel",
     roblox_instance_new: "roblox/instance/new",
     roblox_instance_properties: "roblox/instance/properties",
+    roblox_instance_tags: "roblox/instance/tags",
+
     roblox_instance_methods_clear_all_children: "roblox/instance/methods/ClearAllChildren",
     roblox_instance_methods_clone: "roblox/instance/methods/Clone",
     roblox_instance_methods_destroy: "roblox/instance/methods/Destroy",
