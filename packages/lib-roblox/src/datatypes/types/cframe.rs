@@ -42,38 +42,36 @@ impl CFrame {
         // Strict args constructors
         datatype_table.set(
             "lookAt",
-            lua.create_function(
-                |_, (at, look_at, up): (Vector3, Vector3, Option<Vector3>)| {
-                    Ok(CFrame(Mat4::look_at_rh(
-                        at.0,
-                        look_at.0,
-                        up.unwrap_or(Vector3(Vec3::Y)).0,
-                    )))
-                },
-            )?,
+            lua.create_function(|_, (from, to, up): (Vector3, Vector3, Option<Vector3>)| {
+                Ok(CFrame(look_at(
+                    from.0,
+                    to.0,
+                    up.unwrap_or(Vector3(Vec3::Y)).0,
+                )))
+            })?,
         )?;
         datatype_table.set(
             "fromEulerAnglesXYZ",
             lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::ZYX, rx, ry, rz)))
+                Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
             })?,
         )?;
         datatype_table.set(
             "fromEulerAnglesYXZ",
             lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::ZXY, rx, ry, rz)))
+                Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
             })?,
         )?;
         datatype_table.set(
             "Angles",
             lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::ZYX, rx, ry, rz)))
+                Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
             })?,
         )?;
         datatype_table.set(
             "fromOrientation",
             lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::ZXY, rx, ry, rz)))
+                Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
             })?,
         )?;
         datatype_table.set(
@@ -99,7 +97,7 @@ impl CFrame {
         )?;
         // Dynamic args constructor
         type ArgsPos = Vector3;
-        type ArgsLook = (Vector3, Vector3);
+        type ArgsLook = (Vector3, Vector3, Option<Vector3>);
         type ArgsPosXYZ = (f32, f32, f32);
         type ArgsPosXYZQuat = (f32, f32, f32, f32, f32, f32, f32);
         type ArgsMatrix = (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
@@ -110,8 +108,12 @@ impl CFrame {
                     Ok(CFrame(Mat4::IDENTITY))
                 } else if let Ok(pos) = ArgsPos::from_lua_multi(args.clone(), lua) {
                     Ok(CFrame(Mat4::from_translation(pos.0)))
-                } else if let Ok((pos, look_at)) = ArgsLook::from_lua_multi(args.clone(), lua) {
-                    Ok(CFrame(Mat4::look_at_rh(pos.0, look_at.0, Vec3::Y)))
+                } else if let Ok((from, to, up)) = ArgsLook::from_lua_multi(args.clone(), lua) {
+                    Ok(CFrame(look_at(
+                        from.0,
+                        to.0,
+                        up.unwrap_or(Vector3(Vec3::Y)).0,
+                    )))
                 } else if let Ok((x, y, z)) = ArgsPosXYZ::from_lua_multi(args.clone(), lua) {
                     Ok(CFrame(Mat4::from_translation(Vec3::new(x, y, z))))
                 } else if let Ok((x, y, z, qx, qy, qz, qw)) =
@@ -208,20 +210,22 @@ impl LuaUserData for CFrame {
             let pos = this.position();
             let (rx, ry, rz) = this.orientation();
             Ok((
-                pos.x, pos.y, pos.z,
-				 rx.x,  rx.y,  rx.z,
-				 ry.x,  ry.y,  ry.z,
-				 rz.x,  rz.y,  rz.z,
+                pos.x, pos.y, -pos.z,
+				 rx.x,  rx.y,   rx.z,
+				 ry.x,  ry.y,   ry.z,
+				 rz.x,  rz.y,   rz.z,
             ))
         });
         methods.add_method("ToEulerAnglesXYZ", |_, this, ()| {
-            Ok(Quat::from_mat4(&this.0).to_euler(EulerRot::ZYX))
+            Ok(Quat::from_mat4(&this.0).to_euler(EulerRot::XYZ))
         });
         methods.add_method("ToEulerAnglesYXZ", |_, this, ()| {
-            Ok(Quat::from_mat4(&this.0).to_euler(EulerRot::ZXY))
+            let (ry, rx, rz) = Quat::from_mat4(&this.0).to_euler(EulerRot::YXZ);
+            Ok((rx, ry, rz))
         });
         methods.add_method("ToOrientation", |_, this, ()| {
-            Ok(Quat::from_mat4(&this.0).to_euler(EulerRot::ZXY))
+            let (ry, rx, rz) = Quat::from_mat4(&this.0).to_euler(EulerRot::YXZ);
+            Ok((rx, ry, rz))
         });
         methods.add_method("ToAxisAngle", |_, this, ()| {
             let (axis, angle) = Quat::from_mat4(&this.0).to_axis_angle();
@@ -328,4 +332,23 @@ impl From<CFrame> for DomCFrame {
             ),
         }
     }
+}
+
+/**
+    Creates a matrix at the position `from`, looking towards `to`.
+
+    [`glam`] does provide functions such as [`look_at_lh`], [`look_at_rh`] and more but
+    they all create view matrices for camera transforms which is not what we want here.
+*/
+fn look_at(from: Vec3, to: Vec3, up: Vec3) -> Mat4 {
+    let dir = (to - from).normalize();
+    let xaxis = up.cross(dir).normalize();
+    let yaxis = dir.cross(xaxis).normalize();
+
+    Mat4::from_cols(
+        Vec3::new(xaxis.x, yaxis.x, dir.x).extend(0.0),
+        Vec3::new(xaxis.y, yaxis.y, dir.y).extend(0.0),
+        Vec3::new(xaxis.z, yaxis.z, dir.z).extend(0.0),
+        from.extend(1.0),
+    )
 }
