@@ -12,21 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Functions such as `print`, `warn`, ... now respect `__tostring` metamethods
+-   Functions such as `print`, `warn`, ... now respect `__tostring` metamethods.
 
 ### Fixed
 
--   Fixed issues with CFrame math operations
+-   Fixed access of roblox instance properties such as `Workspace.Terrain`, `game.Workspace` that are actually links to child instances. <br />
+    These properties are always guaranteed to exist, and they are not always properly set, meaning they must be found through an internal lookup.
+-   Fixed issues with CFrame math operations.
 
 ## `0.6.4` - March 26th, 2023
 
 ### Fixed
 
--   Fixed instances with attributes not saving if they contain integer attributes
--   Fixed attributes not being set properly if the instance has an empty attributes property
--   Fixed error messages for reading & writing roblox files not containing the full error message
--   Fixed crash when trying to access an instance reference property that points to a destroyed instance
--   Fixed crash when trying to save instances that contain unsupported attribute types
+-   Fixed instances with attributes not saving if they contain integer attributes.
+-   Fixed attributes not being set properly if the instance has an empty attributes property.
+-   Fixed error messages for reading & writing roblox files not containing the full error message.
+-   Fixed crash when trying to access an instance reference property that points to a destroyed instance.
+-   Fixed crash when trying to save instances that contain unsupported attribute types.
 
 ## `0.6.3` - March 26th, 2023
 
@@ -37,9 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   Fixed accessing a destroyed instance printing an error message even if placed inside a pcall
+-   Fixed accessing a destroyed instance printing an error message even if placed inside a pcall.
 -   Fixed cloned instances not having correct instance reference properties set (`ObjectValue.Value`, `Motor6D.Part0`, ...)
--   Fixed `Instance::GetDescendants` returning the same thing as `Instance::GetChildren` (oops)
+-   Fixed `Instance::GetDescendants` returning the same thing as `Instance::GetChildren`.
 
 ## `0.6.2` - March 25th, 2023
 
@@ -47,22 +49,22 @@ This release adds some new features and fixes for the `roblox` built-in.
 
 ### Added
 
--   Added `GetAttribute`, `GetAttributes` and `SetAttribute` methods for instances
--   Added support for getting & setting properties that are instance references
+-   Added `GetAttribute`, `GetAttributes` and `SetAttribute` methods for instances.
+-   Added support for getting & setting properties that are instance references.
 
 ### Changed
 
--   Improved handling of optional property types such as optional cframes & default physical properties
+-   Improved handling of optional property types such as optional cframes & default physical properties.
 
 ### Fixed
 
--   Fixed handling of instance properties that are serialized as binary strings
+-   Fixed handling of instance properties that are serialized as binary strings.
 
 ## `0.6.1` - March 22nd, 2023
 
 ### Fixed
 
--   Fixed `writePlaceFile` and `writeModelFile` in the new `roblox` built-in making mysterious "ROOT" instances
+-   Fixed `writePlaceFile` and `writeModelFile` in the new `roblox` built-in making mysterious "ROOT" instances.
 
 ## `0.6.0` - March 22nd, 2023
 

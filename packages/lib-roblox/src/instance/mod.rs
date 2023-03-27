@@ -25,6 +25,7 @@ use crate::{
 
 pub(crate) mod collection_service;
 pub(crate) mod data_model;
+pub(crate) mod workspace;
 
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
 const PROPERTY_NAME_TAGS: &str = "Tags";
@@ -34,8 +35,8 @@ static INTERNAL_DOM: Lazy<RwLock<WeakDom>> =
 
 #[derive(Debug, Clone)]
 pub struct Instance {
-    dom_ref: DomRef,
-    class_name: String,
+    pub(crate) dom_ref: DomRef,
+    pub(crate) class_name: String,
 }
 
 impl Instance {
@@ -45,7 +46,7 @@ impl Instance {
         Panics if the instance does not exist in the internal dom,
         or if the given dom object ref points to the dom root.
     */
-    fn new(dom_ref: DomRef) -> Self {
+    pub(crate) fn new(dom_ref: DomRef) -> Self {
         let dom = INTERNAL_DOM
             .try_read()
             .expect("Failed to get read access to document");
@@ -93,7 +94,7 @@ impl Instance {
 
         An orphaned instance is an instance at the root of a weak dom.
     */
-    fn new_orphaned(class_name: impl AsRef<str>) -> Self {
+    pub(crate) fn new_orphaned(class_name: impl AsRef<str>) -> Self {
         let mut dom = INTERNAL_DOM
             .try_write()
             .expect("Failed to get write access to document");
@@ -842,6 +843,13 @@ impl Instance {
 }
 
 impl LuaUserData for Instance {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        // Here we add inheritance-like behavior for instances by creating
+        // fields that are restricted to specific classnames / base classes
+        data_model::add_fields(fields);
+        workspace::add_fields(fields);
+    }
+
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
             this.ensure_not_destroyed()?;

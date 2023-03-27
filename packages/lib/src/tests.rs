@@ -123,10 +123,12 @@ create_tests! {
     roblox_files_write_place: "roblox/files/writePlaceFile",
 
     roblox_instance_attributes: "roblox/instance/attributes",
-    roblox_instance_datamodel: "roblox/instance/datamodel",
     roblox_instance_new: "roblox/instance/new",
     roblox_instance_properties: "roblox/instance/properties",
     roblox_instance_tags: "roblox/instance/tags",
+
+    roblox_instance_classes_data_model: "roblox/instance/classes/DataModel",
+    roblox_instance_classes_workspace: "roblox/instance/classes/Workspace",
 
     roblox_instance_methods_clear_all_children: "roblox/instance/methods/ClearAllChildren",
     roblox_instance_methods_clone: "roblox/instance/methods/Clone",

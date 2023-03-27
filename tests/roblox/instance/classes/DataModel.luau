@@ -3,20 +3,26 @@ local Instance = roblox.Instance
 
 local game = Instance.new("DataModel")
 
-assert(game:FindService("Workspace") == nil)
-assert(game:GetService("Workspace") ~= nil)
-assert(game:FindService("Workspace") ~= nil)
+-- Workspace should always exist as a "Workspace" property, or be created when accessed
+
+assert(game.Workspace ~= nil)
+assert(game.Workspace:IsA("Workspace"))
+assert(game.Workspace == game:FindFirstChildOfClass("Workspace"))
+
+-- GetService and FindService should work, GetService should create services that don't exist
 
 assert(game:FindService("CSGDictionaryService") == nil)
 assert(game:GetService("CSGDictionaryService") ~= nil)
 assert(game:FindService("CSGDictionaryService") ~= nil)
+
+-- Service names should be strict and not allow weird characters or substrings
 
 assert(not pcall(function()
 	game:GetService("wrorokspacey")
 end))
 
 assert(not pcall(function()
-	game:GetService("work-space")
+	game:GetService("Work-space")
 end))
 
 assert(not pcall(function()
