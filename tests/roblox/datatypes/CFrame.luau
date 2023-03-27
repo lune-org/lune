@@ -1,37 +1,40 @@
 local roblox = require("@lune/roblox") :: any
 local CFrame = roblox.CFrame
 local Vector3 = roblox.Vector3
+local Instance = roblox.Instance
 
 local COMPONENT_NAMES =
 	{ "X", "Y", "Z", "R00", "R01", "R02", "R10", "R11", "R12", "R20", "R21", "R22" }
+
+local function formatCFrame(cf)
+	local rot = Vector3.new(cf:ToOrientation())
+	return string.format(
+		"%.2f, %.2f, %.2f | %.2f, %.2f, %.2f",
+		cf.Position.X,
+		cf.Position.Y,
+		cf.Position.Z,
+		math.deg(rot.X),
+		math.deg(rot.Y),
+		math.deg(rot.Z)
+	)
+end
+
 local function assertEq(actual, expected)
 	local actComps: { number } = { actual:GetComponents() }
 	local expComps: { number } = { expected:GetComponents() }
 	for index, actComp in actComps do
 		local expComp = expComps[index]
 		if math.abs(expComp - actComp) >= (1 / 512) then
-			local r0 = Vector3.new(actual:ToOrientation())
-			local r1 = Vector3.new(expected:ToOrientation())
 			error(
 				string.format(
-					"Expected component '%s' to be %.2f, got %.2f"
-						.. "\nActual:   %.2f, %.2f, %.2f | %.2f, %.2f, %.2f"
-						.. "\nExpected: %.2f, %.2f, %.2f | %.2f, %.2f, %.2f",
+					"Expected component '%s' to be %.4f, got %.4f"
+						.. "\nActual:   %s"
+						.. "\nExpected: %s",
 					COMPONENT_NAMES[index],
 					expComp,
 					actComp,
-					actual.Position.X,
-					actual.Position.Y,
-					actual.Position.Z,
-					math.deg(r0.X),
-					math.deg(r0.Y),
-					math.deg(r0.Z),
-					expected.Position.X,
-					expected.Position.Y,
-					expected.Position.Z,
-					math.deg(r1.X),
-					math.deg(r1.Y),
-					math.deg(r1.Z)
+					formatCFrame(actual),
+					formatCFrame(expected)
 				)
 			)
 		end
@@ -118,3 +121,19 @@ assertEq(
 )
 
 -- TODO: More methods
+
+-- CFrames on instances
+
+local part0 = Instance.new("Part")
+local part1 = Instance.new("MeshPart")
+
+part0.CFrame = CFrame.fromOrientation(-math.rad(45), math.rad(180), 0)
+part1.CFrame = CFrame.new(0, 0, -5) * CFrame.fromOrientation(0, math.rad(180), 0)
+
+local weld = Instance.new("Weld")
+weld.C0 = part0.CFrame:ToObjectSpace(part1.CFrame)
+weld.Part0 = part0
+weld.Part1 = part1
+weld.Parent = part1
+
+assertEq(weld.C0, CFrame.new(0, -3.5355, 3.5355) * CFrame.fromOrientation(math.rad(45), 0, 0))
