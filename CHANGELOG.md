@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.6.5` - March 27th, 2023
 
 ### Changed
 
@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Fixed access of roblox instance properties such as `Workspace.Terrain`, `game.Workspace` that are actually links to child instances. <br />
     These properties are always guaranteed to exist, and they are not always properly set, meaning they must be found through an internal lookup.
--   Fixed issues with CFrame math operations.
+-   Fixed issues with the `CFrame.lookAt` and `CFrame.new(Vector3, Vector3)` constructors.
+-   Fixed issues with CFrame math operations returning rotation angles in the wrong order.
 
 ## `0.6.4` - March 26th, 2023
 

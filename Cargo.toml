@@ -5,7 +5,7 @@ default-members = ["packages/cli"]
 # Package config values shared across all packages,
 # such as version, license, and other metadata
 [workspace.package]
-version = "0.6.4"
+version = "0.6.5"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
