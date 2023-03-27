@@ -1,15 +1,3 @@
-<!-- markdownlint-disable MD033 -->
-<!-- markdownlint-disable MD026 -->
-
-# ✏️ Writing Lune Scripts
-
-If you've already written some version of Lua (or Luau) scripts before, this walkthrough will make you feel right at home.
-
-Once you have a script you want to run, head over to the [Running Scripts](https://lune.gitbook.io/lune/home/running-scripts) page.
-
-## Hello, Lune!
-
-```lua
 --[[
 	EXAMPLE #1
 
@@ -25,8 +13,6 @@ if #process.args > 0 then
 else
 	print("Got no arguments ☹️")
 end
-
-
 
 --[[
 	EXAMPLE #2
@@ -44,8 +30,6 @@ if confirmed == false then
 else
 	print("Confirmed!")
 end
-
-
 
 --[[
 	EXAMPLE #3
@@ -68,42 +52,8 @@ for key, value in process.env do
 	print(string.format("[%s] %s", box, key))
 end
 
-
-
 --[[
 	EXAMPLE #4
-
-	Writing a module
-
-	Modularizing and splitting up your code is Lune is very straight-forward,
-	in contrast to other scripting languages and shells such as bash
-]]
-
-local module = {}
-
-function module.sayHello()
-	print("Hello, Lune! 🌙")
-end
-
-return module
-
-
-
---[[
-	EXAMPLE #5
-
-	Using a function from another module / script
-
-	Lune has path-relative imports, similar to other popular languages such as JavaScript
-]]
-
-local module = require("../modules/module")
-module.sayHello()
-
-
-
---[[
-	EXAMPLE #6
 
 	Spawning concurrent tasks
 
@@ -124,10 +74,8 @@ task.delay(5, function()
 	print("Goodbye again! 🌙")
 end)
 
-
-
 --[[
-	EXAMPLE #7
+	EXAMPLE #5
 
 	Read files in the current directory
 
@@ -166,10 +114,8 @@ for _, entry in entries do
 	end
 end
 
-
-
 --[[
-	EXAMPLE #8
+	EXAMPLE #6
 
 	Call out to another program / executable
 
@@ -182,10 +128,8 @@ local result = process.spawn("ping", {
 	"-c 4",
 })
 
-
-
 --[[
-	EXAMPLE #9
+	EXAMPLE #7
 
 	Using the result of a spawned process, exiting the process
 
@@ -209,10 +153,8 @@ else
 	process.exit(result.code)
 end
 
-
-
 --[[
-	EXAMPLE #10
+	EXAMPLE #8
 
 	Using the built-in networking library, encoding & decoding json
 ]]
@@ -249,10 +191,8 @@ assert(apiResponse.title == "foo", "Invalid json response")
 assert(apiResponse.body == "bar", "Invalid json response")
 print("Got valid JSON response with changes applied")
 
-
-
 --[[
-	EXAMPLE #11
+	EXAMPLE #9
 
 	Using the stdio library to print pretty
 ]]
@@ -276,51 +216,10 @@ warn({
 
 print(stdio.color("blue") .. string.rep("—", 22) .. stdio.color("reset"))
 
-
-
 --[[
-	EXAMPLE #12
+	EXAMPLE #10
 
 	Saying goodbye 😔
 ]]
 
 print("Goodbye, lune! 🌙")
-
-```
-
-More real-world examples of how to write Lune scripts can be found in the [examples](https://github.com/filiptibell/lune/blob/main/.lune/examples/) folder.
-
-Documentation for individual APIs and types can be found in "API Reference" in the sidebar of this wiki.
-
-## Extras
-
-### 🔀 Example translation from Bash
-
-```bash
-#!/bin/bash
-VALID=true
-COUNT=1
-while [ $VALID ]
-do
-	echo $COUNT
-	if [ $COUNT -eq 5 ];
-	then
-		break
-	fi
-	((COUNT++))
-done
-```
-
-**_With Lune & Luau:_**
-
-```lua
-local valid = true
-local count = 1
-while valid do
-	print(count)
-	if count == 5 then
-		break
-	end
-	count += 1
-end
-```

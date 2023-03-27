@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+-   Functions such as `print`, `warn`, ... now respect `__tostring` metamethods
+
 ### Fixed
 
 -   Fixed issues with CFrame math operations

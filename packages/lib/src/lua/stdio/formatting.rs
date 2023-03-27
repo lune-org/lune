@@ -127,6 +127,8 @@ pub fn pretty_format_value(
         LuaValue::Table(ref tab) => {
             if depth >= MAX_FORMAT_DEPTH {
                 write!(buffer, "{}", STYLE_DIM.apply_to("{ ... }"))?;
+            } else if let Some(s) = call_table_tostring_metamethod(tab) {
+                write!(buffer, "{s}")?;
             } else {
                 let mut is_empty = false;
                 let depth_indent = INDENT.repeat(depth);
@@ -172,6 +174,8 @@ pub fn pretty_format_value(
                 // to lua and pretend to be normal lua
                 // threads for compatibility purposes
                 write!(buffer, "{}", COLOR_PURPLE.apply_to("<thread>"))?
+            } else if let Some(s) = call_userdata_tostring_metamethod(u) {
+                write!(buffer, "{s}")?
             } else {
                 write!(buffer, "{}", COLOR_PURPLE.apply_to("<userdata>"))?
             }
@@ -432,4 +436,32 @@ fn fix_error_nitpicks(full_message: String) -> String {
             "'[C]' - function require - function require",
             "'[C]' - function require",
         )
+}
+
+fn call_table_tostring_metamethod<'a>(tab: &'a LuaTable<'a>) -> Option<String> {
+    let f = match tab.get_metatable() {
+        None => None,
+        Some(meta) => match meta.get::<_, LuaFunction>(LuaMetaMethod::ToString.name()) {
+            Ok(method) => Some(method),
+            Err(_) => None,
+        },
+    }?;
+    match f.call::<_, String>(()) {
+        Ok(res) => Some(res),
+        Err(_) => None,
+    }
+}
+
+fn call_userdata_tostring_metamethod<'a>(tab: &'a LuaAnyUserData<'a>) -> Option<String> {
+    let f = match tab.get_metatable() {
+        Err(_) => None,
+        Ok(meta) => match meta.get::<_, LuaFunction>(LuaMetaMethod::ToString.name()) {
+            Ok(method) => Some(method),
+            Err(_) => None,
+        },
+    }?;
+    match f.call::<_, String>(()) {
+        Ok(res) => Some(res),
+        Err(_) => None,
+    }
 }
