@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap, VecDeque},
     fmt,
+    hash::{Hash, Hasher},
     sync::RwLock,
 };
 
@@ -1133,6 +1134,12 @@ impl LuaUserData for Instance {
         // methods that are restricted to specific classnames / base classes
         data_model::add_methods(methods);
         collection_service::add_methods(methods);
+    }
+}
+
+impl Hash for Instance {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.dom_ref.hash(state)
     }
 }
 
