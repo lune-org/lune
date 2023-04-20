@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+-   The `_VERSION` global now follows a consistent format `Lune x.y.z+luau` to allow libraries to check against it for version requirements.
+
+    Examples:
+
+    -   `Lune 0.0.0+0`
+    -   `Lune 1.0.0+500`
+    -   `Lune 0.11.22+9999`
+
 ### Fixed
 
 -   Fixed using instances as keys in tables

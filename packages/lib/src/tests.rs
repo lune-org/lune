@@ -75,6 +75,7 @@ create_tests! {
     global_pcall: "globals/pcall",
     global_type: "globals/type",
     global_typeof: "globals/typeof",
+    global_version: "globals/version",
     serde_json_decode: "serde/json/decode",
     serde_json_encode: "serde/json/encode",
     serde_toml_decode: "serde/toml/decode",

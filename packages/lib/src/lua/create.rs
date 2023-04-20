@@ -119,6 +119,26 @@ pub fn create() -> LuaResult<&'static Lua> {
         .set_environment(dbg_trace_env)?
         .into_function()?;
     lua.set_named_registry_value("dbg.trace", dbg_trace_fn)?;
+    // Modify the _VERSION global to also contain the current version of Lune
+    let luau_version_full = globals
+        .get::<_, LuaString>("_VERSION")
+        .expect("Missing _VERSION global");
+    let luau_version = luau_version_full
+        .to_str()?
+        .strip_prefix("Luau 0.")
+        .expect("_VERSION global is formatted incorrectly")
+        .trim();
+    if luau_version.is_empty() {
+        panic!("_VERSION global is missing version number")
+    }
+    globals.set(
+        "_VERSION",
+        lua.create_string(&format!(
+            "Lune {lune}+{luau}",
+            lune = env!("CARGO_PKG_VERSION"),
+            luau = luau_version,
+        ))?,
+    )?;
     // All done
     Ok(lua)
 }
