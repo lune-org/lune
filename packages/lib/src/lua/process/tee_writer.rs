@@ -59,6 +59,6 @@ where
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        self.project().writer.as_mut().poll_flush(cx)
+        self.project().writer.as_mut().poll_shutdown(cx)
     }
 }
