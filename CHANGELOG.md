@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   `Lune 1.0.0+500`
     -   `Lune 0.11.22+9999`
 
+-   Updated to Luau version `0.573`
+-   Updated `rbx-dom` to support reading and writing `Font` datatypes
+
 ### Fixed
 
 -   Fixed using instances as keys in tables
