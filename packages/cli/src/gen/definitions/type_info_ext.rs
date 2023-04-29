@@ -6,7 +6,10 @@ use full_moon::{
     ShortString,
 };
 
-use super::kind::DefinitionsItemKind;
+use super::{
+    item::{DefinitionsItemFunctionArg, DefinitionsItemFunctionRet},
+    kind::DefinitionsItemKind,
+};
 
 pub(crate) trait TypeInfoExt {
     fn is_fn(&self) -> bool;
@@ -20,7 +23,12 @@ pub(crate) trait TypeInfoExt {
     fn extract_args_normalized(
         &self,
         type_lookup_table: &HashMap<String, TypeInfo>,
-    ) -> Option<Vec<String>>;
+    ) -> Option<Vec<DefinitionsItemFunctionArg>>;
+    // fn extract_rets(&self) -> Vec<TypeArgument>;
+    // fn extract_rets_normalized(
+    //     &self,
+    //     type_lookup_table: &HashMap<String, TypeInfo>,
+    // ) -> Option<Vec<DefinitionsItemFunctionRet>>;
 }
 
 impl TypeInfoExt for TypeInfo {
@@ -200,55 +208,32 @@ impl TypeInfoExt for TypeInfo {
     fn extract_args_normalized(
         &self,
         type_lookup_table: &HashMap<String, TypeInfo>,
-    ) -> Option<Vec<String>> {
+    ) -> Option<Vec<DefinitionsItemFunctionArg>> {
         if self.is_fn() {
-            let separator = format!(" {} ", Symbol::Pipe);
             let args_stringified_not_normalized = self
                 .extract_args()
                 .iter()
                 .map(|type_arg| {
-                    type_arg
-                        .type_info()
-                        .stringify_simple(Some(self), type_lookup_table)
+                    (
+                        type_arg
+                            .name()
+                            .map_or_else(|| "_".to_string(), |n| n.0.to_string()),
+                        type_arg.type_info().to_string(),
+                        type_arg
+                            .type_info()
+                            .stringify_simple(Some(self), type_lookup_table),
+                    )
                 })
                 .collect::<Vec<_>>();
-            let mut args_stringified = Vec::new();
-            for arg_string in args_stringified_not_normalized {
-                let arg_parts = arg_string.split(&separator).collect::<Vec<_>>();
-                // Check if we got any optional arg, if so then the entire possible
-                // union of args will be optional when merged together / normalized
-                let is_optional = arg_parts
-                    .iter()
-                    .any(|part| part == &"nil" || part.ends_with('?'));
-                // Get rid of any nils or optional markers since we keep track of it above
-                let mut arg_parts_no_nils = arg_parts
-                    .iter()
-                    .filter_map(|arg_part| {
-                        if arg_part == &"nil" {
-                            None
-                        } else {
-                            Some(arg_part.trim_end_matches('?'))
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                arg_parts_no_nils.sort_unstable(); // Sort the args to be able to dedup
-                arg_parts_no_nils.dedup(); // Deduplicate types that are the exact same shape
-                if is_optional {
-                    if arg_parts_no_nils.len() > 1 {
-                        // A union of args that is nillable should be enclosed in parens to make
-                        // it more clear that the entire arg is nillable and not just the last type
-                        args_stringified.push(format!("({})?", arg_parts_no_nils.join(&separator)));
-                    } else {
-                        // Just one nillable arg, does not need any parens
-                        args_stringified.push(format!("{}?", arg_parts_no_nils.first().unwrap()));
-                    }
-                } else if arg_parts_no_nils.len() > 1 {
-                    args_stringified.push(arg_parts_no_nils.join(&separator).to_string());
-                } else {
-                    args_stringified.push((*arg_parts_no_nils.first().unwrap()).to_string());
-                }
+            let mut args = Vec::new();
+            for (arg_name, arg_typedef, arg_typedef_simplified) in args_stringified_not_normalized {
+                args.push(DefinitionsItemFunctionArg::new(
+                    arg_name,
+                    arg_typedef,
+                    normalize_type(&arg_typedef_simplified),
+                ));
             }
-            Some(args_stringified)
+            Some(args)
         } else {
             None
         }
@@ -310,4 +295,39 @@ fn merge_type_argument_vecs(
         }
     }
     result
+}
+
+fn normalize_type(simplified: &str) -> String {
+    let separator = format!(" {} ", Symbol::Pipe);
+    let arg_parts = simplified.split(&separator).collect::<Vec<_>>();
+    // Check if we got any optional arg, if so then the entire possible
+    // union of args will be optional when merged together / normalized
+    let is_optional = arg_parts
+        .iter()
+        .any(|part| part == &"nil" || part.ends_with('?'));
+    // Get rid of any nils or optional markers since we keep track of it above
+    let mut arg_parts_no_nils = arg_parts
+        .iter()
+        .filter_map(|arg_part| {
+            if arg_part == &"nil" {
+                None
+            } else {
+                Some(arg_part.trim_end_matches('?'))
+            }
+        })
+        .collect::<Vec<_>>();
+    arg_parts_no_nils.sort_unstable(); // Sort the args to be able to dedup
+    arg_parts_no_nils.dedup(); // Deduplicate types that are the exact same shape
+    if is_optional {
+        if arg_parts_no_nils.len() > 1 {
+            // A union of args that is nillable should be enclosed in parens to make
+            // it more clear that the entire arg is nillable and not just the last type
+            format!("({})?", arg_parts_no_nils.join(&separator))
+        } else {
+            // Just one nillable arg, does not need any parens
+            format!("{}?", arg_parts_no_nils.first().unwrap())
+        }
+    } else {
+        arg_parts_no_nils.join(&separator)
+    }
 }

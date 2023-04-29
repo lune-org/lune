@@ -5,6 +5,47 @@ use serde::{Deserialize, Serialize};
 use super::kind::DefinitionsItemKind;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DefinitionsItemFunctionArg {
+    pub name: String,
+    pub typedef: String,
+    pub typedef_simple: String,
+}
+
+impl DefinitionsItemFunctionArg {
+    pub fn new<N, T, TS>(name: N, typedef: T, typedef_simple: TS) -> Self
+    where
+        N: Into<String>,
+        T: Into<String>,
+        TS: Into<String>,
+    {
+        Self {
+            name: name.into(),
+            typedef: typedef.into(),
+            typedef_simple: typedef_simple.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DefinitionsItemFunctionRet {
+    pub typedef: String,
+    pub typedef_simple: String,
+}
+
+impl DefinitionsItemFunctionRet {
+    pub fn new<T, TS>(typedef: T, typedef_simple: TS) -> Self
+    where
+        T: Into<String>,
+        TS: Into<String>,
+    {
+        Self {
+            typedef: typedef.into(),
+            typedef_simple: typedef_simple.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DefinitionsItem {
     #[serde(skip_serializing_if = "skip_serialize_is_false")]
@@ -19,7 +60,9 @@ pub struct DefinitionsItem {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) children: Vec<DefinitionsItem>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub(super) arg_types: Vec<String>,
+    pub(super) args: Vec<DefinitionsItemFunctionArg>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) rets: Vec<DefinitionsItemFunctionRet>,
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -108,7 +151,11 @@ impl DefinitionsItem {
         &self.children
     }
 
-    pub fn arg_types(&self) -> Vec<&str> {
-        self.arg_types.iter().map(String::as_str).collect()
+    pub fn args(&self) -> Vec<&DefinitionsItemFunctionArg> {
+        self.args.iter().collect()
+    }
+
+    pub fn rets(&self) -> Vec<&DefinitionsItemFunctionRet> {
+        self.rets.iter().collect()
     }
 }

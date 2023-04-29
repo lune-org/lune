@@ -78,7 +78,7 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
             .with_extension("md");
         let mut contents = String::new();
         write!(contents, "{GENERATED_COMMENT_TAG}\n\n")?;
-        generate_markdown_documentation(&mut contents, &category_item)?;
+        generate_markdown_documentation(&mut contents, &category_item, 0)?;
         files_to_write.push((path, post_process_docs(contents)));
     }
     // Write all dirs and files only when we know generation was successful
@@ -113,7 +113,11 @@ fn get_name(item: &DefinitionsItem) -> Result<String> {
         .context("Definitions item is missing a name")
 }
 
-fn generate_markdown_documentation(contents: &mut String, item: &DefinitionsItem) -> Result<()> {
+fn generate_markdown_documentation(
+    contents: &mut String,
+    item: &DefinitionsItem,
+    depth: usize,
+) -> Result<()> {
     match item.kind() {
         DefinitionsItemKind::Table
         | DefinitionsItemKind::Property
@@ -126,13 +130,34 @@ fn generate_markdown_documentation(contents: &mut String, item: &DefinitionsItem
             )?;
         }
         DefinitionsItemKind::Description => {
+            let desc = item.get_value().context("Description is missing a value")?;
             write!(
                 contents,
                 "\n{}\n",
-                item.get_value().context("Description is missing a value")?
+                if depth >= 2 {
+                    // HACK: We know our typedefs are formatted like this and
+                    // it looks nicer to have this bolding instead of two
+                    // headers using "###" in the function definition
+                    desc.replace("### Example usage", "**Example usage:**")
+                } else {
+                    desc.to_string()
+                }
             )?;
         }
         _ => {}
+    }
+    if item.kind().is_function() && !item.args().is_empty() {
+        let args = item
+            .args()
+            .iter()
+            .map(|arg| format!("{}: {}", arg.name, arg.typedef))
+            .collect::<Vec<_>>();
+        write!(
+            contents,
+            "\n```lua\nfunction {}({})\n```\n",
+            item.get_name().unwrap_or("_"),
+            args.join(", ")
+        )?;
     }
     let descriptions = item
         .children()
@@ -150,19 +175,19 @@ fn generate_markdown_documentation(contents: &mut String, item: &DefinitionsItem
         .filter(|child| child.is_function())
         .collect::<Vec<_>>();
     for description in descriptions {
-        generate_markdown_documentation(contents, description)?;
+        generate_markdown_documentation(contents, description, depth + 1)?;
     }
     if !properties.is_empty() {
         write!(contents, "\n\n---\n\n## Properties\n\n")?;
     }
     for property in properties {
-        generate_markdown_documentation(contents, property)?;
+        generate_markdown_documentation(contents, property, depth + 1)?;
     }
     if !functions.is_empty() {
         write!(contents, "\n\n---\n\n## Functions\n\n")?;
     }
     for function in functions {
-        generate_markdown_documentation(contents, function)?;
+        generate_markdown_documentation(contents, function, depth + 1)?;
     }
     Ok(())
 }

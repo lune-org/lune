@@ -163,7 +163,7 @@ export type NetWebSocket = {
 	local response = net.request({
 		url = "https://dummyjson.com/products/add",
 		method = "POST",
-  		headers = { ["Content-Type"] = "application/json" },
+		headers = { ["Content-Type"] = "application/json" },
 		body = net.jsonEncode({
 			title = "Cool Pencil",
 		})

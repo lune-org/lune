@@ -39,26 +39,30 @@ fn parse_moonwave_style_tag(line: &str) -> Option<DefinitionsItem> {
 }
 
 pub(super) fn parse_moonwave_style_comment(comment: &str) -> Vec<DefinitionsItem> {
-    let lines = comment.lines().map(str::trim).collect::<Vec<_>>();
-    let indent_len = lines.iter().fold(usize::MAX, |acc, line| {
-        let first = line.chars().enumerate().find_map(|(idx, ch)| {
-            if ch.is_alphanumeric() {
-                Some(idx)
+    let no_tabs = comment.replace('\t', "    ");
+    let lines = no_tabs.split('\n').collect::<Vec<_>>();
+    let indent_len =
+        lines.iter().fold(usize::MAX, |acc, line| {
+            let first = line.chars().enumerate().find_map(|(idx, ch)| {
+                if ch.is_whitespace() {
+                    None
+                } else {
+                    Some(idx)
+                }
+            });
+            if let Some(first_non_whitespace) = first {
+                acc.min(first_non_whitespace)
             } else {
-                None
+                acc
             }
         });
-        if let Some(first_alphanumeric) = first {
-            if first_alphanumeric > 0 {
-                acc.min(first_alphanumeric - 1)
-            } else {
-                0
-            }
+    let unindented_lines = lines.iter().map(|line| {
+        if line.chars().any(|c| !c.is_whitespace()) {
+            &line[indent_len..]
         } else {
-            acc
+            line
         }
     });
-    let unindented_lines = lines.iter().map(|line| &line[indent_len..]);
     let mut doc_items = Vec::new();
     let mut doc_lines = Vec::new();
     for line in unindented_lines {
@@ -72,7 +76,7 @@ pub(super) fn parse_moonwave_style_comment(comment: &str) -> Vec<DefinitionsItem
         doc_items.push(
             DefinitionsItemBuilder::new()
                 .with_kind(DefinitionsItemKind::Description)
-                .with_value(doc_lines.join("\n").trim())
+                .with_value(doc_lines.join("\n"))
                 .build()
                 .unwrap(),
         );

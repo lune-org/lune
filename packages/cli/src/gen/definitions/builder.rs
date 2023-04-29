@@ -1,6 +1,9 @@
 use anyhow::{bail, Result};
 
-use super::{item::DefinitionsItem, kind::DefinitionsItemKind};
+use super::{
+    item::{DefinitionsItem, DefinitionsItemFunctionArg, DefinitionsItemFunctionRet},
+    kind::DefinitionsItemKind,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct DefinitionsItemBuilder {
@@ -10,7 +13,8 @@ pub struct DefinitionsItemBuilder {
     meta: Option<String>,
     value: Option<String>,
     children: Vec<DefinitionsItem>,
-    arg_types: Vec<String>,
+    args: Vec<DefinitionsItemFunctionArg>,
+    rets: Vec<DefinitionsItemFunctionRet>,
 }
 
 #[allow(dead_code)]
@@ -57,14 +61,26 @@ impl DefinitionsItemBuilder {
         self
     }
 
-    pub fn with_arg_type<S: AsRef<str>>(mut self, arg_type: S) -> Self {
-        self.arg_types.push(arg_type.as_ref().to_string());
+    pub fn with_arg(mut self, arg: DefinitionsItemFunctionArg) -> Self {
+        self.args.push(arg);
         self
     }
 
-    pub fn with_arg_types<S: AsRef<str>>(mut self, arg_types: &[S]) -> Self {
-        for arg_type in arg_types {
-            self.arg_types.push(arg_type.as_ref().to_string());
+    pub fn with_args(mut self, args: &[DefinitionsItemFunctionArg]) -> Self {
+        for arg in args {
+            self.args.push(arg.clone());
+        }
+        self
+    }
+
+    pub fn with_ret(mut self, ret: DefinitionsItemFunctionRet) -> Self {
+        self.rets.push(ret);
+        self
+    }
+
+    pub fn with_rets(mut self, rets: &[DefinitionsItemFunctionRet]) -> Self {
+        for ret in rets {
+            self.rets.push(ret.clone());
         }
         self
     }
@@ -80,7 +96,8 @@ impl DefinitionsItemBuilder {
                 meta: self.meta,
                 value: self.value,
                 children,
-                arg_types: self.arg_types,
+                args: self.args,
+                rets: self.rets,
             })
         } else {
             bail!("Missing doc item kind")

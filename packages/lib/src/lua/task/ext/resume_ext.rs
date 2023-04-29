@@ -42,7 +42,7 @@ impl TaskSchedulerResumeExt for TaskScheduler<'_> {
     */
     async fn resume_queue(&self) -> TaskSchedulerState {
         let current = TaskSchedulerState::new(self);
-        let result = if current.num_blocking > 0 {
+        if current.num_blocking > 0 {
             // 1. Blocking tasks
             resume_next_blocking_task(self, None)
         } else if current.num_futures > 0 || current.num_background > 0 {
@@ -57,8 +57,7 @@ impl TaskSchedulerResumeExt for TaskScheduler<'_> {
             // a busy loop to prevent cpu usage from going to 100%
             sleep(Duration::from_millis(1)).await;
             TaskSchedulerState::new(self)
-        };
-        result
+        }
     }
 }
 

@@ -115,7 +115,8 @@ fn doc_item_to_selene_yaml_mapping(item: &DefinitionsItem) -> Result<YamlMapping
             );
         }
         let mut args = YamlSequence::new();
-        for arg_type in item.arg_types() {
+        for arg in item.args() {
+            let arg_type: &str = arg.typedef_simple.as_ref();
             let mut arg_mapping = YamlMapping::new();
             let (type_str, mut type_opt) = match arg_type.strip_suffix('?') {
                 Some(stripped) => (stripped, true),

@@ -112,7 +112,7 @@ impl DefinitionsParser {
             .type_info
             .extract_args_normalized(&self.found_top_level_types)
         {
-            builder = builder.with_arg_types(&args);
+            builder = builder.with_args(&args);
         }
         if let TypeInfo::Table { fields, .. } = item.type_info {
             for field in fields.iter() {
@@ -156,5 +156,5 @@ fn find_token_moonwave_comment(token: &TokenReference) -> Option<String> {
             _ => None,
         })
         .last()
-        .map(|comment| comment.trim().to_string())
+        .map(ToString::to_string)
 }
