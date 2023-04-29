@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+-   Fixed `_G` not being a readable & writable table
+-   Fixed `_G` containing normal globals such as `print`, `math`, ...
 -   Fixed using instances as keys in tables
 
 ## `0.6.5` - March 27th, 2023

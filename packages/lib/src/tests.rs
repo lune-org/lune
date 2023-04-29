@@ -69,6 +69,7 @@ create_tests! {
     require_nested: "require/tests/nested",
     require_parents: "require/tests/parents",
     require_siblings: "require/tests/siblings",
+    global_g_table: "globals/_G",
     // TODO: Uncomment this test, it is commented out right
     // now to let CI pass so that we can make a new release
     // global_coroutine: "globals/coroutine",

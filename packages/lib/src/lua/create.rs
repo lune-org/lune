@@ -81,6 +81,9 @@ pub fn create() -> LuaResult<&'static Lua> {
     let table: LuaTable = globals.raw_get("table")?;
     let string: LuaTable = globals.raw_get("string")?;
     let coroutine: LuaTable = globals.get("coroutine")?;
+    // Create a _G table that is separate from our built-in globals
+    let global_table = lua.create_table()?;
+    globals.set("_G", global_table)?;
     // Store original lua global functions in the registry so we can use
     // them later without passing them around and dealing with lifetimes
     lua.set_named_registry_value("print", globals.get::<_, LuaFunction>("print")?)?;

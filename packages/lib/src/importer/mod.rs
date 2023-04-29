@@ -40,11 +40,10 @@ pub fn create(lua: &'static Lua, args: Vec<String>) -> LuaResult<()> {
         ("printinfo", lua.create_function(top_level::printinfo)?),
     ];
 
-    // Set top-level globals and seal them
+    // Set top-level globals
     for (name, global) in globals {
         lua_globals.set(name, global)?;
     }
-    lua_globals.set_readonly(true);
 
     Ok(())
 }
