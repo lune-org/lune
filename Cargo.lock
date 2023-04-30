@@ -538,6 +538,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_logger"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
+dependencies = [
+ "humantime",
+ "is-terminal",
+ "log",
+ "regex",
+ "termcolor",
+]
+
+[[package]]
 name = "erased-serde"
 version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1096,6 +1109,7 @@ dependencies = [
  "anyhow",
  "clap 4.2.5",
  "console",
+ "env_logger 0.10.0",
  "full_moon",
  "futures-util",
  "include_dir",
@@ -1444,7 +1458,7 @@ dependencies = [
  "clap 2.34.0",
  "cookie",
  "dirs",
- "env_logger",
+ "env_logger 0.9.3",
  "log",
  "plist",
  "winapi",
