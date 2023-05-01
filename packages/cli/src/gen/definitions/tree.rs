@@ -8,7 +8,7 @@ use super::{
     parser::DefinitionsParser,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DefinitionsTree(DefinitionsItem);
 
 #[allow(dead_code)]

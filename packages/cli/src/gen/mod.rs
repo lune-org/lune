@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use anyhow::Result;
 use include_dir::Dir;
 use regex::Regex;
 
@@ -9,9 +12,35 @@ mod selene_defs;
 pub mod definitions;
 
 pub use docs_file::generate_from_type_definitions as generate_docs_json_from_definitions;
-pub use gitbook_dir::generate_from_type_definitions as generate_gitbook_dir_from_definitions;
 pub use luau_defs::generate_from_type_definitions as generate_luau_defs_from_definitions;
 pub use selene_defs::generate_from_type_definitions as generate_selene_defs_from_definitions;
+
+pub async fn generate_gitbook_dir_from_definitions(dir: &Dir<'_>) -> Result<()> {
+    let mut result = HashMap::new();
+
+    for entry in dir.find("*.luau").unwrap() {
+        let entry_file = entry.as_file().unwrap();
+        let entry_name = entry_file.path().file_name().unwrap().to_string_lossy();
+
+        let typedef_name = entry_name.trim_end_matches(".luau");
+        let typedef_contents = entry_file
+            .contents_utf8()
+            .unwrap()
+            .to_string()
+            .replace(
+                &format!("export type {typedef_name} = "),
+                &format!("declare {}: ", typedef_name.to_ascii_lowercase()),
+            )
+            .replace("export type ", "type ");
+
+        result.insert(typedef_name.to_string(), typedef_contents);
+    }
+
+    match gitbook_dir::generate_from_type_definitions(result).await {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
 
 pub fn generate_typedefs_file_from_dir(dir: &Dir<'_>) -> String {
     let mut result = String::new();

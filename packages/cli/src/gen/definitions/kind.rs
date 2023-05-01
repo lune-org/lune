@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "PascalCase")]
 pub enum DefinitionsItemKind {
     Root,
+    Type,
     Table,
     Property,
     Function,
@@ -17,6 +18,10 @@ pub enum DefinitionsItemKind {
 impl DefinitionsItemKind {
     pub fn is_root(self) -> bool {
         self == DefinitionsItemKind::Root
+    }
+
+    pub fn is_type(self) -> bool {
+        self == DefinitionsItemKind::Type
     }
 
     pub fn is_table(self) -> bool {
@@ -47,6 +52,7 @@ impl fmt::Display for DefinitionsItemKind {
             "{}",
             match self {
                 Self::Root => "Root",
+                Self::Type => "Type",
                 Self::Table => "Table",
                 Self::Property => "Property",
                 Self::Function => "Function",

@@ -45,12 +45,13 @@ impl DefinitionsItemFunctionRet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DefinitionsItem {
     #[serde(skip_serializing_if = "skip_serialize_is_false")]
     pub(super) exported: bool,
     pub(super) kind: DefinitionsItemKind,
+    pub(super) typ: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -95,12 +96,6 @@ impl PartialOrd for DefinitionsItem {
     }
 }
 
-impl Ord for DefinitionsItem {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}
-
 #[allow(dead_code)]
 impl DefinitionsItem {
     pub fn is_exported(&self) -> bool {
@@ -109,6 +104,10 @@ impl DefinitionsItem {
 
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
+    }
+
+    pub fn is_type(&self) -> bool {
+        self.kind.is_type()
     }
 
     pub fn is_table(&self) -> bool {
@@ -137,6 +136,10 @@ impl DefinitionsItem {
 
     pub fn get_name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn get_type(&self) -> Option<String> {
+        self.typ.clone()
     }
 
     pub fn get_meta(&self) -> Option<&str> {

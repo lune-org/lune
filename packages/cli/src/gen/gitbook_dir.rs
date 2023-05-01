@@ -18,8 +18,8 @@ All globals that are not available under a specific scope.
 These are to be used directly without indexing a global table first.
 ";
 
-pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
-    let tree = DefinitionsTree::from_type_definitions(contents)?;
+#[allow(clippy::too_many_lines)]
+pub async fn generate_from_type_definitions(contents: HashMap<String, String>) -> Result<()> {
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();
     // Create the gitbook dir at the repo root
@@ -37,22 +37,42 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
     dirs_to_write.push(path_gitbook_api_dir.clone());
     // Sort doc items into subcategories based on globals
     let mut api_reference = HashMap::new();
-    let mut no_category = Vec::new();
-    for top_level_item in tree
-        .children()
-        .iter()
-        .filter(|top_level| top_level.is_exported())
-    {
-        match top_level_item.kind() {
-            DefinitionsItemKind::Table => {
-                let category_name =
-                    get_name(top_level_item).context("Missing name for top-level doc item")?;
-                api_reference.insert(category_name, top_level_item.clone());
+    let mut without_main_item = Vec::new();
+    for (typedef_name, typedef_contents) in contents {
+        let tree = DefinitionsTree::from_type_definitions(typedef_contents)?;
+        let main = tree.children().iter().find(
+            |c| matches!(c.get_name(), Some(s) if s.to_lowercase() == typedef_name.to_lowercase()),
+        );
+        if let Some(main) = main {
+            let children = tree
+                .children()
+                .iter()
+                .filter_map(|child| {
+                    if child == main {
+                        None
+                    } else {
+                        Some(
+                            DefinitionsItemBuilder::from(child)
+                                .with_kind(DefinitionsItemKind::Type)
+                                .build()
+                                .unwrap(),
+                        )
+                    }
+                })
+                .collect::<Vec<_>>();
+            let root = DefinitionsItemBuilder::new()
+                .with_kind(main.kind())
+                .with_name(main.get_name().unwrap())
+                .with_children(main.children())
+                .with_children(&children);
+            api_reference.insert(
+                typedef_name.clone(),
+                root.build().expect("Failed to build root definitions item"),
+            );
+        } else {
+            for top_level_item in tree.children() {
+                without_main_item.push(top_level_item.clone());
             }
-            DefinitionsItemKind::Function => {
-                no_category.push(top_level_item.clone());
-            }
-            _ => unimplemented!("Globals other than tables and functions are not yet implemented"),
         }
     }
     // Insert globals with no category into a new "Uncategorized" global
@@ -61,7 +81,7 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
         DefinitionsItemBuilder::new()
             .with_kind(DefinitionsItemKind::Table)
             .with_name("Uncategorized")
-            .with_children(&no_category)
+            .with_children(&without_main_item)
             .with_child(
                 DefinitionsItemBuilder::new()
                     .with_kind(DefinitionsItemKind::Description)
@@ -78,7 +98,7 @@ pub async fn generate_from_type_definitions(contents: &str) -> Result<()> {
             .with_extension("md");
         let mut contents = String::new();
         write!(contents, "{GENERATED_COMMENT_TAG}\n\n")?;
-        generate_markdown_documentation(&mut contents, &category_item, 0)?;
+        generate_markdown_documentation(&mut contents, &category_item, None, 0)?;
         files_to_write.push((path, post_process_docs(contents)));
     }
     // Write all dirs and files only when we know generation was successful
@@ -113,13 +133,16 @@ fn get_name(item: &DefinitionsItem) -> Result<String> {
         .context("Definitions item is missing a name")
 }
 
+#[allow(clippy::too_many_lines)]
 fn generate_markdown_documentation(
     contents: &mut String,
     item: &DefinitionsItem,
+    parent: Option<&DefinitionsItem>,
     depth: usize,
 ) -> Result<()> {
     match item.kind() {
-        DefinitionsItemKind::Table
+        DefinitionsItemKind::Type
+        | DefinitionsItemKind::Table
         | DefinitionsItemKind::Property
         | DefinitionsItemKind::Function => {
             write!(
@@ -146,17 +169,31 @@ fn generate_markdown_documentation(
         }
         _ => {}
     }
-    if item.kind().is_function() && !item.args().is_empty() {
+    if item.is_function() && !item.args().is_empty() {
         let args = item
             .args()
             .iter()
-            .map(|arg| format!("{}: {}", arg.name, arg.typedef))
-            .collect::<Vec<_>>();
+            .map(|arg| format!("{}: {}", arg.name.trim(), arg.typedef.trim()))
+            .collect::<Vec<_>>()
+            .join(", ")
+            .replace("_: T...", "T...");
+        let func_name = item.get_name().unwrap_or("_");
+        let parent_name = parent.unwrap().get_name().unwrap_or("_");
+        let parent_pre = if parent_name.to_lowercase() == "uncategorized" {
+            String::new()
+        } else {
+            format!("{parent_name}.")
+        };
         write!(
             contents,
-            "\n```lua\nfunction {}({})\n```\n",
+            "\n```lua\nfunction {parent_pre}{func_name}({args})\n```\n",
+        )?;
+    } else if item.is_type() {
+        write!(
+            contents,
+            "\n```lua\ntype {} = {}\n```\n",
             item.get_name().unwrap_or("_"),
-            args.join(", ")
+            item.get_type().unwrap_or_else(|| "{}".to_string()).trim()
         )?;
     }
     let descriptions = item
@@ -174,24 +211,50 @@ fn generate_markdown_documentation(
         .iter()
         .filter(|child| child.is_function())
         .collect::<Vec<_>>();
+    let types = item
+        .children()
+        .iter()
+        .filter(|child| child.is_type())
+        .collect::<Vec<_>>();
     for description in descriptions {
-        generate_markdown_documentation(contents, description, depth + 1)?;
+        generate_markdown_documentation(contents, description, Some(item), depth + 1)?;
     }
-    if !properties.is_empty() {
-        write!(contents, "\n\n---\n\n## Properties\n\n")?;
-    }
-    for property in properties {
-        generate_markdown_documentation(contents, property, depth + 1)?;
-    }
-    if !functions.is_empty() {
-        write!(contents, "\n\n---\n\n## Functions\n\n")?;
-    }
-    for function in functions {
-        generate_markdown_documentation(contents, function, depth + 1)?;
+    if !item.is_type() {
+        if !properties.is_empty() {
+            write!(contents, "\n\n---\n\n## Properties\n\n")?;
+        }
+        for property in properties {
+            generate_markdown_documentation(contents, property, Some(item), depth + 1)?;
+        }
+        if !functions.is_empty() {
+            write!(contents, "\n\n---\n\n## Functions\n\n")?;
+        }
+        for function in functions {
+            generate_markdown_documentation(contents, function, Some(item), depth + 1)?;
+        }
+        if !types.is_empty() {
+            write!(contents, "\n\n---\n\n## Types\n\n")?;
+        }
+        for typ in types {
+            generate_markdown_documentation(contents, typ, Some(item), depth + 1)?;
+        }
     }
     Ok(())
 }
 
 fn post_process_docs(contents: String) -> String {
-    contents.replace("\n\n\n", "\n\n")
+    let no_empty_lines = contents
+        .lines()
+        .map(|line| {
+            if line.chars().all(char::is_whitespace) {
+                ""
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    no_empty_lines
+        .replace("\n\n\n", "\n\n")
+        .replace("\n\n\n", "\n\n")
 }

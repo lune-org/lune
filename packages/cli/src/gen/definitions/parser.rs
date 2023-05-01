@@ -12,7 +12,7 @@ use regex::Regex;
 
 use super::{
     builder::DefinitionsItemBuilder, item::DefinitionsItem, moonwave::parse_moonwave_style_comment,
-    type_info_ext::TypeInfoExt,
+    type_info_ext::TypeInfoExt, DefinitionsItemKind,
 };
 
 #[derive(Debug, Clone)]
@@ -26,6 +26,7 @@ struct DefinitionsParserItem {
 pub struct DefinitionsParser {
     found_top_level_items: BTreeMap<String, DefinitionsParserItem>,
     found_top_level_types: HashMap<String, TypeInfo>,
+    found_top_level_comments: HashMap<String, Option<String>>,
     found_top_level_declares: Vec<String>,
 }
 
@@ -34,6 +35,7 @@ impl DefinitionsParser {
         Self {
             found_top_level_items: BTreeMap::new(),
             found_top_level_types: HashMap::new(),
+            found_top_level_comments: HashMap::new(),
             found_top_level_declares: Vec::new(),
         }
     }
@@ -69,6 +71,7 @@ impl DefinitionsParser {
         // Parse contents into top-level parser items for later use
         let mut found_top_level_items = BTreeMap::new();
         let mut found_top_level_types = HashMap::new();
+        let mut found_top_level_comments = HashMap::new();
         let ast =
             full_moon::parse(&resulting_contents).context("Failed to parse type definitions")?;
         for stmt in ast.nodes().stmts() {
@@ -80,28 +83,36 @@ impl DefinitionsParser {
                 _ => None,
             } {
                 let name = declaration.type_name().token().to_string();
+                let comment = find_token_moonwave_comment(token_reference);
                 found_top_level_items.insert(
                     name.clone(),
                     DefinitionsParserItem {
                         name: name.clone(),
-                        comment: find_token_moonwave_comment(token_reference),
+                        comment: comment.clone(),
                         type_info: declaration.type_definition().clone(),
                     },
                 );
-                found_top_level_types.insert(name, declaration.type_definition().clone());
+                found_top_level_types.insert(name.clone(), declaration.type_definition().clone());
+                found_top_level_comments.insert(name, comment);
             }
         }
         // Store results
         self.found_top_level_items = found_top_level_items;
         self.found_top_level_types = found_top_level_types;
+        self.found_top_level_comments = found_top_level_comments;
         self.found_top_level_declares = found_declares;
         Ok(())
     }
 
-    fn convert_parser_item_into_doc_item(&self, item: DefinitionsParserItem) -> DefinitionsItem {
+    fn convert_parser_item_into_doc_item(
+        &self,
+        item: DefinitionsParserItem,
+        kind: Option<DefinitionsItemKind>,
+    ) -> DefinitionsItem {
         let mut builder = DefinitionsItemBuilder::new()
-            .with_kind(item.type_info.parse_definitions_kind())
-            .with_name(&item.name);
+            .with_kind(kind.unwrap_or_else(|| item.type_info.parse_definitions_kind()))
+            .with_name(&item.name)
+            .with_type(item.type_info.to_string());
         if self.found_top_level_declares.contains(&item.name) {
             builder = builder.as_exported();
         }
@@ -123,6 +134,7 @@ impl DefinitionsParser {
                             comment: find_token_moonwave_comment(name),
                             type_info: field.value().clone(),
                         },
+                        None,
                     ));
                 }
             }
@@ -137,14 +149,16 @@ impl DefinitionsParser {
     */
     #[allow(clippy::unnecessary_wraps)]
     pub fn drain(&mut self) -> Result<Vec<DefinitionsItem>> {
-        let mut results = Vec::new();
+        let mut resulting_items = Vec::new();
         for top_level_item in self.found_top_level_items.values() {
-            results.push(self.convert_parser_item_into_doc_item(top_level_item.clone()));
+            resulting_items
+                .push(self.convert_parser_item_into_doc_item(top_level_item.clone(), None));
         }
         self.found_top_level_items = BTreeMap::new();
         self.found_top_level_types = HashMap::new();
+        self.found_top_level_comments = HashMap::new();
         self.found_top_level_declares = Vec::new();
-        Ok(results)
+        Ok(resulting_items)
     }
 }
 

@@ -123,6 +123,9 @@ impl Cli {
             || self.generate_docs_file
             || self.generate_gitbook_dir;
         if generate_file_requested {
+            if self.generate_gitbook_dir {
+                generate_gitbook_dir_from_definitions(&TYPEDEFS_DIR).await?;
+            }
             let definitions = generate_typedefs_file_from_dir(&TYPEDEFS_DIR);
             if self.generate_luau_types {
                 generate_and_save_file(FILE_NAME_LUAU_TYPES, "Luau type definitions", || {
@@ -141,9 +144,6 @@ impl Cli {
                     generate_docs_json_from_definitions(&definitions, "roblox/global")
                 })
                 .await?;
-            }
-            if self.generate_gitbook_dir {
-                generate_gitbook_dir_from_definitions(&definitions).await?;
             }
         }
         if self.script_path.is_none() {

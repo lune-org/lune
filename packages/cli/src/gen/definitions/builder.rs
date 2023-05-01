@@ -9,6 +9,7 @@ use super::{
 pub struct DefinitionsItemBuilder {
     exported: bool,
     kind: Option<DefinitionsItemKind>,
+    typ: Option<String>,
     name: Option<String>,
     meta: Option<String>,
     value: Option<String>,
@@ -38,6 +39,11 @@ impl DefinitionsItemBuilder {
 
     pub fn with_name<S: AsRef<str>>(mut self, name: S) -> Self {
         self.name = Some(name.as_ref().to_string());
+        self
+    }
+
+    pub fn with_type(mut self, typ: String) -> Self {
+        self.typ = Some(typ);
         self
     }
 
@@ -88,10 +94,11 @@ impl DefinitionsItemBuilder {
     pub fn build(self) -> Result<DefinitionsItem> {
         if let Some(kind) = self.kind {
             let mut children = self.children;
-            children.sort();
+            children.sort_by(|left, right| left.name.cmp(&right.name));
             Ok(DefinitionsItem {
                 exported: self.exported,
                 kind,
+                typ: self.typ,
                 name: self.name,
                 meta: self.meta,
                 value: self.value,
@@ -101,6 +108,22 @@ impl DefinitionsItemBuilder {
             })
         } else {
             bail!("Missing doc item kind")
+        }
+    }
+}
+
+impl From<&DefinitionsItem> for DefinitionsItemBuilder {
+    fn from(value: &DefinitionsItem) -> Self {
+        Self {
+            exported: value.exported,
+            kind: Some(value.kind),
+            typ: value.typ.clone(),
+            name: value.name.clone(),
+            meta: value.meta.clone(),
+            value: value.value.clone(),
+            children: value.children.clone(),
+            args: value.args.clone(),
+            rets: value.rets.clone(),
         }
     }
 }
