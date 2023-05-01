@@ -30,5 +30,5 @@ generate-gitbook:
 	cargo run -- --generate-gitbook-dir
 
 # Publish gitbook directory to gitbook branch
-publish-gitbook:
+publish-gitbook: generate-gitbook
 	npx push-dir --dir=gitbook --branch=gitbook

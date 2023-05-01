@@ -255,6 +255,7 @@ fn post_process_docs(contents: String) -> String {
         .collect::<Vec<_>>()
         .join("\n");
     no_empty_lines
+        .replace("\n\n---", "\n---")
         .replace("\n\n\n", "\n\n")
         .replace("\n\n\n", "\n\n")
 }
