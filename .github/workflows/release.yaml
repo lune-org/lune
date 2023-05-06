@@ -121,6 +121,8 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
+        with:
+          path: ./artifacts
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -129,5 +131,5 @@ jobs:
         with:
           name: ${{ needs.init.outputs.version }}
           tag_name: v${{ needs.init.outputs.version }}
-          files: lune-*
+          files: ./artifacts/lune-**
           draft: true
