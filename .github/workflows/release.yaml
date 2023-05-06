@@ -122,6 +122,12 @@ jobs:
         with:
           targets: ${{ matrix.cargo-target }}
 
+      - name: Install tooling
+        if: matrix.runner-os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y musl-tools clang llvm
+
       - name: Build binary
         run: cargo build --package lune-cli --locked --release --all-features --target ${{ matrix.cargo-target }}
         env:
