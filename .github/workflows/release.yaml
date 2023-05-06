@@ -10,12 +10,11 @@ env:
   CARGO_TARGET_DIR: output
 
 jobs:
-  create-release:
-    name: Create release
+  init:
+    name: Init
     runs-on: ubuntu-latest
     outputs:
-      manifest_version: ${{ steps.get_version.outputs.value }}
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.value }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -27,96 +26,44 @@ jobs:
           file: Cargo.toml
           field: workspace.package.version
 
-      - name: Create release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          name: ${{ steps.get_version.outputs.value }}
-          tag_name: v${{ steps.get_version.outputs.value }}
-          draft: true
-
-  assets:
-    needs: ["create-release"]
-    strategy:
-      matrix:
-        include:
-          - name: Selene type definitions
-            cargo-args: "--generate-selene-types"
-            file-name: "lune.yml"
-            file-type: "application/x-yaml"
-
-          - name: Luau type definitions
-            cargo-args: "--generate-luau-types"
-            file-name: "luneTypes.d.luau"
-            file-type: "application/x-luau"
-
-          - name: Luau LSP documentation
-            cargo-args: "--generate-docs-file"
-            file-name: "luneDocs.json"
-            file-type: "application/json"
-
-    name: Generate - ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Generate file
-        run: cargo run --package lune-cli -- ${{ matrix.cargo-args }}
-
-      - name: Upload file to release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ matrix.file-name }}
-          asset_name: ${{ matrix.file-name }}
-          asset_content_type: ${{ matrix.file-type }}
-
-  release:
-    needs: ["create-release"]
+  build:
+    needs: ["init"]
     strategy:
       matrix:
         include:
           - name: Windows x86_64
             runner-os: windows-latest
-            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-x86_64
+            artifact-name: lune-${{ needs.init.outputs.version }}-windows-x86_64
             cargo-target: x86_64-pc-windows-msvc
             cargo-features: reqwest/rustls-tls
 
           - name: Windows aarch64
             runner-os: windows-latest
-            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-aarch64
+            artifact-name: lune-${{ needs.init.outputs.version }}-windows-aarch64
             cargo-target: aarch64-pc-windows-msvc
             cargo-features: reqwest/default-tls
 
           - name: Linux x86_64
             runner-os: ubuntu-latest
-            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-x86_64
+            artifact-name: lune-${{ needs.init.outputs.version }}-linux-x86_64
             cargo-target: x86_64-unknown-linux-gnu
             cargo-features: reqwest/rustls-tls
 
           - name: Linux aarch64
             runner-os: ubuntu-latest
-            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-aarch64
+            artifact-name: lune-${{ needs.init.outputs.version }}-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
             cargo-features: reqwest/rustls-tls
 
           - name: macOS x86_64
             runner-os: macos-latest
-            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-x86_64
+            artifact-name: lune-${{ needs.init.outputs.version }}-macos-x86_64
             cargo-target: x86_64-apple-darwin
             cargo-features: reqwest/rustls-tls
 
           - name: macOS aarch64
             runner-os: macos-latest
-            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-aarch64
+            artifact-name: lune-${{ needs.init.outputs.version }}-macos-aarch64
             cargo-target: aarch64-apple-darwin
             cargo-features: reqwest/rustls-tls
 
@@ -167,12 +114,20 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: release.zip
 
-      - name: Upload binary to release
-        uses: actions/upload-release-asset@v1
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: ["init", "build"]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: release.zip
-          asset_name: ${{ matrix.artifact-name }}.zip
-          asset_content_type: application/zip
+          name: ${{ needs.init.outputs.version }}
+          tag_name: v${{ needs.init.outputs.version }}
+          files: lune-*
+          draft: true
