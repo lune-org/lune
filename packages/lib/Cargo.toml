@@ -46,14 +46,17 @@ hyper-tungstenite = { version = "0.9" }
 tokio-tungstenite = { version = "0.18" }
 
 # Using rustls instead of the default OpenSSL allows us to have much more portable binaries
-reqwest = { version = "0.11", default-features = false, features = [
-	"rustls-tls",
-] }
-
-# Rustls does not yet compile on windows aarch64, so we use default tls there
-# https://github.com/briansmith/ring/issues/1167
-[target.aarch64-pc-windows-msvc.dependencies]
-reqwest = "0.11"
+#
+# Notes:
+#
+# - Rustls does not yet compile on windows aarch64, so we use default tls there
+#   https://github.com/briansmith/ring/issues/1167
+#
+# - Cargo does not support per-target features, we have to add the feature in the build command itself
+#   https://github.com/rust-lang/cargo/issues/1197
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
 
 [dev-dependencies]
 anyhow = "1.0"

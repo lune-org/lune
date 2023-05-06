@@ -6,6 +6,9 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TARGET_DIR: output
+
 jobs:
   create-release:
     name: Create release
@@ -18,7 +21,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Get version from manifest
-        uses: SebRollen/toml-action@0ad94c4a52c402aaa76e14e8a43551163b6cedf9
+        uses: SebRollen/toml-action@9062fbef52816d61278d24ce53c8070440e1e8dd
         id: get_version
         with:
           file: Cargo.toml
@@ -26,12 +29,12 @@ jobs:
 
       - name: Create release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          name: ${{ steps.get_version.outputs.value }}
           tag_name: v${{ steps.get_version.outputs.value }}
-          release_name: ${{ steps.get_version.outputs.value }}
           draft: true
 
   assets:
@@ -85,31 +88,37 @@ jobs:
             runner-os: windows-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-x86_64
             cargo-target: x86_64-pc-windows-msvc
+            cargo-features: reqwest/rustls-tls
 
           - name: Windows aarch64
             runner-os: windows-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-aarch64
             cargo-target: aarch64-pc-windows-msvc
+            cargo-features: reqwest/default-tls
 
           - name: Linux x86_64
             runner-os: ubuntu-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-x86_64
             cargo-target: x86_64-unknown-linux-gnu
+            cargo-features: reqwest/rustls-tls
 
           - name: Linux aarch64
             runner-os: ubuntu-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
+            cargo-features: reqwest/rustls-tls
 
           - name: macOS x86_64
             runner-os: macos-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-x86_64
             cargo-target: x86_64-apple-darwin
+            cargo-features: reqwest/rustls-tls
 
           - name: macOS aarch64
             runner-os: macos-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-aarch64
             cargo-target: aarch64-apple-darwin
+            cargo-features: reqwest/rustls-tls
 
     name: Build - ${{ matrix.name }}
     runs-on: ${{ matrix.runner-os }}
@@ -122,7 +131,7 @@ jobs:
         with:
           targets: ${{ matrix.cargo-target }}
 
-      - name: Install tooling
+      - name: Install tooling (aarch64-unknown-linux-gnu)
         if: matrix.cargo-target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update -y
@@ -130,9 +139,11 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Build binary
-        run: cargo build --package lune-cli --locked --release --all-features --target ${{ matrix.cargo-target }}
-        env:
-          CARGO_TARGET_DIR: output
+        run: |
+          cargo build \
+          --locked --release --all-features \
+          --target ${{ matrix.cargo-target }} \
+          --features ${{ matrix.cargo-features }}
 
       - name: Create binary archive
         shell: bash
