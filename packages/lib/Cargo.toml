@@ -45,16 +45,15 @@ hyper = { version = "0.14", features = ["full"] }
 hyper-tungstenite = { version = "0.9" }
 tokio-tungstenite = { version = "0.18" }
 
-# Rustls does not yet compile on windows aarch64, so we use default tls there
-[target.'cfg(all(target_os = "windows", target_arch = "aarch64"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
-	"default-tls",
-] }
-
-[target.'cfg(not(all(target_os = "windows", target_arch = "aarch64")))'.dependencies]
+# Using rustls instead of the default OpenSSL allows us to have much more portable binaries
 reqwest = { version = "0.11", default-features = false, features = [
 	"rustls-tls",
 ] }
+
+# Rustls does not yet compile on windows aarch64, so we use default tls there
+# https://github.com/briansmith/ring/issues/1167
+[target.aarch64-pc-windows-msvc.dependencies]
+reqwest = "0.11"
 
 [dev-dependencies]
 anyhow = "1.0"
