@@ -46,6 +46,7 @@ reqwest = { version = "0.11", default-features = false }
 #
 # 1. Optimize for size
 # 2. Automatically strip symbols from the binary
+# 3. Enable link-time optimization
 #
 # Note that we could abort instead of panicking to cut down on size
 # even more, but because we use the filesystem & some other APIs we
@@ -54,3 +55,4 @@ reqwest = { version = "0.11", default-features = false }
 [profile.release]
 opt-level = "z"
 strip = true
+lto = true
