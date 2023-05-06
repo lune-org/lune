@@ -119,10 +119,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: ["init", "build"]
     steps:
-      - name: Download artifacts
+      - name: Download binaries
         uses: actions/download-artifact@v3
         with:
-          path: ./artifacts
+          path: ./binaries
+
+      - name: List binaries
+        shell: bash
+        run: ls -lhrt ./binaries
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -131,5 +135,6 @@ jobs:
         with:
           name: ${{ needs.init.outputs.version }}
           tag_name: v${{ needs.init.outputs.version }}
-          files: ./artifacts/lune-**
+          fail_on_unmatched_files: true
+          files: ./binaries/lune-**
           draft: true
