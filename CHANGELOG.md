@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 
+-   New releases now include prebuilt binaries for arm64 / aarch64! <br />
+    These new binaries will have names with the following format:
+    -   `lune-windows-0.6.7-aarch64.exe`
+    -   `lune-linux-0.6.7-aarch64`
+    -   `lune-macos-0.6.7-aarch64`
 -   Added global types to documentation site
 
 ## `0.6.6` - April 30th, 2023
