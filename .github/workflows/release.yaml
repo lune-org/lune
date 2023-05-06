@@ -124,28 +124,32 @@ jobs:
         with:
           path: ./binaries
 
-      - name: MOVE binaries
+      - name: Discover binaries
         shell: bash
         run: |
           cd ./binaries
+          echo ""
+          echo "Binaries dir:"
           ls -lhrt
+          echo ""
+          echo "Searching for zipped releases..."
           for DIR in * ; do
               if [ -d "$DIR" ]; then
                   cd "$DIR"
-                  echo "$DIR"
                   for FILE in * ; do
                       if [ ! -d "$FILE" ]; then
-                          echo "> $FILE"
                           if [ "$FILE" = "release.zip" ]; then
+                              echo "Found zipped release '$DIR'"
                               mv "$FILE" "../$DIR.zip"
-                              echo "> MOVED"
-                              rm -rf "$DIR"
+                              rm -rf "../$DIR/"
                           fi
                       fi
                   done
                   cd ..
               fi
           done
+          echo ""
+          echo "Binaries dir:"
           ls -lhrt
           cd ..
 
@@ -157,5 +161,5 @@ jobs:
           name: ${{ needs.init.outputs.version }}
           tag_name: v${{ needs.init.outputs.version }}
           fail_on_unmatched_files: true
-          files: ./binaries/lune-*.zip
+          files: ./binaries/*.zip
           draft: true
