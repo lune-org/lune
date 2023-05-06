@@ -32,15 +32,3 @@ generate-gitbook:
 # Publish gitbook directory to gitbook branch
 publish-gitbook: generate-gitbook
 	npx push-dir --dir=gitbook --branch=gitbook
-
-list:
-	#!/usr/bin/env bash
-	for DIR in */ ; do
-		cd "$DIR"
-		for FILE in * ; do
-			if [ ! -d "$FILE" ]; then
-				echo "$DIR$FILE"
-			fi
-		done
-		cd ..
-	done

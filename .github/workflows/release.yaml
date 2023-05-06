@@ -124,20 +124,29 @@ jobs:
         with:
           path: ./binaries
 
-      - name: List binaries
+      - name: MOVE binaries
         shell: bash
         run: |
           cd ./binaries
           ls -lhrt
-          for DIR in */ ; do
-              cd "$DIR"
-              for FILE in * ; do
-                  if [ ! -d "$FILE" ]; then
-                      echo "$DIR$FILE"
-                  fi
-              done
-              cd ..
+          for DIR in * ; do
+              if [ -d "$DIR" ]; then
+                  cd "$DIR"
+                  echo "$DIR"
+                  for FILE in * ; do
+                      if [ ! -d "$FILE" ]; then
+                          echo "> $FILE"
+                          if [ "$FILE" = "release.zip" ]; then
+                              mv "$FILE" "../$DIR.zip"
+                              echo "> MOVED"
+                              rm -rf "$DIR"
+                          fi
+                      fi
+                  done
+                  cd ..
+              fi
           done
+          ls -lhrt
           cd ..
 
       - name: Create release
@@ -148,5 +157,5 @@ jobs:
           name: ${{ needs.init.outputs.version }}
           tag_name: v${{ needs.init.outputs.version }}
           fail_on_unmatched_files: true
-          files: ./binaries/lune-**
+          files: ./binaries/lune-*.zip
           draft: true
