@@ -86,15 +86,30 @@ jobs:
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-x86_64
             cargo-target: x86_64-pc-windows-msvc
 
+          - name: Windows aarch64
+            runner-os: windows-latest
+            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-windows-aarch64
+            cargo-target: aarch64-pc-windows-msvc
+
           - name: Linux x86_64
             runner-os: ubuntu-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-x86_64
             cargo-target: x86_64-unknown-linux-gnu
 
+          - name: Linux aarch64
+            runner-os: ubuntu-latest
+            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-linux-aarch64
+            cargo-target: aarch64-unknown-linux-gnu
+
           - name: macOS x86_64
             runner-os: macos-latest
             artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-x86_64
             cargo-target: x86_64-apple-darwin
+
+          - name: macOS aarch64
+            runner-os: macos-latest
+            artifact-name: lune-${{ needs.create-release.outputs.manifest_version }}-macos-aarch64
+            cargo-target: aarch64-apple-darwin
 
     name: Build - ${{ matrix.name }}
     runs-on: ${{ matrix.runner-os }}
@@ -123,6 +138,7 @@ jobs:
           else
             cp "output/${{ matrix.cargo-target }}/release/lune" staging/
             cd staging
+            chmod +x lune
             zip ../release.zip *
           fi
 
