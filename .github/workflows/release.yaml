@@ -126,7 +126,19 @@ jobs:
 
       - name: List binaries
         shell: bash
-        run: ls -lhrt ./binaries
+        run: |
+          cd ./binaries
+          ls -lhrt
+          for DIR in */ ; do
+              cd "$DIR"
+              for FILE in * ; do
+                  if [ ! -d "$FILE" ]; then
+                      echo "$DIR$FILE"
+                  fi
+              done
+              cd ..
+          done
+          cd ..
 
       - name: Create release
         uses: softprops/action-gh-release@v1
