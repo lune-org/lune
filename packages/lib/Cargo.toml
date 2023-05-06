@@ -26,6 +26,7 @@ console.workspace = true
 futures-util.workspace = true
 mlua.workspace = true
 once_cell.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
@@ -44,19 +45,6 @@ urlencoding = "2.1.2"
 hyper = { version = "0.14", features = ["full"] }
 hyper-tungstenite = { version = "0.9" }
 tokio-tungstenite = { version = "0.18" }
-
-# Using rustls instead of the default OpenSSL allows us to have much more portable binaries
-#
-# Notes:
-#
-# - Rustls does not yet compile on windows aarch64, so we use default tls there
-#   https://github.com/briansmith/ring/issues/1167
-#
-# - Cargo does not support per-target features, we have to add the feature in the build command itself
-#   https://github.com/rust-lang/cargo/issues/1197
-[dependencies.reqwest]
-version = "0.11"
-default-features = false
 
 [dev-dependencies]
 anyhow = "1.0"
