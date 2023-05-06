@@ -127,6 +127,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y musl-tools clang llvm
+          sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build binary
         run: cargo build --package lune-cli --locked --release --all-features --target ${{ matrix.cargo-target }}
