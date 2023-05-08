@@ -11,15 +11,11 @@ use super::definitions::{
 };
 
 const GENERATED_COMMENT_TAG: &str = "<!-- @generated with lune-cli -->";
-const CATEGORY_NONE_NAME: &str = "Uncategorized";
-const CATEGORY_NONE_DESC: &str = "
-All globals that are not available under a specific scope.
-
-These are to be used directly without indexing a global table first.
-";
 
 #[allow(clippy::too_many_lines)]
-pub async fn generate_from_type_definitions(contents: HashMap<String, String>) -> Result<()> {
+pub async fn generate_from_type_definitions(
+    definitions: HashMap<String, DefinitionsTree>,
+) -> Result<()> {
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();
     // Create the gitbook dir at the repo root
@@ -35,64 +31,47 @@ pub async fn generate_from_type_definitions(contents: HashMap<String, String>) -
     dirs_to_write.push(path_gitbook_docs_dir.clone());
     dirs_to_write.push(path_gitbook_pages_dir.clone());
     dirs_to_write.push(path_gitbook_api_dir.clone());
-    // Sort doc items into subcategories based on globals
-    let mut api_reference = HashMap::new();
-    let mut without_main_item = Vec::new();
-    for (typedef_name, typedef_contents) in contents {
-        let tree = DefinitionsTree::from_type_definitions(typedef_contents)?;
-        let main = tree.children().iter().find(
+
+    // Convert definition trees into single root items so that we can parse and write markdown recursively
+    let mut typedef_items = HashMap::new();
+    for (typedef_name, typedef_contents) in definitions {
+        let main = typedef_contents
+        .children()
+        .iter()
+        .find(
             |c| matches!(c.get_name(), Some(s) if s.to_lowercase() == typedef_name.to_lowercase()),
-        );
-        if let Some(main) = main {
-            let children = tree
-                .children()
-                .iter()
-                .filter_map(|child| {
-                    if child == main {
-                        None
-                    } else {
-                        Some(
-                            DefinitionsItemBuilder::from(child)
-                                .with_kind(DefinitionsItemKind::Type)
-                                .build()
-                                .unwrap(),
-                        )
-                    }
-                })
-                .collect::<Vec<_>>();
-            let root = DefinitionsItemBuilder::new()
-                .with_kind(main.kind())
-                .with_name(main.get_name().unwrap())
-                .with_children(main.children())
-                .with_children(&children);
-            api_reference.insert(
-                typedef_name.clone(),
-                root.build().expect("Failed to build root definitions item"),
-            );
-        } else {
-            for top_level_item in tree.children() {
-                without_main_item.push(top_level_item.clone());
-            }
-        }
+        )
+        .expect("Failed to find main export for generating typedef file");
+
+        let children = typedef_contents
+            .children()
+            .iter()
+            .filter_map(|child| {
+                if child == main {
+                    None
+                } else {
+                    Some(
+                        DefinitionsItemBuilder::from(child)
+                            .with_kind(DefinitionsItemKind::Type)
+                            .build()
+                            .unwrap(),
+                    )
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let root = DefinitionsItemBuilder::new()
+            .with_kind(main.kind())
+            .with_name(main.get_name().unwrap())
+            .with_children(main.children())
+            .with_children(&children);
+        let root_item = root.build().expect("Failed to build root definitions item");
+
+        typedef_items.insert(typedef_name.to_string(), root_item);
     }
-    // Insert globals with no category into a new "Uncategorized" global
-    api_reference.insert(
-        CATEGORY_NONE_NAME.to_string(),
-        DefinitionsItemBuilder::new()
-            .with_kind(DefinitionsItemKind::Table)
-            .with_name("Uncategorized")
-            .with_children(&without_main_item)
-            .with_child(
-                DefinitionsItemBuilder::new()
-                    .with_kind(DefinitionsItemKind::Description)
-                    .with_value(CATEGORY_NONE_DESC)
-                    .build()?,
-            )
-            .build()
-            .unwrap(),
-    );
+
     // Generate files for all subcategories
-    for (category_name, category_item) in api_reference {
+    for (category_name, category_item) in typedef_items {
         let path = path_gitbook_api_dir
             .join(category_name.to_ascii_lowercase())
             .with_extension("md");

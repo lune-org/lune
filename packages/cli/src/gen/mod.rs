@@ -2,81 +2,37 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use include_dir::Dir;
-use regex::Regex;
 
-mod docs_file;
+use self::definitions::DefinitionsTree;
+
 mod gitbook_dir;
-mod luau_defs;
-mod selene_defs;
+mod typedef_files;
 
 pub mod definitions;
 
-pub use docs_file::generate_from_type_definitions as generate_docs_json_from_definitions;
-pub use luau_defs::generate_from_type_definitions as generate_luau_defs_from_definitions;
-pub use selene_defs::generate_from_type_definitions as generate_selene_defs_from_definitions;
-
 pub async fn generate_gitbook_dir_from_definitions(dir: &Dir<'_>) -> Result<()> {
-    let mut result = HashMap::new();
-
-    for entry in dir.find("*.luau").unwrap() {
-        let entry_file = entry.as_file().unwrap();
-        let entry_name = entry_file.path().file_name().unwrap().to_string_lossy();
-
-        let typedef_name = entry_name.trim_end_matches(".luau");
-        let typedef_contents = entry_file
-            .contents_utf8()
-            .unwrap()
-            .to_string()
-            .replace(
-                &format!("export type {typedef_name} = "),
-                &format!("declare {}: ", typedef_name.to_ascii_lowercase()),
-            )
-            .replace("export type ", "type ");
-
-        result.insert(typedef_name.to_string(), typedef_contents);
-    }
-
-    match gitbook_dir::generate_from_type_definitions(result).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
+    let definitions = read_typedefs_dir(dir)?;
+    gitbook_dir::generate_from_type_definitions(definitions).await
 }
 
-pub fn generate_typedefs_file_from_dir(dir: &Dir<'_>) -> String {
-    let mut result = String::new();
+pub async fn generate_typedef_files_from_definitions(dir: &Dir<'_>) -> Result<()> {
+    let definitions = read_typedefs_dir(dir)?;
+    typedef_files::generate_from_type_definitions(definitions).await
+}
+
+fn read_typedefs_dir(dir: &Dir<'_>) -> Result<HashMap<String, DefinitionsTree>> {
+    let mut definitions = HashMap::new();
 
     for entry in dir.find("*.luau").unwrap() {
         let entry_file = entry.as_file().unwrap();
         let entry_name = entry_file.path().file_name().unwrap().to_string_lossy();
 
-        if entry_name.contains("Globals") {
-            continue;
-        }
-
         let typedef_name = entry_name.trim_end_matches(".luau");
-        let typedef_contents = entry_file.contents_utf8().unwrap().to_string().replace(
-            &format!("export type {typedef_name} = "),
-            &format!("declare {}: ", typedef_name.to_ascii_lowercase()),
-        );
+        let typedef_contents = entry_file.contents_utf8().unwrap().to_string();
 
-        if !result.is_empty() {
-            result.push_str(&"\n".repeat(10));
-        }
-
-        result.push_str(&typedef_contents);
+        let typedef_tree = DefinitionsTree::from_type_definitions(&typedef_contents)?;
+        definitions.insert(typedef_name.to_string(), typedef_tree);
     }
 
-    let globals_contents = dir
-        .get_file("Globals.luau")
-        .unwrap()
-        .contents_utf8()
-        .unwrap();
-
-    let regex_export_to_declare = Regex::new(r#"export type (\w+) = "#).unwrap();
-    let regexed_globals = regex_export_to_declare.replace_all(globals_contents, "declare $1: ");
-
-    result.push_str(&"\n".repeat(10));
-    result.push_str(&regexed_globals);
-
-    result
+    Ok(definitions)
 }

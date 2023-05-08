@@ -1,5 +1,14 @@
-type StdioColor = "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white"
-type StdioStyle = "reset" | "bold" | "dim"
+export type Color =
+	"reset"
+	| "black"
+	| "red"
+	| "green"
+	| "yellow"
+	| "blue"
+	| "purple"
+	| "cyan"
+	| "white"
+export type Style = "reset" | "bold" | "dim"
 
 --[=[
 	@class Stdio
@@ -43,7 +52,7 @@ export type Stdio = {
 		@param color The color to use
 		@return A printable ANSI string
 	]=]
-	color: (color: StdioColor) -> string,
+	color: (color: Color) -> string,
 	--[=[
 		@within Stdio
 		@must_use
@@ -64,7 +73,7 @@ export type Stdio = {
 		@param style The style to use
 		@return A printable ANSI string
 	]=]
-	style: (style: StdioStyle) -> string,
+	style: (style: Style) -> string,
 	--[=[
 		@within Stdio
 		@must_use

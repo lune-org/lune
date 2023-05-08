@@ -26,20 +26,5 @@
 	},
 	"[rust]": {
 		"editor.defaultFormatter": "rust-lang.rust-analyzer"
-	},
-	// Ignore temp / gitignored files while editing for a more focused
-	// workspace, this can be deleted or overridden safely if needed
-	"files.exclude": {
-		// Defaults
-		"**/.git": true,
-		"**/.svn": true,
-		"**/.hg": true,
-		"**/CVS": true,
-		"**/.DS_Store": true,
-		"**/Thumbs.db": true,
-		// Autogenerate dirs
-		"bin": true,
-		"target": true,
-		"gitbook": true
 	}
 }

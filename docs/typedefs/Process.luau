@@ -1,7 +1,10 @@
-type ProcessSpawnOptionsStdio = "inherit" | "default"
+export type OS = "linux" | "macos" | "windows"
+export type Arch = "x86_64" | "aarch64"
+
+export type SpawnOptionsStdio = "inherit" | "default"
 
 --[=[
-	@type ProcessSpawnOptions
+	@type SpawnOptions
 	@within Process
 
 	A dictionary of options for `process.spawn`, with the following available values:
@@ -11,15 +14,15 @@ type ProcessSpawnOptionsStdio = "inherit" | "default"
 	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
 	* `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
 ]=]
-export type ProcessSpawnOptions = {
+export type SpawnOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
 	shell: (boolean | string)?,
-	stdio: ProcessSpawnOptionsStdio?,
+	stdio: SpawnOptionsStdio?,
 }
 
 --[=[
-	@type ProcessSpawnResult
+	@type SpawnResult
 	@within Process
 
 	Result type for child processes in `process.spawn`.
@@ -31,7 +34,7 @@ export type ProcessSpawnOptions = {
 	* `stdout` - The full contents written to stdout by the child process, or an empty string if nothing was written
 	* `stderr` - The full contents written to stderr by the child process, or an empty string if nothing was written
 ]=]
-export type ProcessSpawnResult = {
+export type SpawnResult = {
 	ok: boolean,
 	code: number,
 	stdout: string,
@@ -88,7 +91,7 @@ export type Process = {
 		* `"macos"`
 		* `"windows"`
 	]=]
-	os: "linux" | "macos" | "windows",
+	os: OS,
 	--[=[
 		@within Process
 		@read_only
@@ -100,7 +103,7 @@ export type Process = {
 		* `"x86_64"`
 		* `"aarch64"`
 	]=]
-	arch: "x86_64" | "aarch64",
+	arch: Arch,
 	--[=[
 		@within Process
 		@read_only
@@ -144,16 +147,12 @@ export type Process = {
 		The second argument, `params`, can be passed as a list of string parameters to give to the program.
 
 		The third argument, `options`, can be passed as a dictionary of options to give to the child process.
-		Refer to the documentation for `ProcessSpawnOptions` for specific option keys and their values.
+		Refer to the documentation for `SpawnOptions` for specific option keys and their values.
 
 		@param program The program to spawn as a child process
 		@param params Additional parameters to pass to the program
 		@param options A dictionary of options for the child process
 		@return A dictionary representing the result of the child process
 	]=]
-	spawn: (
-		program: string,
-		params: { string }?,
-		options: ProcessSpawnOptions?
-	) -> ProcessSpawnResult,
+	spawn: (program: string, params: { string }?, options: SpawnOptions?) -> SpawnResult,
 }

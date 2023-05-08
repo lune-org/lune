@@ -23,6 +23,7 @@ roblox = ["lune/roblox"]
 lune = { path = "../lib" }
 
 console.workspace = true
+directories.workspace = true
 futures-util.workspace = true
 once_cell.workspace = true
 reqwest.workspace = true

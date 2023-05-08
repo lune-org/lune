@@ -6,25 +6,17 @@ use clap::{CommandFactory, Parser};
 use include_dir::{include_dir, Dir};
 use lune::Lune;
 use tokio::{
-    fs::{read as read_to_vec, write},
+    fs::read as read_to_vec,
     io::{stdin, AsyncReadExt},
 };
 
 use crate::{
-    gen::{
-        generate_docs_json_from_definitions, generate_gitbook_dir_from_definitions,
-        generate_luau_defs_from_definitions, generate_selene_defs_from_definitions,
-        generate_typedefs_file_from_dir,
-    },
+    gen::{generate_gitbook_dir_from_definitions, generate_typedef_files_from_definitions},
     utils::{
         files::{discover_script_file_path_including_lune_dirs, strip_shebang},
         listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
     },
 };
-
-pub(crate) const FILE_NAME_SELENE_TYPES: &str = "lune.yml";
-pub(crate) const FILE_NAME_LUAU_TYPES: &str = "luneTypes.d.luau";
-pub(crate) const FILE_NAME_DOCS: &str = "luneDocs.json";
 
 pub(crate) static TYPEDEFS_DIR: Dir<'_> = include_dir!("docs/typedefs");
 
@@ -40,14 +32,17 @@ pub struct Cli {
     /// List scripts found inside of a nearby `lune` directory
     #[clap(long, short = 'l')]
     list: bool,
-    /// Generate a Luau type definitions file in the current dir
+    /// Set up type definitions and settings for development
     #[clap(long)]
+    setup: bool,
+    /// Generate a Luau type definitions file in the current dir
+    #[clap(long, hide = true)]
     generate_luau_types: bool,
     /// Generate a Selene type definitions file in the current dir
-    #[clap(long)]
+    #[clap(long, hide = true)]
     generate_selene_types: bool,
     /// Generate a Lune documentation file for Luau LSP
-    #[clap(long)]
+    #[clap(long, hide = true)]
     generate_docs_file: bool,
     /// Generate the full Lune gitbook directory
     #[clap(long, hide = true)]
@@ -76,18 +71,8 @@ impl Cli {
         self
     }
 
-    pub fn generate_selene_types(mut self) -> Self {
-        self.generate_selene_types = true;
-        self
-    }
-
-    pub fn generate_luau_types(mut self) -> Self {
-        self.generate_luau_types = true;
-        self
-    }
-
-    pub fn generate_docs_file(mut self) -> Self {
-        self.generate_docs_file = true;
+    pub fn setup(mut self) -> Self {
+        self.setup = true;
         self
     }
 
@@ -118,7 +103,8 @@ impl Cli {
             }
         }
         // Generate (save) definition files, if wanted
-        let generate_file_requested = self.generate_luau_types
+        let generate_file_requested = self.setup
+            || self.generate_luau_types
             || self.generate_selene_types
             || self.generate_docs_file
             || self.generate_gitbook_dir;
@@ -126,24 +112,12 @@ impl Cli {
             if self.generate_gitbook_dir {
                 generate_gitbook_dir_from_definitions(&TYPEDEFS_DIR).await?;
             }
-            let definitions = generate_typedefs_file_from_dir(&TYPEDEFS_DIR);
-            if self.generate_luau_types {
-                generate_and_save_file(FILE_NAME_LUAU_TYPES, "Luau type definitions", || {
-                    generate_luau_defs_from_definitions(&definitions)
-                })
-                .await?;
-            }
-            if self.generate_selene_types {
-                generate_and_save_file(FILE_NAME_SELENE_TYPES, "Selene type definitions", || {
-                    generate_selene_defs_from_definitions(&definitions)
-                })
-                .await?;
-            }
-            if self.generate_docs_file {
-                generate_and_save_file(FILE_NAME_DOCS, "Luau LSP documentation", || {
-                    generate_docs_json_from_definitions(&definitions, "roblox/global")
-                })
-                .await?;
+            if self.setup
+                || self.generate_luau_types
+                || self.generate_selene_types
+                || self.generate_docs_file
+            {
+                generate_typedef_files_from_definitions(&TYPEDEFS_DIR).await?;
             }
         }
         if self.script_path.is_none() {
@@ -190,35 +164,4 @@ impl Cli {
             Ok(code) => code,
         })
     }
-}
-
-async fn generate_and_save_file(
-    file_path: &str,
-    display_name: &str,
-    f: impl Fn() -> Result<String>,
-) -> Result<()> {
-    #[cfg(test)]
-    use crate::tests::fmt_path_relative_to_workspace_root;
-    match f() {
-        Ok(file_contents) => {
-            write(file_path, file_contents).await?;
-            #[cfg(not(test))]
-            println!("Generated {display_name} file at '{file_path}'");
-            #[cfg(test)]
-            println!(
-                "Generated {display_name} file at '{}'",
-                fmt_path_relative_to_workspace_root(file_path)
-            );
-        }
-        Err(e) => {
-            #[cfg(not(test))]
-            println!("Failed to generate {display_name} file at '{file_path}'\n{e}");
-            #[cfg(test)]
-            println!(
-                "Failed to generate {display_name} file at '{}'\n{e}",
-                fmt_path_relative_to_workspace_root(file_path)
-            );
-        }
-    }
-    Ok(())
 }

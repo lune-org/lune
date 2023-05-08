@@ -1,4 +1,4 @@
-type SerdeEncodeDecodeFormat = "json" | "yaml" | "toml"
+export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 
 --[=[
 	@class Serde
@@ -34,7 +34,7 @@ export type Serde = {
 		@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
 		@return The encoded string
 	]=]
-	encode: (format: SerdeEncodeDecodeFormat, value: any, pretty: boolean?) -> string,
+	encode: (format: EncodeDecodeFormat, value: any, pretty: boolean?) -> string,
 	--[=[
 		@within Serde
 		@must_use
@@ -45,5 +45,5 @@ export type Serde = {
 		@param encoded The string to decode
 		@return The decoded lua value
 	]=]
-	decode: (format: SerdeEncodeDecodeFormat, encoded: string) -> any,
+	decode: (format: EncodeDecodeFormat, encoded: string) -> any,
 }

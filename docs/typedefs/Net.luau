@@ -1,7 +1,7 @@
-type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
 
 --[=[
-	@type NetFetchParams
+	@type FetchParams
 	@within Net
 
 	Parameters for sending network requests with `net.request`.
@@ -14,16 +14,16 @@ type NetMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH
 	* `headers` - A table of key-value pairs representing headers
 	* `body` - The request body
 ]=]
-export type NetFetchParams = {
+export type FetchParams = {
 	url: string,
-	method: NetMethod?,
+	method: HttpMethod?,
 	query: { [string]: string }?,
 	headers: { [string]: string }?,
 	body: string?,
 }
 
 --[=[
-	@type NetFetchResponse
+	@type FetchResponse
 	@within new
 
 	Response type for sending network requests with `net.request`.
@@ -36,7 +36,7 @@ export type NetFetchParams = {
 	* `headers` - A table of key-value pairs representing headers
 	* `body` - The request body, or an empty string if one was not given
 ]=]
-export type NetFetchResponse = {
+export type FetchResponse = {
 	ok: boolean,
 	statusCode: number,
 	statusMessage: string,
@@ -45,7 +45,7 @@ export type NetFetchResponse = {
 }
 
 --[=[
-	@type NetRequest
+	@type ServeRequest
 	@within Net
 
 	Data type for requests in `net.serve`.
@@ -58,16 +58,16 @@ export type NetFetchResponse = {
 	* `headers` - A table of key-value pairs representing headers
 	* `body` - The request body, or an empty string if one was not given
 ]=]
-export type NetRequest = {
+export type ServeRequest = {
 	path: string,
 	query: { [string]: string? },
-	method: NetMethod,
+	method: HttpMethod,
 	headers: { [string]: string },
 	body: string,
 }
 
 --[=[
-	@type NetRequest
+	@type ServeResponse
 	@within Net
 
 	Response type for requests in `net.serve`.
@@ -78,17 +78,17 @@ export type NetRequest = {
 	* `headers` - A table of key-value pairs representing headers
 	* `body` - The response body
 ]=]
-export type NetResponse = {
+export type ServeResponse = {
 	status: number?,
 	headers: { [string]: string }?,
 	body: string?,
 }
 
-type NetServeHttpHandler = (request: NetRequest) -> string | NetResponse
-type NetServeWebSocketHandler = (socket: NetWebSocket) -> ()
+type ServeHttpHandler = (request: ServeRequest) -> string | ServeResponse
+type ServeWebSocketHandler = (socket: WebSocket) -> ()
 
 --[=[
-	@type NetServeConfig
+	@type ServeConfig
 	@within Net
 
 	Configuration for `net.serve`.
@@ -96,25 +96,25 @@ type NetServeWebSocketHandler = (socket: NetWebSocket) -> ()
 	This may contain one of, or both of the following callbacks:
 
 	* `handleRequest` for handling normal http requests, equivalent to just passing a function to `net.serve`
-	* `handleWebSocket` for handling web socket requests, which will receive a `NetWebSocket` object as its first and only parameter
+	* `handleWebSocket` for handling web socket requests, which will receive a `WebSocket` object as its first and only parameter
 ]=]
-export type NetServeConfig = {
-	handleRequest: NetServeHttpHandler?,
-	handleWebSocket: NetServeWebSocketHandler?,
+export type ServeConfig = {
+	handleRequest: ServeHttpHandler?,
+	handleWebSocket: ServeWebSocketHandler?,
 }
 
 --[=[
-	@type NetServeHandle
+	@type ServeHandle
 	@within Net
 
 	A handle to a currently running web server, containing a single `stop` function to gracefully shut down the web server.
 ]=]
-export type NetServeHandle = {
+export type ServeHandle = {
 	stop: () -> (),
 }
 
 --[=[
-	@type NetWebSocket
+	@type WebSocket
 	@within Net
 
 	A reference to a web socket connection.
@@ -135,7 +135,7 @@ export type NetServeHandle = {
 	code according to the [WebSocket specification](https://www.iana.org/assignments/websocket/websocket.xhtml).
 	This will be an integer between 1000 and 4999, where 1000 is the canonical code for normal, error-free closure.
 ]=]
-export type NetWebSocket = {
+export type WebSocket = {
 	closeCode: number?,
 	close: (code: number?) -> (),
 	send: (message: string, asBinaryMessage: boolean?) -> (),
@@ -191,7 +191,7 @@ export type Net = {
 		@param config The URL or request config to use
 		@return A dictionary representing the response for the request
 	]=]
-	request: (config: string | NetFetchParams) -> NetFetchResponse,
+	request: (config: string | FetchParams) -> FetchResponse,
 	--[=[
 		@within Net
 		@must_use
@@ -204,19 +204,19 @@ export type Net = {
 		@param url The URL to connect to
 		@return A web socket handle
 	]=]
-	socket: (url: string) -> NetWebSocket,
+	socket: (url: string) -> WebSocket,
 	--[=[
 		@within Net
 
 		Creates an HTTP server that listens on the given `port`.
 
 		This will ***not*** block and will keep listening for requests on the given `port`
-		until the `stop` function on the returned `NetServeHandle` has been called.
+		until the `stop` function on the returned `ServeHandle` has been called.
 
 		@param port The port to use for the server
 		@param handlerOrConfig The handler function or config to use for the server
 	]=]
-	serve: (port: number, handlerOrConfig: NetServeHttpHandler | NetServeConfig) -> NetServeHandle,
+	serve: (port: number, handlerOrConfig: ServeHttpHandler | ServeConfig) -> ServeHandle,
 	--[=[
 		@within Net
 		@must_use

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::{Context, Result};
 use full_moon::{
@@ -8,7 +8,6 @@ use full_moon::{
     },
     tokenizer::{TokenReference, TokenType},
 };
-use regex::Regex;
 
 use super::{
     builder::DefinitionsItemBuilder, item::DefinitionsItem, moonwave::parse_moonwave_style_comment,
@@ -27,7 +26,7 @@ pub struct DefinitionsParser {
     found_top_level_items: BTreeMap<String, DefinitionsParserItem>,
     found_top_level_types: HashMap<String, TypeInfo>,
     found_top_level_comments: HashMap<String, Option<String>>,
-    found_top_level_declares: Vec<String>,
+    found_top_level_exports: Vec<String>,
 }
 
 impl DefinitionsParser {
@@ -36,7 +35,7 @@ impl DefinitionsParser {
             found_top_level_items: BTreeMap::new(),
             found_top_level_types: HashMap::new(),
             found_top_level_comments: HashMap::new(),
-            found_top_level_declares: Vec::new(),
+            found_top_level_exports: Vec::new(),
         }
     }
 
@@ -50,36 +49,19 @@ impl DefinitionsParser {
     where
         S: AsRef<str>,
     {
-        // TODO: Properly handle the "declare class" syntax, for now we just skip it
-        let mut no_class_declares = contents.as_ref().replace("\r\n", "\n");
-        while let Some(dec) = no_class_declares.find("\ndeclare class") {
-            let end = no_class_declares.find("\nend").unwrap();
-            let before = &no_class_declares[0..dec];
-            let after = &no_class_declares[end + 4..];
-            no_class_declares = format!("{before}{after}");
-        }
-        // Replace declares with export type syntax that can be parsed by full_moon,
-        // find all declare statements and save declared names for later parsing
-        let regex_declare = Regex::new(r#"declare (\w+): "#).unwrap();
-        let resulting_contents = regex_declare
-            .replace_all(&no_class_declares, "export type $1 =")
-            .to_string();
-        let found_declares = regex_declare
-            .captures_iter(&no_class_declares)
-            .map(|cap| cap[1].to_string())
-            .collect();
         // Parse contents into top-level parser items for later use
         let mut found_top_level_items = BTreeMap::new();
         let mut found_top_level_types = HashMap::new();
         let mut found_top_level_comments = HashMap::new();
+        let mut found_top_level_exports = HashSet::new();
         let ast =
-            full_moon::parse(&resulting_contents).context("Failed to parse type definitions")?;
+            full_moon::parse(contents.as_ref()).context("Failed to parse type definitions")?;
         for stmt in ast.nodes().stmts() {
-            if let Some((declaration, token_reference)) = match stmt {
+            if let Some((exported, declaration, token_reference)) = match stmt {
                 Stmt::ExportedTypeDeclaration(exp) => {
-                    Some((exp.type_declaration(), exp.export_token()))
+                    Some((true, exp.type_declaration(), exp.export_token()))
                 }
-                Stmt::TypeDeclaration(typ) => Some((typ, typ.type_token())),
+                Stmt::TypeDeclaration(typ) => Some((false, typ, typ.type_token())),
                 _ => None,
             } {
                 let name = declaration.type_name().token().to_string();
@@ -93,14 +75,17 @@ impl DefinitionsParser {
                     },
                 );
                 found_top_level_types.insert(name.clone(), declaration.type_definition().clone());
-                found_top_level_comments.insert(name, comment);
+                found_top_level_comments.insert(name.clone(), comment);
+                if exported {
+                    found_top_level_exports.insert(name);
+                }
             }
         }
         // Store results
         self.found_top_level_items = found_top_level_items;
         self.found_top_level_types = found_top_level_types;
         self.found_top_level_comments = found_top_level_comments;
-        self.found_top_level_declares = found_declares;
+        self.found_top_level_exports = found_top_level_exports.into_iter().collect();
         Ok(())
     }
 
@@ -113,7 +98,7 @@ impl DefinitionsParser {
             .with_kind(kind.unwrap_or_else(|| item.type_info.parse_definitions_kind()))
             .with_name(&item.name)
             .with_type(item.type_info.to_string());
-        if self.found_top_level_declares.contains(&item.name) {
+        if self.found_top_level_exports.contains(&item.name) {
             builder = builder.as_exported();
         }
         if let Some(comment) = item.comment {
@@ -157,7 +142,7 @@ impl DefinitionsParser {
         self.found_top_level_items = BTreeMap::new();
         self.found_top_level_types = HashMap::new();
         self.found_top_level_comments = HashMap::new();
-        self.found_top_level_declares = Vec::new();
+        self.found_top_level_exports = Vec::new();
         Ok(resulting_items)
     }
 }
