@@ -83,7 +83,12 @@ fn make_return_table_item(item: &DefinitionsItem) -> Result<String> {
             .map(|arg| format!("{}: {}", arg.name.trim(), arg.typedef.trim()))
             .collect::<Vec<_>>()
             .join(", ");
-        write!(contents, "function ({args})")?;
+        // HACK: We should probably handle vararg and generics properly but this works for now...
+        let args = args
+            .replace("_: ...any", "...: any")
+            .replace("_: T...", "...: any")
+            .replace("(T...)", "(...any)");
+        write!(contents, "function({args})")?;
         write!(contents, "\n\treturn nil :: any")?;
         write!(contents, "\nend,")?;
     } else if item.is_property() {
