@@ -29,7 +29,7 @@ export type WriteOptions = {
 	for _, entryName in fs.readDir("myDirName") do
 		if fs.isFile("myDirName/" .. entryName) then
 			print("Found file " .. entryName)
-		elseif if fs.isDir("myDirName/" .. entryName) then
+		elseif fs.isDir("myDirName/" .. entryName) then
 			print("Found subdirectory " .. entryName)
 		end
 	end
