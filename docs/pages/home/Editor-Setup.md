@@ -6,26 +6,17 @@ These steps assume you have already installed Lune and that it is available to r
 
 ## Luau LSP
 
-1. Run `lune --generate-luau-types` to generate a Luau type definitions file (`luneTypes.d.luau`) in the current directory
-2. Run `lune --generate-docs-file` to generate a Luau LSP documentation file (`luneDocs.json`) in the current directory
+1. Run `lune --setup` to generate Luau type definitions for your installed version of Lune
+2. Verify that type definition files have been generated
 3. Modify your VSCode settings, either by using the settings menu or in `settings.json`:
 
     ```json
     "luau-lsp.require.mode": "relativeToFile", // Set the require mode to work with Lune
-    "luau-lsp.types.definitionFiles": ["luneTypes.d.luau"], // Add type definitions for Lune globals
-    "luau-lsp.types.documentationFiles": ["luneDocs.json"] // Add documentation for Lune globals
+    "luau-lsp.require.fileAliases": { // Add type definitions for Lune builtins
+    	"@lune/fs": ".../.lune/.typedefs/x.y.z/fs.luau",
+    	"@lune/net": ".../.lune/.typedefs/x.y.z/net.luau",
+    	"@lune/...": "..."
+    }
     ```
 
-## Selene
-
-1. Run `lune --generate-selene-types` to generate a Selene type definitions file (`lune.yml`) in the current directory
-2. Modify your Selene settings in `selene.toml`:
-
-    ```yaml
-    # Use this if Lune is the only thing you use Luau files with:
-    std = "luau+lune"
-    # OR use this if your project also contains Roblox-specific Luau code:
-    std = "roblox+lune"
-    # If you are also using the Luau type definitions, they should be excluded:
-    exclude = ["luneTypes.d.luau"]
-    ```
+    _**NOTE:** If you already had a `.vscode/settings.json` file in your current directory the type definition files may have been added automatically!_
