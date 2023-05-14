@@ -2,8 +2,6 @@
 	// Luau - disable Roblox features, enable Lune typedefs & requires
 	"luau-lsp.sourcemap.enabled": false,
 	"luau-lsp.types.roblox": false,
-	"luau-lsp.types.definitionFiles": ["luneTypes.d.luau"],
-	"luau-lsp.types.documentationFiles": ["luneDocs.json"],
 	"luau-lsp.require.mode": "relativeToFile",
 	// Luau - ignore type defs file in docs dir and dev scripts we use
 	"luau-lsp.ignoreGlobs": [

@@ -1,12 +1,18 @@
-use std::process::ExitCode;
+use std::{
+    borrow::BorrowMut,
+    collections::HashMap,
+    path::{Path, PathBuf},
+    process::ExitCode,
+};
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser};
+use serde_json::Value as JsonValue;
 
 use include_dir::{include_dir, Dir};
 use lune::Lune;
 use tokio::{
-    fs::read as read_to_vec,
+    fs::{self, read as read_to_vec},
     io::{stdin, AsyncReadExt},
 };
 
@@ -81,6 +87,7 @@ impl Cli {
         self
     }
 
+    #[allow(clippy::too_many_lines)]
     pub async fn run(self) -> Result<ExitCode> {
         // List files in `lune` and `.lune` directories, if wanted
         // This will also exit early and not run anything else
@@ -124,7 +131,43 @@ impl Cli {
                 return Ok(ExitCode::FAILURE);
             }
             if self.setup {
-                generate_typedef_files_from_definitions(&TYPEDEFS_DIR).await?;
+                let generated_paths =
+                    generate_typedef_files_from_definitions(&TYPEDEFS_DIR).await?;
+                let settings_json_path = PathBuf::from(".vscode/settings.json");
+                let message = match fs::metadata(&settings_json_path).await {
+                    Ok(meta) if meta.is_file() => {
+                        if try_add_generated_typedefs_vscode(&settings_json_path, &generated_paths).await.is_err() {
+							"These files can be added to your LSP settings for autocomplete and documentation."
+						} else {
+							"These files have now been added to your workspace LSP settings for Visual Studio Code."
+						}
+                    }
+                    _ => "These files can be added to your LSP settings for autocomplete and documentation.",
+                };
+                // HACK: We should probably just be serializing this hashmap to print it out, but
+                // that does not guarantee sorting and the sorted version is much easier to read
+                let mut sorted_names = generated_paths
+                    .keys()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>();
+                sorted_names.sort_unstable();
+                println!(
+                    "Typedefs have been generated in the following locations:\n{{\n{}\n}}\n{message}",
+                    sorted_names
+                        .iter()
+                        .map(|name| {
+                            let path = generated_paths.get(name).unwrap();
+                            format!(
+                                "    \"@lune/{}\": \"{}\",",
+                                name,
+                                path.canonicalize().unwrap().display()
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                        .strip_suffix(',')
+                        .unwrap()
+                );
             }
         }
         if self.script_path.is_none() {
@@ -171,4 +214,30 @@ impl Cli {
             Ok(code) => code,
         })
     }
+}
+
+async fn try_add_generated_typedefs_vscode(
+    settings_json_path: &Path,
+    generated_paths: &HashMap<String, PathBuf>,
+) -> Result<()> {
+    // FUTURE: Use a jsonc or json5 to read this file instead since it may contain comments and fail
+    let settings_json_contents = fs::read(settings_json_path).await?;
+    let mut settings_changed: bool = false;
+    let mut settings_json: JsonValue = serde_json::from_slice(&settings_json_contents)?;
+    if let JsonValue::Object(settings) = settings_json.borrow_mut() {
+        if let Some(JsonValue::Object(aliases)) = settings.get_mut("luau-lsp.require.fileAliases") {
+            for (name, path) in generated_paths {
+                settings_changed = true;
+                aliases.insert(
+                    format!("@lune/{name}"),
+                    JsonValue::String(path.canonicalize().unwrap().to_string_lossy().to_string()),
+                );
+            }
+        }
+    }
+    if settings_changed {
+        let settings_json_new = serde_json::to_vec_pretty(&settings_json)?;
+        fs::write(settings_json_path, settings_json_new).await?;
+    }
+    Ok(())
 }

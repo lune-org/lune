@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Write};
+use std::{collections::HashMap, fmt::Write, path::PathBuf};
 
 use anyhow::{Context, Result};
 use directories::UserDirs;
@@ -13,7 +13,7 @@ const GENERATED_COMMENT_TAG: &str = "--!strict";
 #[allow(clippy::too_many_lines)]
 pub async fn generate_from_type_definitions(
     api_reference: HashMap<String, DefinitionsTree>,
-) -> Result<()> {
+) -> Result<HashMap<String, PathBuf>> {
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();
     // Create the typedefs dir in the users cache dir
@@ -21,7 +21,7 @@ pub async fn generate_from_type_definitions(
         .context("Failed to find user home directory")?
         .home_dir()
         .join(".lune")
-        .join("typedefs")
+        .join(".typedefs")
         .join(env!("CARGO_PKG_VERSION"));
     dirs_to_write.push(cache_dir.clone());
     // Make typedef files
@@ -36,8 +36,8 @@ pub async fn generate_from_type_definitions(
             category_name.to_lowercase(),
             env!("CARGO_PKG_VERSION")
         )?;
-        write_tree(&mut contents, category_name, category_tree)?;
-        files_to_write.push((path, contents));
+        write_tree(&mut contents, category_name.to_string(), category_tree)?;
+        files_to_write.push((category_name.to_lowercase(), path, contents));
     }
     // Write all dirs and files only when we know generation was successful
     let futs_dirs = dirs_to_write
@@ -45,12 +45,15 @@ pub async fn generate_from_type_definitions(
         .map(create_dir_all)
         .collect::<Vec<_>>();
     let futs_files = files_to_write
-        .drain(..)
-        .map(|(path, contents)| write(path, contents))
+        .iter()
+        .map(|(_, path, contents)| write(path, contents))
         .collect::<Vec<_>>();
     try_join_all(futs_dirs).await?;
     try_join_all(futs_files).await?;
-    Ok(())
+    Ok(files_to_write
+        .drain(..)
+        .map(|(name, path, _)| (name, path))
+        .collect::<HashMap<_, _>>())
 }
 
 fn make_return_table_item(item: &DefinitionsItem) -> Result<String> {
