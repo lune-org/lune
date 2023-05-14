@@ -8,9 +8,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.6.7` - May 14th, 2023
 
 ## Added
+
+-   Replaced all of the separate typedef & documentation generation commands with a unified `lune --setup` command.
+
+    This command will generate type definition files for all of the builtins and will work with the new `require("@lune/...")` syntax. Note that this also means that there is no longer any way to generate type definitions for globals - this is because they will be removed in the next major release in favor of the beforementioned syntax.
 
 -   New releases now include prebuilt binaries for arm64 / aarch64! <br />
     These new binaries will have names with the following format:
