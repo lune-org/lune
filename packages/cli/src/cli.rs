@@ -112,11 +112,18 @@ impl Cli {
             if self.generate_gitbook_dir {
                 generate_gitbook_dir_from_definitions(&TYPEDEFS_DIR).await?;
             }
-            if self.setup
-                || self.generate_luau_types
-                || self.generate_selene_types
-                || self.generate_docs_file
+            if (self.generate_luau_types || self.generate_selene_types || self.generate_docs_file)
+                && !self.setup
             {
+                eprintln!(
+                    "\
+					Typedef & docs generation files have been superseded by the --setup command.\
+					Run lune --setup in your terminal to configure typedef files.
+					"
+                );
+                return Ok(ExitCode::FAILURE);
+            }
+            if self.setup {
                 generate_typedef_files_from_definitions(&TYPEDEFS_DIR).await?;
             }
         }
