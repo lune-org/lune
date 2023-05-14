@@ -180,7 +180,7 @@ export type WebSocket = {
 	end)
 	```
 ]=]
-export type Net = {
+return {
 	--[=[
 		@within Net
 
@@ -191,7 +191,9 @@ export type Net = {
 		@param config The URL or request config to use
 		@return A dictionary representing the response for the request
 	]=]
-	request: (config: string | FetchParams) -> FetchResponse,
+	request = function(config: string | FetchParams): FetchResponse
+		return nil :: any
+	end,
 	--[=[
 		@within Net
 		@must_use
@@ -204,7 +206,9 @@ export type Net = {
 		@param url The URL to connect to
 		@return A web socket handle
 	]=]
-	socket: (url: string) -> WebSocket,
+	socket = function(url: string): WebSocket
+		return nil :: any
+	end,
 	--[=[
 		@within Net
 
@@ -216,7 +220,9 @@ export type Net = {
 		@param port The port to use for the server
 		@param handlerOrConfig The handler function or config to use for the server
 	]=]
-	serve: (port: number, handlerOrConfig: ServeHttpHandler | ServeConfig) -> ServeHandle,
+	serve = function(port: number, handlerOrConfig: ServeHttpHandler | ServeConfig): ServeHandle
+		return nil :: any
+	end,
 	--[=[
 		@within Net
 		@must_use
@@ -227,7 +233,9 @@ export type Net = {
 		@param pretty If the encoded JSON string should include newlines and spaces. Defaults to false
 		@return The encoded JSON string
 	]=]
-	jsonEncode: (value: any, pretty: boolean?) -> string,
+	jsonEncode = function(value: any, pretty: boolean?): string
+		return nil :: any
+	end,
 	--[=[
 		@within Net
 		@must_use
@@ -237,7 +245,9 @@ export type Net = {
 		@param encoded The JSON string to decode
 		@return The decoded lua value
 	]=]
-	jsonDecode: (encoded: string) -> any,
+	jsonDecode = function(encoded: string): any
+		return nil :: any
+	end,
 	--[=[
 		@within Net
 		@must_use
@@ -248,7 +258,9 @@ export type Net = {
 		@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
 		@return The encoded string
 	]=]
-	urlEncode: (s: string, binary: boolean?) -> string,
+	urlEncode = function(s: string, binary: boolean?): string
+		return nil :: any
+	end,
 	--[=[
 		@within Net
 		@must_use
@@ -259,5 +271,7 @@ export type Net = {
 		@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
 		@return The decoded string
 	]=]
-	urlDecode: (s: string, binary: boolean?) -> string,
+	urlDecode = function(s: string, binary: boolean?): string
+		return nil :: any
+	end,
 }

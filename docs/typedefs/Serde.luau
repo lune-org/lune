@@ -22,7 +22,7 @@ export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 	fs.writeFile("myFile.yaml", serde.encode("yaml", someYaml))
 	```
 ]=]
-export type Serde = {
+return {
 	--[=[
 		@within Serde
 		@must_use
@@ -34,7 +34,9 @@ export type Serde = {
 		@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
 		@return The encoded string
 	]=]
-	encode: (format: EncodeDecodeFormat, value: any, pretty: boolean?) -> string,
+	encode = function(format: EncodeDecodeFormat, value: any, pretty: boolean?): string
+		return nil :: any
+	end,
 	--[=[
 		@within Serde
 		@must_use
@@ -45,5 +47,7 @@ export type Serde = {
 		@param encoded The string to decode
 		@return The decoded lua value
 	]=]
-	decode: (format: EncodeDecodeFormat, encoded: string) -> any,
+	decode = function(format: EncodeDecodeFormat, encoded: string): any
+		return nil :: any
+	end,
 }

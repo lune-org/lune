@@ -10,6 +10,34 @@ export type Color =
 	| "white"
 export type Style = "reset" | "bold" | "dim"
 
+type PromptFn = (
+	(() -> string)
+	& ((kind: "text", message: string?, defaultOrOptions: string?) -> string)
+	& ((kind: "confirm", message: string, defaultOrOptions: boolean?) -> boolean)
+	& ((kind: "select", message: string?, defaultOrOptions: { string }) -> number?)
+	& ((kind: "multiselect", message: string?, defaultOrOptions: { string }) -> { number }?)
+)
+
+--[=[
+	@within Stdio
+	@must_use
+
+	Prompts for user input using the wanted kind of prompt:
+
+	* `"text"` - Prompts for a plain text string from the user
+	* `"confirm"` - Prompts the user to confirm with y / n (yes / no)
+	* `"select"` - Prompts the user to select *one* value from a list
+	* `"multiselect"` - Prompts the user to select *one or more* values from a list
+	* `nil` - Equivalent to `"text"` with no extra arguments
+
+	@param kind The kind of prompt to use
+	@param message The message to show the user
+	@param defaultOrOptions The default value for the prompt, or options to choose from for selection prompts
+]=]
+local prompt: PromptFn = function(kind: any, message: any, defaultOrOptions: any)
+	return nil :: any
+end
+
 --[=[
 	@class Stdio
 
@@ -31,7 +59,7 @@ export type Style = "reset" | "bold" | "dim"
 	stdio.ewrite("\nAnd some error text, too")
 	```
 ]=]
-export type Stdio = {
+return {
 	--[=[
 		@within Stdio
 		@must_use
@@ -52,7 +80,9 @@ export type Stdio = {
 		@param color The color to use
 		@return A printable ANSI string
 	]=]
-	color: (color: Color) -> string,
+	color = function(color: Color): string
+		return nil :: any
+	end,
 	--[=[
 		@within Stdio
 		@must_use
@@ -73,7 +103,9 @@ export type Stdio = {
 		@param style The style to use
 		@return A printable ANSI string
 	]=]
-	style: (style: Style) -> string,
+	style = function(style: Style): string
+		return nil :: any
+	end,
 	--[=[
 		@within Stdio
 		@must_use
@@ -83,7 +115,9 @@ export type Stdio = {
 		@param ... The values to format
 		@return The formatted string
 	]=]
-	format: (...any) -> string,
+	format = function(...: any): string
+		return nil :: any
+	end,
 	--[=[
 		@within Stdio
 
@@ -91,7 +125,7 @@ export type Stdio = {
 
 		@param s The string to write to stdout
 	]=]
-	write: (s: string) -> (),
+	write = function(s: string) end,
 	--[=[
 		@within Stdio
 
@@ -99,28 +133,6 @@ export type Stdio = {
 
 		@param s The string to write to stderr
 	]=]
-	ewrite: (s: string) -> (),
-	--[=[
-		@within Stdio
-		@must_use
-
-		Prompts for user input using the wanted kind of prompt:
-
-		* `"text"` - Prompts for a plain text string from the user
-		* `"confirm"` - Prompts the user to confirm with y / n (yes / no)
-		* `"select"` - Prompts the user to select *one* value from a list
-		* `"multiselect"` - Prompts the user to select *one or more* values from a list
-		* `nil` - Equivalent to `"text"` with no extra arguments
-
-		@param kind The kind of prompt to use
-		@param message The message to show the user
-		@param defaultOrOptions The default value for the prompt, or options to choose from for selection prompts
-	]=]
-	prompt: (
-		(() -> string)
-		& ((kind: "text", message: string?, defaultOrOptions: string?) -> string)
-		& ((kind: "confirm", message: string, defaultOrOptions: boolean?) -> boolean)
-		& ((kind: "select", message: string?, defaultOrOptions: { string }) -> number?)
-		& ((kind: "multiselect", message: string?, defaultOrOptions: { string }) -> { number }?)
-	),
+	ewrite = function(s: string) end,
+	prompt = prompt,
 }

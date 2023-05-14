@@ -21,7 +21,7 @@ export type Instance = {}
 	roblox.writePlaceFile("myPlaceFile.rbxl", game)
 	```
 ]=]
-export type Roblox = {
+return {
 	--[=[
 		@within Roblox
 		@must_use
@@ -37,7 +37,9 @@ export type Roblox = {
 
 		@param filePath The file path to read from
 	]=]
-	readPlaceFile: (filePath: string) -> Instance,
+	readPlaceFile = function(filePath: string): Instance
+		return nil :: any
+	end,
 	--[=[
 		@within Roblox
 		@must_use
@@ -53,7 +55,9 @@ export type Roblox = {
 
 		@param filePath The file path to read from
 	]=]
-	readModelFile: (filePath: string) -> { Instance },
+	readModelFile = function(filePath: string): { Instance }
+		return nil :: any
+	end,
 	--[=[
 		@within Roblox
 
@@ -69,7 +73,7 @@ export type Roblox = {
 		@param filePath The file path to write to
 		@param dataModel The DataModel to write to the file
 	]=]
-	writePlaceFile: (filePath: string, dataModel: Instance) -> (),
+	writePlaceFile = function(filePath: string, dataModel: Instance) end,
 	--[=[
 		@within Roblox
 
@@ -85,7 +89,7 @@ export type Roblox = {
 		@param filePath The file path to write to
 		@param instances The array of instances to write to the file
 	]=]
-	writeModelFile: (filePath: string, instances: { Instance }) -> (),
+	writeModelFile = function(filePath: string, instances: { Instance }) end,
 	--[=[
 		@within Roblox
 		@must_use
@@ -122,5 +126,7 @@ export type Roblox = {
 
 		@param raw If the cookie should be returned as a pure value or not. Defaults to false
 	]=]
-	getAuthCookie: (raw: boolean?) -> string?,
+	getAuthCookie = function(raw: boolean?): string?
+		return nil :: any
+	end,
 }

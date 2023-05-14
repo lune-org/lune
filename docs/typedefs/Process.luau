@@ -78,7 +78,7 @@ export type SpawnResult = {
 	end
 	```
 ]=]
-export type Process = {
+return {
 	--[=[
 		@within Process
 		@read_only
@@ -91,7 +91,7 @@ export type Process = {
 		* `"macos"`
 		* `"windows"`
 	]=]
-	os: OS,
+	os = (nil :: any) :: OS,
 	--[=[
 		@within Process
 		@read_only
@@ -103,21 +103,21 @@ export type Process = {
 		* `"x86_64"`
 		* `"aarch64"`
 	]=]
-	arch: Arch,
+	arch = (nil :: any) :: Arch,
 	--[=[
 		@within Process
 		@read_only
 
 		The arguments given when running the Lune script.
 	]=]
-	args: { string },
+	args = (nil :: any) :: { string },
 	--[=[
 		@within Process
 		@read_only
 
 		The current working directory in which the Lune script is running.
 	]=]
-	cwd: string,
+	cwd = (nil :: any) :: string,
 	--[=[
 		@within Process
 		@read_write
@@ -126,7 +126,7 @@ export type Process = {
 
 		Setting a value on this table will set the corresponding environment variable.
 	]=]
-	env: { [string]: string? },
+	env = (nil :: any) :: { [string]: string? },
 	--[=[
 		@within Process
 
@@ -138,7 +138,7 @@ export type Process = {
 
 		@param code The exit code to set
 	]=]
-	exit: (code: number?) -> (),
+	exit = function(code: number?) end,
 	--[=[
 		@within Process
 
@@ -154,5 +154,7 @@ export type Process = {
 		@param options A dictionary of options for the child process
 		@return A dictionary representing the result of the child process
 	]=]
-	spawn: (program: string, params: { string }?, options: SpawnOptions?) -> SpawnResult,
+	spawn = function(program: string, params: { string }?, options: SpawnOptions?): SpawnResult
+		return nil :: any
+	end,
 }

@@ -27,7 +27,7 @@
 	print("Running after task.spawn yields")
 	```
 ]=]
-export type Task = {
+return {
 	--[=[
 		@within Task
 
@@ -35,7 +35,7 @@ export type Task = {
 
 		@param thread The thread to cancel
 	]=]
-	cancel: (thread: thread) -> (),
+	cancel = function(thread: thread) end,
 	--[=[
 		@within Task
 
@@ -44,16 +44,26 @@ export type Task = {
 		@param functionOrThread The function or thread to defer
 		@return The thread that will be deferred
 	]=]
-	defer: <T...>(functionOrThread: thread | (T...) -> ...any, T...) -> thread,
+	defer = function<T...>(functionOrThread: thread | (T...) -> ...any, ...: T...): thread
+		return nil :: any
+	end,
 	--[=[
 		@within Task
 
 		Delays a thread or function to run after `duration` seconds.
 
+		If no `duration` is given, this will wait for the minimum amount of time possible.
+
 		@param functionOrThread The function or thread to delay
 		@return The thread that will be delayed
 	]=]
-	delay: <T...>(duration: number?, functionOrThread: thread | (T...) -> ...any, T...) -> thread,
+	delay = function<T...>(
+		duration: number?,
+		functionOrThread: thread | (T...) -> ...any,
+		...: T...
+	): thread
+		return nil :: any
+	end,
 	--[=[
 		@within Task
 
@@ -65,7 +75,9 @@ export type Task = {
 		@param functionOrThread The function or thread to spawn
 		@return The thread that was spawned
 	]=]
-	spawn: <T...>(functionOrThread: thread | (T...) -> ...any, T...) -> thread,
+	spawn = function<T...>(functionOrThread: thread | (T...) -> ...any, ...: T...): thread
+		return nil :: any
+	end,
 	--[=[
 		@within Task
 
@@ -77,5 +89,7 @@ export type Task = {
 		@param duration The amount of time to wait
 		@return The exact amount of time waited
 	]=]
-	wait: (duration: number?) -> number,
+	wait = function(duration: number?): number
+		return nil :: any
+	end,
 }

@@ -35,7 +35,7 @@ export type WriteOptions = {
 	end
 	```
 ]=]
-export type FS = {
+return {
 	--[=[
 		@within FS
 		@must_use
@@ -52,7 +52,9 @@ export type FS = {
 		@param path The path to the file to read
 		@return The contents of the file
 	]=]
-	readFile: (path: string) -> string,
+	readFile = function(path: string): string
+		return nil :: any
+	end,
 	--[=[
 		@within FS
 		@must_use
@@ -68,7 +70,9 @@ export type FS = {
 		@param path The directory path to search in
 		@return A list of files & directories found
 	]=]
-	readDir: (path: string) -> { string },
+	readDir = function(path: string): { string }
+		return {}
+	end,
 	--[=[
 		@within FS
 
@@ -83,7 +87,7 @@ export type FS = {
 		@param path The path of the file
 		@param contents The contents of the file
 	]=]
-	writeFile: (path: string, contents: string) -> (),
+	writeFile = function(path: string, contents: string) end,
 	--[=[
 		@within FS
 
@@ -97,7 +101,7 @@ export type FS = {
 
 		@param path The directory to create
 	]=]
-	writeDir: (path: string) -> (),
+	writeDir = function(path: string) end,
 	--[=[
 		@within FS
 
@@ -111,7 +115,7 @@ export type FS = {
 
 		@param path The file to remove
 	]=]
-	removeFile: (path: string) -> (),
+	removeFile = function(path: string) end,
 	--[=[
 		@within FS
 
@@ -125,7 +129,7 @@ export type FS = {
 
 		@param path The directory to remove
 	]=]
-	removeDir: (path: string) -> (),
+	removeDir = function(path: string) end,
 	--[=[
 		@within FS
 		@must_use
@@ -140,7 +144,9 @@ export type FS = {
 		@param path The file path to check
 		@return If the path is a file or not
 	]=]
-	isFile: (path: string) -> boolean,
+	isFile = function(path: string): boolean
+		return nil :: any
+	end,
 	--[=[
 		@within FS
 		@must_use
@@ -155,7 +161,9 @@ export type FS = {
 		@param path The directory path to check
 		@return If the path is a directory or not
 	]=]
-	isDir: (path: string) -> boolean,
+	isDir = function(path: string): boolean
+		return nil :: any
+	end,
 	--[=[
 		@within FS
 
@@ -175,5 +183,5 @@ export type FS = {
 		@param to The path to move to
 		@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
 	]=]
-	move: (from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) -> (),
+	move = function(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end,
 }
