@@ -1,3 +1,5 @@
+local task = require("@lune/task")
+
 -- Spawning a task should return the thread that can then be cancelled
 
 local thread = task.spawn(function() end)

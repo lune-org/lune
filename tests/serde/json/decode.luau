@@ -1,3 +1,6 @@
+local net = require("@lune/net")
+local serde = require("@lune/serde")
+
 type Response = {
 	products: {
 		{
@@ -24,7 +27,7 @@ local response = net.request("https://dummyjson.com/products")
 assert(response.ok, "Dummy JSON api returned an error")
 assert(#response.body > 0, "Dummy JSON api returned empty body")
 
-local data: Response = net.jsonDecode(response.body)
+local data: Response = serde.decode("json", response.body)
 
 assert(type(data.limit) == "number", "Products limit was not a number")
 assert(type(data.products) == "table", "Products was not a table")

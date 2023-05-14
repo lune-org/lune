@@ -1,3 +1,7 @@
+local net = require("@lune/net")
+local task = require("@lune/task")
+local process = require("@lune/process")
+
 local PORT = 8081
 local URL = `http://127.0.0.1:{PORT}`
 local WS_URL = `ws://127.0.0.1:{PORT}`

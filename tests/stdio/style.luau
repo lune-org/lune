@@ -1,3 +1,5 @@
+local stdio = require("@lune/stdio")
+
 local STYLES_VALID = { "reset", "bold", "dim" }
 local STYLES_INVALID = { "", "*bold*", "dimm", "megabright", "cheerful", "sad", " " }
 

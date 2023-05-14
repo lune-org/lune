@@ -1,3 +1,5 @@
+local stdio = require("@lune/stdio")
+
 assert(
 	stdio.format("Hello", "world", "!") == "Hello world !",
 	"Format should add a single space between arguments"

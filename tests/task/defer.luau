@@ -1,3 +1,5 @@
+local task = require("@lune/task")
+
 -- Deferring a task should return the thread that can then be cancelled
 
 local thread = task.defer(function() end)

@@ -1,3 +1,5 @@
+local process = require("@lune/process")
+
 assert(process.cwd ~= nil, "Process cwd is missing")
 
 assert(type(process.cwd) == "string", "Process cwd is not a string")

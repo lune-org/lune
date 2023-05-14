@@ -1,3 +1,5 @@
+local process = require("@lune/process")
+
 local randomKey = string.format("LUNE_TEST_%d", math.random(1, 999_999))
 
 assert(process.env[randomKey] == nil, "Unset variable returned a non-nil value")

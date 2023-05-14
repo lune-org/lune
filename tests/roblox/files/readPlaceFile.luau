@@ -1,4 +1,4 @@
-local fs = require("@lune/fs") :: any
+local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local placeDirs = {}

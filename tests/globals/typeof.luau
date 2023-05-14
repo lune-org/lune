@@ -1,3 +1,5 @@
+local task = require("@lune/task")
+
 local function f() end
 
 local thread1 = coroutine.create(f)

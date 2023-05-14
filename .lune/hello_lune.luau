@@ -1,3 +1,9 @@
+local fs = require("@lune/fs")
+local net = require("@lune/net")
+local process = require("@lune/process")
+local stdio = require("@lune/stdio")
+local task = require("@lune/task")
+
 --[[
 	EXAMPLE #1
 

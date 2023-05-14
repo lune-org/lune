@@ -1,3 +1,5 @@
+local task = require("@lune/task")
+
 -- Delaying a task should return the thread that can then be cancelled
 
 local thread = task.delay(0, function() end)

@@ -1,5 +1,9 @@
 --> A basic web socket server that echoes given messages
 
+local net = require("@lune/net")
+local process = require("@lune/process")
+local task = require("@lune/task")
+
 local PORT = if process.env.PORT ~= nil and #process.env.PORT > 0
 	then assert(tonumber(process.env.PORT), "Failed to parse port from env")
 	else 8080

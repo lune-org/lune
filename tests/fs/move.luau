@@ -1,3 +1,6 @@
+local fs = require("@lune/fs")
+local net = require("@lune/net")
+
 -- Generate test data & make sure our bin dir exists
 
 local binary = ""

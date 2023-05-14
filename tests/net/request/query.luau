@@ -1,3 +1,5 @@
+local net = require("@lune/net")
+
 local QUERY: { [string]: string } = {
 	Key = "Value",
 	Hello = "World",

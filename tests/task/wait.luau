@@ -1,3 +1,6 @@
+local task = require("@lune/task")
+local stdio = require("@lune/stdio")
+
 -- Wait should be accurate down to at least 10ms
 
 local EPSILON = 10 / 1_000

@@ -1,3 +1,6 @@
+local net = require("@lune/net")
+local stdio = require("@lune/stdio")
+
 local util = {}
 
 function util.pass(method, url, message)

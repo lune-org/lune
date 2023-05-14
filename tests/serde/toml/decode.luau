@@ -1,4 +1,4 @@
-local serde = require("@lune/serde") :: any
+local serde = require("@lune/serde")
 local source = require("./source")
 
 local toml = serde.decode("toml", source.encoded)

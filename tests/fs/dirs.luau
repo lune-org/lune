@@ -1,3 +1,5 @@
+local fs = require("@lune/fs")
+
 -- Write two inner dirs in the bir dir, a parent and a child
 
 fs.writeDir("bin/test_dir/test_inner")

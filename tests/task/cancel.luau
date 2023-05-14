@@ -1,3 +1,5 @@
+local task = require("@lune/task")
+
 -- Cancel should cancel any deferred or delayed threads
 
 local flag: boolean = false

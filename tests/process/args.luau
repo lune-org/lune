@@ -1,3 +1,5 @@
+local process = require("@lune/process")
+
 assert(#process.args > 0, "No process arguments found")
 
 assert(process.args[1] == "Foo", "Invalid first argument to process")

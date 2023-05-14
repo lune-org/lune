@@ -1,3 +1,6 @@
+local task = require("@lune/task")
+local process = require("@lune/process")
+
 -- Spawning a child process should work with options
 
 local result = process.spawn("ls", {

@@ -1,3 +1,6 @@
+local net = require("@lune/net")
+local task = require("@lune/task")
+
 local PORT = 9090 -- NOTE: This must be different from
 -- net tests to let them run in parallel with this file
 

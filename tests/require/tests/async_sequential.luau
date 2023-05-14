@@ -1,3 +1,5 @@
+local task = require("@lune/task")
+
 local module1 = require("./modules/async")
 local module2 = require("./modules/async")
 

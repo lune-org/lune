@@ -1,8 +1,8 @@
-local fs = require("@lune/fs") :: typeof(fs)
-local net = require("@lune/net") :: typeof(net)
-local process = require("@lune/process") :: typeof(process)
-local stdio = require("@lune/stdio") :: typeof(stdio)
-local task = require("@lune/task") :: typeof(task)
+local fs = require("@lune/fs")
+local net = require("@lune/net")
+local process = require("@lune/process")
+local stdio = require("@lune/stdio")
+local task = require("@lune/task")
 
 assert(type(fs.move) == "function")
 assert(type(net.request) == "function")

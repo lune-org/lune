@@ -3,6 +3,15 @@
 	"luau-lsp.sourcemap.enabled": false,
 	"luau-lsp.types.roblox": false,
 	"luau-lsp.require.mode": "relativeToFile",
+	"luau-lsp.require.fileAliases": {
+		"@lune/fs": "./docs/typedefs/FS.luau",
+		"@lune/net": "./docs/typedefs/Net.luau",
+		"@lune/process": "./docs/typedefs/Process.luau",
+		"@lune/roblox": "./docs/typedefs/Roblox.luau",
+		"@lune/serde": "./docs/typedefs/Serde.luau",
+		"@lune/stdio": "./docs/typedefs/Stdio.luau",
+		"@lune/task": "./docs/typedefs/Task.luau"
+	},
 	// Luau - ignore type defs file in docs dir and dev scripts we use
 	"luau-lsp.ignoreGlobs": [
 		"docs/*.d.luau",

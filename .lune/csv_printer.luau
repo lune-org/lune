@@ -4,6 +4,9 @@
 local LINE_SEPARATOR = "\n"
 local COMMA_SEPARATOR = ","
 
+local fs = require("@lune/fs")
+local process = require("@lune/process")
+
 local path = process.args[1] or ".lune/data/test.csv"
 
 assert(path ~= nil and #path > 0, "No input file path was given")

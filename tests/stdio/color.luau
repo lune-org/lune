@@ -1,3 +1,5 @@
+local stdio = require("@lune/stdio")
+
 local COLORS_VALID =
 	{ "reset", "black", "red", "green", "yellow", "blue", "purple", "cyan", "white" }
 local COLORS_INVALID = { "", "gray", "grass", "red?", "super red", " ", "none" }
