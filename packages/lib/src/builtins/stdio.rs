@@ -1,6 +1,8 @@
 use blocking::unblock;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use mlua::prelude::*;
+use std::io;
+use std::io::prelude::*;
 
 use crate::lua::{
     stdio::{
@@ -27,10 +29,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         })?
         .with_function("write", |_, s: String| {
             print!("{s}");
+            io::stdout().flush().expect("Could not flush stdout");
             Ok(())
         })?
         .with_function("ewrite", |_, s: String| {
             eprint!("{s}");
+            io::stderr().flush().expect("Could not flush stderr");
             Ok(())
         })?
         .with_async_function("prompt", |_, options: PromptOptions| {
