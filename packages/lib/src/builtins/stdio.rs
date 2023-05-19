@@ -1,7 +1,7 @@
 use blocking::unblock;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use mlua::prelude::*;
-use std::io::Write;
+use tokio::io::{self, AsyncWriteExt};
 
 use crate::lua::{
     stdio::{
@@ -26,14 +26,16 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("format", |_, args: LuaMultiValue| {
             pretty_format_multi_value(&args)
         })?
-        .with_function("write", |_, s: String| {
-            print!("{s}");
-            std::io::stdout().flush().expect("Could not flush stdout");
+        .with_async_function("write", |_, s: LuaString| async move {
+            let mut stdout = io::stdout();
+            stdout.write_all(s.as_bytes()).await?;
+            stdout.flush().await?;
             Ok(())
         })?
-        .with_function("ewrite", |_, s: String| {
-            eprint!("{s}");
-            std::io::stderr().flush().expect("Could not flush stderr");
+        .with_async_function("ewrite", |_, s: LuaString| async move {
+            let mut stderr = io::stderr();
+            stderr.write_all(s.as_bytes()).await?;
+            stderr.flush().await?;
             Ok(())
         })?
         .with_async_function("prompt", |_, options: PromptOptions| {
