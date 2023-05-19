@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Example usage:
 
     ```lua
-    local INPUT = string.rep("Input string to compress", 16)
+    local INPUT = string.rep("Input string to compress", 16) -- Repeated string 16 times for the purposes of this example
 
     local serde = require("@lune/serde")
 
