@@ -1,9 +1,14 @@
 export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 
+export type CompressDecompressFormat = "brotli" | "gzip" | "zlib"
+
 --[=[
 	@class Serde
 
-	Built-in serialization/deserialization & encoding/decoding functions
+	Built-in library for:
+	- serialization & deserialization
+	- encoding & decoding
+	- compression
 
 	### Example usage
 
@@ -48,6 +53,32 @@ return {
 		@return The decoded lua value
 	]=]
 	decode = function(format: EncodeDecodeFormat, encoded: string): any
+		return nil :: any
+	end,
+	--[=[
+		@within Serde
+		@must_use
+
+		Compresses the given string using the given format.
+
+		@param format The format to use
+		@param encoded The string to compress
+		@return The compressed string
+	]=]
+	compress = function(format: CompressDecompressFormat, s: string): string
+		return nil :: any
+	end,
+	--[=[
+		@within Serde
+		@must_use
+
+		Decompresses the given string using the given format.
+
+		@param format The format to use
+		@param encoded The string to decompress
+		@return The decompressed string
+	]=]
+	decompress = function(format: CompressDecompressFormat, s: string): string
 		return nil :: any
 	end,
 }

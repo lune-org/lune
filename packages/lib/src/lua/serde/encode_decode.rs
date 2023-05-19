@@ -4,8 +4,6 @@ use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
 use toml::Value as TomlValue;
 
-// Serde config
-
 #[derive(Debug, Clone, Copy)]
 pub enum EncodeDecodeFormat {
     Json,

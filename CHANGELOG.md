@@ -10,6 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+-   Added `serde.compress` and `serde.decompress` for compressing and decompressing strings using one of several compression formats: `brotli`, `gzip`, or `zlib`.
+
+    Example usage:
+
+    ```lua
+    local INPUT = string.rep("Input string to compress", 16)
+
+    local serde = require("@lune/serde")
+
+    local compressed = serde.compress("gzip", INPUT)
+    local decompressed = serde.decompress("gzip", compressed)
+
+    assert(compressed == "H4sIAAAAAAAAA/PMKygtUSguKcrMS1coyVdIzs8tKEotLvYcFaeLOADSF8BBgAEAAA==")
+    assert(decompressed == INPUT)
+    ```
+
 ### Changed
 
 -   Both `stdio.write` and `stdio.ewrite` now support writing arbitrary bytes, instead of only valid UTF-8.

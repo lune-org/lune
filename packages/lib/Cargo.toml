@@ -42,6 +42,13 @@ pin-project = "1.0"
 os_str_bytes = "6.4"
 urlencoding = "2.1.2"
 
+async-compression = { version = "0.4", features = [
+	"tokio",
+	"brotli",
+	"deflate",
+	"gzip",
+	"zlib",
+] }
 hyper = { version = "0.14", features = ["full"] }
 hyper-tungstenite = { version = "0.9" }
 tokio-tungstenite = { version = "0.18" }
