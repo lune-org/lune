@@ -8,9 +8,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+-   Both `stdio.write` and `stdio.ewrite` now support writing arbitrary bytes, instead of only valid UTF-8.
+
+### Fixed
+
+-   Fixed `stdio.write` and `stdio.ewrite` not being flushed and causing output to be interleaved. ([#47])
+
+[#47]: https://github.com/filiptibell/lune/pull/47
+
 ## `0.6.7` - May 14th, 2023
 
-## Added
+### Added
 
 -   Replaced all of the separate typedef & documentation generation commands with a unified `lune --setup` command.
 
