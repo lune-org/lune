@@ -1,4 +1,4 @@
-local roblox = require("@lune/roblox") :: any
+local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
 
 local game = Instance.new("DataModel")
@@ -6,12 +6,14 @@ local workspace = game:GetService("Workspace")
 
 -- Terrain should always exist as a "Terrain" property, or be created when accessed
 
-assert(workspace.Terrain ~= nil)
-assert(workspace.Terrain:IsA("Terrain"))
-assert(workspace.Terrain == workspace:FindFirstChildOfClass("Terrain"))
+local terrain = (workspace :: any).Terrain
+assert(terrain ~= nil)
+assert(terrain:IsA("Terrain"))
+assert(terrain == workspace:FindFirstChildOfClass("Terrain"))
 
 -- Camera should always exist as a "CurrentCamera" property, or be created when accessed
 
-assert(workspace.CurrentCamera ~= nil)
-assert(workspace.CurrentCamera:IsA("Camera"))
-assert(workspace.CurrentCamera == workspace:FindFirstChildOfClass("Camera"))
+local camera = (workspace :: any).CurrentCamera
+assert(camera ~= nil)
+assert(camera:IsA("Camera"))
+assert(camera == workspace:FindFirstChildOfClass("Camera"))

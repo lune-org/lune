@@ -1,4 +1,4 @@
-local roblox = require("@lune/roblox") :: any
+local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
 
 -- Should not allow creating unknown classes
@@ -33,7 +33,7 @@ assert(model.Parent == nil)
 -- Parenting and indexing should work
 model.Parent = folder
 assert(model.Parent == folder)
-assert(folder.Model == model)
+assert((folder :: any).Model == model)
 
 -- Parenting to nil should work
 model.Parent = nil
@@ -43,6 +43,6 @@ assert(model.Parent == nil)
 model.Name = "MyCoolModel"
 assert(model.Name == "MyCoolModel")
 assert(not pcall(function()
-	model.Name = nil
+	model.Name = nil :: any
 end))
 assert(model.Name == "MyCoolModel")

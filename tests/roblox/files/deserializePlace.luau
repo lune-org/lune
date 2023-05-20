@@ -1,5 +1,5 @@
 local fs = require("@lune/fs")
-local roblox = require("@lune/roblox") :: any
+local roblox = require("@lune/roblox")
 
 local placeDirs = {}
 for _, dirName in fs.readDir("tests/roblox/rbx-test-files/places") do

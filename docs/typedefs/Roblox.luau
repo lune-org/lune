@@ -2,7 +2,8 @@ type InstanceProperties = {
 	Parent: Instance?,
 	ClassName: string,
 	Name: string,
-	-- FIXME: This breaks intellisense, but we need some way to access instance properties...
+	-- FIXME: This breaks intellisense, but we need some way to access
+	-- instance properties without casting the entire instance to any...
 	-- [string]: any,
 }
 
@@ -218,4 +219,8 @@ return {
 	getAuthCookie = function(raw: boolean?): string?
 		return nil :: any
 	end,
+	-- TODO: Make typedefs for all of the datatypes as well...
+	Instance = (nil :: any) :: {
+		new: ((className: "DataModel") -> DataModel) & ((className: string) -> Instance),
+	},
 }

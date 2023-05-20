@@ -1,4 +1,4 @@
-local roblox = require("@lune/roblox") :: any
+local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
 
 local root = Instance.new("Model")
@@ -7,9 +7,9 @@ local objValue1 = Instance.new("ObjectValue")
 local objValue2 = Instance.new("ObjectValue")
 
 objValue1.Name = "ObjectValue1"
-objValue2.Name = "ObjectValue2"
-objValue1.Value = root
-objValue2.Value = child
+objValue2.Name = "ObjectValue2";
+(objValue1 :: any).Value = root;
+(objValue2 :: any).Value = child
 objValue1.Parent = child
 objValue2.Parent = child
 child.Parent = root

@@ -1,4 +1,4 @@
-local roblox = require("@lune/roblox") :: any
+local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
 
 local root = Instance.new("Folder")
