@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use mlua::prelude::*;
 
 use console::style;
-use hyper::Server;
+use hyper::{
+    header::{CONTENT_ENCODING, CONTENT_LENGTH},
+    Server,
+};
 use tokio::{sync::mpsc, task};
 
 use crate::lua::{
@@ -11,7 +14,7 @@ use crate::lua::{
         NetClient, NetClientBuilder, NetLocalExec, NetService, NetWebSocket, RequestConfig,
         ServeConfig,
     },
-    serde::{EncodeDecodeConfig, EncodeDecodeFormat},
+    serde::{decompress, CompressDecompressFormat, EncodeDecodeConfig, EncodeDecodeFormat},
     table::TableBuilder,
     task::{TaskScheduler, TaskSchedulerAsyncExt},
 };
@@ -74,13 +77,38 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
     // Extract status, headers
     let res_status = res.status().as_u16();
     let res_status_text = res.status().canonical_reason();
-    let res_headers = res
+    let mut res_headers = res
         .headers()
         .iter()
-        .map(|(name, value)| (name.to_string(), value.to_str().unwrap().to_owned()))
+        .map(|(name, value)| {
+            (
+                name.as_str().to_string(),
+                value.to_str().unwrap().to_owned(),
+            )
+        })
         .collect::<HashMap<String, String>>();
     // Read response bytes
-    let res_bytes = res.bytes().await.map_err(LuaError::external)?;
+    let mut res_bytes = res.bytes().await.map_err(LuaError::external)?.to_vec();
+    // Check for extra options, decompression
+    if config.options.decompress {
+        // NOTE: Header names are guaranteed to be lowercase because of the above
+        // transformations of them into the hashmap, so we can compare directly
+        let format = res_headers.iter().find_map(|(name, val)| {
+            if name == CONTENT_ENCODING.as_str() {
+                CompressDecompressFormat::detect_from_header_str(val)
+            } else {
+                None
+            }
+        });
+        if let Some(format) = format {
+            res_bytes = decompress(format, res_bytes).await?;
+            let content_encoding_header_str = CONTENT_ENCODING.as_str();
+            let content_length_header_str = CONTENT_LENGTH.as_str();
+            res_headers.retain(|name, _| {
+                name != content_encoding_header_str && name != content_length_header_str
+            });
+        }
+    }
     // Construct and return a readonly lua table with results
     TableBuilder::new(lua)?
         .with_value("ok", (200..300).contains(&res_status))?

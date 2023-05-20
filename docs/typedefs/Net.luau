@@ -1,6 +1,20 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
 
 --[=[
+	@type FetchParamsOptions
+	@within Net
+
+	Extra options for `FetchParams`.
+
+	This is a dictionary that may contain one or more of the following values:
+
+	* `decompress` - If the request body should be automatically decompressed when possible. Defaults to `true`
+]=]
+export type FetchParamsOptions = {
+	decompress: boolean?,
+}
+
+--[=[
 	@type FetchParams
 	@within Net
 
@@ -10,16 +24,18 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" 
 
 	* `url` - The URL to send a request to. This is always required
 	* `method` - The HTTP method verb, such as `"GET"`, `"POST"`, `"PATCH"`, `"PUT"`, or `"DELETE"`. Defaults to `"GET"`
+	* `body` - The request body
 	* `query` - A table of key-value pairs representing query parameters in the request path
 	* `headers` - A table of key-value pairs representing headers
-	* `body` - The request body
+	* `options` - Extra options for things such as automatic decompression of response bodies
 ]=]
 export type FetchParams = {
 	url: string,
 	method: HttpMethod?,
+	body: string?,
 	query: { [string]: string }?,
 	headers: { [string]: string }?,
-	body: string?,
+	options: FetchParamsOptions?,
 }
 
 --[=[

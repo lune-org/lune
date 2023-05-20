@@ -54,9 +54,9 @@ impl CompressDecompressFormat {
     pub fn detect_from_header_str(header: impl AsRef<str>) -> Option<Self> {
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding#directives
         match header.as_ref().to_ascii_lowercase().trim() {
-            "br" => Some(Self::Brotli),
+            "br" | "brotli" => Some(Self::Brotli),
             "deflate" => Some(Self::ZLib),
-            "gzip" => Some(Self::GZip),
+            "gz" | "gzip" => Some(Self::GZip),
             _ => None,
         }
     }

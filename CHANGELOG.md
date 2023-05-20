@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     assert(decompressed == INPUT)
     ```
 
+-   Added automatic decompression for compressed responses when using `net.request`.
+    This behavior can be disabled by passing `options = { decompress = false }` in request params.
+
 -   Added several new instance methods in the `roblox` builtin library:
     -   [`Instance:AddTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#AddTag)
     -   [`Instance:GetTags`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetTags)

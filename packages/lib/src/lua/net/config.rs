@@ -6,16 +6,56 @@ use reqwest::Method;
 
 // Net request config
 
+#[derive(Debug, Clone)]
+pub struct RequestConfigOptions {
+    pub decompress: bool,
+}
+
+impl Default for RequestConfigOptions {
+    fn default() -> Self {
+        Self { decompress: true }
+    }
+}
+
+impl<'lua> FromLua<'lua> for RequestConfigOptions {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        // Nil means default options, table means custom options
+        if let LuaValue::Nil = value {
+            return Ok(Self::default());
+        } else if let LuaValue::Table(tab) = value {
+            // Extract flags
+            let decompress = match tab.raw_get::<_, Option<bool>>("decompress") {
+                Ok(decomp) => Ok(decomp.unwrap_or(true)),
+                Err(_) => Err(LuaError::RuntimeError(
+                    "Invalid option value for 'decompress' in request config options".to_string(),
+                )),
+            }?;
+            return Ok(Self { decompress });
+        }
+        // Anything else is invalid
+        Err(LuaError::FromLuaConversionError {
+            from: value.type_name(),
+            to: "RequestConfigOptions",
+            message: Some(format!(
+                "Invalid request config options - expected table or nil, got {}",
+                value.type_name()
+            )),
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct RequestConfig<'a> {
     pub url: String,
     pub method: Method,
     pub query: HashMap<LuaString<'a>, LuaString<'a>>,
     pub headers: HashMap<LuaString<'a>, LuaString<'a>>,
     pub body: Option<Vec<u8>>,
+    pub options: RequestConfigOptions,
 }
 
 impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
         // If we just got a string we assume its a GET request to a given url
         if let LuaValue::String(s) = value {
             return Ok(Self {
@@ -24,6 +64,7 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
                 query: HashMap::new(),
                 headers: HashMap::new(),
                 body: None,
+                options: Default::default(),
             });
         }
         // If we got a table we are able to configure the entire request
@@ -84,6 +125,11 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
                     &method
                 ))),
             }?;
+            // Parse any extra options given
+            let options = match tab.raw_get::<_, LuaValue>("options") {
+                Ok(opts) => RequestConfigOptions::from_lua(opts, lua)?,
+                Err(_) => RequestConfigOptions::default(),
+            };
             // All good, validated and we got what we need
             return Ok(Self {
                 url,
@@ -91,6 +137,7 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
                 query,
                 headers,
                 body,
+                options,
             });
         };
         // Anything else is invalid
