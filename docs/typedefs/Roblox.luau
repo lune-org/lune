@@ -1,5 +1,54 @@
--- TODO: Autogenerate this somehow ...
-export type Instance = {}
+type InstanceProperties = {
+	Parent: Instance?,
+	ClassName: string,
+	Name: string,
+	[string]: any,
+}
+
+type InstanceMetatable = {
+	Clone: (self: Instance) -> Instance,
+	Destroy: (self: Instance) -> (),
+	ClearAllChildren: (self: Instance) -> (),
+
+	GetChildren: (self: Instance) -> { Instance },
+	GetDescendants: (self: Instance) -> { Instance },
+	GetFullName: (self: Instance) -> string,
+
+	FindFirstAncestor: (self: Instance, name: string) -> Instance?,
+	FindFirstAncestorOfClass: (self: Instance, className: string) -> Instance?,
+	FindFirstAncestorWhichIsA: (self: Instance, className: string) -> Instance?,
+	FindFirstChild: (self: Instance, name: string, recursive: boolean?) -> Instance?,
+	FindFirstChildOfClass: (self: Instance, className: string, recursive: boolean?) -> Instance?,
+	FindFirstChildWhichIsA: (self: Instance, className: string, recursive: boolean?) -> Instance?,
+
+	IsA: (self: Instance, className: string) -> boolean,
+	IsAncestorOf: (self: Instance, descendant: Instance) -> boolean,
+	IsDescendantOf: (self: Instance, ancestor: Instance) -> boolean,
+
+	GetAttribute: (self: Instance, name: string) -> any,
+	GetAttributes: (self: Instance) -> { [string]: any },
+	SetAttribute: (self: Instance, name: string, value: any) -> (),
+
+	GetTags: (self: Instance) -> { string },
+	HasTag: (self: Instance, name: string) -> boolean,
+	AddTag: (self: Instance, name: string) -> (),
+	RemoveTag: (self: Instance, name: string) -> (),
+}
+
+export type Instance = typeof(setmetatable(
+	(nil :: any) :: InstanceProperties,
+	(nil :: any) :: { __index: InstanceMetatable }
+))
+
+type DataModelMetatable = {
+	GetService: (self: DataModel, name: string) -> Instance,
+	FindService: (self: DataModel, name: string) -> Instance?,
+}
+
+export type DataModel = typeof(setmetatable(
+	(nil :: any) :: InstanceProperties,
+	(nil :: any) :: { __index: InstanceMetatable & DataModelMetatable }
+))
 
 --[=[
 	@class Roblox
@@ -50,7 +99,7 @@ return {
 
 		@param contents The contents of the place to read
 	]=]
-	deserializePlace = function(contents: string): Instance
+	deserializePlace = function(contents: string): DataModel
 		return nil :: any
 	end,
 	--[=[
@@ -99,7 +148,7 @@ return {
 		@param dataModel The DataModel for the place to serialize
 		@param xml If the place should be serialized as xml or not. Defaults to `false`, meaning the place gets serialized using the binary format and not xml.
 	]=]
-	serializePlace = function(dataModel: Instance, xml: boolean?): string
+	serializePlace = function(dataModel: DataModel, xml: boolean?): string
 		return nil :: any
 	end,
 	--[=[
