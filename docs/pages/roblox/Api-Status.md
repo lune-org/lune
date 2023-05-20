@@ -15,6 +15,7 @@ However, if a recently added datatype is missing, and it can be used as an insta
 Currently implemented APIs:
 
 -   [`new`](https://create.roblox.com/docs/reference/engine/datatypes/Instance#new) - note that this does not include the second `parent` argument
+-   [`AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
 -   [`Clone`](https://create.roblox.com/docs/reference/engine/classes/Instance#Clone)
 -   [`Destroy`](https://create.roblox.com/docs/reference/engine/classes/Instance#Destroy)
 -   [`ClearAllChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClearAllChildren)
@@ -30,9 +31,12 @@ Currently implemented APIs:
 -   [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
 -   [`GetDescendants`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetDescendants)
 -   [`GetFullName`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetFullName)
+-   [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
+-   [`HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
 -   [`IsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsA)
 -   [`IsAncestorOf`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsAncestorOf)
 -   [`IsDescendantOf`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsDescendantOf)
+-   [`RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
 -   [`SetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#SetAttribute)
 
 ### `DataModel`
@@ -41,15 +45,6 @@ Currently implemented APIs:
 
 -   [`GetService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#GetService)
 -   [`FindService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#FindService)
-
-### `CollectionService`
-
-Currently implemented APIs:
-
--   [`AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
--   [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
--   [`HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
--   [`RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
 
 ## Datatypes
 

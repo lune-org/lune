@@ -24,7 +24,6 @@ use crate::{
     shared::instance::{class_exists, class_is_a, find_property_info},
 };
 
-pub(crate) mod collection_service;
 pub(crate) mod data_model;
 pub(crate) mod workspace;
 
@@ -1130,10 +1129,27 @@ impl LuaUserData for Instance {
                 }
             },
         );
+        methods.add_method("GetTags", |_, this, ()| {
+            this.ensure_not_destroyed()?;
+            Ok(this.get_tags())
+        });
+        methods.add_method("HasTag", |_, this, tag: String| {
+            this.ensure_not_destroyed()?;
+            Ok(this.has_tag(tag))
+        });
+        methods.add_method("AddTag", |_, this, tag: String| {
+            this.ensure_not_destroyed()?;
+            this.add_tag(tag);
+            Ok(())
+        });
+        methods.add_method("RemoveTag", |_, this, tag: String| {
+            this.ensure_not_destroyed()?;
+            this.remove_tag(tag);
+            Ok(())
+        });
         // Here we add inheritance-like behavior for instances by creating
         // methods that are restricted to specific classnames / base classes
         data_model::add_methods(methods);
-        collection_service::add_methods(methods);
     }
 }
 

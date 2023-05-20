@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     assert(decompressed == INPUT)
     ```
 
+-   Added several new instance methods in the `roblox` builtin library:
+    -   [`Instance:AddTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#AddTag)
+    -   [`Instance:GetTags`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetTags)
+    -   [`Instance:HasTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#HasTag)
+    -   [`Instance:RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#RemoveTag)
+
+### Removed
+
+-   Removed `CollectionService` specific methods from the `roblox` builtin library:
+    -   [`CollectionService:AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
+    -   [`CollectionService:GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
+    -   [`CollectionService:HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
+    -   [`CollectionService:RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
+
 ### Changed
 
 -   Both `stdio.write` and `stdio.ewrite` now support writing arbitrary bytes, instead of only valid UTF-8.
