@@ -7,8 +7,11 @@ for _, dirName in fs.readDir("tests/roblox/rbx-test-files/places") do
 end
 
 for _, modelDir in modelDirs do
-	local modelBinary = roblox.readModelFile(modelDir .. "/binary.rbxl")
-	local modelXml = roblox.readModelFile(modelDir .. "/xml.rbxlx")
+	local modelFileBinary = fs.readFile(modelDir .. "/binary.rbxl")
+	local modelFileXml = fs.readFile(modelDir .. "/xml.rbxlx")
+
+	local modelBinary = roblox.deserializeModel(modelFileBinary)
+	local modelXml = roblox.deserializeModel(modelFileXml)
 
 	for _, modelInstance in modelBinary do
 		assert(modelInstance:IsA("Instance"))

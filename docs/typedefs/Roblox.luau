@@ -9,17 +9,22 @@ export type Instance = {}
 	### Example usage
 
 	```lua
+	local fs = require("@lune/fs")
 	local roblox = require("@lune/roblox")
 
-	-- Reading & writing a place file
-	local game = roblox.readPlaceFile("myPlaceFile.rbxl")
-	local workspace = game:GetService("Workspace")
+	-- Reading a place file
+	local placeFile = fs.readFile("myPlaceFile.rbxl")
+	local game = roblox.deserializePlace(placeFile)
 
+	-- Manipulating and reading instances - just like in Roblox!
+	local workspace = game:GetService("Workspace")
 	for _, child in workspace:GetChildren() do
 		print("Found child " .. child.Name .. " of class " .. child.ClassName)
 	end
 
-	roblox.writePlaceFile("myPlaceFile.rbxl", game)
+	-- Writing a place file
+	local newPlaceFile = roblox.serializePlace(game)
+	fs.writeFile("myPlaceFile.rbxl", newPlaceFile)
 	```
 ]=]
 return {
@@ -27,70 +32,100 @@ return {
 		@within Roblox
 		@must_use
 
-		Reads a place file into a DataModel instance.
+		Deserializes a place into a DataModel instance.
+
+		This function accepts a string of contents, *not* a file path.
+		If reading a place file from a file path is desired, `fs.readFile`
+		can be used and the resulting string may be passed to this function.
 
 		### Example usage
 
 		```lua
+		local fs = require("@lune/fs")
 		local roblox = require("@lune/roblox")
-		local game = roblox.readPlaceFile("filePath.rbxl")
+
+		local placeFile = fs.readFile("filePath.rbxl")
+		local game = roblox.deserializePlace(placeFile)
 		```
 
-		@param filePath The file path to read from
+		@param contents The contents of the place to read
 	]=]
-	readPlaceFile = function(filePath: string): Instance
+	deserializePlace = function(contents: string): Instance
 		return nil :: any
 	end,
 	--[=[
 		@within Roblox
 		@must_use
 
-		Reads a model file into a table of instances.
+		Deserializes a model into an array of instances.
+
+		This function accepts a string of contents, *not* a file path.
+		If reading a model file from a file path is desired, `fs.readFile`
+		can be used and the resulting string may be passed to this function.
 
 		### Example usage
 
 		```lua
+		local fs = require("@lune/fs")
 		local roblox = require("@lune/roblox")
-		local instances = roblox.readModelFile("filePath.rbxm")
+
+		local modelFile = fs.readFile("filePath.rbxm")
+		local instances = roblox.deserializeModel(modelFile)
 		```
 
-		@param filePath The file path to read from
+		@param contents The contents of the model to read
 	]=]
-	readModelFile = function(filePath: string): { Instance }
+	deserializeModel = function(contents: string): { Instance }
 		return nil :: any
 	end,
 	--[=[
 		@within Roblox
+		@must_use
 
-		Writes a DataModel instance to a place file.
+		Serializes a place from a DataModel instance.
+
+		This string can then be written to a file, or sent over the network.
 
 		### Example usage
 
 		```lua
+		local fs = require("@lune/fs")
 		local roblox = require("@lune/roblox")
-		roblox.writePlaceFile("filePath.rbxl", game)
+
+		local placeFile = roblox.serializePlace(game)
+		fs.writeFile("filePath.rbxl", placeFile)
 		```
 
-		@param filePath The file path to write to
-		@param dataModel The DataModel to write to the file
+		@param dataModel The DataModel for the place to serialize
+		@param xml If the place should be serialized as xml or not. Defaults to `false`, meaning the place gets serialized using the binary format and not xml.
 	]=]
-	writePlaceFile = function(filePath: string, dataModel: Instance) end,
+	serializePlace = function(dataModel: Instance, xml: boolean?): string
+		return nil :: any
+	end,
 	--[=[
 		@within Roblox
+		@must_use
 
-		Writes one or more instances to a model file.
+		Serializes one or more instances as a model.
+
+		This string can then be written to a file, or sent over the network.
 
 		### Example usage
 
 		```lua
+		local fs = require("@lune/fs")
 		local roblox = require("@lune/roblox")
-		roblox.writeModelFile("filePath.rbxm", { instance1, instance2, ... })
+
+		local modelFile = roblox.serializeModel({ instance1, instance2, ... })
+		fs.writeFile("filePath.rbxm", modelFile)
 		```
 
-		@param filePath The file path to write to
-		@param instances The array of instances to write to the file
+		@param instances The array of instances to serialize
+		@param xml If the model should be serialized as xml or not. Defaults to `false`, meaning the model gets serialized using the binary format and not xml.
 	]=]
-	writeModelFile = function(filePath: string, instances: { Instance }) end,
+	serializeModel = function(instances: { Instance }, xml: boolean?): string
+		return nil :: any
+	end,
 	--[=[
 		@within Roblox
 		@must_use

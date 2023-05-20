@@ -1,3 +1,4 @@
+local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 local Instance = roblox.Instance
 
@@ -6,11 +7,17 @@ local instances = {
 	Instance.new("Part"),
 }
 
-roblox.writeModelFile("bin/temp-model.rbxm", instances)
-roblox.writeModelFile("bin/temp-model.rbxmx", instances)
+local modelAsBinary = roblox.serializeModel(instances)
+local modelAsXml = roblox.serializeModel(instances, true)
 
-local savedBinary = roblox.readModelFile("bin/temp-model.rbxm")
-local savedXml = roblox.readModelFile("bin/temp-model.rbxmx")
+fs.writeFile("bin/temp-model.rbxm", modelAsBinary)
+fs.writeFile("bin/temp-model.rbxmx", modelAsXml)
+
+local savedFileBinary = fs.readFile("bin/temp-model.rbxm")
+local savedFileXml = fs.readFile("bin/temp-model.rbxmx")
+
+local savedBinary = roblox.deserializeModel(savedFileBinary)
+local savedXml = roblox.deserializeModel(savedFileXml)
 
 assert(savedBinary[1].Name ~= "ROOT")
 assert(savedXml[1].Name ~= "ROOT")

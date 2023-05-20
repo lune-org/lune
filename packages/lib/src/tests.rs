@@ -119,10 +119,10 @@ create_tests! {
     roblox_datatype_vector3: "roblox/datatypes/Vector3",
     roblox_datatype_vector3int16: "roblox/datatypes/Vector3int16",
 
-    roblox_files_read_model: "roblox/files/readModelFile",
-    roblox_files_read_place: "roblox/files/readPlaceFile",
-    roblox_files_write_model: "roblox/files/writeModelFile",
-    roblox_files_write_place: "roblox/files/writePlaceFile",
+    roblox_files_deserialize_model: "roblox/files/deserializeModel",
+    roblox_files_deserialize_place: "roblox/files/deserializePlace",
+    roblox_files_serialize_model: "roblox/files/serializeModel",
+    roblox_files_serialize_place: "roblox/files/serializePlace",
 
     roblox_instance_attributes: "roblox/instance/attributes",
     roblox_instance_new: "roblox/instance/new",

@@ -7,8 +7,11 @@ for _, dirName in fs.readDir("tests/roblox/rbx-test-files/places") do
 end
 
 for _, placeDir in placeDirs do
-	local placeBinary = roblox.readPlaceFile(placeDir .. "/binary.rbxl")
-	local placeXml = roblox.readPlaceFile(placeDir .. "/xml.rbxlx")
+	local placeFileBinary = fs.readFile(placeDir .. "/binary.rbxl")
+	local placeFileXml = fs.readFile(placeDir .. "/xml.rbxlx")
+
+	local placeBinary = roblox.deserializePlace(placeFileBinary)
+	local placeXml = roblox.deserializePlace(placeFileXml)
 
 	assert(placeBinary.ClassName == "DataModel")
 	assert(placeXml.ClassName == "DataModel")

@@ -1,4 +1,4 @@
-local fs = require("@lune/fs") :: any
+local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local BrickColor = roblox.BrickColor
@@ -15,7 +15,8 @@ local Vector2 = roblox.Vector2
 local Vector3 = roblox.Vector3
 local Instance = roblox.Instance
 
-local model = roblox.readModelFile("tests/roblox/rbx-test-files/models/attributes/binary.rbxm")[1]
+local modelFile = fs.readFile("tests/roblox/rbx-test-files/models/attributes/binary.rbxm")
+local model = roblox.deserializeModel(modelFile)[1]
 
 model:SetAttribute("Foo", "Bar")
 
@@ -99,5 +100,6 @@ assert(folder:GetAttribute("Foo") == "Bar")
 local game = Instance.new("DataModel")
 model.Parent = game
 
+local placeFile = roblox.serializePlace(game)
 fs.writeDir("bin/roblox")
-roblox.writePlaceFile("bin/roblox/attributes.rbxl", game)
+fs.writeFile("bin/roblox/attributes.rbxl", placeFile)

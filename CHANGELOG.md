@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Breaking Changes
+
+-   Migrated several functions in the `roblox` builtin to new, more flexible APIs:
+
+    -   `readPlaceFile -> deserializePlace`
+    -   `readModelFile -> deserializeModel`
+    -   `writePlaceFile -> serializePlace`
+    -   `writeModelFile -> serializeModel`
+
+    These new APIs **_no longer use file paths_**, meaning to use them with files you must first read them using the `fs` builtin.
+
+-   Removed `CollectionService` and its methods from the `roblox` builtin library - new instance methods have been added as replacements.
+-   Removed [`Instance:FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant) which was a method that was never enabled in the official Roblox API and will soon be removed. <br/>
+    Use the second argument of the already existing find methods instead to find descendants.
+
 ### Added
 
 -   Added `serde.compress` and `serde.decompress` for compressing and decompressing strings using one of several compression formats: `brotli`, `gzip`, `lz4`, or `zlib`.
@@ -37,12 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   [`Instance:HasTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#HasTag)
     -   [`Instance:RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#RemoveTag)
 -   Implemented the second argument of the `FindFirstChild` / `FindFirstChildOfClass` / `FindFirstChildWhichIsA` instance methods.
-
-### Removed
-
--   Removed `CollectionService` and its methods from the `roblox` builtin library.
--   Removed [`Instance:FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant) which was a method that was never enabled in the official Roblox API and will soon be removed. <br/>
-    Use the second argument of the already existing find methods instead to find descendants.
 
 ### Changed
 
