@@ -33,14 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   [`Instance:GetTags`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetTags)
     -   [`Instance:HasTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#HasTag)
     -   [`Instance:RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#RemoveTag)
+-   Implemented the second argument of the `FindFirstChild` / `FindFirstChildOfClass` / `FindFirstChildWhichIsA` instance methods.
 
 ### Removed
 
--   Removed `CollectionService` specific methods from the `roblox` builtin library:
-    -   [`CollectionService:AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
-    -   [`CollectionService:GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
-    -   [`CollectionService:HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
-    -   [`CollectionService:RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
+-   Removed `CollectionService` and its methods from the `roblox` builtin library.
+-   Removed [`Instance:FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant) which was a method that was never enabled in the official Roblox API and will soon be removed. <br/>
+    Use the second argument of the already existing find methods instead to find descendants.
 
 ### Changed
 

@@ -1064,24 +1064,43 @@ impl LuaUserData for Instance {
                     .to_lua(lua)
             },
         );
-        methods.add_method("FindFirstChild", |lua, this, name: String| {
-            this.ensure_not_destroyed()?;
-            this.find_child(|child| child.name == name).to_lua(lua)
-        });
-        methods.add_method("FindFirstChildOfClass", |lua, this, class_name: String| {
-            this.ensure_not_destroyed()?;
-            this.find_child(|child| child.class == class_name)
-                .to_lua(lua)
-        });
-        methods.add_method("FindFirstChildWhichIsA", |lua, this, class_name: String| {
-            this.ensure_not_destroyed()?;
-            this.find_child(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
-                .to_lua(lua)
-        });
-        methods.add_method("FindFirstDescendant", |lua, this, name: String| {
-            this.ensure_not_destroyed()?;
-            this.find_descendant(|child| child.name == name).to_lua(lua)
-        });
+        methods.add_method(
+            "FindFirstChild",
+            |lua, this, (name, recursive): (String, Option<bool>)| {
+                this.ensure_not_destroyed()?;
+                let predicate = |child: &DomInstance| child.name == name;
+                if matches!(recursive, Some(true)) {
+                    this.find_descendant(predicate).to_lua(lua)
+                } else {
+                    this.find_child(predicate).to_lua(lua)
+                }
+            },
+        );
+        methods.add_method(
+            "FindFirstChildOfClass",
+            |lua, this, (class_name, recursive): (String, Option<bool>)| {
+                this.ensure_not_destroyed()?;
+                let predicate = |child: &DomInstance| child.class == class_name;
+                if matches!(recursive, Some(true)) {
+                    this.find_descendant(predicate).to_lua(lua)
+                } else {
+                    this.find_child(predicate).to_lua(lua)
+                }
+            },
+        );
+        methods.add_method(
+            "FindFirstChildWhichIsA",
+            |lua, this, (class_name, recursive): (String, Option<bool>)| {
+                this.ensure_not_destroyed()?;
+                let predicate =
+                    |child: &DomInstance| class_is_a(&child.class, &class_name).unwrap_or(false);
+                if matches!(recursive, Some(true)) {
+                    this.find_descendant(predicate).to_lua(lua)
+                } else {
+                    this.find_child(predicate).to_lua(lua)
+                }
+            },
+        );
         methods.add_method("IsA", |_, this, class_name: String| {
             this.ensure_not_destroyed()?;
             Ok(class_is_a(&this.class_name, class_name).unwrap_or(false))

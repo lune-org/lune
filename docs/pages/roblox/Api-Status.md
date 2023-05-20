@@ -25,7 +25,6 @@ Currently implemented APIs:
 -   [`FindFirstChild`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChild)
 -   [`FindFirstChildOfClass`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChildOfClass)
 -   [`FindFirstChildWhichIsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstChildWhichIsA)
--   [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant)
 -   [`GetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttribute)
 -   [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
 -   [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
