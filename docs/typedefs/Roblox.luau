@@ -2,7 +2,8 @@ type InstanceProperties = {
 	Parent: Instance?,
 	ClassName: string,
 	Name: string,
-	[string]: any,
+	-- FIXME: This breaks intellisense, but we need some way to access instance properties...
+	-- [string]: any,
 }
 
 type InstanceMetatable = {
@@ -40,15 +41,18 @@ export type Instance = typeof(setmetatable(
 	(nil :: any) :: { __index: InstanceMetatable }
 ))
 
-type DataModelMetatable = {
+export type DataModelProperties = {}
+export type DataModelMetatable = {
 	GetService: (self: DataModel, name: string) -> Instance,
 	FindService: (self: DataModel, name: string) -> Instance?,
 }
 
-export type DataModel = typeof(setmetatable(
-	(nil :: any) :: InstanceProperties,
-	(nil :: any) :: { __index: InstanceMetatable & DataModelMetatable }
-))
+export type DataModel =
+	Instance
+	& typeof(setmetatable(
+		(nil :: any) :: DataModelProperties,
+		(nil :: any) :: { __index: DataModelMetatable }
+	))
 
 --[=[
 	@class Roblox

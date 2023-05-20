@@ -1,10 +1,12 @@
+--!strict
+
 local fs = require("@lune/fs")
 local net = require("@lune/net")
 local serde = require("@lune/serde")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-export type LuneDataModel = roblox.Instance
+export type LuneDataModel = roblox.DataModel
 export type LuneInstance = roblox.Instance
 
 local function getAuthCookieWithFallbacks()
@@ -194,9 +196,9 @@ function remodel.readModelFile(filePath: string)
 end
 
 --[=[
-	Reads a place asset from Roblox.com, equivalent to `remodel.readPlaceFile`.
+	Reads a place asset from Roblox, equivalent to `remodel.readPlaceFile`.
 
-	This method requires web authentication!
+	***NOTE:** This function requires authentication using a ROBLOSECURITY cookie!*
 ]=]
 function remodel.readPlaceAsset(assetId: number)
 	local contents = downloadAssetId(assetId)
@@ -205,9 +207,9 @@ function remodel.readPlaceAsset(assetId: number)
 end
 
 --[=[
-	Reads a model asset from Roblox.com, equivalent to `remodel.readModelFile`.
+	Reads a model asset from Roblox, equivalent to `remodel.readModelFile`.
 
-	This method requires web authentication!
+	***NOTE:** This function requires authentication using a ROBLOSECURITY cookie!*
 ]=]
 function remodel.readModelAsset(assetId: number)
 	local contents = downloadAssetId(assetId)
@@ -222,7 +224,9 @@ end
 	Models should be saved with `writeModelFile` instead.
 ]=]
 function remodel.writePlaceFile(filePath: string, dataModel: LuneDataModel)
+	local asBinary = string.sub(filePath, -6) == ".rbxl"
 	local asXml = string.sub(filePath, -6) == ".rbxlx"
+	assert(asBinary or asXml, "File path must have .rbxl or .rbxlx extension")
 	local placeFile = roblox.serializePlace(dataModel, asXml)
 	fs.writeFile(filePath, placeFile)
 end
@@ -234,18 +238,20 @@ end
 	Places should be saved with `writePlaceFile` instead.
 ]=]
 function remodel.writeModelFile(filePath: string, instance: LuneInstance)
+	local asBinary = string.sub(filePath, -6) == ".rbxm"
 	local asXml = string.sub(filePath, -6) == ".rbxmx"
+	assert(asBinary or asXml, "File path must have .rbxm or .rbxmx extension")
 	local placeFile = roblox.serializeModel({ instance }, asXml)
 	fs.writeFile(filePath, placeFile)
 end
 
 --[=[
-	Uploads the given `DataModel` instance to Roblox.com, overwriting an existing place.
+	Uploads the given `DataModel` instance to Roblox, overwriting an existing place.
 
 	If the instance is not a `DataModel`, this function will throw.
 	Models should be uploaded with `writeExistingModelAsset` instead.
 
-	This method requires web authentication!
+	***NOTE:** This function requires authentication using a ROBLOSECURITY cookie!*
 ]=]
 function remodel.writeExistingPlaceAsset(dataModel: LuneDataModel, assetId: number)
 	local placeFile = roblox.serializePlace(dataModel)
@@ -253,12 +259,12 @@ function remodel.writeExistingPlaceAsset(dataModel: LuneDataModel, assetId: numb
 end
 
 --[=[
-	Uploads the given instance to Roblox.com, overwriting an existing model.
+	Uploads the given instance to Roblox, overwriting an existing model.
 
 	If the instance is a `DataModel`, this function will throw.
 	Places should be uploaded with `writeExistingPlaceAsset` instead.
 
-	This method requires web authentication!
+	***NOTE:** This function requires authentication using a ROBLOSECURITY cookie!*
 ]=]
 function remodel.writeExistingModelAsset(instance: LuneInstance, assetId: number)
 	local modelFile = roblox.serializeModel({ instance })
