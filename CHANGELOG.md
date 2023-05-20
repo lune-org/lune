@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Added `serde.compress` and `serde.decompress` for compressing and decompressing strings using one of several compression formats: `brotli`, `gzip`, or `zlib`.
+-   Added `serde.compress` and `serde.decompress` for compressing and decompressing strings using one of several compression formats: `brotli`, `gzip`, `lz4`, or `zlib`.
 
     Example usage:
 

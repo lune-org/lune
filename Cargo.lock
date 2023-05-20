@@ -1151,6 +1151,7 @@ dependencies = [
  "hyper",
  "hyper-tungstenite",
  "lune-roblox",
+ "lz4_flex",
  "mlua",
  "once_cell",
  "os_str_bytes",
@@ -1223,6 +1224,15 @@ checksum = "57d27b317e207b10f69f5e75494119e391a96f48861ae870d1da6edac98ca900"
 dependencies = [
  "cc",
  "libc",
+]
+
+[[package]]
+name = "lz4_flex"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b8c72594ac26bfd34f2d99dfced2edfaddfe8a476e3ff2ca0eb293d925c4f83"
+dependencies = [
+ "twox-hash",
 ]
 
 [[package]]
@@ -1967,6 +1977,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "stdweb"
 version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2326,6 +2342,16 @@ dependencies = [
  "thiserror",
  "url",
  "utf-8",
+]
+
+[[package]]
+name = "twox-hash"
+version = "1.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
+dependencies = [
+ "cfg-if",
+ "static_assertions",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 
-export type CompressDecompressFormat = "brotli" | "gzip" | "zlib"
+export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
 
 --[=[
 	@class Serde
@@ -34,6 +34,14 @@ return {
 
 		Encodes the given value using the given format.
 
+		Currently supported formats:
+
+		| Name   | Learn More           |
+		|:-------|:---------------------|
+		| `json` | https://www.json.org |
+		| `yaml` | https://yaml.org     |
+		| `toml` | https://toml.io      |
+
 		@param format The format to use
 		@param value The value to encode
 		@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
@@ -48,6 +56,14 @@ return {
 
 		Decodes the given string using the given format into a lua value.
 
+		Currently supported formats:
+
+		| Name   | Learn More           |
+		|:-------|:---------------------|
+		| `json` | https://www.json.org |
+		| `yaml` | https://yaml.org     |
+		| `toml` | https://toml.io      |
+
 		@param format The format to use
 		@param encoded The string to decode
 		@return The decoded lua value
@@ -61,6 +77,15 @@ return {
 
 		Compresses the given string using the given format.
 
+		Currently supported formats:
+
+		| Name     | Learn More                        |
+		|:---------|:----------------------------------|
+		| `brotli` | https://github.com/google/brotli  |
+		| `gzip`   | https://www.gnu.org/software/gzip |
+		| `lz4`    | https://github.com/lz4/lz4        |
+		| `zlib`   | https://www.zlib.net              |
+
 		@param format The format to use
 		@param encoded The string to compress
 		@return The compressed string
@@ -73,6 +98,15 @@ return {
 		@must_use
 
 		Decompresses the given string using the given format.
+
+		Currently supported formats:
+
+		| Name     | Learn More                        |
+		|:---------|:----------------------------------|
+		| `brotli` | https://github.com/google/brotli  |
+		| `gzip`   | https://www.gnu.org/software/gzip |
+		| `lz4`    | https://github.com/lz4/lz4        |
+		| `zlib`   | https://www.zlib.net              |
 
 		@param format The format to use
 		@param encoded The string to decompress
