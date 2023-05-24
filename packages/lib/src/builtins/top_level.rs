@@ -14,16 +14,6 @@ pub fn print(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     Ok(())
 }
 
-pub fn printinfo(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
-    let print: LuaFunction = lua.named_registry_value("print")?;
-    print.call(format!(
-        "{}\n{}",
-        format_label("info"),
-        pretty_format_multi_value(&args)?
-    ))?;
-    Ok(())
-}
-
 pub fn warn(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
     let print: LuaFunction = lua.named_registry_value("print")?;
     print.call(format!(

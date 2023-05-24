@@ -37,7 +37,6 @@ pub fn create(lua: &'static Lua, args: Vec<String>) -> LuaResult<()> {
         ("print", lua.create_function(top_level::print)?),
         ("warn", lua.create_function(top_level::warn)?),
         ("error", lua.create_function(top_level::error)?),
-        ("printinfo", lua.create_function(top_level::printinfo)?),
     ];
 
     // Set top-level globals

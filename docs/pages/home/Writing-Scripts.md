@@ -261,7 +261,7 @@ print("Printing with pretty colors and auto-formatting 🎨")
 
 print(stdio.color("blue") .. string.rep("—", 22) .. stdio.color("reset"))
 
-printinfo("API response:", apiResponse)
+print("API response:", apiResponse)
 warn({
 	Oh = {
 		No = {
