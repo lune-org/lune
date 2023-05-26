@@ -48,16 +48,11 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                 .build_readonly()?,
         )?
         .into_function()?;
-    // We want the task scheduler to be transparent,
-    // but it does not return real lua threads, so
-    // we need to override some globals to fake it
-    let globals = lua.globals();
-    globals.set("type", lua.create_function(proxy_type)?)?;
-    globals.set("typeof", lua.create_function(proxy_typeof)?)?;
     // Functions in the built-in coroutine library also need to be
     // replaced, these are a bit different than the ones above because
     // calling resume or the function that wrap returns must return
     // whatever lua value(s) that the thread or task yielded back
+    let globals = lua.globals();
     let coroutine = globals.get::<_, LuaTable>("coroutine")?;
     coroutine.set("status", lua.create_function(coroutine_status)?)?;
     coroutine.set("resume", lua.create_function(coroutine_resume)?)?;
@@ -96,30 +91,6 @@ fn task_delay(
 ) -> LuaResult<TaskReference> {
     let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
     sched.schedule_blocking_after_seconds(secs, tof.into_thread(lua)?, args)
-}
-
-/*
-    Type getter overrides for compat with task scheduler
-*/
-
-fn proxy_type<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaString<'lua>> {
-    if let LuaValue::UserData(u) = &value {
-        if u.is::<TaskReference>() {
-            return lua.create_string("thread");
-        }
-    }
-    lua.named_registry_value::<_, LuaFunction>("type")?
-        .call(value)
-}
-
-fn proxy_typeof<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaString<'lua>> {
-    if let LuaValue::UserData(u) = &value {
-        if u.is::<TaskReference>() {
-            return lua.create_string("thread");
-        }
-    }
-    lua.named_registry_value::<_, LuaFunction>("typeof")?
-        .call(value)
 }
 
 /*

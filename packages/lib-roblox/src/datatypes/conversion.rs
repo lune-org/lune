@@ -116,7 +116,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
                 (LuaValue::UserData(u), d) => u.lua_to_dom_value(lua, Some(d)),
 
                 (v, d) => Err(DomConversionError::ToDomValue {
-                    to: d.variant_name(),
+                    to: d.variant_name().unwrap_or("???"),
                     from: v.type_name(),
                     detail: None,
                 }),
@@ -154,6 +154,16 @@ macro_rules! dom_to_userdata {
     };
 }
 
+/**
+    Converts a generic lua userdata to an rbx-dom type.
+
+    Since the type of the userdata needs to be specified
+    in an explicit manner, this macro syntax was chosen:
+
+    ```rs
+    userdata_to_dom!(value_identifier as UserdataType => DomType)
+    ```
+*/
 macro_rules! userdata_to_dom {
     ($userdata:ident as $from_type:ty => $to_type:ty) => {
         match $userdata.borrow::<$from_type>() {
@@ -212,7 +222,7 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
 
             v => {
                 Err(DomConversionError::FromDomValue {
-                    from: v.variant_name(),
+                    from: v.variant_name().unwrap_or("???"),
                     to: "userdata",
                     detail: Some("Type not supported".to_string()),
                 })
@@ -282,7 +292,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
 
                 ty => {
                     return Err(DomConversionError::ToDomValue {
-                        to: ty.variant_name(),
+                        to: ty.variant_name().unwrap_or("???"),
                         from: "userdata",
                         detail: Some("Type not supported".to_string()),
                     })
@@ -305,11 +315,11 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 value if value.is::<Enum>()           => userdata_to_dom!(value as EnumItem       => dom::Enum),
                 value if value.is::<Faces>()          => userdata_to_dom!(value as Faces          => dom::Faces),
                 value if value.is::<Font>()           => userdata_to_dom!(value as Font           => dom::Font),
+                value if value.is::<Instance>()       => userdata_to_dom!(value as Instance       => dom::Ref),
                 value if value.is::<NumberRange>()    => userdata_to_dom!(value as NumberRange    => dom::NumberRange),
                 value if value.is::<NumberSequence>() => userdata_to_dom!(value as NumberSequence => dom::NumberSequence),
                 value if value.is::<Ray>()            => userdata_to_dom!(value as Ray            => dom::Ray),
                 value if value.is::<Rect>()           => userdata_to_dom!(value as Rect           => dom::Rect),
-                value if value.is::<Instance>()       => userdata_to_dom!(value as Instance       => dom::Ref),
                 value if value.is::<Region3>()        => userdata_to_dom!(value as Region3        => dom::Region3),
                 value if value.is::<Region3int16>()   => userdata_to_dom!(value as Region3int16   => dom::Region3int16),
                 value if value.is::<UDim>()           => userdata_to_dom!(value as UDim           => dom::UDim),

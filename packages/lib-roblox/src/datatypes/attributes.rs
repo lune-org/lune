@@ -50,7 +50,7 @@ pub fn ensure_valid_attribute_value(value: &DomValue) -> LuaResult<()> {
     } else {
         Err(LuaError::RuntimeError(format!(
             "'{}' is not a valid attribute type",
-            value.ty().variant_name()
+            value.ty().variant_name().unwrap_or("???")
         )))
     }
 }

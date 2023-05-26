@@ -1,6 +1,12 @@
 use mlua::prelude::*;
 
-use crate::lua::stdio::formatting::{format_label, pretty_format_multi_value};
+#[cfg(feature = "roblox")]
+use lune_roblox::datatypes::extension::RobloxUserdataTypenameExt;
+
+use crate::lua::{
+    stdio::formatting::{format_label, pretty_format_multi_value},
+    task::TaskReference,
+};
 
 // HACK: We need to preserve the default behavior of the
 // print and error functions, for pcall and such, which
@@ -40,6 +46,32 @@ pub fn error(lua: &Lua, (arg, level): (LuaValue, Option<u32>)) -> LuaResult<()> 
         level,
     ))?;
     Ok(())
+}
+
+pub fn proxy_type<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaString<'lua>> {
+    if let LuaValue::UserData(u) = &value {
+        if u.is::<TaskReference>() {
+            return lua.create_string("thread");
+        }
+    }
+    lua.named_registry_value::<_, LuaFunction>("type")?
+        .call(value)
+}
+
+pub fn proxy_typeof<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaString<'lua>> {
+    if let LuaValue::UserData(u) = &value {
+        if u.is::<TaskReference>() {
+            return lua.create_string("thread");
+        }
+        #[cfg(feature = "roblox")]
+        {
+            if let Some(type_name) = u.roblox_type_name() {
+                return lua.create_string(type_name);
+            }
+        }
+    }
+    lua.named_registry_value::<_, LuaFunction>("typeof")?
+        .call(value)
 }
 
 // TODO: Add an override for tostring that formats errors in a nicer way

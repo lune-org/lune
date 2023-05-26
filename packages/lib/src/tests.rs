@@ -147,4 +147,6 @@ create_tests! {
     roblox_instance_methods_is_a: "roblox/instance/methods/IsA",
     roblox_instance_methods_is_ancestor_of: "roblox/instance/methods/IsAncestorOf",
     roblox_instance_methods_is_descendant_of: "roblox/instance/methods/IsDescendantOf",
+
+    roblox_misc_typeof: "roblox/misc/typeof",
 }
