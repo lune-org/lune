@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 -   Fixed `stdio.write` and `stdio.ewrite` not being flushed and causing output to be interleaved. ([#47])
+-   Fixed `typeof` returning `userdata` for roblox types such as `Instance`, `Vector3`, ...
 
 [#47]: https://github.com/filiptibell/lune/pull/47
 
