@@ -214,9 +214,11 @@ impl Instance {
         parent_ref: DomRef,
         reference_map: &mut HashMap<DomRef, DomRef>,
     ) -> DomRef {
-        // NOTE: We create a new scope here to avoid deadlocking since
-        // our clone implementation must have exclusive write access
-        let (new_ref, child_refs) = {
+        fn do_clone(
+            dom_ref: DomRef,
+            parent_ref: DomRef,
+            reference_map: &mut HashMap<DomRef, DomRef>,
+        ) -> (DomRef, Vec<DomRef>) {
             let mut dom = INTERNAL_DOM
                 .try_write()
                 .expect("Failed to get write access to document");
@@ -243,13 +245,25 @@ impl Instance {
             reference_map.insert(dom_ref, new_ref);
 
             (new_ref, child_refs)
-        };
-
-        for child_ref in child_refs {
-            Self::clone_inner(child_ref, new_ref, reference_map);
         }
 
-        new_ref
+        let (cloned_parent, uncloned_children) = do_clone(dom_ref, parent_ref, reference_map);
+        let mut queue = VecDeque::with_capacity(uncloned_children.len());
+
+        for uncloned_child in uncloned_children.iter() {
+            queue.push_back((cloned_parent, *uncloned_child));
+        }
+
+        while let Some((cloned_parent, uncloned_child)) = queue.pop_front() {
+            let (cloned_parent, uncloned_children) =
+                do_clone(uncloned_child, cloned_parent, reference_map);
+
+            for uncloned_child in uncloned_children.iter() {
+                queue.push_back((*uncloned_child, cloned_parent))
+            }
+        }
+
+        cloned_parent
     }
 
     /**
