@@ -259,7 +259,7 @@ impl Instance {
                 do_clone(uncloned_child, cloned_parent, reference_map);
 
             for uncloned_child in uncloned_children.iter() {
-                queue.push_back((*uncloned_child, cloned_parent))
+                queue.push_back((cloned_parent, *uncloned_child))
             }
         }
 
