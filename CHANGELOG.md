@@ -47,6 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Added automatic decompression for compressed responses when using `net.request`.
     This behavior can be disabled by passing `options = { decompress = false }` in request params.
 
+-   Added support for finding scripts in the current home directory.
+    This means that if you have a script called `script-name.luau`, you can place it in the following location:
+
+    -   `C:\Users\YourName\.lune\script-name.luau` (Windows)
+    -   `/Users/YourName/.lune/script-name.luau` (macOS)
+    -   `/home/YourName/.lune/script-name.luau` (Linux)
+
+    And then run it using `lune script-name` from any directory you are currently in.
+
 -   Added several new instance methods in the `roblox` builtin library:
     -   [`Instance:AddTag`](https://create.roblox.com/docs/reference/engine/classes/Instance#AddTag)
     -   [`Instance:GetTags`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetTags)

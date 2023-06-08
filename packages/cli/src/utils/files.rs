@@ -3,8 +3,9 @@ use std::{
     path::{PathBuf, MAIN_SEPARATOR},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use console::style;
+use directories::UserDirs;
 use once_cell::sync::Lazy;
 
 const LUNE_COMMENT_PREFIX: &str = "-->";
@@ -42,8 +43,23 @@ static ERR_MESSAGE_HELP_NOTE: Lazy<String> = Lazy::new(|| {
     path, and that they then have control over script discovery behavior, whereas if they pass in
     a relative path we will instead try to be as permissive as possible for user-friendliness
 */
-pub fn discover_script_file_path(path: &str) -> Result<PathBuf> {
-    let file_path = PathBuf::from(path);
+pub fn discover_script_file_path(path: &str, in_home_dir: bool) -> Result<PathBuf> {
+    // NOTE: We don't actually support any platforms without home directories,
+    // but just in case the user has some strange configuration and it cannot
+    // be found we should at least throw a nice error instead of panicking
+    let file_path = if in_home_dir {
+        match UserDirs::new() {
+            Some(dirs) => dirs.home_dir().join(path),
+            None => {
+                bail!(
+                    "No file was found at {}\nThe home directory does not exist",
+                    style(path).yellow()
+                )
+            }
+        }
+    } else {
+        PathBuf::from(path)
+    };
     // NOTE: We use metadata directly here to try to
     // avoid accessing the file path more than once
     let file_meta = file_path.metadata();
@@ -112,7 +128,7 @@ pub fn discover_script_file_path(path: &str) -> Result<PathBuf> {
     Behavior is otherwise exactly the same as for `discover_script_file_path`.
 */
 pub fn discover_script_file_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
-    match discover_script_file_path(path) {
+    match discover_script_file_path(path, false) {
         Ok(path) => Ok(path),
         Err(e) => {
             // If we got any absolute path it means the user has also
@@ -121,10 +137,19 @@ pub fn discover_script_file_path_including_lune_dirs(path: &str) -> Result<PathB
             if PathBuf::from(path).is_absolute() {
                 return Err(e);
             }
-            // Otherwise we take a look in either relative lune or .lune directories
-            let res_lune = discover_script_file_path(&format!("lune{MAIN_SEPARATOR}{path}"));
-            let res_dotlune = discover_script_file_path(&format!(".lune{MAIN_SEPARATOR}{path}"));
-            match res_lune.or(res_dotlune) {
+            // Otherwise we take a look in relative lune and .lune
+            // directories + the home directory for the current user
+            let res = discover_script_file_path(&format!("lune{MAIN_SEPARATOR}{path}"), false)
+                .or_else(|_| {
+                    discover_script_file_path(&format!(".lune{MAIN_SEPARATOR}{path}"), false)
+                })
+                .or_else(|_| {
+                    discover_script_file_path(&format!("lune{MAIN_SEPARATOR}{path}"), true)
+                })
+                .or_else(|_| {
+                    discover_script_file_path(&format!(".lune{MAIN_SEPARATOR}{path}"), true)
+                });
+            match res {
                 // NOTE: The first error message is generally more
                 // descriptive than the ones for the lune subfolders
                 Err(_) => Err(e),
