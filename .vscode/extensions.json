@@ -1,8 +1,8 @@
 {
-	"recommendations": [
-		"rust-lang.rust-analyzer",
-		"esbenp.prettier-vscode",
-		"JohnnyMorganz.stylua",
-		"DavidAnson.vscode-markdownlint"
-	]
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "esbenp.prettier-vscode",
+        "JohnnyMorganz.stylua",
+        "DavidAnson.vscode-markdownlint"
+    ]
 }

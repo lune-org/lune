@@ -10,9 +10,11 @@ lune script-name
 
 This will look for the file `script-name.luau`**_<sup>[1]</sup>_** in a few locations:
 
--   The current directory
--   The folder `lune` in the current directory, if it exists
--   The folder `.lune` in the current directory, if it exists
+- The current directory
+- The folder `lune` in the current directory, if it exists
+- The folder `.lune` in the current directory, if it exists
+- The folder `lune` in the _home_ directory, if it exists
+- The folder `.lune` in the _home_ directory, if it exists
 
 ## 🎛️ Passing Command-Line Arguments
 

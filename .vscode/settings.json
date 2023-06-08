@@ -1,37 +1,37 @@
 {
-	// Luau - disable Roblox features, enable Lune typedefs & requires
-	"luau-lsp.sourcemap.enabled": false,
-	"luau-lsp.types.roblox": false,
-	"luau-lsp.require.mode": "relativeToFile",
-	"luau-lsp.require.fileAliases": {
-		"@lune/fs": "./docs/typedefs/FS.luau",
-		"@lune/net": "./docs/typedefs/Net.luau",
-		"@lune/process": "./docs/typedefs/Process.luau",
-		"@lune/roblox": "./docs/typedefs/Roblox.luau",
-		"@lune/serde": "./docs/typedefs/Serde.luau",
-		"@lune/stdio": "./docs/typedefs/Stdio.luau",
-		"@lune/task": "./docs/typedefs/Task.luau"
-	},
-	// Luau - ignore type defs file in docs dir and dev scripts we use
-	"luau-lsp.ignoreGlobs": [
-		"docs/*.d.luau",
-		"packages/lib-roblox/scripts/*.luau",
-		"tests/roblox/rbx-test-files/**/*.lua",
-		"tests/roblox/rbx-test-files/**/*.luau"
-	],
-	// Rust
-	"rust-analyzer.check.command": "clippy",
-	// Formatting
-	"editor.formatOnSave": true,
-	"stylua.searchParentDirectories": true,
-	"prettier.tabWidth": 2,
-	"[luau][lua]": {
-		"editor.defaultFormatter": "JohnnyMorganz.stylua"
-	},
-	"[json][jsonc][markdown][yaml]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
-	"[rust]": {
-		"editor.defaultFormatter": "rust-lang.rust-analyzer"
-	}
+    // Luau - disable Roblox features, enable Lune typedefs & requires
+    "luau-lsp.sourcemap.enabled": false,
+    "luau-lsp.types.roblox": false,
+    "luau-lsp.require.mode": "relativeToFile",
+    "luau-lsp.require.fileAliases": {
+        "@lune/fs": "./docs/typedefs/FS.luau",
+        "@lune/net": "./docs/typedefs/Net.luau",
+        "@lune/process": "./docs/typedefs/Process.luau",
+        "@lune/roblox": "./docs/typedefs/Roblox.luau",
+        "@lune/serde": "./docs/typedefs/Serde.luau",
+        "@lune/stdio": "./docs/typedefs/Stdio.luau",
+        "@lune/task": "./docs/typedefs/Task.luau"
+    },
+    // Luau - ignore type defs file in docs dir and dev scripts we use
+    "luau-lsp.ignoreGlobs": [
+        "docs/*.d.luau",
+        "packages/lib-roblox/scripts/*.luau",
+        "tests/roblox/rbx-test-files/**/*.lua",
+        "tests/roblox/rbx-test-files/**/*.luau"
+    ],
+    // Rust
+    "rust-analyzer.check.command": "clippy",
+    // Formatting
+    "editor.formatOnSave": true,
+    "stylua.searchParentDirectories": true,
+    "prettier.tabWidth": 2,
+    "[luau][lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua"
+    },
+    "[json][jsonc][markdown][yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    }
 }
