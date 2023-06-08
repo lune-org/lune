@@ -51,8 +51,8 @@ async-compression = { version = "0.4", features = [
 	"zlib",
 ] }
 hyper = { version = "0.14", features = ["full"] }
-hyper-tungstenite = { version = "0.9" }
-tokio-tungstenite = { version = "0.18" }
+hyper-tungstenite = { version = "0.10" }
+tokio-tungstenite = { version = "0.19" }
 
 [dev-dependencies]
 anyhow = "1.0"
