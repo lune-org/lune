@@ -1,5 +1,5 @@
-local task = require("@lune/task")
 local process = require("@lune/process")
+local task = require("@lune/task")
 
 -- Spawning a child process should work with options
 

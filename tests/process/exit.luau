@@ -1,6 +1,6 @@
 local fs = require("@lune/fs")
-local task = require("@lune/task")
 local process = require("@lune/process")
+local task = require("@lune/task")
 
 local function assert(condition, err)
 	if not condition then

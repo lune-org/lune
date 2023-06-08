@@ -1,6 +1,6 @@
-local task = require("@lune/task")
-local stdio = require("@lune/stdio")
 local process = require("@lune/process")
+local stdio = require("@lune/stdio")
+local task = require("@lune/task")
 
 -- NOTE: This test is intentionally not included in the
 -- automated tests suite since it requires user input

@@ -1,5 +1,5 @@
-local task = require("@lune/task")
 local stdio = require("@lune/stdio")
+local task = require("@lune/task")
 
 -- Wait should be accurate down to at least 10ms
 
