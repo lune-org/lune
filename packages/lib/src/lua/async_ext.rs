@@ -7,7 +7,7 @@ use crate::{lua::table::TableBuilder, lua::task::TaskScheduler};
 use super::task::TaskSchedulerAsyncExt;
 
 const ASYNC_IMPL_LUA: &str = r#"
-resumeAsync(thread(), ...)
+resumeAsync(...)
 return yield()
 "#;
 
@@ -43,21 +43,18 @@ impl LuaAsyncExt for &'static Lua {
         let async_env_yield: LuaFunction = self.named_registry_value("co.yield")?;
         let async_env = TableBuilder::new(self)?
             .with_value("yield", async_env_yield)?
-            .with_function("thread", |lua, _: ()| Ok(lua.current_thread()))?
-            .with_function(
-                "resumeAsync",
-                move |lua: &Lua, (thread, args): (LuaThread, A)| {
-                    let fut = func(lua, args);
-                    let sched = lua
-                        .app_data_ref::<&TaskScheduler>()
-                        .expect("Missing task scheduler as a lua app data");
-                    sched.queue_async_task(thread, None, async {
-                        let rets = fut.await?;
-                        let mult = rets.into_lua_multi(lua)?;
-                        Ok(Some(mult))
-                    })
-                },
-            )?
+            .with_function("resumeAsync", move |lua: &Lua, args: A| {
+                let thread = lua.current_thread();
+                let fut = func(lua, args);
+                let sched = lua
+                    .app_data_ref::<&TaskScheduler>()
+                    .expect("Missing task scheduler as a lua app data");
+                sched.queue_async_task(thread, None, async {
+                    let rets = fut.await?;
+                    let mult = rets.into_lua_multi(lua)?;
+                    Ok(Some(mult))
+                })
+            })?
             .build_readonly()?;
         let async_func = self
             .load(ASYNC_IMPL_LUA)

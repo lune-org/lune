@@ -276,18 +276,16 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
                 )
             }
         }
-        LuaError::ToLuaConversionError { from, to, message } => {
-            let msg = message
-                .clone()
-                .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            format!("Failed to convert Rust type '{from}' into Luau type '{to}'!{msg}")
-        }
-        LuaError::FromLuaConversionError { from, to, message } => {
-            let msg = message
-                .clone()
-                .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            format!("Expected argument of type '{to}', got '{from}'!{msg}")
-        }
+        LuaError::BadArgument { pos, cause, .. } => match cause.as_ref() {
+            // TODO: Add more detail to this error message
+            LuaError::FromLuaConversionError { from, to, .. } => {
+                format!("Argument #{pos} must be of type '{to}', got '{from}'")
+            }
+            c => format!(
+                "Bad argument #{pos}\n{}",
+                pretty_format_luau_error(c, colorized)
+            ),
+        },
         e => format!("{e}"),
     };
     // Re-enable colors if they were previously enabled
@@ -425,6 +423,7 @@ fn fix_error_nitpicks(full_message: String) -> String {
         .replace("'require', Line 7", "'[C]' - function require")
         .replace("'require', Line 8", "'[C]' - function require")
         // Same thing here for our async script
+        .replace("'async', Line 2", "'[C]'")
         .replace("'async', Line 3", "'[C]'")
         // Fix error calls in custom script chunks coming through
         .replace(
@@ -436,6 +435,8 @@ fn fix_error_nitpicks(full_message: String) -> String {
             "'[C]' - function require - function require",
             "'[C]' - function require",
         )
+        // Fix strange double C
+        .replace("'[C]'\n    Script '[C]'", "'[C]'")
 }
 
 fn call_table_tostring_metamethod<'a>(tab: &'a LuaTable<'a>) -> Option<String> {
