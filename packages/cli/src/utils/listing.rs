@@ -1,7 +1,8 @@
-use std::{cmp::Ordering, fmt::Write as _};
+use std::{cmp::Ordering, ffi::OsStr, fmt::Write as _, path::PathBuf};
 
 use anyhow::{bail, Result};
 use console::Style;
+use directories::UserDirs;
 use once_cell::sync::Lazy;
 use tokio::{fs, io};
 
@@ -10,10 +11,15 @@ use super::files::parse_lune_description_from_file;
 pub static COLOR_BLUE: Lazy<Style> = Lazy::new(|| Style::new().blue());
 pub static STYLE_DIM: Lazy<Style> = Lazy::new(|| Style::new().dim());
 
-pub async fn find_lune_scripts() -> Result<Vec<(String, String)>> {
-    let mut lune_dir = fs::read_dir("lune").await;
+pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)>> {
+    let base_path = if in_home_dir {
+        UserDirs::new().unwrap().home_dir().to_path_buf()
+    } else {
+        PathBuf::new()
+    };
+    let mut lune_dir = fs::read_dir(base_path.join("lune")).await;
     if lune_dir.is_err() {
-        lune_dir = fs::read_dir(".lune").await;
+        lune_dir = fs::read_dir(base_path.join(".lune")).await;
     }
     match lune_dir {
         Ok(mut dir) => {
@@ -27,6 +33,12 @@ pub async fn find_lune_scripts() -> Result<Vec<(String, String)>> {
             }
             let parsed: Vec<_> = files
                 .iter()
+                .filter(|(entry, _, _)| {
+                    matches!(
+                        entry.path().extension().and_then(OsStr::to_str),
+                        Some("lua" | "luau")
+                    )
+                })
                 .map(|(entry, _, contents)| {
                     let contents_str = String::from_utf8_lossy(contents);
                     let file_path = entry.path().with_extension("");
@@ -65,7 +77,7 @@ pub fn sort_lune_scripts(scripts: Vec<(String, String)>) -> Vec<(String, String)
     sorted
 }
 
-pub fn print_lune_scripts(scripts: Vec<(String, String)>) -> Result<()> {
+pub fn write_lune_scripts_list(buffer: &mut String, scripts: Vec<(String, String)>) -> Result<()> {
     let longest_file_name_len = scripts
         .iter()
         .fold(0, |acc, (file_name, _)| acc.max(file_name.len()));
@@ -74,25 +86,24 @@ pub fn print_lune_scripts(scripts: Vec<(String, String)>) -> Result<()> {
     let prefix = format!("{}  ", COLOR_BLUE.apply_to('>'));
     let separator = format!("{}", STYLE_DIM.apply_to('-'));
     // Write the entire output to a buffer, doing this instead of using individual
-    // println! calls will ensure that no output get mixed up in between these lines
-    let mut buffer = String::new();
+    // writeln! calls will ensure that no output get mixed up in between these lines
     if script_with_description_exists {
         for (file_name, description) in scripts {
             if description.is_empty() {
-                write!(&mut buffer, "\n{prefix}{file_name}")?;
+                write!(buffer, "\n{prefix}{file_name}")?;
             } else {
                 let mut lines = description.lines();
                 let first_line = lines.next().unwrap_or_default();
                 let file_spacing = " ".repeat(file_name.len());
                 let line_spacing = " ".repeat(longest_file_name_len - file_name.len());
                 write!(
-                    &mut buffer,
+                    buffer,
                     "\n{prefix}{file_name}{line_spacing}  {separator} {}",
                     COLOR_BLUE.apply_to(first_line)
                 )?;
                 for line in lines {
                     write!(
-                        &mut buffer,
+                        buffer,
                         "\n{prefix}{file_spacing}{line_spacing}    {}",
                         COLOR_BLUE.apply_to(line)
                     )?;
@@ -101,11 +112,10 @@ pub fn print_lune_scripts(scripts: Vec<(String, String)>) -> Result<()> {
         }
     } else {
         for (file_name, _) in scripts {
-            write!(&mut buffer, "\n{prefix}{file_name}")?;
+            write!(buffer, "\n{prefix}{file_name}")?;
         }
     }
-    // Finally, print the entire buffer out
-    // with an ending newline added to it
-    println!("{buffer}");
+    // Finally, write an ending newline
+    writeln!(buffer)?;
     Ok(())
 }

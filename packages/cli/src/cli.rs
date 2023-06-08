@@ -1,6 +1,7 @@
 use std::{
     borrow::BorrowMut,
     collections::HashMap,
+    fmt::Write as _,
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -20,7 +21,7 @@ use crate::{
     gen::{generate_gitbook_dir_from_definitions, generate_typedef_files_from_definitions},
     utils::{
         files::{discover_script_file_path_including_lune_dirs, strip_shebang},
-        listing::{find_lune_scripts, print_lune_scripts, sort_lune_scripts},
+        listing::{find_lune_scripts, sort_lune_scripts, write_lune_scripts_list},
     },
 };
 
@@ -92,22 +93,42 @@ impl Cli {
         // List files in `lune` and `.lune` directories, if wanted
         // This will also exit early and not run anything else
         if self.list {
-            match find_lune_scripts().await {
-                Ok(scripts) => {
-                    let sorted = sort_lune_scripts(scripts);
-                    if sorted.is_empty() {
-                        println!("No scripts found.");
-                    } else {
-                        print!("Available scripts:");
-                        print_lune_scripts(sorted)?;
-                    }
-                    return Ok(ExitCode::SUCCESS);
-                }
+            let sorted_relative = match find_lune_scripts(false).await {
+                Ok(scripts) => sort_lune_scripts(scripts),
                 Err(e) => {
                     eprintln!("{e}");
                     return Ok(ExitCode::FAILURE);
                 }
+            };
+            let sorted_home_dir = match find_lune_scripts(true).await {
+                Ok(scripts) => sort_lune_scripts(scripts),
+                Err(e) => {
+                    eprintln!("{e}");
+                    return Ok(ExitCode::FAILURE);
+                }
+            };
+
+            let mut buffer = String::new();
+            if !sorted_relative.is_empty() {
+                if sorted_home_dir.is_empty() {
+                    write!(&mut buffer, "Available scripts:")?;
+                } else {
+                    write!(&mut buffer, "Available scripts in current directory:")?;
+                }
+                write_lune_scripts_list(&mut buffer, sorted_relative)?;
             }
+            if !sorted_home_dir.is_empty() {
+                write!(&mut buffer, "Available global scripts:")?;
+                write_lune_scripts_list(&mut buffer, sorted_home_dir)?;
+            }
+
+            if buffer.is_empty() {
+                println!("No scripts found.");
+            } else {
+                print!("{buffer}");
+            }
+
+            return Ok(ExitCode::SUCCESS);
         }
         // Generate (save) definition files, if wanted
         let generate_file_requested = self.setup

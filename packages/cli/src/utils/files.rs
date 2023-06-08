@@ -93,7 +93,7 @@ pub fn discover_script_file_path(path: &str, in_home_dir: bool) -> Result<PathBu
             "No file was found at {}, found a directory",
             style(file_path.display()).yellow()
         ))
-    } else if is_abs {
+    } else if is_abs && !in_home_dir {
         Err(anyhow!(
             "No file was found at {}",
             style(file_path.display()).yellow()
