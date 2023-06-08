@@ -1,4 +1,5 @@
 use mlua::prelude::*;
+use std::io::{self, Write as _};
 
 #[cfg(feature = "roblox")]
 use lune_roblox::datatypes::extension::RobloxUserdataTypenameExt;
@@ -8,27 +9,30 @@ use crate::lua::{
     task::TaskReference,
 };
 
-// HACK: We need to preserve the default behavior of the
-// print and error functions, for pcall and such, which
-// is really tricky to do from scratch so we will just
-// proxy the default print and error functions here
-
-pub fn print(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
-    let formatted = pretty_format_multi_value(&args)?;
-    let print: LuaFunction = lua.named_registry_value("print")?;
-    print.call(formatted)?;
+pub fn print(_: &Lua, args: LuaMultiValue) -> LuaResult<()> {
+    let formatted = format!("{}\n", pretty_format_multi_value(&args)?);
+    let mut stdout = io::stdout();
+    stdout.write_all(formatted.as_bytes())?;
+    stdout.flush()?;
     Ok(())
 }
 
-pub fn warn(lua: &Lua, args: LuaMultiValue) -> LuaResult<()> {
-    let print: LuaFunction = lua.named_registry_value("print")?;
-    print.call(format!(
+pub fn warn(_: &Lua, args: LuaMultiValue) -> LuaResult<()> {
+    let formatted = format!(
         "{}\n{}",
         format_label("warn"),
         pretty_format_multi_value(&args)?
-    ))?;
+    );
+    let mut stdout = io::stdout();
+    stdout.write_all(formatted.as_bytes())?;
+    stdout.flush()?;
     Ok(())
 }
+
+// HACK: We need to preserve the default behavior of
+// the lua error function, for pcall and such, which
+// is really tricky to do from scratch so we will
+// just proxy the default function here instead
 
 pub fn error(lua: &Lua, (arg, level): (LuaValue, Option<u32>)) -> LuaResult<()> {
     let error: LuaFunction = lua.named_registry_value("error")?;
