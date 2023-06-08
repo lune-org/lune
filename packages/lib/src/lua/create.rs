@@ -118,8 +118,8 @@ pub fn create() -> LuaResult<&'static Lua> {
     dbg_trace_env.set("format", string.get::<_, LuaFunction>("format")?)?;
     let dbg_trace_fn = lua
         .load(TRACE_IMPL_LUA)
-        .set_name("=dbg.trace")?
-        .set_environment(dbg_trace_env)?
+        .set_name("=dbg.trace")
+        .set_environment(dbg_trace_env)
         .into_function()?;
     lua.set_named_registry_value("dbg.trace", dbg_trace_fn)?;
     // Modify the _VERSION global to also contain the current version of Lune

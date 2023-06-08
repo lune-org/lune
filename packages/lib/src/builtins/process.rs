@@ -61,13 +61,13 @@ pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
     })?;
     let process_exit = lua
         .load(PROCESS_EXIT_IMPL_LUA)
-        .set_name("=process.exit")?
+        .set_name("=process.exit")
         .set_environment(
             TableBuilder::new(lua)?
                 .with_value("yield", process_exit_env_yield)?
                 .with_value("exit", process_exit_env_exit)?
                 .build_readonly()?,
-        )?
+        )
         .into_function()?;
     // Create the full process table
     TableBuilder::new(lua)?

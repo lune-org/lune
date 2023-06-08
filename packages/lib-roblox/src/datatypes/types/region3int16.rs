@@ -22,12 +22,14 @@ impl Region3int16 {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         datatype_table.set(
             "new",
-            lua.create_function(|_, (min, max): (Vector3int16, Vector3int16)| {
-                Ok(Region3int16 {
-                    min: min.0,
-                    max: max.0,
-                })
-            })?,
+            lua.create_function(
+                |_, (min, max): (LuaUserDataRef<Vector3int16>, LuaUserDataRef<Vector3int16>)| {
+                    Ok(Region3int16 {
+                        min: min.0,
+                        max: max.0,
+                    })
+                },
+            )?,
         )
     }
 }

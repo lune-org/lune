@@ -22,12 +22,14 @@ impl Region3 {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         datatype_table.set(
             "new",
-            lua.create_function(|_, (min, max): (Vector3, Vector3)| {
-                Ok(Region3 {
-                    min: min.0,
-                    max: max.0,
-                })
-            })?,
+            lua.create_function(
+                |_, (min, max): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+                    Ok(Region3 {
+                        min: min.0,
+                        max: max.0,
+                    })
+                },
+            )?,
         )
     }
 }

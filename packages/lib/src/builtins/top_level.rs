@@ -43,7 +43,7 @@ pub fn error(lua: &Lua, (arg, level): (LuaValue, Option<u32>)) -> LuaResult<()> 
             cause: LuaError::external(format!(
                 "{}\n{}",
                 format_label("error"),
-                pretty_format_multi_value(&arg.to_lua_multi(lua)?)?
+                pretty_format_multi_value(&arg.into_lua_multi(lua)?)?
             ))
             .into(),
         },
@@ -58,8 +58,7 @@ pub fn proxy_type<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaS
             return lua.create_string("thread");
         }
     }
-    lua.named_registry_value::<_, LuaFunction>("type")?
-        .call(value)
+    lua.named_registry_value::<LuaFunction>("type")?.call(value)
 }
 
 pub fn proxy_typeof<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<LuaString<'lua>> {
@@ -74,7 +73,7 @@ pub fn proxy_typeof<'lua>(lua: &'lua Lua, value: LuaValue<'lua>) -> LuaResult<Lu
             }
         }
     }
-    lua.named_registry_value::<_, LuaFunction>("typeof")?
+    lua.named_registry_value::<LuaFunction>("typeof")?
         .call(value)
 }
 

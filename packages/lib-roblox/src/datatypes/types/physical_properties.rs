@@ -34,7 +34,7 @@ impl PhysicalProperties {
     }
 
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        type ArgsMaterial = EnumItem;
+        type ArgsMaterial<'lua> = LuaUserDataRef<'lua, EnumItem>;
         type ArgsNumbers = (f32, f32, f32, Option<f32>, Option<f32>);
         datatype_table.set(
             "new",

@@ -830,7 +830,7 @@ impl Instance {
             "new",
             lua.create_function(|lua, class_name: String| {
                 if class_exists(&class_name) {
-                    Instance::new_orphaned(class_name).to_lua(lua)
+                    Instance::new_orphaned(class_name).into_lua(lua)
                 } else {
                     Err(LuaError::RuntimeError(format!(
                         "Failed to create Instance - '{}' is not a valid class name",
@@ -870,12 +870,12 @@ impl LuaUserData for Instance {
             this.ensure_not_destroyed()?;
 
             match prop_name.as_str() {
-                "ClassName" => return this.get_class_name().to_lua(lua),
+                "ClassName" => return this.get_class_name().into_lua(lua),
                 "Name" => {
-                    return this.get_name().to_lua(lua);
+                    return this.get_name().into_lua(lua);
                 }
                 "Parent" => {
-                    return this.get_parent().to_lua(lua);
+                    return this.get_parent().into_lua(lua);
                 }
                 _ => {}
             }
@@ -896,7 +896,7 @@ impl LuaUserData for Instance {
                                     prop_name, enum_name, enum_value.to_u32()
                                 ))
                             })?
-                            .to_lua(lua)
+                            .into_lua(lua)
                     } else {
                         Ok(LuaValue::dom_value_to_lua(lua, &prop)?)
                     }
@@ -908,7 +908,7 @@ impl LuaUserData for Instance {
                                 prop_name, enum_name, enum_value
                             ))
                         })?
-                        .to_lua(lua)
+                        .into_lua(lua)
                 } else if let Some(prop_default) = info.value_default {
                     Ok(LuaValue::dom_value_to_lua(lua, prop_default)?)
                 } else if info.value_type.is_some() {
@@ -967,9 +967,9 @@ impl LuaUserData for Instance {
                                 prop_name
                             )));
                         }
-                        type Parent = Option<Instance>;
+                        type Parent<'lua> = Option<LuaUserDataRef<'lua, Instance>>;
                         let parent = Parent::from_lua(prop_value, lua)?;
-                        this.set_parent(parent);
+                        this.set_parent(parent.map(|p| p.clone()));
                         return Ok(());
                     }
                     _ => {}
@@ -986,9 +986,12 @@ impl LuaUserData for Instance {
                 };
 
                 if let Some(enum_name) = info.enum_name {
-                    match EnumItem::from_lua(prop_value, lua) {
+                    match LuaUserDataRef::<EnumItem>::from_lua(prop_value, lua) {
                         Ok(given_enum) if given_enum.parent.desc.name == enum_name => {
-                            this.set_property(prop_name, DomValue::Enum(given_enum.into()));
+                            this.set_property(
+                                prop_name,
+                                DomValue::Enum((*given_enum).clone().into()),
+                            );
                             Ok(())
                         }
                         Ok(given_enum) => Err(LuaError::RuntimeError(format!(
@@ -1022,7 +1025,7 @@ impl LuaUserData for Instance {
         */
         methods.add_method("Clone", |lua, this, ()| {
             this.ensure_not_destroyed()?;
-            this.clone_instance().to_lua(lua)
+            this.clone_instance().into_lua(lua)
         });
         methods.add_method_mut("Destroy", |_, this, ()| {
             this.destroy();
@@ -1034,26 +1037,26 @@ impl LuaUserData for Instance {
         });
         methods.add_method("GetChildren", |lua, this, ()| {
             this.ensure_not_destroyed()?;
-            this.get_children().to_lua(lua)
+            this.get_children().into_lua(lua)
         });
         methods.add_method("GetDescendants", |lua, this, ()| {
             this.ensure_not_destroyed()?;
-            this.get_descendants().to_lua(lua)
+            this.get_descendants().into_lua(lua)
         });
         methods.add_method("GetFullName", |lua, this, ()| {
             this.ensure_not_destroyed()?;
-            this.get_full_name().to_lua(lua)
+            this.get_full_name().into_lua(lua)
         });
         methods.add_method("FindFirstAncestor", |lua, this, name: String| {
             this.ensure_not_destroyed()?;
-            this.find_ancestor(|child| child.name == name).to_lua(lua)
+            this.find_ancestor(|child| child.name == name).into_lua(lua)
         });
         methods.add_method(
             "FindFirstAncestorOfClass",
             |lua, this, class_name: String| {
                 this.ensure_not_destroyed()?;
                 this.find_ancestor(|child| child.class == class_name)
-                    .to_lua(lua)
+                    .into_lua(lua)
             },
         );
         methods.add_method(
@@ -1061,7 +1064,7 @@ impl LuaUserData for Instance {
             |lua, this, class_name: String| {
                 this.ensure_not_destroyed()?;
                 this.find_ancestor(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
-                    .to_lua(lua)
+                    .into_lua(lua)
             },
         );
         methods.add_method(
@@ -1070,9 +1073,9 @@ impl LuaUserData for Instance {
                 this.ensure_not_destroyed()?;
                 let predicate = |child: &DomInstance| child.name == name;
                 if matches!(recursive, Some(true)) {
-                    this.find_descendant(predicate).to_lua(lua)
+                    this.find_descendant(predicate).into_lua(lua)
                 } else {
-                    this.find_child(predicate).to_lua(lua)
+                    this.find_child(predicate).into_lua(lua)
                 }
             },
         );
@@ -1082,9 +1085,9 @@ impl LuaUserData for Instance {
                 this.ensure_not_destroyed()?;
                 let predicate = |child: &DomInstance| child.class == class_name;
                 if matches!(recursive, Some(true)) {
-                    this.find_descendant(predicate).to_lua(lua)
+                    this.find_descendant(predicate).into_lua(lua)
                 } else {
-                    this.find_child(predicate).to_lua(lua)
+                    this.find_child(predicate).into_lua(lua)
                 }
             },
         );
@@ -1095,9 +1098,9 @@ impl LuaUserData for Instance {
                 let predicate =
                     |child: &DomInstance| class_is_a(&child.class, &class_name).unwrap_or(false);
                 if matches!(recursive, Some(true)) {
-                    this.find_descendant(predicate).to_lua(lua)
+                    this.find_descendant(predicate).into_lua(lua)
                 } else {
-                    this.find_child(predicate).to_lua(lua)
+                    this.find_child(predicate).into_lua(lua)
                 }
             },
         );
@@ -1105,18 +1108,24 @@ impl LuaUserData for Instance {
             this.ensure_not_destroyed()?;
             Ok(class_is_a(&this.class_name, class_name).unwrap_or(false))
         });
-        methods.add_method("IsAncestorOf", |_, this, instance: Instance| {
-            this.ensure_not_destroyed()?;
-            Ok(instance
-                .find_ancestor(|ancestor| ancestor.referent() == this.dom_ref)
-                .is_some())
-        });
-        methods.add_method("IsDescendantOf", |_, this, instance: Instance| {
-            this.ensure_not_destroyed()?;
-            Ok(this
-                .find_ancestor(|ancestor| ancestor.referent() == instance.dom_ref)
-                .is_some())
-        });
+        methods.add_method(
+            "IsAncestorOf",
+            |_, this, instance: LuaUserDataRef<Instance>| {
+                this.ensure_not_destroyed()?;
+                Ok(instance
+                    .find_ancestor(|ancestor| ancestor.referent() == this.dom_ref)
+                    .is_some())
+            },
+        );
+        methods.add_method(
+            "IsDescendantOf",
+            |_, this, instance: LuaUserDataRef<Instance>| {
+                this.ensure_not_destroyed()?;
+                Ok(this
+                    .find_ancestor(|ancestor| ancestor.referent() == instance.dom_ref)
+                    .is_some())
+            },
+        );
         methods.add_method("GetAttribute", |lua, this, name: String| {
             this.ensure_not_destroyed()?;
             match this.get_attribute(name) {

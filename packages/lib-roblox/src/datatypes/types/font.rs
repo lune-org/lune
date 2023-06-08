@@ -51,7 +51,7 @@ impl Font {
         )?;
         datatype_table.set(
             "fromEnum",
-            lua.create_function(|_, value: EnumItem| {
+            lua.create_function(|_, value: LuaUserDataRef<EnumItem>| {
                 if value.parent.desc.name == "Font" {
                     match Font::from_enum_item(&value) {
                         Some(props) => Ok(props),
@@ -308,8 +308,8 @@ impl<'lua> FromLua<'lua> for FontWeight {
     }
 }
 
-impl<'lua> ToLua<'lua> for FontWeight {
-    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl<'lua> IntoLua<'lua> for FontWeight {
+    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         match EnumItem::from_enum_name_and_name("FontWeight", self.to_string()) {
             Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
             None => Err(LuaError::ToLuaConversionError {
@@ -403,8 +403,8 @@ impl<'lua> FromLua<'lua> for FontStyle {
     }
 }
 
-impl<'lua> ToLua<'lua> for FontStyle {
-    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl<'lua> IntoLua<'lua> for FontStyle {
+    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         match EnumItem::from_enum_name_and_name("FontStyle", self.to_string()) {
             Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
             None => Err(LuaError::ToLuaConversionError {

@@ -19,17 +19,23 @@ pub struct ColorSequence {
 
 impl ColorSequence {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        type ArgsColor = Color3;
-        type ArgsColors = (Color3, Color3);
-        type ArgsKeypoints = Vec<ColorSequenceKeypoint>;
+        type ArgsColor<'lua> = LuaUserDataRef<'lua, Color3>;
+        type ArgsColors<'lua> = (LuaUserDataRef<'lua, Color3>, LuaUserDataRef<'lua, Color3>);
+        type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, ColorSequenceKeypoint>>;
         datatype_table.set(
             "new",
             lua.create_function(|lua, args: LuaMultiValue| {
                 if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
                     Ok(ColorSequence {
                         keypoints: vec![
-                            ColorSequenceKeypoint { time: 0.0, color },
-                            ColorSequenceKeypoint { time: 1.0, color },
+                            ColorSequenceKeypoint {
+                                time: 0.0,
+                                color: *color,
+                            },
+                            ColorSequenceKeypoint {
+                                time: 1.0,
+                                color: *color,
+                            },
                         ],
                     })
                 } else if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
@@ -37,16 +43,18 @@ impl ColorSequence {
                         keypoints: vec![
                             ColorSequenceKeypoint {
                                 time: 0.0,
-                                color: c0,
+                                color: *c0,
                             },
                             ColorSequenceKeypoint {
                                 time: 1.0,
-                                color: c1,
+                                color: *c1,
                             },
                         ],
                     })
                 } else if let Ok(keypoints) = ArgsKeypoints::from_lua_multi(args, lua) {
-                    Ok(ColorSequence { keypoints })
+                    Ok(ColorSequence {
+                        keypoints: keypoints.iter().map(|k| **k).collect(),
+                    })
                 } else {
                     // FUTURE: Better error message here using given arg types
                     Err(LuaError::RuntimeError(

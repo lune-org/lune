@@ -50,7 +50,7 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                 DomValue::Float64(n) => Ok(LuaValue::Number(*n)),
                 DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
                 DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
-                DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(&s)?)),
+                DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(s)?)),
                 DomValue::Content(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
@@ -59,7 +59,7 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                 // no longer exist, so we handle that here instead of
                 // in the userdata conversion to be able to return nils
                 DomValue::Ref(value) => match Instance::new_opt(*value) {
-                    Some(inst) => Ok(inst.to_lua(lua)?),
+                    Some(inst) => Ok(inst.into_lua(lua)?),
                     None => Ok(LuaValue::Nil),
                 },
 

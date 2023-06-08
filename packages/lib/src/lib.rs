@@ -76,10 +76,10 @@ impl Lune {
         // Create the main thread and schedule it
         let main_chunk = lua
             .load(script_contents.as_ref())
-            .set_name(script_name.as_ref())?
+            .set_name(script_name.as_ref())
             .into_function()?;
         let main_thread = lua.create_thread(main_chunk)?;
-        let main_thread_args = LuaValue::Nil.to_lua_multi(lua)?;
+        let main_thread_args = LuaValue::Nil.into_lua_multi(lua)?;
         sched.schedule_blocking(main_thread, main_thread_args)?;
         // Keep running the scheduler until there are either no tasks
         // left to run, or until a task requests to exit the process

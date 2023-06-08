@@ -22,7 +22,7 @@ directories = "5.0"
 futures-util = "0.3"
 once_cell = "1.17"
 
-mlua = { version = "0.8", features = ["luau", "serialize"] }
+mlua = { version = "0.9.0-beta.3", features = ["luau", "serialize"] }
 tokio = { version = "1.24", features = ["full"] }
 
 # Serde dependencies, supporting user-facing formats: json, yaml, toml

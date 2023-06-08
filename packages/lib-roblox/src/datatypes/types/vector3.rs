@@ -31,7 +31,7 @@ impl Vector3 {
         // Constructors
         datatype_table.set(
             "fromAxis",
-            lua.create_function(|_, normal_id: EnumItem| {
+            lua.create_function(|_, normal_id: LuaUserDataRef<EnumItem>| {
                 if normal_id.parent.desc.name == "Axis" {
                     Ok(match normal_id.name.as_str() {
                         "X" => Vector3(Vec3::X),
@@ -54,7 +54,7 @@ impl Vector3 {
         )?;
         datatype_table.set(
             "fromNormalId",
-            lua.create_function(|_, normal_id: EnumItem| {
+            lua.create_function(|_, normal_id: LuaUserDataRef<EnumItem>| {
                 if normal_id.parent.desc.name == "NormalId" {
                     Ok(match normal_id.name.as_str() {
                         "Left" => Vector3(Vec3::X),
@@ -102,26 +102,34 @@ impl LuaUserData for Vector3 {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("Angle", |_, this, rhs: Vector3| {
+        methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector3>| {
             Ok(this.0.angle_between(rhs.0))
         });
-        methods.add_method("Cross", |_, this, rhs: Vector3| {
+        methods.add_method("Cross", |_, this, rhs: LuaUserDataRef<Vector3>| {
             Ok(Vector3(this.0.cross(rhs.0)))
         });
-        methods.add_method("Dot", |_, this, rhs: Vector3| Ok(this.0.dot(rhs.0)));
-        methods.add_method("FuzzyEq", |_, this, (rhs, epsilon): (Vector3, f32)| {
-            let eq_x = (rhs.0.x - this.0.x).abs() <= epsilon;
-            let eq_y = (rhs.0.y - this.0.y).abs() <= epsilon;
-            let eq_z = (rhs.0.z - this.0.z).abs() <= epsilon;
-            Ok(eq_x && eq_y && eq_z)
+        methods.add_method("Dot", |_, this, rhs: LuaUserDataRef<Vector3>| {
+            Ok(this.0.dot(rhs.0))
         });
-        methods.add_method("Lerp", |_, this, (rhs, alpha): (Vector3, f32)| {
-            Ok(Vector3(this.0.lerp(rhs.0, alpha)))
-        });
-        methods.add_method("Max", |_, this, rhs: Vector3| {
+        methods.add_method(
+            "FuzzyEq",
+            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector3>, f32)| {
+                let eq_x = (rhs.0.x - this.0.x).abs() <= epsilon;
+                let eq_y = (rhs.0.y - this.0.y).abs() <= epsilon;
+                let eq_z = (rhs.0.z - this.0.z).abs() <= epsilon;
+                Ok(eq_x && eq_y && eq_z)
+            },
+        );
+        methods.add_method(
+            "Lerp",
+            |_, this, (rhs, alpha): (LuaUserDataRef<Vector3>, f32)| {
+                Ok(Vector3(this.0.lerp(rhs.0, alpha)))
+            },
+        );
+        methods.add_method("Max", |_, this, rhs: LuaUserDataRef<Vector3>| {
             Ok(Vector3(this.0.max(rhs.0)))
         });
-        methods.add_method("Min", |_, this, rhs: Vector3| {
+        methods.add_method("Min", |_, this, rhs: LuaUserDataRef<Vector3>| {
             Ok(Vector3(this.0.min(rhs.0)))
         });
         // Metamethods

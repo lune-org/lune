@@ -82,8 +82,8 @@ impl<'lua> FromLua<'lua> for NetServeResponse {
     }
 }
 
-impl<'lua> ToLua<'lua> for NetServeResponse {
-    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl<'lua> IntoLua<'lua> for NetServeResponse {
+    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         if self.headers.len() > i32::MAX as usize {
             return Err(LuaError::ToLuaConversionError {
                 from: "NetServeResponse",
@@ -91,7 +91,7 @@ impl<'lua> ToLua<'lua> for NetServeResponse {
                 message: Some("Too many header values".to_string()),
             });
         }
-        let body = self.body.map(|b| lua.create_string(&b)).transpose()?;
+        let body = self.body.map(|b| lua.create_string(b)).transpose()?;
         let headers = lua.create_table_with_capacity(0, self.headers.len() as i32)?;
         for (key, value) in self.headers {
             headers.set(key, lua.create_string(&value)?)?;

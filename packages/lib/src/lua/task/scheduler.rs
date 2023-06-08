@@ -70,12 +70,12 @@ impl<'fut> TaskScheduler<'fut> {
         let (tx, rx) = mpsc::unbounded_channel();
         let tasks_current_lua_error = Arc::new(AsyncMutex::new(None));
         let tasks_current_lua_error_inner = tasks_current_lua_error.clone();
-        lua.set_interrupt(
-            move || match tasks_current_lua_error_inner.try_lock().unwrap().take() {
+        lua.set_interrupt(move |_| {
+            match tasks_current_lua_error_inner.try_lock().unwrap().take() {
                 Some(err) => Err(err),
                 None => Ok(LuaVmState::Continue),
-            },
-        );
+            }
+        });
         Ok(Self {
             lua,
             guid: Cell::new(0),

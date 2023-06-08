@@ -37,7 +37,7 @@ async fn serde_compress<'a>(
     (format, str): (CompressDecompressFormat, LuaString<'a>),
 ) -> LuaResult<LuaString<'a>> {
     let bytes = compress(format, str).await?;
-    lua.create_string(&bytes)
+    lua.create_string(bytes)
 }
 
 async fn serde_decompress<'a>(
@@ -45,5 +45,5 @@ async fn serde_decompress<'a>(
     (format, str): (CompressDecompressFormat, LuaString<'a>),
 ) -> LuaResult<LuaString<'a>> {
     let bytes = decompress(format, str).await?;
-    lua.create_string(&bytes)
+    lua.create_string(bytes)
 }

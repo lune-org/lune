@@ -286,7 +286,7 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
             let msg = message
                 .clone()
                 .map_or_else(String::new, |m| format!("\nDetails:\n\t{m}"));
-            format!("Failed to convert Luau type '{from}' into Rust type '{to}'!{msg}")
+            format!("Expected argument of type '{to}', got '{from}'!{msg}")
         }
         e => format!("{e}"),
     };
@@ -455,7 +455,7 @@ fn call_table_tostring_metamethod<'a>(tab: &'a LuaTable<'a>) -> Option<String> {
 fn call_userdata_tostring_metamethod<'a>(tab: &'a LuaAnyUserData<'a>) -> Option<String> {
     let f = match tab.get_metatable() {
         Err(_) => None,
-        Ok(meta) => match meta.get::<_, LuaFunction>(LuaMetaMethod::ToString.name()) {
+        Ok(meta) => match meta.get::<LuaFunction>(LuaMetaMethod::ToString.name()) {
             Ok(method) => Some(method),
             Err(_) => None,
         },

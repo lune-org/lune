@@ -116,16 +116,19 @@ impl LuaUserData for Color3 {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("Lerp", |_, this, (rhs, alpha): (Color3, f32)| {
-            let v3_this = Vec3::new(this.r, this.g, this.b);
-            let v3_rhs = Vec3::new(rhs.r, rhs.g, rhs.b);
-            let v3 = v3_this.lerp(v3_rhs, alpha);
-            Ok(Color3 {
-                r: v3.x,
-                g: v3.y,
-                b: v3.z,
-            })
-        });
+        methods.add_method(
+            "Lerp",
+            |_, this, (rhs, alpha): (LuaUserDataRef<Color3>, f32)| {
+                let v3_this = Vec3::new(this.r, this.g, this.b);
+                let v3_rhs = Vec3::new(rhs.r, rhs.g, rhs.b);
+                let v3 = v3_this.lerp(v3_rhs, alpha);
+                Ok(Color3 {
+                    r: v3.x,
+                    g: v3.y,
+                    b: v3.z,
+                })
+            },
+        );
         methods.add_method("ToHSV", |_, this, ()| {
             // https://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
             let (r, g, b) = (this.r, this.g, this.b);

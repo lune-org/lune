@@ -72,8 +72,8 @@ where
         env: LuaTable<'lua>,
     ) -> LuaResult<LuaTable<'lua>> {
         lua.load(WEB_SOCKET_IMPL_LUA)
-            .set_name("websocket")?
-            .set_environment(env)?
+            .set_name("websocket")
+            .set_environment(env)
             .eval()
     }
 }
@@ -89,11 +89,11 @@ impl NetWebSocket<NetWebSocketStreamClient> {
             .with_async_function("next", next::<NetWebSocketStreamClient>)?
             .with_value(
                 "setmetatable",
-                lua.named_registry_value::<_, LuaFunction>("tab.setmeta")?,
+                lua.named_registry_value::<LuaFunction>("tab.setmeta")?,
             )?
             .with_value(
                 "freeze",
-                lua.named_registry_value::<_, LuaFunction>("tab.freeze")?,
+                lua.named_registry_value::<LuaFunction>("tab.freeze")?,
             )?
             .build_readonly()?;
         Self::into_lua_table_with_env(lua, socket_env)
@@ -111,11 +111,11 @@ impl NetWebSocket<NetWebSocketStreamServer> {
             .with_async_function("next", next::<NetWebSocketStreamServer>)?
             .with_value(
                 "setmetatable",
-                lua.named_registry_value::<_, LuaFunction>("tab.setmeta")?,
+                lua.named_registry_value::<LuaFunction>("tab.setmeta")?,
             )?
             .with_value(
                 "freeze",
-                lua.named_registry_value::<_, LuaFunction>("tab.freeze")?,
+                lua.named_registry_value::<LuaFunction>("tab.freeze")?,
             )?
             .build_readonly()?;
         Self::into_lua_table_with_env(lua, socket_env)
@@ -124,7 +124,10 @@ impl NetWebSocket<NetWebSocketStreamServer> {
 
 impl<T> LuaUserData for NetWebSocket<T> {}
 
-fn close_code<T>(_lua: &Lua, socket: NetWebSocket<T>) -> LuaResult<LuaValue>
+fn close_code<'lua, T>(
+    _lua: &'lua Lua,
+    socket: LuaUserDataRef<'lua, NetWebSocket<T>>,
+) -> LuaResult<LuaValue<'lua>>
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
@@ -134,7 +137,10 @@ where
     })
 }
 
-async fn close<T>(_lua: &Lua, (socket, code): (NetWebSocket<T>, Option<u16>)) -> LuaResult<()>
+async fn close<'lua, T>(
+    _lua: &'lua Lua,
+    (socket, code): (LuaUserDataRef<'lua, NetWebSocket<T>>, Option<u16>),
+) -> LuaResult<()>
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
@@ -154,9 +160,13 @@ where
     res.await.map_err(LuaError::external)
 }
 
-async fn send<T>(
-    _lua: &Lua,
-    (socket, string, as_binary): (NetWebSocket<T>, LuaString<'_>, Option<bool>),
+async fn send<'lua, T>(
+    _lua: &'lua Lua,
+    (socket, string, as_binary): (
+        LuaUserDataRef<'lua, NetWebSocket<T>>,
+        LuaString<'lua>,
+        Option<bool>,
+    ),
 ) -> LuaResult<()>
 where
     T: AsyncRead + AsyncWrite + Unpin,
@@ -171,7 +181,10 @@ where
     ws.send(msg).await.map_err(LuaError::external)
 }
 
-async fn next<T>(lua: &Lua, socket: NetWebSocket<T>) -> LuaResult<LuaValue>
+async fn next<'lua, T>(
+    lua: &'lua Lua,
+    socket: LuaUserDataRef<'lua, NetWebSocket<T>>,
+) -> LuaResult<LuaValue<'lua>>
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
@@ -188,8 +201,8 @@ where
     }?;
     while let Some(msg) = &msg {
         let msg_string_opt = match msg {
-            WsMessage::Binary(bin) => Some(lua.create_string(&bin)?),
-            WsMessage::Text(txt) => Some(lua.create_string(&txt)?),
+            WsMessage::Binary(bin) => Some(lua.create_string(bin)?),
+            WsMessage::Text(txt) => Some(lua.create_string(txt)?),
             // Stop waiting for next message if we get a close message
             WsMessage::Close(_) => return Ok(LuaValue::Nil),
             // Ignore ping/pong/frame messages, they are handled by tungstenite

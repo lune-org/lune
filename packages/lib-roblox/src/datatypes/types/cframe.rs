@@ -42,13 +42,20 @@ impl CFrame {
         // Strict args constructors
         datatype_table.set(
             "lookAt",
-            lua.create_function(|_, (from, to, up): (Vector3, Vector3, Option<Vector3>)| {
-                Ok(CFrame(look_at(
-                    from.0,
-                    to.0,
-                    up.unwrap_or(Vector3(Vec3::Y)).0,
-                )))
-            })?,
+            lua.create_function(
+                |_,
+                 (from, to, up): (
+                    LuaUserDataRef<Vector3>,
+                    LuaUserDataRef<Vector3>,
+                    Option<LuaUserDataRef<Vector3>>,
+                )| {
+                    Ok(CFrame(look_at(
+                        from.0,
+                        to.0,
+                        up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
+                    )))
+                },
+            )?,
         )?;
         datatype_table.set(
             "fromEulerAnglesXYZ",
@@ -76,14 +83,20 @@ impl CFrame {
         )?;
         datatype_table.set(
             "fromAxisAngle",
-            lua.create_function(|_, (v, r): (Vector3, f32)| {
+            lua.create_function(|_, (v, r): (LuaUserDataRef<Vector3>, f32)| {
                 Ok(CFrame(Mat4::from_axis_angle(v.0, r)))
             })?,
         )?;
         datatype_table.set(
             "fromMatrix",
             lua.create_function(
-                |_, (pos, rx, ry, rz): (Vector3, Vector3, Vector3, Option<Vector3>)| {
+                |_,
+                 (pos, rx, ry, rz): (
+                    LuaUserDataRef<Vector3>,
+                    LuaUserDataRef<Vector3>,
+                    LuaUserDataRef<Vector3>,
+                    Option<LuaUserDataRef<Vector3>>,
+                )| {
                     Ok(CFrame(Mat4::from_cols(
                         rx.0.extend(0.0),
                         ry.0.extend(0.0),
@@ -96,8 +109,12 @@ impl CFrame {
             )?,
         )?;
         // Dynamic args constructor
-        type ArgsPos = Vector3;
-        type ArgsLook = (Vector3, Vector3, Option<Vector3>);
+        type ArgsPos<'lua> = LuaUserDataRef<'lua, Vector3>;
+        type ArgsLook<'lua> = (
+            LuaUserDataRef<'lua, Vector3>,
+            LuaUserDataRef<'lua, Vector3>,
+            Option<LuaUserDataRef<'lua, Vector3>>,
+        );
         type ArgsPosXYZ = (f32, f32, f32);
         type ArgsPosXYZQuat = (f32, f32, f32, f32, f32, f32, f32);
         type ArgsMatrix = (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
@@ -112,7 +129,7 @@ impl CFrame {
                     Ok(CFrame(look_at(
                         from.0,
                         to.0,
-                        up.unwrap_or(Vector3(Vec3::Y)).0,
+                        up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
                     )))
                 } else if let Ok((x, y, z)) = ArgsPosXYZ::from_lua_multi(args.clone(), lua) {
                     Ok(CFrame(Mat4::from_translation(Vec3::new(x, y, z))))
@@ -168,20 +185,23 @@ impl LuaUserData for CFrame {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Inverse", |_, this, ()| Ok(this.inverse()));
-        methods.add_method("Lerp", |_, this, (goal, alpha): (CFrame, f32)| {
-            let quat_this = Quat::from_mat4(&this.0);
-            let quat_goal = Quat::from_mat4(&goal.0);
-            let translation = this
-                .0
-                .w_axis
-                .truncate()
-                .lerp(goal.0.w_axis.truncate(), alpha);
-            let rotation = quat_this.slerp(quat_goal, alpha);
-            Ok(CFrame(Mat4::from_rotation_translation(
-                rotation,
-                translation,
-            )))
-        });
+        methods.add_method(
+            "Lerp",
+            |_, this, (goal, alpha): (LuaUserDataRef<CFrame>, f32)| {
+                let quat_this = Quat::from_mat4(&this.0);
+                let quat_goal = Quat::from_mat4(&goal.0);
+                let translation = this
+                    .0
+                    .w_axis
+                    .truncate()
+                    .lerp(goal.0.w_axis.truncate(), alpha);
+                let rotation = quat_this.slerp(quat_goal, alpha);
+                Ok(CFrame(Mat4::from_rotation_translation(
+                    rotation,
+                    translation,
+                )))
+            },
+        );
         methods.add_method("Orthonormalize", |_, this, ()| {
             let rotation = Quat::from_mat4(&this.0);
             let translation = this.0.w_axis.truncate();
@@ -190,21 +210,31 @@ impl LuaUserData for CFrame {
                 translation,
             )))
         });
-        methods.add_method("ToWorldSpace", |_, this, rhs: CFrame| Ok(*this * rhs));
-        methods.add_method("ToObjectSpace", |_, this, rhs: CFrame| {
-            Ok(this.inverse() * rhs)
+        methods.add_method("ToWorldSpace", |_, this, rhs: LuaUserDataRef<CFrame>| {
+            Ok(*this * *rhs)
         });
-        methods.add_method("PointToWorldSpace", |_, this, rhs: Vector3| Ok(*this * rhs));
-        methods.add_method("PointToObjectSpace", |_, this, rhs: Vector3| {
-            Ok(this.inverse() * rhs)
+        methods.add_method("ToObjectSpace", |_, this, rhs: LuaUserDataRef<CFrame>| {
+            Ok(this.inverse() * *rhs)
         });
-        methods.add_method("VectorToWorldSpace", |_, this, rhs: Vector3| {
-            Ok((*this - Vector3(this.position())) * rhs)
-        });
-        methods.add_method("VectorToObjectSpace", |_, this, rhs: Vector3| {
-            let inv = this.inverse();
-            Ok((inv - Vector3(inv.position())) * rhs)
-        });
+        methods.add_method(
+            "PointToWorldSpace",
+            |_, this, rhs: LuaUserDataRef<Vector3>| Ok(*this * *rhs),
+        );
+        methods.add_method(
+            "PointToObjectSpace",
+            |_, this, rhs: LuaUserDataRef<Vector3>| Ok(this.inverse() * *rhs),
+        );
+        methods.add_method(
+            "VectorToWorldSpace",
+            |_, this, rhs: LuaUserDataRef<Vector3>| Ok((*this - Vector3(this.position())) * *rhs),
+        );
+        methods.add_method(
+            "VectorToObjectSpace",
+            |_, this, rhs: LuaUserDataRef<Vector3>| {
+                let inv = this.inverse();
+                Ok((inv - Vector3(inv.position())) * *rhs)
+            },
+        );
         #[rustfmt::skip]
         methods.add_method("GetComponents", |_, this, ()| {
             let pos = this.position();
@@ -251,8 +281,14 @@ impl LuaUserData for CFrame {
                 )),
             })
         });
-        methods.add_meta_method(LuaMetaMethod::Add, |_, this, vec: Vector3| Ok(*this + vec));
-        methods.add_meta_method(LuaMetaMethod::Sub, |_, this, vec: Vector3| Ok(*this - vec));
+        methods.add_meta_method(
+            LuaMetaMethod::Add,
+            |_, this, vec: LuaUserDataRef<Vector3>| Ok(*this + *vec),
+        );
+        methods.add_meta_method(
+            LuaMetaMethod::Sub,
+            |_, this, vec: LuaUserDataRef<Vector3>| Ok(*this - *vec),
+        );
     }
 }
 

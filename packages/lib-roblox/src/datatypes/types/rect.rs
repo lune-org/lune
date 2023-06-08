@@ -30,15 +30,18 @@ impl Rect {
 
 impl Rect {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        type ArgsVector2s = (Option<Vector2>, Option<Vector2>);
+        type ArgsVector2s<'lua> = (
+            Option<LuaUserDataRef<'lua, Vector2>>,
+            Option<LuaUserDataRef<'lua, Vector2>>,
+        );
         type ArgsNums = (Option<f32>, Option<f32>, Option<f32>, Option<f32>);
         datatype_table.set(
             "new",
             lua.create_function(|lua, args: LuaMultiValue| {
                 if let Ok((min, max)) = ArgsVector2s::from_lua_multi(args.clone(), lua) {
                     Ok(Rect::new(
-                        min.unwrap_or_default().0,
-                        max.unwrap_or_default().0,
+                        min.map(|m| *m).unwrap_or_default().0,
+                        max.map(|m| *m).unwrap_or_default().0,
                     ))
                 } else if let Ok((x0, y0, x1, y1)) = ArgsNums::from_lua_multi(args, lua) {
                     let min = Vec2::new(x0.unwrap_or_default(), y0.unwrap_or_default());

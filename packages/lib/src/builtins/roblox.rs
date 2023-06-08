@@ -34,7 +34,7 @@ async fn deserialize_place<'lua>(
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await?.to_lua(lua)
+    fut.await?.into_lua(lua)
 }
 
 async fn deserialize_model<'lua>(
@@ -47,13 +47,14 @@ async fn deserialize_model<'lua>(
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await?.to_lua(lua)
+    fut.await?.into_lua(lua)
 }
 
-async fn serialize_place(
-    lua: &Lua,
-    (data_model, as_xml): (Instance, Option<bool>),
-) -> LuaResult<LuaString> {
+async fn serialize_place<'lua>(
+    lua: &'lua Lua,
+    (data_model, as_xml): (LuaUserDataRef<'lua, Instance>, Option<bool>),
+) -> LuaResult<LuaString<'lua>> {
+    let data_model = (*data_model).clone();
     let fut = unblock(move || {
         let doc = Document::from_data_model_instance(data_model)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
@@ -63,13 +64,14 @@ async fn serialize_place(
         Ok::<_, DocumentError>(bytes)
     });
     let bytes = fut.await?;
-    lua.create_string(&bytes)
+    lua.create_string(bytes)
 }
 
-async fn serialize_model(
-    lua: &Lua,
-    (instances, as_xml): (Vec<Instance>, Option<bool>),
-) -> LuaResult<LuaString> {
+async fn serialize_model<'lua>(
+    lua: &'lua Lua,
+    (instances, as_xml): (Vec<LuaUserDataRef<'lua, Instance>>, Option<bool>),
+) -> LuaResult<LuaString<'lua>> {
+    let instances = instances.iter().map(|i| (*i).clone()).collect();
     let fut = unblock(move || {
         let doc = Document::from_instance_array(instances)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
@@ -79,7 +81,7 @@ async fn serialize_model(
         Ok::<_, DocumentError>(bytes)
     });
     let bytes = fut.await?;
-    lua.create_string(&bytes)
+    lua.create_string(bytes)
 }
 
 async fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>> {

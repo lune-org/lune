@@ -44,7 +44,7 @@ impl<'lua> RequireContext<'lua> {
     pub fn new<K, V>(lua: &'lua Lua, builtins_vec: Vec<(K, V)>) -> LuaResult<Self>
     where
         K: Into<String>,
-        V: ToLua<'lua>,
+        V: IntoLua<'lua>,
     {
         let mut pwd = current_dir()
             .expect("Failed to access current working directory")
@@ -55,7 +55,7 @@ impl<'lua> RequireContext<'lua> {
         }
         let mut builtins = HashMap::new();
         for (key, value) in builtins_vec {
-            builtins.insert(key.into(), value.to_lua_multi(lua)?);
+            builtins.insert(key.into(), value.into_lua_multi(lua)?);
         }
         Ok(Self {
             pwd,
@@ -187,7 +187,7 @@ async fn load_file<'lua>(
             // Load the file into a thread
             let loaded_func = lua
                 .load(&contents)
-                .set_name(path_relative_no_extension)?
+                .set_name(path_relative_no_extension)
                 .into_function()?;
             let loaded_thread = lua.create_thread(loaded_func)?;
             // Run the thread and wait for completion using the native task scheduler waker
@@ -207,7 +207,7 @@ async fn load_file<'lua>(
 
 async fn load<'lua>(
     lua: &'lua Lua,
-    context: RequireContext<'lua>,
+    context: LuaUserDataRef<'lua, RequireContext<'lua>>,
     absolute_path: String,
     relative_path: String,
     has_acquired_lock: bool,
@@ -247,7 +247,7 @@ async fn load<'lua>(
 pub fn create<K, V>(lua: &'static Lua, builtins: Vec<(K, V)>) -> LuaResult<LuaFunction>
 where
     K: Clone + Into<String>,
-    V: Clone + ToLua<'static>,
+    V: Clone + IntoLua<'static>,
 {
     let require_context = RequireContext::new(lua, builtins)?;
     let require_yield: LuaFunction = lua.named_registry_value("co.yield")?;
@@ -261,7 +261,12 @@ where
         .with_value("print", require_print)?
         .with_function(
             "load",
-            |lua, (context, require_source, require_path): (RequireContext, String, String)| {
+            |lua,
+             (context, require_source, require_path): (
+                LuaUserDataRef<RequireContext>,
+                String,
+                String,
+            )| {
                 let (absolute_path, relative_path) =
                     context.get_paths(require_source, require_path)?;
                 // NOTE: We can not acquire the lock in the async part of the require
@@ -274,7 +279,7 @@ where
                     .expect("Missing task scheduler as a lua app data");
                 sched.queue_async_task_inherited(lua.current_thread(), None, async {
                     let rets = fut.await?;
-                    let mult = rets.to_lua_multi(lua)?;
+                    let mult = rets.into_lua_multi(lua)?;
                     Ok(Some(mult))
                 })
             },
@@ -283,8 +288,8 @@ where
 
     let require_fn_lua = lua
         .load(REQUIRE_IMPL_LUA)
-        .set_name("require")?
-        .set_environment(require_env)?
+        .set_name("require")
+        .set_environment(require_env)
         .into_function()?;
     Ok(require_fn_lua)
 }

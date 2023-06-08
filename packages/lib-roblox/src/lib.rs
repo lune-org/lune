@@ -48,7 +48,7 @@ fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
 		// Classes
         ("Instance", make(lua, Instance::make_table)?),
 		// Singletons
-        ("Enum", Enums.to_lua(lua)?),
+        ("Enum", Enums.into_lua(lua)?),
     ])
 }
 

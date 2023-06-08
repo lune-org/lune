@@ -25,7 +25,7 @@ impl BrickColor {
         type ArgsNumber = u16;
         type ArgsName = String;
         type ArgsRgb = (u8, u8, u8);
-        type ArgsColor3 = Color3;
+        type ArgsColor3<'lua> = LuaUserDataRef<'lua, Color3>;
         datatype_table.set(
             "new",
             lua.create_function(|lua, args: LuaMultiValue| {
@@ -36,7 +36,7 @@ impl BrickColor {
                 } else if let Ok((r, g, b)) = ArgsRgb::from_lua_multi(args.clone(), lua) {
                     Ok(color_from_rgb(r, g, b))
                 } else if let Ok(color) = ArgsColor3::from_lua_multi(args.clone(), lua) {
-                    Ok(Self::from(color))
+                    Ok(Self::from(*color))
                 } else {
                     // FUTURE: Better error message here using given arg types
                     Err(LuaError::RuntimeError(

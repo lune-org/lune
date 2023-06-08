@@ -47,19 +47,24 @@ impl LuaUserData for Vector2 {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("Cross", |_, this, rhs: Vector2| {
+        methods.add_method("Cross", |_, this, rhs: LuaUserDataRef<Vector2>| {
             let this_v3 = Vec3::new(this.0.x, this.0.y, 0f32);
             let rhs_v3 = Vec3::new(rhs.0.x, rhs.0.y, 0f32);
             Ok(this_v3.cross(rhs_v3).z)
         });
-        methods.add_method("Dot", |_, this, rhs: Vector2| Ok(this.0.dot(rhs.0)));
-        methods.add_method("Lerp", |_, this, (rhs, alpha): (Vector2, f32)| {
-            Ok(Vector2(this.0.lerp(rhs.0, alpha)))
+        methods.add_method("Dot", |_, this, rhs: LuaUserDataRef<Vector2>| {
+            Ok(this.0.dot(rhs.0))
         });
-        methods.add_method("Max", |_, this, rhs: Vector2| {
+        methods.add_method(
+            "Lerp",
+            |_, this, (rhs, alpha): (LuaUserDataRef<Vector2>, f32)| {
+                Ok(Vector2(this.0.lerp(rhs.0, alpha)))
+            },
+        );
+        methods.add_method("Max", |_, this, rhs: LuaUserDataRef<Vector2>| {
             Ok(Vector2(this.0.max(rhs.0)))
         });
-        methods.add_method("Min", |_, this, rhs: Vector2| {
+        methods.add_method("Min", |_, this, rhs: LuaUserDataRef<Vector2>| {
             Ok(Vector2(this.0.min(rhs.0)))
         });
         // Metamethods

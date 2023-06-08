@@ -21,7 +21,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
 
 async fn fs_read_file(lua: &'static Lua, path: String) -> LuaResult<LuaString> {
     let bytes = fs::read(&path).await.map_err(LuaError::external)?;
-    lua.create_string(&bytes)
+    lua.create_string(bytes)
 }
 
 async fn fs_read_dir(_: &'static Lua, path: String) -> LuaResult<Vec<String>> {

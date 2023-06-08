@@ -18,8 +18,8 @@ impl TableBuilder {
 
     pub fn with_value<K, V>(self, key: K, value: V) -> LuaResult<Self>
     where
-        K: ToLua<'static>,
-        V: ToLua<'static>,
+        K: IntoLua<'static>,
+        V: IntoLua<'static>,
     {
         self.tab.raw_set(key, value)?;
         Ok(self)
@@ -27,8 +27,8 @@ impl TableBuilder {
 
     pub fn with_values<K, V>(self, values: Vec<(K, V)>) -> LuaResult<Self>
     where
-        K: ToLua<'static>,
-        V: ToLua<'static>,
+        K: IntoLua<'static>,
+        V: IntoLua<'static>,
     {
         for (key, value) in values {
             self.tab.raw_set(key, value)?;
@@ -38,7 +38,7 @@ impl TableBuilder {
 
     pub fn with_sequential_value<V>(self, value: V) -> LuaResult<Self>
     where
-        V: ToLua<'static>,
+        V: IntoLua<'static>,
     {
         self.tab.raw_push(value)?;
         Ok(self)
@@ -46,7 +46,7 @@ impl TableBuilder {
 
     pub fn with_sequential_values<V>(self, values: Vec<V>) -> LuaResult<Self>
     where
-        V: ToLua<'static>,
+        V: IntoLua<'static>,
     {
         for value in values {
             self.tab.raw_push(value)?;
@@ -61,9 +61,9 @@ impl TableBuilder {
 
     pub fn with_function<K, A, R, F>(self, key: K, func: F) -> LuaResult<Self>
     where
-        K: ToLua<'static>,
+        K: IntoLua<'static>,
         A: FromLuaMulti<'static>,
-        R: ToLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
         F: 'static + Fn(&'static Lua, A) -> LuaResult<R>,
     {
         let f = self.lua.create_function(func)?;
@@ -72,9 +72,9 @@ impl TableBuilder {
 
     pub fn with_async_function<K, A, R, F, FR>(self, key: K, func: F) -> LuaResult<Self>
     where
-        K: ToLua<'static>,
+        K: IntoLua<'static>,
         A: FromLuaMulti<'static>,
-        R: ToLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
         F: 'static + Fn(&'static Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {

@@ -21,7 +21,7 @@ impl NumberSequence {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         type ArgsColor = f32;
         type ArgsColors = (f32, f32);
-        type ArgsKeypoints = Vec<NumberSequenceKeypoint>;
+        type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, NumberSequenceKeypoint>>;
         datatype_table.set(
             "new",
             lua.create_function(|lua, args: LuaMultiValue| {
@@ -56,7 +56,9 @@ impl NumberSequence {
                         ],
                     })
                 } else if let Ok(keypoints) = ArgsKeypoints::from_lua_multi(args, lua) {
-                    Ok(NumberSequence { keypoints })
+                    Ok(NumberSequence {
+                        keypoints: keypoints.iter().map(|k| **k).collect(),
+                    })
                 } else {
                     // FUTURE: Better error message here using given arg types
                     Err(LuaError::RuntimeError(

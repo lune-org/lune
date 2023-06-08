@@ -61,7 +61,7 @@ fn net_json_decode<'a>(lua: &'static Lua, json: LuaString<'a>) -> LuaResult<LuaV
 
 async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaResult<LuaTable<'a>> {
     // Create and send the request
-    let client: NetClient = lua.named_registry_value("net.client")?;
+    let client: LuaUserDataRef<NetClient> = lua.named_registry_value("net.client")?;
     let mut request = client.request(config.method, &config.url);
     for (query, value) in config.query {
         request = request.query(&[(query.to_str()?, value.to_str()?)]);
@@ -195,9 +195,9 @@ fn net_url_encode<'a>(
     (lua_string, as_binary): (LuaString<'a>, Option<bool>),
 ) -> LuaResult<LuaValue<'a>> {
     if matches!(as_binary, Some(true)) {
-        urlencoding::encode_binary(lua_string.as_bytes()).to_lua(lua)
+        urlencoding::encode_binary(lua_string.as_bytes()).into_lua(lua)
     } else {
-        urlencoding::encode(lua_string.to_str()?).to_lua(lua)
+        urlencoding::encode(lua_string.to_str()?).into_lua(lua)
     }
 }
 
@@ -206,10 +206,10 @@ fn net_url_decode<'a>(
     (lua_string, as_binary): (LuaString<'a>, Option<bool>),
 ) -> LuaResult<LuaValue<'a>> {
     if matches!(as_binary, Some(true)) {
-        urlencoding::decode_binary(lua_string.as_bytes()).to_lua(lua)
+        urlencoding::decode_binary(lua_string.as_bytes()).into_lua(lua)
     } else {
         urlencoding::decode(lua_string.to_str()?)
             .map_err(|e| LuaError::RuntimeError(format!("Encountered invalid encoding - {e}")))?
-            .to_lua(lua)
+            .into_lua(lua)
     }
 }

@@ -21,7 +21,7 @@ pub trait LuaAsyncExt {
     fn create_async_function<'lua, A, R, F, FR>(self, func: F) -> LuaResult<LuaFunction<'lua>>
     where
         A: FromLuaMulti<'static>,
-        R: ToLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>;
 
@@ -36,7 +36,7 @@ impl LuaAsyncExt for &'static Lua {
     fn create_async_function<'lua, A, R, F, FR>(self, func: F) -> LuaResult<LuaFunction<'lua>>
     where
         A: FromLuaMulti<'static>,
-        R: ToLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
@@ -53,7 +53,7 @@ impl LuaAsyncExt for &'static Lua {
                         .expect("Missing task scheduler as a lua app data");
                     sched.queue_async_task(thread, None, async {
                         let rets = fut.await?;
-                        let mult = rets.to_lua_multi(lua)?;
+                        let mult = rets.into_lua_multi(lua)?;
                         Ok(Some(mult))
                     })
                 },
@@ -61,8 +61,8 @@ impl LuaAsyncExt for &'static Lua {
             .build_readonly()?;
         let async_func = self
             .load(ASYNC_IMPL_LUA)
-            .set_name("async")?
-            .set_environment(async_env)?
+            .set_name("async")
+            .set_environment(async_env)
             .into_function()?;
         Ok(async_func)
     }
@@ -88,8 +88,8 @@ impl LuaAsyncExt for &'static Lua {
             .build_readonly()?;
         let async_func = self
             .load(WAIT_IMPL_LUA)
-            .set_name("wait")?
-            .set_environment(async_env)?
+            .set_name("wait")
+            .set_environment(async_env)
             .into_function()?;
         Ok(async_func)
     }

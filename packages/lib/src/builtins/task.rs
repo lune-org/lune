@@ -33,7 +33,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     let task_spawn_env_yield: LuaFunction = lua.named_registry_value("co.yield")?;
     let task_spawn = lua
         .load(SPAWN_IMPL_LUA)
-        .set_name("task.spawn")?
+        .set_name("task.spawn")
         .set_environment(
             TableBuilder::new(lua)?
                 .with_function("thread", |lua, _: ()| Ok(lua.current_thread()))?
@@ -46,7 +46,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
                     },
                 )?
                 .build_readonly()?,
-        )?
+        )
         .into_function()?;
     // Functions in the built-in coroutine library also need to be
     // replaced, these are a bit different than the ones above because
@@ -71,9 +71,9 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'static>> {
     Basic task functions
 */
 
-fn task_cancel(lua: &Lua, task: TaskReference) -> LuaResult<()> {
+fn task_cancel(lua: &Lua, task: LuaUserDataRef<TaskReference>) -> LuaResult<()> {
     let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
-    sched.remove_task(task)?;
+    sched.remove_task(*task)?;
     Ok(())
 }
 
@@ -136,7 +136,7 @@ fn coroutine_resume<'lua>(
     sched.force_set_current_task(Some(current));
     match result {
         Ok(rets) => Ok((true, rets.1)),
-        Err(e) => Ok((false, e.to_lua_multi(lua)?)),
+        Err(e) => Ok((false, e.into_lua_multi(lua)?)),
     }
 }
 

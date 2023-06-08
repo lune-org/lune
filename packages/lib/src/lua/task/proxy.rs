@@ -50,8 +50,8 @@ impl<'lua> FromLua<'lua> for LuaThreadOrFunction<'lua> {
     }
 }
 
-impl<'lua> ToLua<'lua> for LuaThreadOrFunction<'lua> {
-    fn to_lua(self, _: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl<'lua> IntoLua<'lua> for LuaThreadOrFunction<'lua> {
+    fn into_lua(self, _: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         match self {
             Self::Thread(t) => Ok(LuaValue::Thread(t)),
             Self::Function(f) => Ok(LuaValue::Function(f)),
@@ -87,8 +87,10 @@ impl<'lua> FromLua<'lua> for LuaThreadOrTaskReference<'lua> {
         match value {
             LuaValue::Thread(t) => Ok(Self::Thread(t)),
             LuaValue::UserData(u) => {
-                if let Ok(task) = TaskReference::from_lua(LuaValue::UserData(u), lua) {
-                    Ok(Self::TaskReference(task))
+                if let Ok(task) =
+                    LuaUserDataRef::<TaskReference>::from_lua(LuaValue::UserData(u), lua)
+                {
+                    Ok(Self::TaskReference(*task))
                 } else {
                     Err(LuaError::FromLuaConversionError {
                         from: tname,
@@ -106,10 +108,10 @@ impl<'lua> FromLua<'lua> for LuaThreadOrTaskReference<'lua> {
     }
 }
 
-impl<'lua> ToLua<'lua> for LuaThreadOrTaskReference<'lua> {
-    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl<'lua> IntoLua<'lua> for LuaThreadOrTaskReference<'lua> {
+    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         match self {
-            Self::TaskReference(t) => t.to_lua(lua),
+            Self::TaskReference(t) => t.into_lua(lua),
             Self::Thread(t) => Ok(LuaValue::Thread(t)),
         }
     }

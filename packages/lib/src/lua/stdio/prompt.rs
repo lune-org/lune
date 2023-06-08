@@ -179,13 +179,13 @@ pub enum PromptResult {
     None,
 }
 
-impl<'lua> ToLua<'lua> for PromptResult {
-    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl<'lua> IntoLua<'lua> for PromptResult {
+    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         Ok(match self {
             Self::String(s) => LuaValue::String(lua.create_string(&s)?),
             Self::Boolean(b) => LuaValue::Boolean(b),
             Self::Index(i) => LuaValue::Number(i as f64),
-            Self::Indices(v) => v.to_lua(lua)?,
+            Self::Indices(v) => v.into_lua(lua)?,
             Self::None => LuaValue::Nil,
         })
     }

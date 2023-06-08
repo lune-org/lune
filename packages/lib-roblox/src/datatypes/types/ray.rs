@@ -30,12 +30,14 @@ impl Ray {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         datatype_table.set(
             "new",
-            lua.create_function(|_, (origin, direction): (Vector3, Vector3)| {
-                Ok(Ray {
-                    origin: origin.0,
-                    direction: direction.0,
-                })
-            })?,
+            lua.create_function(
+                |_, (origin, direction): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+                    Ok(Ray {
+                        origin: origin.0,
+                        direction: direction.0,
+                    })
+                },
+            )?,
         )
     }
 }
@@ -54,10 +56,10 @@ impl LuaUserData for Ray {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("ClosestPoint", |_, this, to: Vector3| {
+        methods.add_method("ClosestPoint", |_, this, to: LuaUserDataRef<Vector3>| {
             Ok(Vector3(this.closest_point(to.0)))
         });
-        methods.add_method("Distance", |_, this, to: Vector3| {
+        methods.add_method("Distance", |_, this, to: LuaUserDataRef<Vector3>| {
             let closest = this.closest_point(to.0);
             Ok((closest - to.0).length())
         });

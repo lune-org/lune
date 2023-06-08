@@ -32,7 +32,7 @@ pub trait TaskSchedulerAsyncExt<'fut> {
     ) -> LuaResult<TaskReference>
     where
         'sched: 'fut,
-        R: ToLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
         F: 'static + Fn(&'static Lua) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>;
 
@@ -89,13 +89,13 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
     ) -> LuaResult<TaskReference>
     where
         'sched: 'fut, // Scheduler must live at least as long as the future
-        R: ToLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
         F: 'static + Fn(&'static Lua) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
         self.queue_async_task(thread, None, async move {
             match func(self.lua).await {
-                Ok(res) => match res.to_lua_multi(self.lua) {
+                Ok(res) => match res.into_lua_multi(self.lua) {
                     Ok(multi) => Ok(Some(multi)),
                     Err(e) => Err(e),
                 },
@@ -127,7 +127,7 @@ impl<'fut> TaskSchedulerAsyncExt<'fut> for TaskScheduler<'fut> {
             ))
             .await;
             let elapsed_secs = before.elapsed().as_secs_f64();
-            let args = elapsed_secs.to_lua_multi(self.lua).unwrap();
+            let args = elapsed_secs.into_lua_multi(self.lua).unwrap();
             (Some(reference), Ok(Some(args)))
         }));
         Ok(reference)

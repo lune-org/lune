@@ -20,8 +20,11 @@ impl ColorSequenceKeypoint {
     pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
         datatype_table.set(
             "new",
-            lua.create_function(|_, (time, color): (f32, Color3)| {
-                Ok(ColorSequenceKeypoint { time, color })
+            lua.create_function(|_, (time, color): (f32, LuaUserDataRef<Color3>)| {
+                Ok(ColorSequenceKeypoint {
+                    time,
+                    color: *color,
+                })
             })?,
         )?;
         Ok(())

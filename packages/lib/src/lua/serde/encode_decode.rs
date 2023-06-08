@@ -70,7 +70,7 @@ impl EncodeDecodeConfig {
                 s.as_bytes().to_vec()
             }
         };
-        lua.create_string(&bytes)
+        lua.create_string(bytes)
     }
 
     pub fn deserialize_from_string<'lua>(

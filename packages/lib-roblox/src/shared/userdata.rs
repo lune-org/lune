@@ -50,18 +50,18 @@ where
     Ok(-*datatype)
 }
 
-pub fn userdata_impl_add<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
+pub fn userdata_impl_add<D>(_: &Lua, datatype: &D, value: LuaUserDataRef<D>) -> LuaResult<D>
 where
     D: LuaUserData + ops::Add<Output = D> + Copy,
 {
-    Ok(*datatype + value)
+    Ok(*datatype + *value)
 }
 
-pub fn userdata_impl_sub<D>(_: &Lua, datatype: &D, value: D) -> LuaResult<D>
+pub fn userdata_impl_sub<D>(_: &Lua, datatype: &D, value: LuaUserDataRef<D>) -> LuaResult<D>
 where
     D: LuaUserData + ops::Sub<Output = D> + Copy,
 {
-    Ok(*datatype - value)
+    Ok(*datatype - *value)
 }
 
 pub fn userdata_impl_mul_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>

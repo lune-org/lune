@@ -38,15 +38,18 @@ impl UDim2 {
                 })
             })?,
         )?;
-        type ArgsUDims = (Option<UDim>, Option<UDim>);
+        type ArgsUDims<'lua> = (
+            Option<LuaUserDataRef<'lua, UDim>>,
+            Option<LuaUserDataRef<'lua, UDim>>,
+        );
         type ArgsNums = (Option<f32>, Option<i32>, Option<f32>, Option<i32>);
         datatype_table.set(
             "new",
             lua.create_function(|lua, args: LuaMultiValue| {
                 if let Ok((x, y)) = ArgsUDims::from_lua_multi(args.clone(), lua) {
                     Ok(UDim2 {
-                        x: x.unwrap_or_default(),
-                        y: y.unwrap_or_default(),
+                        x: x.map(|x| *x).unwrap_or_default(),
+                        y: y.map(|y| *y).unwrap_or_default(),
                     })
                 } else if let Ok((sx, ox, sy, oy)) = ArgsNums::from_lua_multi(args, lua) {
                     Ok(UDim2 {
@@ -74,27 +77,30 @@ impl LuaUserData for UDim2 {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("Lerp", |_, this, (goal, alpha): (UDim2, f32)| {
-            let this_x = Vec2::new(this.x.scale, this.x.offset as f32);
-            let goal_x = Vec2::new(goal.x.scale, goal.x.offset as f32);
+        methods.add_method(
+            "Lerp",
+            |_, this, (goal, alpha): (LuaUserDataRef<UDim2>, f32)| {
+                let this_x = Vec2::new(this.x.scale, this.x.offset as f32);
+                let goal_x = Vec2::new(goal.x.scale, goal.x.offset as f32);
 
-            let this_y = Vec2::new(this.y.scale, this.y.offset as f32);
-            let goal_y = Vec2::new(goal.y.scale, goal.y.offset as f32);
+                let this_y = Vec2::new(this.y.scale, this.y.offset as f32);
+                let goal_y = Vec2::new(goal.y.scale, goal.y.offset as f32);
 
-            let x = this_x.lerp(goal_x, alpha);
-            let y = this_y.lerp(goal_y, alpha);
+                let x = this_x.lerp(goal_x, alpha);
+                let y = this_y.lerp(goal_y, alpha);
 
-            Ok(UDim2 {
-                x: UDim {
-                    scale: x.x,
-                    offset: x.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
-                },
-                y: UDim {
-                    scale: y.x,
-                    offset: y.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
-                },
-            })
-        });
+                Ok(UDim2 {
+                    x: UDim {
+                        scale: x.x,
+                        offset: x.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
+                    },
+                    y: UDim {
+                        scale: y.x,
+                        offset: y.y.clamp(i32::MIN as f32, i32::MAX as f32).round() as i32,
+                    },
+                })
+            },
+        );
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);

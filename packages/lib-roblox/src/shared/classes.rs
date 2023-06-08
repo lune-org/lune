@@ -12,7 +12,7 @@ pub(crate) fn add_class_restricted_getter<'lua, F: LuaUserDataFields<'lua, Insta
     field_name: &'static str,
     field_getter: G,
 ) where
-    R: ToLua<'lua>,
+    R: IntoLua<'lua>,
     G: 'static + Fn(&'lua Lua, &Instance) -> LuaResult<R>,
 {
     fields.add_field_method_get(field_name, move |lua, this| {
@@ -56,7 +56,7 @@ pub(crate) fn add_class_restricted_method<'lua, M: LuaUserDataMethods<'lua, Inst
     method: F,
 ) where
     A: FromLuaMulti<'lua>,
-    R: ToLuaMulti<'lua>,
+    R: IntoLuaMulti<'lua>,
     F: 'static + Fn(&'lua Lua, &Instance, A) -> LuaResult<R>,
 {
     methods.add_method(method_name, move |lua, this, args| {
@@ -85,7 +85,7 @@ pub(crate) fn add_class_restricted_method_mut<
     method: F,
 ) where
     A: FromLuaMulti<'lua>,
-    R: ToLuaMulti<'lua>,
+    R: IntoLuaMulti<'lua>,
     F: 'static + Fn(&'lua Lua, &mut Instance, A) -> LuaResult<R>,
 {
     methods.add_method_mut(method_name, move |lua, this, args| {
