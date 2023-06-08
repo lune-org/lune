@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Update to Luau version `0.576`
+- Update to Luau version `0.579`
 - Both `stdio.write` and `stdio.ewrite` now support writing arbitrary bytes, instead of only valid UTF-8.
 
 ### Fixed
