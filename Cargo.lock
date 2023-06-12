@@ -1169,7 +1169,7 @@ dependencies = [
 
 [[package]]
 name = "lune"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1201,7 +1201,7 @@ dependencies = [
 
 [[package]]
 name = "lune-cli"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "clap 4.3.2",
@@ -1224,7 +1224,7 @@ dependencies = [
 
 [[package]]
 name = "lune-roblox"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "glam",
