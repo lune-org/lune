@@ -49,6 +49,7 @@ create_tests! {
     fs_move: "fs/move",
 
     net_request_codes: "net/request/codes",
+    net_request_compression: "net/request/compression",
     net_request_methods: "net/request/methods",
     net_request_query: "net/request/query",
     net_request_redirect: "net/request/redirect",
