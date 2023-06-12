@@ -43,7 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   local compressed = serde.compress("gzip", INPUT)
   local decompressed = serde.decompress("gzip", compressed)
 
-  assert(compressed == "H4sIAAAAAAAAA/PMKygtUSguKcrMS1coyVdIzs8tKEotLvYcFaeLOADSF8BBgAEAAA==")
   assert(decompressed == INPUT)
   ```
 
