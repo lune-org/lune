@@ -35,37 +35,26 @@ jobs:
             runner-os: windows-latest
             artifact-name: lune-${{ needs.init.outputs.version }}-windows-x86_64
             cargo-target: x86_64-pc-windows-msvc
-            cargo-features: reqwest/rustls-tls
-
-          - name: Windows aarch64
-            runner-os: windows-latest
-            artifact-name: lune-${{ needs.init.outputs.version }}-windows-aarch64
-            cargo-target: aarch64-pc-windows-msvc
-            cargo-features: reqwest/default-tls
 
           - name: Linux x86_64
             runner-os: ubuntu-latest
             artifact-name: lune-${{ needs.init.outputs.version }}-linux-x86_64
             cargo-target: x86_64-unknown-linux-gnu
-            cargo-features: reqwest/rustls-tls
 
           - name: Linux aarch64
             runner-os: ubuntu-latest
             artifact-name: lune-${{ needs.init.outputs.version }}-linux-aarch64
             cargo-target: aarch64-unknown-linux-gnu
-            cargo-features: reqwest/rustls-tls
 
           - name: macOS x86_64
             runner-os: macos-latest
             artifact-name: lune-${{ needs.init.outputs.version }}-macos-x86_64
             cargo-target: x86_64-apple-darwin
-            cargo-features: reqwest/rustls-tls
 
           - name: macOS aarch64
             runner-os: macos-latest
             artifact-name: lune-${{ needs.init.outputs.version }}-macos-aarch64
             cargo-target: aarch64-apple-darwin
-            cargo-features: reqwest/rustls-tls
 
     name: Build - ${{ matrix.name }}
     runs-on: ${{ matrix.runner-os }}
@@ -90,8 +79,7 @@ jobs:
         run: |
           cargo build \
           --locked --release --all-features \
-          --target ${{ matrix.cargo-target }} \
-          --features ${{ matrix.cargo-features }}
+          --target ${{ matrix.cargo-target }}
 
       - name: Create binary archive
         shell: bash

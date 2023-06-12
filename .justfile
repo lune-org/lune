@@ -1,18 +1,18 @@
 # Run an individual test using the Lune CLI
 run-test TEST_NAME:
-	cargo run --features reqwest/rustls-tls -- "tests/{{TEST_NAME}}"
+	cargo run -- "tests/{{TEST_NAME}}"
 
 # Run an individual file using the Lune CLI
 run-file FILE_NAME:
-	cargo run --features reqwest/rustls-tls -- "{{FILE_NAME}}"
+	cargo run -- "{{FILE_NAME}}"
 
 # Run tests for the Lune library
 test:
-	cargo test --features reqwest/rustls-tls --package lune -- --test-threads 1
+	cargo test --package lune -- --test-threads 1
 
 # Run tests for the Lune CLI
 test-cli:
-	cargo test --features reqwest/rustls-tls --package lune-cli
+	cargo test --package lune-cli
 
 # Generate gitbook directory
 generate-gitbook:

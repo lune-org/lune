@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed [`Instance:FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant) which was a method that was never enabled in the official Roblox API and will soon be removed. <br/>
   Use the second argument of the already existing find methods instead to find descendants.
 - Removed the global `printinfo` function - it was generally not used, and did not work as intended. Use the `stdio` builtin for formatting and logging instead.
+- Removed support for Windows on ARM - it's more trouble than its worth right now, we may revisit it later.
 
 ### Added
 
