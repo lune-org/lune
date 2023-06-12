@@ -5,5 +5,7 @@
   },
   "lintErrors": false,
   "typeErrors": true,
-  "globals": []
+  "globals": [
+    "warn"
+  ]
 }

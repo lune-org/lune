@@ -47,6 +47,7 @@ create_tests! {
     fs_files: "fs/files",
     fs_dirs: "fs/dirs",
     fs_move: "fs/move",
+
     net_request_codes: "net/request/codes",
     net_request_methods: "net/request/methods",
     net_request_query: "net/request/query",
@@ -55,11 +56,13 @@ create_tests! {
     net_url_decode: "net/url/decode",
     net_serve_requests: "net/serve/requests",
     net_serve_websockets: "net/serve/websockets",
+
     process_args: "process/args",
     process_cwd: "process/cwd",
     process_env: "process/env",
     process_exit: "process/exit",
     process_spawn: "process/spawn",
+
     require_async: "require/tests/async",
     require_async_concurrent: "require/tests/async_concurrent",
     require_async_sequential: "require/tests/async_sequential",
@@ -69,6 +72,7 @@ create_tests! {
     require_nested: "require/tests/nested",
     require_parents: "require/tests/parents",
     require_siblings: "require/tests/siblings",
+
     global_g_table: "globals/_G",
     // TODO: Uncomment this test, it is commented out right
     // now to let CI pass so that we can make a new release
@@ -77,15 +81,20 @@ create_tests! {
     global_type: "globals/type",
     global_typeof: "globals/typeof",
     global_version: "globals/version",
+
+    serde_compression_files: "serde/compression/files",
+    serde_compression_roundtrip: "serde/compression/roundtrip",
     serde_json_decode: "serde/json/decode",
     serde_json_encode: "serde/json/encode",
     serde_toml_decode: "serde/toml/decode",
     serde_toml_encode: "serde/toml/encode",
+
     stdio_format: "stdio/format",
     stdio_color: "stdio/color",
     stdio_style: "stdio/style",
     stdio_write: "stdio/write",
     stdio_ewrite: "stdio/ewrite",
+
     task_cancel: "task/cancel",
     task_defer: "task/defer",
     task_delay: "task/delay",

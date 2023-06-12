@@ -1,10 +1,14 @@
-use async_compression::tokio::write::{
-    BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
-};
 use blocking::unblock;
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use mlua::prelude::*;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{copy, BufReader};
+
+use async_compression::{
+    tokio::bufread::{
+        BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
+    },
+    Level::Best as CompressionQuality,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum CompressDecompressFormat {
@@ -92,28 +96,30 @@ pub async fn compress<'lua>(
     format: CompressDecompressFormat,
     source: impl AsRef<[u8]>,
 ) -> LuaResult<Vec<u8>> {
+    if let CompressDecompressFormat::LZ4 = format {
+        let source = source.as_ref().to_vec();
+        return Ok(unblock(move || compress_prepend_size(&source)).await);
+    }
+
     let mut bytes = Vec::new();
+    let reader = BufReader::new(source.as_ref());
+
     match format {
         CompressDecompressFormat::Brotli => {
-            BrotliEncoder::new(&mut bytes)
-                .write_all(source.as_ref())
-                .await?
+            let mut encoder = BrotliEncoder::with_quality(reader, CompressionQuality);
+            copy(&mut encoder, &mut bytes).await?;
         }
         CompressDecompressFormat::GZip => {
-            GzipEncoder::new(&mut bytes)
-                .write_all(source.as_ref())
-                .await?
+            let mut encoder = GzipEncoder::with_quality(reader, CompressionQuality);
+            copy(&mut encoder, &mut bytes).await?;
         }
         CompressDecompressFormat::ZLib => {
-            ZlibEncoder::new(&mut bytes)
-                .write_all(source.as_ref())
-                .await?
+            let mut encoder = ZlibEncoder::with_quality(reader, CompressionQuality);
+            copy(&mut encoder, &mut bytes).await?;
         }
-        CompressDecompressFormat::LZ4 => {
-            let source = source.as_ref().to_vec();
-            bytes = unblock(move || compress_prepend_size(&source)).await;
-        }
+        CompressDecompressFormat::LZ4 => unreachable!(),
     }
+
     Ok(bytes)
 }
 
@@ -121,29 +127,31 @@ pub async fn decompress<'lua>(
     format: CompressDecompressFormat,
     source: impl AsRef<[u8]>,
 ) -> LuaResult<Vec<u8>> {
+    if let CompressDecompressFormat::LZ4 = format {
+        let source = source.as_ref().to_vec();
+        return unblock(move || decompress_size_prepended(&source))
+            .await
+            .map_err(LuaError::external);
+    }
+
     let mut bytes = Vec::new();
+    let reader = BufReader::new(source.as_ref());
+
     match format {
         CompressDecompressFormat::Brotli => {
-            BrotliDecoder::new(&mut bytes)
-                .write_all(source.as_ref())
-                .await?
+            let mut decoder = BrotliDecoder::new(reader);
+            copy(&mut decoder, &mut bytes).await?;
         }
         CompressDecompressFormat::GZip => {
-            GzipDecoder::new(&mut bytes)
-                .write_all(source.as_ref())
-                .await?
+            let mut decoder = GzipDecoder::new(reader);
+            copy(&mut decoder, &mut bytes).await?;
         }
         CompressDecompressFormat::ZLib => {
-            ZlibDecoder::new(&mut bytes)
-                .write_all(source.as_ref())
-                .await?
+            let mut decoder = ZlibDecoder::new(reader);
+            copy(&mut decoder, &mut bytes).await?;
         }
-        CompressDecompressFormat::LZ4 => {
-            let source = source.as_ref().to_vec();
-            bytes = unblock(move || decompress_size_prepended(&source))
-                .await
-                .map_err(LuaError::external)?;
-        }
+        CompressDecompressFormat::LZ4 => unreachable!(),
     }
+
     Ok(bytes)
 }
