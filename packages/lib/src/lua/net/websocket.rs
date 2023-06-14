@@ -35,7 +35,7 @@ return freeze(setmetatable({
 }, {
 	__index = function(self, key)
 		if key == "closeCode" then
-			return close_code()
+			return close_code(websocket)
 		end
 	end,
 }))
