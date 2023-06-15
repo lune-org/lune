@@ -57,6 +57,7 @@ create_tests! {
     net_url_decode: "net/url/decode",
     net_serve_requests: "net/serve/requests",
     net_serve_websockets: "net/serve/websockets",
+    net_socket_wss: "net/socket/wss",
 
     process_args: "process/args",
     process_cwd: "process/cwd",
