@@ -10,9 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added support for TLS in websockets, enabling usage of `wss://`-prefixed URLs. ([#57])
+
 ### Fixed
 
+- Fixed `closeCode` erroring when being accessed on websockets. ([#57])
 - Fixed issues with `UniqueId` when using the `roblox` builtin by downgrading `rbx-dom`.
+
+[#57]: https://github.com/filiptibell/lune/pull/57
 
 ## `0.7.0` - June 12th, 2023
 
