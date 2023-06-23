@@ -224,7 +224,7 @@ end
 	Models should be saved with `writeModelFile` instead.
 ]=]
 function remodel.writePlaceFile(filePath: string, dataModel: LuneDataModel)
-	local asBinary = string.sub(filePath, -6) == ".rbxl"
+	local asBinary = string.sub(filePath, -5) == ".rbxl"
 	local asXml = string.sub(filePath, -6) == ".rbxlx"
 	assert(asBinary or asXml, "File path must have .rbxl or .rbxlx extension")
 	local placeFile = roblox.serializePlace(dataModel, asXml)
@@ -238,7 +238,7 @@ end
 	Places should be saved with `writePlaceFile` instead.
 ]=]
 function remodel.writeModelFile(filePath: string, instance: LuneInstance)
-	local asBinary = string.sub(filePath, -6) == ".rbxm"
+	local asBinary = string.sub(filePath, -5) == ".rbxm"
 	local asXml = string.sub(filePath, -6) == ".rbxmx"
 	assert(asBinary or asXml, "File path must have .rbxm or .rbxmx extension")
 	local placeFile = roblox.serializeModel({ instance }, asXml)
