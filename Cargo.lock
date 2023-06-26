@@ -1561,7 +1561,7 @@ dependencies = [
 [[package]]
 name = "rbx_binary"
 version = "0.7.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=45525315f6b241f14de3085bc6634f90c8684546#45525315f6b241f14de3085bc6634f90c8684546"
+source = "git+https://github.com/rojo-rbx/rbx-dom?rev=2e78feb05e033cbca8db1d9e490f8334c096d13e#2e78feb05e033cbca8db1d9e490f8334c096d13e"
 dependencies = [
  "log",
  "lz4",
@@ -1592,7 +1592,7 @@ dependencies = [
 [[package]]
 name = "rbx_dom_weak"
 version = "2.4.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=45525315f6b241f14de3085bc6634f90c8684546#45525315f6b241f14de3085bc6634f90c8684546"
+source = "git+https://github.com/rojo-rbx/rbx-dom?rev=2e78feb05e033cbca8db1d9e490f8334c096d13e#2e78feb05e033cbca8db1d9e490f8334c096d13e"
 dependencies = [
  "rbx_types",
  "serde",
@@ -1601,16 +1601,17 @@ dependencies = [
 [[package]]
 name = "rbx_reflection"
 version = "4.2.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=45525315f6b241f14de3085bc6634f90c8684546#45525315f6b241f14de3085bc6634f90c8684546"
+source = "git+https://github.com/rojo-rbx/rbx-dom?rev=2e78feb05e033cbca8db1d9e490f8334c096d13e#2e78feb05e033cbca8db1d9e490f8334c096d13e"
 dependencies = [
  "rbx_types",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
 name = "rbx_reflection_database"
 version = "0.2.6+roblox-572"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=45525315f6b241f14de3085bc6634f90c8684546#45525315f6b241f14de3085bc6634f90c8684546"
+source = "git+https://github.com/rojo-rbx/rbx-dom?rev=2e78feb05e033cbca8db1d9e490f8334c096d13e#2e78feb05e033cbca8db1d9e490f8334c096d13e"
 dependencies = [
  "lazy_static",
  "rbx_reflection",
@@ -1621,7 +1622,7 @@ dependencies = [
 [[package]]
 name = "rbx_types"
 version = "1.5.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=45525315f6b241f14de3085bc6634f90c8684546#45525315f6b241f14de3085bc6634f90c8684546"
+source = "git+https://github.com/rojo-rbx/rbx-dom?rev=2e78feb05e033cbca8db1d9e490f8334c096d13e#2e78feb05e033cbca8db1d9e490f8334c096d13e"
 dependencies = [
  "base64 0.13.1",
  "bitflags",
@@ -1635,7 +1636,7 @@ dependencies = [
 [[package]]
 name = "rbx_xml"
 version = "0.13.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=45525315f6b241f14de3085bc6634f90c8684546#45525315f6b241f14de3085bc6634f90c8684546"
+source = "git+https://github.com/rojo-rbx/rbx-dom?rev=2e78feb05e033cbca8db1d9e490f8334c096d13e#2e78feb05e033cbca8db1d9e490f8334c096d13e"
 dependencies = [
  "base64 0.13.1",
  "log",
@@ -1781,9 +1782,9 @@ dependencies = [
 
 [[package]]
 name = "rmp-serde"
-version = "0.14.4"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ce7d70c926fe472aed493b902010bccc17fa9f7284145cb8772fd22fdb052d8"
+checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
 dependencies = [
  "byteorder 1.4.3",
  "rmp",
