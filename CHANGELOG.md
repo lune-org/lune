@@ -12,8 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added support for `init` files in directories, similar to Rojo, or `index.js` or `mod.rs` in JavaScript / Rust. <br/>
-  This means that placing a file named `init.luau` or `init.luau` in a directory will now let you `require` that directory.
+- Added support for `init` files in directories, similar to Rojo, or `index.js` / `mod.rs` in JavaScript / Rust. <br/>
+  This means that placing a file named `init.luau` or `init.lua` in a directory will now let you `require` that directory.
+
+### Changed
+
+- The `lune --setup` command is now much more user-friendly
+- Update to Luau version `0.581`
 
 ## `0.7.1` - June 17th, 2023
 
