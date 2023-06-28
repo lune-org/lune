@@ -1,7 +1,9 @@
-use blocking::unblock;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use mlua::prelude::*;
-use tokio::io::{self, AsyncWriteExt};
+use tokio::{
+    io::{self, AsyncWriteExt},
+    task,
+};
 
 use crate::lua::{
     stdio::{
@@ -38,8 +40,10 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
             stderr.flush().await?;
             Ok(())
         })?
-        .with_async_function("prompt", |_, options: PromptOptions| {
-            unblock(move || prompt(options))
+        .with_async_function("prompt", |_, options: PromptOptions| async move {
+            task::spawn_blocking(move || prompt(options))
+                .await
+                .map_err(LuaError::external)?
         })?
         .build_readonly()
 }

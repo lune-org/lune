@@ -1,10 +1,10 @@
-use blocking::unblock;
 use mlua::prelude::*;
 
 use lune_roblox::{
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
     instance::Instance,
 };
+use tokio::task;
 
 use crate::lua::table::TableBuilder;
 
@@ -29,12 +29,12 @@ async fn deserialize_place<'lua>(
     contents: LuaString<'lua>,
 ) -> LuaResult<LuaValue<'lua>> {
     let bytes = contents.as_bytes().to_vec();
-    let fut = unblock(move || {
+    let fut = task::spawn_blocking(move || {
         let doc = Document::from_bytes(bytes, DocumentKind::Place)?;
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await?.into_lua(lua)
+    fut.await.map_err(LuaError::external)??.into_lua(lua)
 }
 
 async fn deserialize_model<'lua>(
@@ -42,12 +42,12 @@ async fn deserialize_model<'lua>(
     contents: LuaString<'lua>,
 ) -> LuaResult<LuaValue<'lua>> {
     let bytes = contents.as_bytes().to_vec();
-    let fut = unblock(move || {
+    let fut = task::spawn_blocking(move || {
         let doc = Document::from_bytes(bytes, DocumentKind::Model)?;
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await?.into_lua(lua)
+    fut.await.map_err(LuaError::external)??.into_lua(lua)
 }
 
 async fn serialize_place<'lua>(
@@ -55,7 +55,7 @@ async fn serialize_place<'lua>(
     (data_model, as_xml): (LuaUserDataRef<'lua, Instance>, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
     let data_model = (*data_model).clone();
-    let fut = unblock(move || {
+    let fut = task::spawn_blocking(move || {
         let doc = Document::from_data_model_instance(data_model)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
             Some(true) => DocumentFormat::Xml,
@@ -63,7 +63,7 @@ async fn serialize_place<'lua>(
         })?;
         Ok::<_, DocumentError>(bytes)
     });
-    let bytes = fut.await?;
+    let bytes = fut.await.map_err(LuaError::external)??;
     lua.create_string(bytes)
 }
 
@@ -72,7 +72,7 @@ async fn serialize_model<'lua>(
     (instances, as_xml): (Vec<LuaUserDataRef<'lua, Instance>>, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
     let instances = instances.iter().map(|i| (*i).clone()).collect();
-    let fut = unblock(move || {
+    let fut = task::spawn_blocking(move || {
         let doc = Document::from_instance_array(instances)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
             Some(true) => DocumentFormat::Xml,
@@ -80,12 +80,12 @@ async fn serialize_model<'lua>(
         })?;
         Ok::<_, DocumentError>(bytes)
     });
-    let bytes = fut.await?;
+    let bytes = fut.await.map_err(LuaError::external)??;
     lua.create_string(bytes)
 }
 
 async fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>> {
-    unblock(move || {
+    task::spawn_blocking(move || {
         if matches!(raw, Some(true)) {
             Ok(rbx_cookie::get_value())
         } else {
@@ -93,4 +93,5 @@ async fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>
         }
     })
     .await
+    .map_err(LuaError::external)?
 }
