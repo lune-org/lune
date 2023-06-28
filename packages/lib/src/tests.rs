@@ -70,6 +70,7 @@ create_tests! {
     require_async_sequential: "require/tests/async_sequential",
     require_builtins: "require/tests/builtins",
     require_children: "require/tests/children",
+    require_directories: "require/tests/directories",
     require_invalid: "require/tests/invalid",
     require_nested: "require/tests/nested",
     require_parents: "require/tests/parents",

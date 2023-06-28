@@ -8,6 +8,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added support for `init` files in directories, similar to Rojo, or `index.js` or `mod.rs` in JavaScript / Rust. <br/>
+  This means that placing a file named `init.luau` or `init.luau` in a directory will now let you `require` that directory.
+
 ## `0.7.1` - June 17th, 2023
 
 ### Added

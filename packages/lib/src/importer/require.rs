@@ -133,11 +133,20 @@ impl<'lua> RequireContext<'lua> {
         ) {
             (Ok(luau), _) => luau,
             (_, Ok(lua)) => lua,
-            _ => {
-                return Err(LuaError::RuntimeError(format!(
-                    "File does not exist at path '{require_path}'"
-                )))
-            }
+            // If we did not find a luau/lua file at the wanted path,
+            // we should also look for "init" files in directories
+            _ => match (
+                canonicalize(path_relative_to_pwd.join("init").with_extension("luau")),
+                canonicalize(path_relative_to_pwd.join("init").with_extension("lua")),
+            ) {
+                (Ok(luau), _) => luau,
+                (_, Ok(lua)) => lua,
+                _ => {
+                    return Err(LuaError::RuntimeError(format!(
+                        "File does not exist at path '{require_path}'"
+                    )))
+                }
+            },
         };
         let absolute = file_path.to_string_lossy().to_string();
         let relative = absolute.trim_start_matches(&self.pwd).to_string();
