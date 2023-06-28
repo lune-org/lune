@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use anyhow::{Context, Result};
 use directories::UserDirs;
@@ -9,7 +9,8 @@ use tokio::fs::{create_dir_all, write};
 #[allow(clippy::too_many_lines)]
 pub async fn generate_from_type_definitions(
     typedef_files: HashMap<String, Vec<u8>>,
-) -> Result<HashMap<String, PathBuf>> {
+) -> Result<String> {
+    let version_string = env!("CARGO_PKG_VERSION");
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();
     // Create the typedefs dir in the users cache dir
@@ -18,7 +19,7 @@ pub async fn generate_from_type_definitions(
         .home_dir()
         .join(".lune")
         .join(".typedefs")
-        .join(env!("CARGO_PKG_VERSION"));
+        .join(version_string);
     dirs_to_write.push(cache_dir.clone());
     // Make typedef files
     for (builtin_name, builtin_typedef) in typedef_files {
@@ -38,8 +39,5 @@ pub async fn generate_from_type_definitions(
         .collect::<Vec<_>>();
     try_join_all(futs_dirs).await?;
     try_join_all(futs_files).await?;
-    Ok(files_to_write
-        .drain(..)
-        .map(|(name, path, _)| (name, path))
-        .collect::<HashMap<_, _>>())
+    Ok(version_string.to_string())
 }

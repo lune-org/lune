@@ -17,10 +17,10 @@ path = "src/lib.rs"
 [dependencies]
 mlua.workspace = true
 once_cell.workspace = true
+thiserror.workspace = true
 
 glam = "0.24"
 rand = "0.8"
-thiserror = "1.0"
 
 rbx_binary = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "2e78feb05e033cbca8db1d9e490f8334c096d13e" }
 rbx_dom_weak = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "2e78feb05e033cbca8db1d9e490f8334c096d13e" }

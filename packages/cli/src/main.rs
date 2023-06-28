@@ -14,10 +14,8 @@ use clap::Parser;
 
 pub(crate) mod cli;
 pub(crate) mod gen;
+pub(crate) mod setup;
 pub(crate) mod utils;
-
-#[cfg(test)]
-mod tests;
 
 use cli::Cli;
 use console::style;

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use anyhow::Result;
 use include_dir::Dir;
@@ -15,9 +15,7 @@ pub async fn generate_gitbook_dir_from_definitions(dir: &Dir<'_>) -> Result<()> 
     gitbook_dir::generate_from_type_definitions(definitions).await
 }
 
-pub async fn generate_typedef_files_from_definitions(
-    dir: &Dir<'_>,
-) -> Result<HashMap<String, PathBuf>> {
+pub async fn generate_typedef_files_from_definitions(dir: &Dir<'_>) -> Result<String> {
     let contents = read_typedefs_dir_contents(dir);
     typedef_files::generate_from_type_definitions(contents).await
 }
