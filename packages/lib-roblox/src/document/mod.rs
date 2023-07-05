@@ -1,4 +1,4 @@
-use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
+use rbx_dom_weak::{types::Ref as DomRef, InstanceBuilder as DomInstanceBuilder, WeakDom};
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -274,10 +274,26 @@ impl Document {
             instance.clone_into_external_dom(&mut dom);
         }
 
+        let root_ref = dom.root_ref();
+        recurse_strip_unique_ids(&mut dom, root_ref);
+
         Ok(Self {
             kind: DocumentKind::Model,
             format: DocumentFormat::default(),
             dom,
         })
+    }
+}
+
+fn recurse_strip_unique_ids(dom: &mut WeakDom, dom_ref: DomRef) {
+    let child_refs = match dom.get_by_ref_mut(dom_ref) {
+        Some(inst) => {
+            inst.properties.remove("UniqueId");
+            inst.children().to_vec()
+        }
+        None => Vec::new(),
+    };
+    for child_ref in child_refs {
+        recurse_strip_unique_ids(dom, child_ref)
     }
 }
