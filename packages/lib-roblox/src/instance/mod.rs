@@ -140,18 +140,14 @@ impl Instance {
         root of the weak dom, and return its referent.
     */
     pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
-        let cloned = self.clone_instance();
-
-        let mut dom = INTERNAL_DOM
+        let dom = INTERNAL_DOM
             .try_write()
             .expect("Failed to get write access to document");
 
-        let internal_dom_ref = cloned.dom_ref;
-        let external_root_ref = external_dom.root_ref();
+        let cloned = dom.clone_into_external(self.dom_ref, external_dom);
+        external_dom.transfer_within(cloned, external_dom.root_ref());
 
-        dom.transfer(internal_dom_ref, external_dom, external_root_ref);
-
-        internal_dom_ref
+        cloned
     }
 
     /**
