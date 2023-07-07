@@ -11,7 +11,7 @@ pub fn postprocess_dom_for_place(_dom: &mut WeakDom) {
 
 pub fn postprocess_dom_for_model(dom: &mut WeakDom) {
     let root_ref = dom.root_ref();
-    recurse_instances(dom, root_ref, |inst| {
+    recurse_instances(dom, root_ref, &|inst| {
         // Get rid of some unique ids - roblox does not
         // save these in model files, and we shouldn't either
         remove_matching_prop(inst, DomType::UniqueId, "UniqueId");
@@ -24,9 +24,9 @@ pub fn postprocess_dom_for_model(dom: &mut WeakDom) {
     });
 }
 
-fn recurse_instances<F>(dom: &mut WeakDom, dom_ref: DomRef, f: F)
+fn recurse_instances<F>(dom: &mut WeakDom, dom_ref: DomRef, f: &F)
 where
-    F: Fn(&mut DomInstance),
+    F: Fn(&mut DomInstance) + 'static,
 {
     let child_refs = match dom.get_by_ref_mut(dom_ref) {
         Some(inst) => {
@@ -36,7 +36,7 @@ where
         None => Vec::new(),
     };
     for child_ref in child_refs {
-        recurse_instances(dom, child_ref, &f);
+        recurse_instances(dom, child_ref, f);
     }
 }
 
