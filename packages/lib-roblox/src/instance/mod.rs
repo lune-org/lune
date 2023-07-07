@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     fmt,
     hash::{Hash, Hasher},
     sync::RwLock,
@@ -174,49 +174,6 @@ impl Instance {
         let new_inst = Self::new(new_ref);
         new_inst.set_parent(None);
         new_inst
-    }
-
-    pub fn clone_inner(
-        dom_ref: DomRef,
-        parent_ref: DomRef,
-        reference_map: &mut HashMap<DomRef, DomRef>,
-    ) -> DomRef {
-        // NOTE: We create a new scope here to avoid deadlocking since
-        // our clone implementation must have exclusive write access
-        let (new_ref, child_refs) = {
-            let mut dom = INTERNAL_DOM
-                .try_write()
-                .expect("Failed to get write access to document");
-
-            let (new_class, new_name, new_props, child_refs) = {
-                let instance = dom
-                    .get_by_ref(dom_ref)
-                    .expect("Failed to find instance in document");
-                (
-                    instance.class.to_string(),
-                    instance.name.to_string(),
-                    instance.properties.clone(),
-                    instance.children().to_vec(),
-                )
-            };
-
-            let new_ref = dom.insert(
-                parent_ref,
-                DomInstanceBuilder::new(new_class)
-                    .with_name(new_name)
-                    .with_properties(new_props),
-            );
-
-            reference_map.insert(dom_ref, new_ref);
-
-            (new_ref, child_refs)
-        };
-
-        for child_ref in child_refs {
-            Self::clone_inner(child_ref, new_ref, reference_map);
-        }
-
-        new_ref
     }
 
     /**
