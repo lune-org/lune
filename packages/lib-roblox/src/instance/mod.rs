@@ -163,44 +163,15 @@ impl Instance {
     pub fn clone_instance(&self) -> Instance {
         // NOTE: We create a new scope here to avoid deadlocking since
         // our clone implementation must have exclusive write access
-        let parent_ref = {
-            INTERNAL_DOM
-                .try_read()
-                .expect("Failed to get read access to document")
-                .get_by_ref(self.dom_ref)
-                .expect("Failed to find instance in document")
-                .parent()
-        };
-
-        // Keep track of a map from old ref -> new ref for each
-        // instance so that we can then transform properties that
-        // are instance refs into ones pointing at the new instances
-        let mut reference_map = HashMap::new();
-
-        let new_ref = Self::clone_inner(self.dom_ref, parent_ref, &mut reference_map);
-        let new_inst = Self::new(new_ref);
-
-        {
+        let new_ref = {
             let mut dom = INTERNAL_DOM
                 .try_write()
                 .expect("Failed to get write access to document");
-            let new_refs = reference_map.values().clone().collect::<Vec<_>>();
-            for new_ref in new_refs {
-                let new_inst = dom
-                    .get_by_ref_mut(*new_ref)
-                    .expect("Failed to find cloned instance in document");
-                for prop_value in new_inst.properties.values_mut() {
-                    if let DomValue::Ref(prop_ref) = prop_value {
-                        // NOTE: It is possible to get None here if the ref points to
-                        // something outside of the newly cloned instance hierarchy
-                        if let Some(new) = reference_map.get(prop_ref) {
-                            *prop_value = DomValue::Ref(*new);
-                        }
-                    }
-                }
-            }
-        }
 
+            dom.clone_within(self.dom_ref)
+        };
+
+        let new_inst = Self::new(new_ref);
         new_inst.set_parent(None);
         new_inst
     }
