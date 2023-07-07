@@ -1,4 +1,4 @@
-use rbx_dom_weak::{types::Ref as DomRef, InstanceBuilder as DomInstanceBuilder, WeakDom};
+use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -7,10 +7,13 @@ use rbx_xml::{
 mod error;
 mod format;
 mod kind;
+mod postprocessing;
 
 pub use error::*;
 pub use format::*;
 pub use kind::*;
+
+use postprocessing::*;
 
 use crate::instance::{data_model, Instance};
 
@@ -249,6 +252,8 @@ impl Document {
             data_model_child.clone_into_external_dom(&mut dom);
         }
 
+        postprocess_dom_for_place(&mut dom);
+
         Ok(Self {
             kind: DocumentKind::Place,
             format: DocumentFormat::default(),
@@ -274,26 +279,12 @@ impl Document {
             instance.clone_into_external_dom(&mut dom);
         }
 
-        let root_ref = dom.root_ref();
-        recurse_strip_unique_ids(&mut dom, root_ref);
+        postprocess_dom_for_model(&mut dom);
 
         Ok(Self {
             kind: DocumentKind::Model,
             format: DocumentFormat::default(),
             dom,
         })
-    }
-}
-
-fn recurse_strip_unique_ids(dom: &mut WeakDom, dom_ref: DomRef) {
-    let child_refs = match dom.get_by_ref_mut(dom_ref) {
-        Some(inst) => {
-            inst.properties.remove("UniqueId");
-            inst.children().to_vec()
-        }
-        None => Vec::new(),
-    };
-    for child_ref in child_refs {
-        recurse_strip_unique_ids(dom, child_ref)
     }
 }
