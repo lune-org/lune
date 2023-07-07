@@ -21,9 +21,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Install project tools
-        uses: ok-nick/setup-aftman@v0.3.0
-
       - name: Rustfmt
         run: cargo fmt -- --check
 
@@ -34,4 +31,4 @@ jobs:
         run: cargo clippy
 
       - name: Test
-        run: just test
+        run: cargo test --package lune -- --test-threads 1
