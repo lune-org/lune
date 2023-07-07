@@ -1,5 +1,4 @@
 [tools]
-just = "readysetplay/just@1.8.0"
 luau-lsp = "JohnnyMorganz/luau-lsp@1.20.0"
 selene = "Kampfkarren/selene@0.24.0"
 stylua = "JohnnyMorganz/StyLua@0.17.0"
