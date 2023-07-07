@@ -24,16 +24,16 @@ pub fn ensure_valid_attribute_name(name: impl AsRef<str>) -> LuaResult<()> {
 }
 
 pub fn ensure_valid_attribute_value(value: &DomValue) -> LuaResult<()> {
-    // TODO: Uncomment supported types when they are also supported in rbx-dom serialization
     let is_valid = matches!(
         value.ty(),
         DomType::Bool
             | DomType::BrickColor
-            // | DomType::CFrame
+            | DomType::CFrame
             | DomType::Color3
             | DomType::ColorSequence
             | DomType::Float32
             | DomType::Float64
+            | DomType::Font
             | DomType::Int32
             | DomType::Int64
             | DomType::NumberRange
@@ -43,7 +43,7 @@ pub fn ensure_valid_attribute_value(value: &DomValue) -> LuaResult<()> {
             | DomType::UDim
             | DomType::UDim2
             | DomType::Vector2
-            | DomType::Vector3 // | DomType::Font
+            | DomType::Vector3
     );
     if is_valid {
         Ok(())

@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added support for `CFrame` and `Font` types in attributes when using the `roblox` builtin.
+
 ### Fixed
 
-- Fixed `roblox.serializeModel` still keeping some unique ids
+- Fixed `roblox.serializeModel` still keeping some unique ids.
 
 ## `0.7.3` - July 5th, 2023
 

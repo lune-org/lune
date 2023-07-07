@@ -2,9 +2,11 @@ local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local BrickColor = roblox.BrickColor
+local CFrame = roblox.CFrame
 local Color3 = roblox.Color3
 local ColorSequence = roblox.ColorSequence
 local ColorSequenceKeypoint = roblox.ColorSequenceKeypoint
+local Font = roblox.Font
 local NumberRange = roblox.NumberRange
 local NumberSequence = roblox.NumberSequence
 local NumberSequenceKeypoint = roblox.NumberSequenceKeypoint
@@ -19,6 +21,8 @@ local modelFile = fs.readFile("tests/roblox/rbx-test-files/models/attributes/bin
 local model = roblox.deserializeModel(modelFile)[1]
 
 model:SetAttribute("Foo", "Bar")
+model:SetAttribute("CFrame", CFrame.identity)
+model:SetAttribute("Font", Font.new("Arial"))
 
 local ATTRS_ACTUAL = model:GetAttributes()
 local ATTRS_EXPECTED: { [string]: any } = {
@@ -48,6 +52,8 @@ local ATTRS_EXPECTED: { [string]: any } = {
 	NaN = 0 / 0,
 	-- Extras we set
 	Foo = "Bar",
+	CFrame = CFrame.identity,
+	Font = Font.new("Arial"),
 }
 
 for name, value in ATTRS_EXPECTED do
