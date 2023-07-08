@@ -22,11 +22,11 @@ thiserror.workspace = true
 glam = "0.24"
 rand = "0.8"
 
-rbx_binary = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "b6d255e0b5d96155f694ca224676b251059cf2de" }
-rbx_dom_weak = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "b6d255e0b5d96155f694ca224676b251059cf2de" }
-rbx_reflection = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "b6d255e0b5d96155f694ca224676b251059cf2de" }
-rbx_reflection_database = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "b6d255e0b5d96155f694ca224676b251059cf2de" }
-rbx_xml = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "b6d255e0b5d96155f694ca224676b251059cf2de" }
+rbx_binary = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_dom_weak = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_reflection = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_reflection_database = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_xml = { git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
 
 [dev-dependencies]
 anyhow = "1.0"

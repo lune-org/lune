@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     fmt,
     hash::{Hash, Hasher},
     sync::RwLock,
@@ -140,18 +140,14 @@ impl Instance {
         root of the weak dom, and return its referent.
     */
     pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
-        let cloned = self.clone_instance();
-
-        let mut dom = INTERNAL_DOM
+        let dom = INTERNAL_DOM
             .try_write()
             .expect("Failed to get write access to document");
 
-        let internal_dom_ref = cloned.dom_ref;
-        let external_root_ref = external_dom.root_ref();
+        let cloned = dom.clone_into_external(self.dom_ref, external_dom);
+        external_dom.transfer_within(cloned, external_dom.root_ref());
 
-        dom.transfer(internal_dom_ref, external_dom, external_root_ref);
-
-        internal_dom_ref
+        cloned
     }
 
     /**
@@ -167,89 +163,17 @@ impl Instance {
     pub fn clone_instance(&self) -> Instance {
         // NOTE: We create a new scope here to avoid deadlocking since
         // our clone implementation must have exclusive write access
-        let parent_ref = {
-            INTERNAL_DOM
-                .try_read()
-                .expect("Failed to get read access to document")
-                .get_by_ref(self.dom_ref)
-                .expect("Failed to find instance in document")
-                .parent()
-        };
-
-        // Keep track of a map from old ref -> new ref for each
-        // instance so that we can then transform properties that
-        // are instance refs into ones pointing at the new instances
-        let mut reference_map = HashMap::new();
-
-        let new_ref = Self::clone_inner(self.dom_ref, parent_ref, &mut reference_map);
-        let new_inst = Self::new(new_ref);
-
-        {
+        let new_ref = {
             let mut dom = INTERNAL_DOM
                 .try_write()
                 .expect("Failed to get write access to document");
-            let new_refs = reference_map.values().clone().collect::<Vec<_>>();
-            for new_ref in new_refs {
-                let new_inst = dom
-                    .get_by_ref_mut(*new_ref)
-                    .expect("Failed to find cloned instance in document");
-                for prop_value in new_inst.properties.values_mut() {
-                    if let DomValue::Ref(prop_ref) = prop_value {
-                        // NOTE: It is possible to get None here if the ref points to
-                        // something outside of the newly cloned instance hierarchy
-                        if let Some(new) = reference_map.get(prop_ref) {
-                            *prop_value = DomValue::Ref(*new);
-                        }
-                    }
-                }
-            }
-        }
 
+            dom.clone_within(self.dom_ref)
+        };
+
+        let new_inst = Self::new(new_ref);
         new_inst.set_parent(None);
         new_inst
-    }
-
-    pub fn clone_inner(
-        dom_ref: DomRef,
-        parent_ref: DomRef,
-        reference_map: &mut HashMap<DomRef, DomRef>,
-    ) -> DomRef {
-        // NOTE: We create a new scope here to avoid deadlocking since
-        // our clone implementation must have exclusive write access
-        let (new_ref, child_refs) = {
-            let mut dom = INTERNAL_DOM
-                .try_write()
-                .expect("Failed to get write access to document");
-
-            let (new_class, new_name, new_props, child_refs) = {
-                let instance = dom
-                    .get_by_ref(dom_ref)
-                    .expect("Failed to find instance in document");
-                (
-                    instance.class.to_string(),
-                    instance.name.to_string(),
-                    instance.properties.clone(),
-                    instance.children().to_vec(),
-                )
-            };
-
-            let new_ref = dom.insert(
-                parent_ref,
-                DomInstanceBuilder::new(new_class)
-                    .with_name(new_name)
-                    .with_properties(new_props),
-            );
-
-            reference_map.insert(dom_ref, new_ref);
-
-            (new_ref, child_refs)
-        };
-
-        for child_ref in child_refs {
-            Self::clone_inner(child_ref, new_ref, reference_map);
-        }
-
-        new_ref
     }
 
     /**
