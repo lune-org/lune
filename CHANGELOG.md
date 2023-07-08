@@ -8,6 +8,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Fixed crashes when writing a very deeply nested `Instance` to a file ([#62])
+
+[#62]: https://github.com/filiptibell/lune/pull/62
+
 ## `0.7.4` - July 7th, 2023
 
 ### Added
