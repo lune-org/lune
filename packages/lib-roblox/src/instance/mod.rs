@@ -141,8 +141,8 @@ impl Instance {
     */
     pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
         let dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+            .try_read()
+            .expect("Failed to get read access to document");
 
         let cloned = dom.clone_into_external(self.dom_ref, external_dom);
         external_dom.transfer_within(cloned, external_dom.root_ref());
