@@ -47,8 +47,8 @@ return freeze(setmetatable({
 #[derive(Debug)]
 pub struct NetWebSocket<T> {
     close_code: Arc<Cell<Option<u16>>>,
-    stream_in: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
-    stream_out: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
+    stream_in: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
+    stream_out: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
 }
 
 impl<T> Clone for NetWebSocket<T> {
@@ -70,8 +70,8 @@ where
 
         Self {
             close_code: Arc::new(Cell::new(None)),
-            stream_in: Arc::new(AsyncMutex::new(write)),
-            stream_out: Arc::new(AsyncMutex::new(read)),
+            stream_in: Arc::new(AsyncMutex::new(read)),
+            stream_out: Arc::new(AsyncMutex::new(write)),
         }
     }
 
@@ -152,9 +152,9 @@ async fn close<'lua, T>(
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
-    let mut ws_in = socket.stream_in.lock().await;
+    let mut ws = socket.stream_out.lock().await;
 
-    let _ = ws_in
+    let _ = ws
         .send(WsMessage::Close(Some(WsCloseFrame {
             code: match code {
                 Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
@@ -169,7 +169,7 @@ where
         })))
         .await;
 
-    let res = ws_in.close();
+    let res = ws.close();
     res.await.map_err(LuaError::external)
 }
 
@@ -190,7 +190,7 @@ where
         let s = string.to_str().map_err(LuaError::external)?;
         WsMessage::Text(s.to_string())
     };
-    let mut ws = socket.stream_in.lock().await;
+    let mut ws = socket.stream_out.lock().await;
     ws.send(msg).await.map_err(LuaError::external)
 }
 
@@ -201,7 +201,7 @@ async fn next<'lua, T>(
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
-    let mut ws = socket.stream_out.lock().await;
+    let mut ws = socket.stream_in.lock().await;
     let item = ws.next().await.transpose().map_err(LuaError::external);
     let msg = match item {
         Ok(Some(WsMessage::Close(msg))) => {
