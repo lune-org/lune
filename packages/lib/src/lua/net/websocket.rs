@@ -154,20 +154,20 @@ where
 {
     let mut ws = socket.write_stream.lock().await;
 
-    let _ = ws
-        .send(WsMessage::Close(Some(WsCloseFrame {
-            code: match code {
-                Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
-                Some(code) => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Close code must be between 1000 and 4999, got {code}"
-                    )))
-                }
-                None => WsCloseCode::Normal,
-            },
-            reason: "".into(),
-        })))
-        .await;
+    ws.send(WsMessage::Close(Some(WsCloseFrame {
+        code: match code {
+            Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
+            Some(code) => {
+                return Err(LuaError::RuntimeError(format!(
+                    "Close code must be between 1000 and 4999, got {code}"
+                )))
+            }
+            None => WsCloseCode::Normal,
+        },
+        reason: "".into(),
+    })))
+    .await
+    .map_err(LuaError::external)?;
 
     let res = ws.close();
     res.await.map_err(LuaError::external)
