@@ -47,16 +47,16 @@ return freeze(setmetatable({
 #[derive(Debug)]
 pub struct NetWebSocket<T> {
     close_code: Arc<Cell<Option<u16>>>,
-    stream_in: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
-    stream_out: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
+    read_stream: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
+    write_stream: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
 }
 
 impl<T> Clone for NetWebSocket<T> {
     fn clone(&self) -> Self {
         Self {
             close_code: Arc::clone(&self.close_code),
-            stream_in: Arc::clone(&self.stream_in),
-            stream_out: Arc::clone(&self.stream_out),
+            read_stream: Arc::clone(&self.read_stream),
+            write_stream: Arc::clone(&self.write_stream),
         }
     }
 }
@@ -70,8 +70,8 @@ where
 
         Self {
             close_code: Arc::new(Cell::new(None)),
-            stream_in: Arc::new(AsyncMutex::new(read)),
-            stream_out: Arc::new(AsyncMutex::new(write)),
+            read_stream: Arc::new(AsyncMutex::new(read)),
+            write_stream: Arc::new(AsyncMutex::new(write)),
         }
     }
 
@@ -152,7 +152,7 @@ async fn close<'lua, T>(
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
-    let mut ws = socket.stream_out.lock().await;
+    let mut ws = socket.write_stream.lock().await;
 
     let _ = ws
         .send(WsMessage::Close(Some(WsCloseFrame {
@@ -190,7 +190,7 @@ where
         let s = string.to_str().map_err(LuaError::external)?;
         WsMessage::Text(s.to_string())
     };
-    let mut ws = socket.stream_out.lock().await;
+    let mut ws = socket.write_stream.lock().await;
     ws.send(msg).await.map_err(LuaError::external)
 }
 
@@ -201,7 +201,7 @@ async fn next<'lua, T>(
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
-    let mut ws = socket.stream_in.lock().await;
+    let mut ws = socket.read_stream.lock().await;
     let item = ws.next().await.transpose().map_err(LuaError::external);
     let msg = match item {
         Ok(Some(WsMessage::Close(msg))) => {
