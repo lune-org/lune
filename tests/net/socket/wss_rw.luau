@@ -7,20 +7,23 @@ local task = require("@lune/task")
 -- as well as write to the same stream concurrently
 local socket = net.socket("wss://gateway.discord.gg/?v=10&encoding=json")
 
-task.spawn(function()
+local spawnedThread = task.spawn(function()
 	while not socket.closeCode do
 		socket.next()
 	end
 end)
 
-task.delay(1, function()
-	socket.send('{"op":1,"d":null}')
-	socket.close(1000)
+local delayedThread = task.delay(5, function()
+	task.defer(process.exit, 1)
+	error("`socket.send` halted, failed to write to socket")
 
 	process.exit(1)
 end)
 
-task.wait(5)
+task.wait(1)
 
-task.defer(process.exit, 1)
-error("`socket.send` halted, failed to write to socket")
+socket.send('{"op":1,"d":null}')
+socket.close(1000)
+
+task.cancel(delayedThread)
+task.cancel(spawnedThread)
