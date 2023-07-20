@@ -13,8 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed crashes when writing a very deeply nested `Instance` to a file ([#62])
+- Fixed not being able to read & write to WebSocket objects at the same time ([#68])
+- Fixed tab character at the start of a script causing it not to parse correctly ([#72])
 
 [#62]: https://github.com/filiptibell/lune/pull/62
+[#68]: https://github.com/filiptibell/lune/pull/66
+[#72]: https://github.com/filiptibell/lune/pull/72
 
 ## `0.7.4` - July 7th, 2023
 
