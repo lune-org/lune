@@ -3,13 +3,9 @@ local TEMP_FILE_PATH = TEMP_DIR_PATH .. "metadata_test"
 
 local fs = require("@lune/fs")
 local task = require("@lune/task")
+local utils = require("./utils")
 
--- Generate test data & make sure our bin dir exists
-
-local binary = ""
-for _ = 1, 1024 do
-	binary ..= string.char(math.random(1, 127))
-end
+-- Make sure our bin dir exists
 
 fs.writeDir(TEMP_DIR_PATH)
 if fs.isFile(TEMP_FILE_PATH) then
@@ -23,7 +19,7 @@ end
 ]]
 
 assert(not fs.metadata(TEMP_FILE_PATH).exists, "File metadata not exists failed")
-fs.writeFile(TEMP_FILE_PATH, binary)
+fs.writeFile(TEMP_FILE_PATH, utils.binaryBlob)
 assert(fs.metadata(TEMP_FILE_PATH).exists, "File metadata exists failed")
 
 --[[
@@ -46,7 +42,7 @@ assert(metaFile.kind == "file", "File metadata kind was invalid")
 
 local metaBefore = fs.metadata(TEMP_FILE_PATH)
 task.wait()
-fs.writeFile(TEMP_FILE_PATH, binary .. "\n")
+fs.writeFile(TEMP_FILE_PATH, utils.binaryBlob .. "\n")
 local metaAfter = fs.metadata(TEMP_FILE_PATH)
 
 assert(

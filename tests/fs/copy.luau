@@ -3,13 +3,9 @@ local TEMP_ROOT_PATH = TEMP_DIR_PATH .. "fs_copy_test"
 local TEMP_ROOT_PATH_2 = TEMP_DIR_PATH .. "fs_copy_test_2"
 
 local fs = require("@lune/fs")
+local utils = require("./utils")
 
--- Generate test data & make sure our bin dir exists
-
-local binary = ""
-for _ = 1, 1024 do
-	binary ..= string.char(math.random(1, 127))
-end
+-- Make sure our bin dir exists
 
 fs.writeDir(TEMP_DIR_PATH)
 if fs.isDir(TEMP_ROOT_PATH) then
@@ -34,9 +30,9 @@ end
 fs.writeDir(TEMP_ROOT_PATH)
 fs.writeDir(TEMP_ROOT_PATH .. "/foo")
 fs.writeDir(TEMP_ROOT_PATH .. "/foo/bar")
-fs.writeFile(TEMP_ROOT_PATH .. "/foo/bar/baz", binary)
-fs.writeFile(TEMP_ROOT_PATH .. "/foo/fizz", binary)
-fs.writeFile(TEMP_ROOT_PATH .. "/foo/buzz", binary)
+fs.writeFile(TEMP_ROOT_PATH .. "/foo/bar/baz", utils.binaryBlob)
+fs.writeFile(TEMP_ROOT_PATH .. "/foo/fizz", utils.binaryBlob)
+fs.writeFile(TEMP_ROOT_PATH .. "/foo/buzz", utils.binaryBlob)
 
 -- Copy the entire structure
 
@@ -54,15 +50,15 @@ assert(fs.isFile(TEMP_ROOT_PATH_2 .. "/foo/buzz"), "Missing copied file - root/f
 -- Make sure the copied files are correct
 
 assert(
-	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/bar/baz") == binary,
+	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/bar/baz") == utils.binaryBlob,
 	"Invalid copied file - root/foo/bar/baz"
 )
 assert(
-	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/fizz") == binary,
+	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/fizz") == utils.binaryBlob,
 	"Invalid copied file - root/foo/fizz"
 )
 assert(
-	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/buzz") == binary,
+	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/buzz") == utils.binaryBlob,
 	"Invalid copied file - root/foo/buzz"
 )
 

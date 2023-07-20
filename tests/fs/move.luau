@@ -1,25 +1,14 @@
 local fs = require("@lune/fs")
-local net = require("@lune/net")
+local utils = require("./utils")
 
--- Generate test data & make sure our bin dir exists
-
-local binary = ""
-for _ = 1, 1024 do
-	binary ..= string.char(math.random(1, 127))
-end
-
-local json = net.jsonEncode({
-	Foo = "Bar",
-	Hello = "World",
-	Inner = { Array = { 1, 2, 3 } },
-}, true)
+-- Make sure our bin dir exists
 
 fs.writeDir("bin")
 
 -- Write both of our files
 
-fs.writeFile("bin/move_test_binary", binary)
-fs.writeFile("bin/move_test_json.json", json)
+fs.writeFile("bin/move_test_binary", utils.binaryBlob)
+fs.writeFile("bin/move_test_json.json", utils.jsonBlob)
 
 -- Move / rename them to something else, to test we
 -- change the prefix in the names from "move" to "moved"
@@ -31,12 +20,12 @@ fs.move("bin/move_test_json.json", "bin/moved_test_json.json")
 -- wrote gets us back the original strings
 
 assert(
-	fs.readFile("bin/moved_test_binary") == binary,
+	fs.readFile("bin/moved_test_binary") == utils.binaryBlob,
 	"Binary file round-trip resulted in different strings"
 )
 
 assert(
-	fs.readFile("bin/moved_test_json.json") == json,
+	fs.readFile("bin/moved_test_json.json") == utils.jsonBlob,
 	"JSON file round-trip resulted in different strings"
 )
 
