@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed publishing of Lune to crates.io by migrating away from a monorepo
 - Fixed crashes when writing a very deeply nested `Instance` to a file ([#62])
 - Fixed not being able to read & write to WebSocket objects at the same time ([#68])
 - Fixed tab character at the start of a script causing it not to parse correctly ([#72])
