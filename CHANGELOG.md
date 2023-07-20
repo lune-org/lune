@@ -12,7 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI.
+- Added `fs.copy` to recursively copy files and directories.
+
+  Example usage:
+
+  ```lua
+  local fs = require("@lune/fs")
+
+  fs.writeDir("myCoolDir")
+  fs.writeFile("myCoolDir/myAwesomeFile.json", "{}")
+
+  fs.copy("myCoolDir", "myCoolDir2")
+
+  assert(fs.isDir("myCoolDir2"))
+  assert(fs.isFile("myCoolDir2/myAwesomeFile.json"))
+  assert(fs.readFile("myCoolDir2/myAwesomeFile.json") == "{}")
+  ```
+
 - Added `fs.metadata` to get metadata about files and directories.
 
   Example usage:
@@ -29,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   print(meta.createdAt) --> 1689848548.0577152 (unix timestamp)
   print(meta.permissions) --> { readOnly: false }
   ```
+
+- Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI.
 
 ### Changed
 

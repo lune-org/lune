@@ -39,6 +39,7 @@ macro_rules! create_tests {
 
 create_tests! {
     fs_files: "fs/files",
+    fs_copy: "fs/copy",
     fs_dirs: "fs/dirs",
     fs_metadata: "fs/metadata",
     fs_move: "fs/move",

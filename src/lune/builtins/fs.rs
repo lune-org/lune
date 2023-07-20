@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use tokio::fs;
 
 use crate::lune::lua::{
-    fs::{FsMetadata, FsWriteOptions},
+    fs::{copy, FsMetadata, FsWriteOptions},
     table::TableBuilder,
 };
 
@@ -21,6 +21,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("isFile", fs_is_file)?
         .with_async_function("isDir", fs_is_dir)?
         .with_async_function("move", fs_move)?
+        .with_async_function("copy", fs_copy)?
         .build_readonly()
 }
 
@@ -117,7 +118,7 @@ async fn fs_move(
     let path_to = PathBuf::from(to);
     if !options.overwrite && path_to.exists() {
         return Err(LuaError::RuntimeError(format!(
-            "A file or directory alreadys exists at the path '{}'",
+            "A file or directory already exists at the path '{}'",
             path_to.display()
         )));
     }
@@ -125,4 +126,11 @@ async fn fs_move(
         .await
         .map_err(LuaError::external)?;
     Ok(())
+}
+
+async fn fs_copy(
+    _: &'static Lua,
+    (from, to, options): (String, String, FsWriteOptions),
+) -> LuaResult<()> {
+    copy(from, to, options).await
 }

@@ -1,5 +1,6 @@
 use mlua::prelude::*;
 
+#[derive(Debug, Clone, Copy)]
 pub struct FsWriteOptions {
     pub(crate) overwrite: bool,
 }
