@@ -12,7 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI
+- Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI.
+- Added `fs.metadata` to get metadata about files and directories.
+
+  Example usage:
+
+  ```lua
+  local fs = require("@lune/fs")
+
+  fs.writeFile("myAwesomeFile.json", "{}")
+
+  local meta = fs.metadata("myAwesomeFile.json")
+
+  print(meta.exists) --> true
+  print(meta.kind) --> "file"
+  print(meta.createdAt) --> 1689848548.0577152 (unix timestamp)
+  print(meta.permissions) --> { readOnly: false }
+  ```
 
 ### Changed
 
@@ -20,10 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed publishing of Lune to crates.io by migrating away from a monorepo
-- Fixed crashes when writing a very deeply nested `Instance` to a file ([#62])
-- Fixed not being able to read & write to WebSocket objects at the same time ([#68])
-- Fixed tab character at the start of a script causing it not to parse correctly ([#72])
+- Fixed publishing of Lune to crates.io by migrating away from a monorepo.
+- Fixed crashes when writing a very deeply nested `Instance` to a file. ([#62])
+- Fixed not being able to read & write to WebSocket objects at the same time. ([#68])
+- Fixed tab character at the start of a script causing it not to parse correctly. ([#72])
 
 [#62]: https://github.com/filiptibell/lune/pull/62
 [#68]: https://github.com/filiptibell/lune/pull/66
@@ -56,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The `lune --setup` command is now much more user-friendly
+- The `lune --setup` command is now much more user-friendly.
 - Update to Luau version `0.581`
 
 ## `0.7.1` - June 17th, 2023

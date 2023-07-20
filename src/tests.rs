@@ -40,6 +40,7 @@ macro_rules! create_tests {
 create_tests! {
     fs_files: "fs/files",
     fs_dirs: "fs/dirs",
+    fs_metadata: "fs/metadata",
     fs_move: "fs/move",
 
     net_request_codes: "net/request/codes",

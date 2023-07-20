@@ -1,9 +1,13 @@
+use std::io::ErrorKind as IoErrorKind;
 use std::path::{PathBuf, MAIN_SEPARATOR};
 
 use mlua::prelude::*;
 use tokio::fs;
 
-use crate::lune::lua::{fs::FsWriteOptions, table::TableBuilder};
+use crate::lune::lua::{
+    fs::{FsMetadata, FsWriteOptions},
+    table::TableBuilder,
+};
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
@@ -13,6 +17,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("writeDir", fs_write_dir)?
         .with_async_function("removeFile", fs_remove_file)?
         .with_async_function("removeDir", fs_remove_dir)?
+        .with_async_function("metadata", fs_metadata)?
         .with_async_function("isFile", fs_is_file)?
         .with_async_function("isDir", fs_is_dir)?
         .with_async_function("move", fs_move)?
@@ -74,27 +79,27 @@ async fn fs_remove_dir(_: &'static Lua, path: String) -> LuaResult<()> {
     fs::remove_dir_all(&path).await.map_err(LuaError::external)
 }
 
+async fn fs_metadata(_: &'static Lua, path: String) -> LuaResult<FsMetadata> {
+    match fs::metadata(path).await {
+        Err(e) if e.kind() == IoErrorKind::NotFound => Ok(FsMetadata::not_found()),
+        Ok(meta) => Ok(FsMetadata::from(meta)),
+        Err(e) => Err(e.into()),
+    }
+}
+
 async fn fs_is_file(_: &'static Lua, path: String) -> LuaResult<bool> {
-    let path = PathBuf::from(path);
-    if path.exists() {
-        Ok(fs::metadata(path)
-            .await
-            .map_err(LuaError::external)?
-            .is_file())
-    } else {
-        Ok(false)
+    match fs::metadata(path).await {
+        Err(e) if e.kind() == IoErrorKind::NotFound => Ok(false),
+        Ok(meta) => Ok(meta.is_file()),
+        Err(e) => Err(e.into()),
     }
 }
 
 async fn fs_is_dir(_: &'static Lua, path: String) -> LuaResult<bool> {
-    let path = PathBuf::from(path);
-    if path.exists() {
-        Ok(fs::metadata(path)
-            .await
-            .map_err(LuaError::external)?
-            .is_dir())
-    } else {
-        Ok(false)
+    match fs::metadata(path).await {
+        Err(e) if e.kind() == IoErrorKind::NotFound => Ok(false),
+        Ok(meta) => Ok(meta.is_dir()),
+        Err(e) => Err(e.into()),
     }
 }
 

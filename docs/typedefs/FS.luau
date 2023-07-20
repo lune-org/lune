@@ -1,3 +1,55 @@
+export type MetadataKind = "file" | "dir" | "symlink"
+
+--[=[
+	@type MetadataPermissions
+	@within FS
+
+	Permissions for the given file or directory.
+
+	This is a dictionary that will contain the following values:
+
+	* `readOnly` - If the target path is read-only or not
+]=]
+export type MetadataPermissions = {
+	readOnly: boolean,
+}
+
+-- FIXME: We lose doc comments here because of the union type
+
+--[=[
+	@type Metadata
+	@within FS
+
+	Metadata for the given file or directory.
+
+	This is a dictionary that will contain the following values:
+
+	* `kind` - If the target path is a `file`, `dir` or `symlink`
+	* `exists` - If the target path exists
+	* `createdAt` - The timestamp at which the file or directory was created
+	* `modifiedAt` - The timestamp at which the file or directory was last modified
+	* `accessedAt` - The timestamp at which the file or directory was last accessed
+	* `permissions` - Current permissions for the file or directory
+
+	Note that timestamps are relative to the unix epoch, and
+	may not be accurate if the system clock is not accurate.
+]=]
+export type Metadata = {
+	kind: MetadataKind,
+	exists: true,
+	createdAt: number,
+	modifiedAt: number,
+	accessedAt: number,
+	permissions: MetadataPermissions,
+} | {
+	kind: nil,
+	exists: false,
+	createdAt: nil,
+	modifiedAt: nil,
+	accessedAt: nil,
+	permissions: nil,
+}
+
 --[=[
 	@type WriteOptions
 	@within FS
@@ -130,6 +182,23 @@ return {
 		@param path The directory to remove
 	]=]
 	removeDir = function(path: string) end,
+	--[=[
+		@within FS
+		@must_use
+
+		Gets metadata for the given path.
+
+		An error will be thrown in the following situations:
+
+		* The current process lacks permissions to read at `path`.
+		* Some other I/O error occurred.
+
+		@param path The path to get metadata for
+		@return Metadata for the path
+	]=]
+	metadata = function(path: string): Metadata
+		return nil :: any
+	end,
 	--[=[
 		@within FS
 		@must_use
