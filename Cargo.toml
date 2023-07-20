@@ -1,10 +1,5 @@
-[workspace]
-members = ["packages/cli", "packages/lib", "packages/lib-roblox"]
-default-members = ["packages/cli"]
-
-# Package config values shared across all packages,
-# such as version, license, and other metadata
-[workspace.package]
+[package]
+name = "lune"
 version = "0.7.4"
 edition = "2021"
 license = "MPL-2.0"
@@ -14,26 +9,35 @@ readme = "README.md"
 keywords = ["cli", "lua", "luau", "scripts"]
 categories = ["command-line-interface"]
 
-# Shared dependencies that are used across 2 or more packages
-# These are declared here to ensure consistent versioning
-[workspace.dependencies]
-console = "0.15"
-directories = "5.0"
-futures-util = "0.3"
-once_cell = "1.17"
-thiserror = "1.0"
+[[bin]]
+name = "lune"
+path = "src/main.rs"
 
-mlua = { version = "0.9.0-beta.3", features = ["luau", "serialize"] }
-tokio = { version = "1.24", features = ["full"] }
-reqwest = { version = "0.11", default-features = false, features = [
-    "rustls-tls",
-] }
+[lib]
+name = "lune"
+path = "src/lib.rs"
 
-# Serde dependencies, supporting user-facing formats: json, yaml, toml
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
-serde_yaml = "0.9"
-toml = { version = "0.7", features = ["preserve_order"] }
+[features]
+default = ["cli", "roblox"]
+cli = [
+    "dep:anyhow",
+    "dep:env_logger",
+    "dep:itertools",
+    "dep:clap",
+    "dep:full_moon",
+    "dep:include_dir",
+    "dep:regex",
+]
+roblox = [
+    "dep:glam",
+    "dep:rand",
+    "dep:rbx_cookie",
+    "dep:rbx_binary",
+    "dep:rbx_dom_weak",
+    "dep:rbx_reflection",
+    "dep:rbx_reflection_database",
+    "dep:rbx_xml",
+]
 
 # Profile for building the release binary, with the following options set:
 #
@@ -49,3 +53,80 @@ toml = { version = "0.7", features = ["preserve_order"] }
 opt-level = "z"
 strip = true
 lto = true
+
+# All of the dependencies for Lune.
+#
+# Dependencies are categorized as following:
+#
+# 1. General dependencies with no specific features set
+# 2. Large / core dependencies that have many different crates and / or features set
+# 3. Dependencies for specific features of Lune, eg. the CLI or massive Roblox builtin library
+#
+[dependencies]
+console = "0.15"
+directories = "5.0"
+futures-util = "0.3"
+once_cell = "1.17"
+thiserror = "1.0"
+async-trait = "0.1"
+dialoguer = "0.10"
+dunce = "1.0"
+lz4_flex = "0.10"
+pin-project = "1.0"
+os_str_bytes = "6.4"
+urlencoding = "2.1.2"
+
+### RUNTIME
+
+mlua = { version = "0.9.0-beta.3", features = ["luau", "serialize"] }
+tokio = { version = "1.24", features = ["full"] }
+
+### SERDE
+
+async-compression = { version = "0.4", features = [
+    "tokio",
+    "brotli",
+    "deflate",
+    "gzip",
+    "zlib",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+serde_yaml = "0.9"
+toml = { version = "0.7", features = ["preserve_order"] }
+
+### NET
+
+hyper = { version = "0.14", features = ["full"] }
+hyper-tungstenite = { version = "0.10" }
+reqwest = { version = "0.11", default-features = false, features = [
+    "rustls-tls",
+] }
+tokio-tungstenite = { version = "0.19", features = ["rustls-tls-webpki-roots"] }
+
+### CLI
+
+anyhow = { optional = true, version = "1.0" }
+env_logger = { optional = true, version = "0.10" }
+itertools = { optional = true, version = "0.10" }
+
+clap = { optional = true, version = "4.1", features = ["derive"] }
+full_moon = { optional = true, version = "0.18", features = ["roblox"] }
+include_dir = { optional = true, version = "0.7.3", features = ["glob"] }
+regex = { optional = true, version = "1.7", default-features = false, features = [
+    "std",
+    "unicode-perl",
+] }
+
+### ROBLOX
+
+glam = { optional = true, version = "0.24" }
+rand = { optional = true, version = "0.8" }
+
+rbx_cookie = { optional = true, version = "0.1.2" }
+
+rbx_binary = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_dom_weak = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_reflection = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_reflection_database = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
+rbx_xml = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }

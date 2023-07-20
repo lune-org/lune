@@ -1145,45 +1145,31 @@ dependencies = [
  "anyhow",
  "async-compression",
  "async-trait",
+ "clap 4.3.11",
  "console",
  "dialoguer",
  "directories",
  "dunce",
+ "env_logger 0.10.0",
+ "full_moon",
  "futures-util",
+ "glam",
  "hyper",
  "hyper-tungstenite",
- "lune-roblox",
+ "include_dir",
+ "itertools",
  "lz4_flex",
  "mlua",
  "once_cell",
  "os_str_bytes",
  "pin-project",
+ "rand",
+ "rbx_binary",
  "rbx_cookie",
- "reqwest",
- "serde",
- "serde_json",
- "serde_yaml",
- "tokio",
- "tokio-tungstenite",
- "toml",
- "urlencoding",
-]
-
-[[package]]
-name = "lune-cli"
-version = "0.7.4"
-dependencies = [
- "anyhow",
- "clap 4.3.11",
- "console",
- "directories",
- "env_logger 0.10.0",
- "full_moon",
- "futures-util",
- "include_dir",
- "itertools",
- "lune",
- "once_cell",
+ "rbx_dom_weak",
+ "rbx_reflection",
+ "rbx_reflection_database",
+ "rbx_xml",
  "regex",
  "reqwest",
  "serde",
@@ -1191,23 +1177,9 @@ dependencies = [
  "serde_yaml",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "lune-roblox"
-version = "0.7.4"
-dependencies = [
- "anyhow",
- "glam",
- "mlua",
- "once_cell",
- "rand",
- "rbx_binary",
- "rbx_dom_weak",
- "rbx_reflection",
- "rbx_reflection_database",
- "rbx_xml",
- "thiserror",
+ "tokio-tungstenite",
+ "toml",
+ "urlencoding",
 ]
 
 [[package]]

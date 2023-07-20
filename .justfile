@@ -8,7 +8,7 @@ run-file FILE_NAME:
 
 # Run tests for the Lune library
 test:
-	cargo test --package lune -- --test-threads 1
+	cargo test --lib -- --test-threads 1
 
 # Generate gitbook directory
 generate-gitbook:
