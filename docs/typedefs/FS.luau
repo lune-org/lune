@@ -253,4 +253,23 @@ return {
 		@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
 	]=]
 	move = function(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end,
+	--[=[
+		@within FS
+
+		Copies a file or directory recursively to a new path.
+
+		Throws an error if a file or directory already exists at the target path.
+		This can be bypassed by passing `true` as the third argument, or a dictionary of options.
+		Refer to the documentation for `WriteOptions` for specific option keys and their values.
+
+		An error will be thrown in the following situations:
+
+		* The current process lacks permissions to read at `from` or write at `to`.
+		* Some other I/O error occurred.
+
+		@param from The path to copy from
+		@param to The path to copy to
+		@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
+	]=]
+	copy = function(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end,
 }
