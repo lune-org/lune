@@ -161,10 +161,15 @@ pub fn pretty_format_value(
                 }
             }
         }
-        LuaValue::Vector(x, y, z) => write!(
+        LuaValue::Vector(v) => write!(
             buffer,
             "{}",
-            COLOR_PURPLE.apply_to(format!("<vector({x}, {y}, {z})>"))
+            COLOR_PURPLE.apply_to(format!(
+                "<vector({x}, {y}, {z})>",
+                x = v.x(),
+                y = v.y(),
+                z = v.z()
+            ))
         )?,
         LuaValue::Thread(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<thread>"))?,
         LuaValue::Function(_) => write!(buffer, "{}", COLOR_PURPLE.apply_to("<function>"))?,

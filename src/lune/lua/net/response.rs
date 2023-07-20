@@ -92,7 +92,7 @@ impl<'lua> IntoLua<'lua> for NetServeResponse {
             });
         }
         let body = self.body.map(|b| lua.create_string(b)).transpose()?;
-        let headers = lua.create_table_with_capacity(0, self.headers.len() as i32)?;
+        let headers = lua.create_table_with_capacity(0, self.headers.len())?;
         for (key, value) in self.headers {
             headers.set(key, lua.create_string(&value)?)?;
         }

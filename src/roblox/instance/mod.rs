@@ -1060,7 +1060,7 @@ impl LuaUserData for Instance {
         methods.add_method("GetAttributes", |lua, this, ()| {
             this.ensure_not_destroyed()?;
             let attributes = this.get_attributes();
-            let tab = lua.create_table_with_capacity(0, attributes.len() as i32)?;
+            let tab = lua.create_table_with_capacity(0, attributes.len())?;
             for (key, value) in attributes.into_iter() {
                 tab.set(key, LuaValue::dom_value_to_lua(lua, &value)?)?;
             }

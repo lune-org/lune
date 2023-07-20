@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI
 
+### Changed
+
+- Update to Luau version `0.583`
+
 ### Fixed
 
 - Fixed publishing of Lune to crates.io by migrating away from a monorepo
