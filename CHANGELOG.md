@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI
+
 ### Fixed
 
 - Fixed crashes when writing a very deeply nested `Instance` to a file ([#62])

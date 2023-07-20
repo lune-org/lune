@@ -12,7 +12,7 @@ use tokio::{
 use crate::{
     setup::run_setup,
     utils::{
-        files::{discover_script_file_path_including_lune_dirs, strip_shebang},
+        files::{discover_script_path_including_lune_dirs, strip_shebang},
         listing::{find_lune_scripts, sort_lune_scripts, write_lune_scripts_list},
     },
 };
@@ -163,7 +163,7 @@ impl Cli {
                 .context("Failed to read script contents from stdin")?;
             ("stdin".to_string(), stdin_contents)
         } else {
-            let file_path = discover_script_file_path_including_lune_dirs(&script_path)?;
+            let file_path = discover_script_path_including_lune_dirs(&script_path)?;
             let file_contents = read_to_vec(&file_path).await?;
             // NOTE: We skip the extension here to remove it from stack traces
             let file_display_name = file_path.with_extension("").display().to_string();

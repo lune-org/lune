@@ -35,7 +35,7 @@ static ERR_MESSAGE_HELP_NOTE: Lazy<String> = Lazy::new(|| {
     1. If we got a file that definitely exists, make sure it is either
         - using an absolute path
         - has the lua or luau extension
-    2. If we got a directory, let the user know
+    2. If we got a directory, check if it has an `init` file to use, and if it doesn't, let the user know
     3. If we got an absolute path, don't check any extensions, just let the user know it didn't exist
     4. If we got a relative path with no extension, also look for a file with a lua or luau extension
     5. No other options left, the file simply did not exist
@@ -44,10 +44,11 @@ static ERR_MESSAGE_HELP_NOTE: Lazy<String> = Lazy::new(|| {
     path, and that they then have control over script discovery behavior, whereas if they pass in
     a relative path we will instead try to be as permissive as possible for user-friendliness
 */
-pub fn discover_script_file_path(path: &str, in_home_dir: bool) -> Result<PathBuf> {
+pub fn discover_script_path(path: impl AsRef<str>, in_home_dir: bool) -> Result<PathBuf> {
     // NOTE: We don't actually support any platforms without home directories,
     // but just in case the user has some strange configuration and it cannot
     // be found we should at least throw a nice error instead of panicking
+    let path = path.as_ref();
     let file_path = if in_home_dir {
         match UserDirs::new() {
             Some(dirs) => dirs.home_dir().join(path),
@@ -89,10 +90,16 @@ pub fn discover_script_file_path(path: &str, in_home_dir: bool) -> Result<PathBu
             ))
         }
     } else if is_dir {
-        Err(anyhow!(
-            "No file was found at {}, found a directory",
-            style(file_path.display()).yellow()
-        ))
+        match (
+            discover_script_path(format!("{path}/init.luau"), in_home_dir),
+            discover_script_path(format!("{path}/init.lua"), in_home_dir),
+        ) {
+            (Ok(path), _) | (_, Ok(path)) => Ok(path),
+            _ => Err(anyhow!(
+                "No file was found at {}, found a directory without an init file",
+                style(file_path.display()).yellow()
+            )),
+        }
     } else if is_abs && !in_home_dir {
         Err(anyhow!(
             "No file was found at {}",
@@ -128,8 +135,8 @@ pub fn discover_script_file_path(path: &str, in_home_dir: bool) -> Result<PathBu
 
     Behavior is otherwise exactly the same as for `discover_script_file_path`.
 */
-pub fn discover_script_file_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
-    match discover_script_file_path(path, false) {
+pub fn discover_script_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
+    match discover_script_path(path, false) {
         Ok(path) => Ok(path),
         Err(e) => {
             // If we got any absolute path it means the user has also
@@ -140,16 +147,10 @@ pub fn discover_script_file_path_including_lune_dirs(path: &str) -> Result<PathB
             }
             // Otherwise we take a look in relative lune and .lune
             // directories + the home directory for the current user
-            let res = discover_script_file_path(&format!("lune{MAIN_SEPARATOR}{path}"), false)
-                .or_else(|_| {
-                    discover_script_file_path(&format!(".lune{MAIN_SEPARATOR}{path}"), false)
-                })
-                .or_else(|_| {
-                    discover_script_file_path(&format!("lune{MAIN_SEPARATOR}{path}"), true)
-                })
-                .or_else(|_| {
-                    discover_script_file_path(&format!(".lune{MAIN_SEPARATOR}{path}"), true)
-                });
+            let res = discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), false)
+                .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), false))
+                .or_else(|_| discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), true))
+                .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), true));
             match res {
                 // NOTE: The first error message is generally more
                 // descriptive than the ones for the lune subfolders
