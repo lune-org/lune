@@ -158,4 +158,9 @@ create_tests! {
     roblox_instance_methods_is_descendant_of: "roblox/instance/methods/IsDescendantOf",
 
     roblox_misc_typeof: "roblox/misc/typeof",
+
+    roblox_reflection_class: "roblox/reflection/class",
+    roblox_reflection_database: "roblox/reflection/database",
+    roblox_reflection_enums: "roblox/reflection/enums",
+    roblox_reflection_property: "roblox/reflection/property",
 }

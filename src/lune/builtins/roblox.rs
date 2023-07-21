@@ -1,13 +1,18 @@
 use mlua::prelude::*;
+use once_cell::sync::OnceCell;
 
 use crate::roblox::{
     self,
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
     instance::Instance,
+    reflection::Database as ReflectionDatabase,
 };
+
 use tokio::task;
 
 use crate::lune::lua::table::TableBuilder;
+
+static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     let mut roblox_constants = Vec::new();
@@ -21,7 +26,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("deserializeModel", deserialize_model)?
         .with_async_function("serializePlace", serialize_place)?
         .with_async_function("serializeModel", serialize_model)?
-        .with_async_function("getAuthCookie", get_auth_cookie)?
+        .with_function("getAuthCookie", get_auth_cookie)?
+        .with_function("getReflectionDatabase", get_reflection_database)?
         .build_readonly()
 }
 
@@ -85,14 +91,14 @@ async fn serialize_model<'lua>(
     lua.create_string(bytes)
 }
 
-async fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>> {
-    task::spawn_blocking(move || {
-        if matches!(raw, Some(true)) {
-            Ok(rbx_cookie::get_value())
-        } else {
-            Ok(rbx_cookie::get())
-        }
-    })
-    .await
-    .map_err(LuaError::external)?
+fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>> {
+    if matches!(raw, Some(true)) {
+        Ok(rbx_cookie::get_value())
+    } else {
+        Ok(rbx_cookie::get())
+    }
+}
+
+fn get_reflection_database(_: &Lua, _: ()) -> LuaResult<ReflectionDatabase> {
+    Ok(*REFLECTION_DATABASE.get_or_init(ReflectionDatabase::new))
 }

@@ -5,6 +5,7 @@ use crate::roblox::instance::Instance;
 pub mod datatypes;
 pub mod document;
 pub mod instance;
+pub mod reflection;
 
 pub(crate) mod shared;
 
