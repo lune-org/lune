@@ -46,6 +46,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   print(meta.permissions) --> { readOnly: false }
   ```
 
+- Added `roblox.getReflectionDatabase` to access the builtin database containing information about classes and enums.
+
+  Example usage:
+
+  ```lua
+  local roblox = require("@lune/roblox")
+
+  local db = roblox.getReflectionDatabase()
+
+  print("There are", #db:GetClassNames(), "classes in the reflection database")
+
+  print("All base instance properties:")
+
+  local class = db:GetClass("Instance")
+  for name, prop in class.Properties do
+  	print(string.format(
+  		"- %s with datatype %s and default value %s",
+  		prop.Name,
+  		prop.Datatype,
+  		tostring(class.DefaultProperties[prop.Name])
+  	))
+  end
+  ```
+
 - Added support for running directories with an `init.luau` or `init.lua` file in them in the CLI.
 
 ### Changed
