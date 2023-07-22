@@ -2,7 +2,6 @@ local TEMP_DIR_PATH = "bin/"
 local TEMP_ROOT_PATH = TEMP_DIR_PATH .. "fs_files_test"
 
 local fs = require("@lune/fs")
-local net = require("@lune/net")
 local utils = require("./utils")
 
 -- Make sure our bin dir exists

@@ -1,5 +1,6 @@
 local net = require("@lune/net")
 local process = require("@lune/process")
+local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
 -- We're going to use Discord's WebSocket gateway server
@@ -15,8 +16,7 @@ end)
 
 local delayedThread = task.delay(5, function()
 	task.defer(process.exit, 1)
-	error("`socket.send` halted, failed to write to socket")
-
+	stdio.ewrite("`socket.send` halted, failed to write to socket")
 	process.exit(1)
 end)
 
