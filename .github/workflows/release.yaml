@@ -24,7 +24,7 @@ jobs:
         id: get_version
         with:
           file: Cargo.toml
-          field: workspace.package.version
+          field: package.version
 
   build:
     needs: ["init"]
