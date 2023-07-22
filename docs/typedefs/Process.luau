@@ -129,7 +129,7 @@ process.cwd = (nil :: any) :: string
 
 --[=[
 	@within Process
-	@prop { [string]: string? } env
+	@prop env { [string]: string? }
 	@tag read_write
 
 	Current environment variables for this process.
