@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Lune now has a new documentation site! </br>
+  This addresses new APIs from version `0.7.0` not being available on the docs site, brings much improved searching functionality, and will help us keep documentation more up-to-date going forward with a more automated process. You can check out the new site at [lune-org.github.io](https://lune-org.github.io/docs).
+
 - Added `fs.copy` to recursively copy files and directories.
 
   Example usage:
