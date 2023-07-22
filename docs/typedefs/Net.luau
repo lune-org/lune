@@ -196,98 +196,106 @@ export type WebSocket = {
 	end)
 	```
 ]=]
-return {
-	--[=[
-		@within Net
+local net = {}
 
-		Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.
+--[=[
+	@within Net
 
-		Only throws an error if a miscellaneous network or I/O error occurs, never for unsuccessful status codes.
+	Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.
 
-		@param config The URL or request config to use
-		@return A dictionary representing the response for the request
-	]=]
-	request = function(config: string | FetchParams): FetchResponse
-		return nil :: any
-	end,
-	--[=[
-		@within Net
-		@tag must_use
+	Only throws an error if a miscellaneous network or I/O error occurs, never for unsuccessful status codes.
 
-		Connects to a web socket at the given URL.
+	@param config The URL or request config to use
+	@return A dictionary representing the response for the request
+]=]
+function net.request(config: string | FetchParams): FetchResponse
+	return nil :: any
+end
 
-		Throws an error if the server at the given URL does not support
-		web sockets, or if a miscellaneous network or I/O error occurs.
+--[=[
+	@within Net
+	@tag must_use
 
-		@param url The URL to connect to
-		@return A web socket handle
-	]=]
-	socket = function(url: string): WebSocket
-		return nil :: any
-	end,
-	--[=[
-		@within Net
+	Connects to a web socket at the given URL.
 
-		Creates an HTTP server that listens on the given `port`.
+	Throws an error if the server at the given URL does not support
+	web sockets, or if a miscellaneous network or I/O error occurs.
 
-		This will ***not*** block and will keep listening for requests on the given `port`
-		until the `stop` function on the returned `ServeHandle` has been called.
+	@param url The URL to connect to
+	@return A web socket handle
+]=]
+function net.socket(url: string): WebSocket
+	return nil :: any
+end
 
-		@param port The port to use for the server
-		@param handlerOrConfig The handler function or config to use for the server
-	]=]
-	serve = function(port: number, handlerOrConfig: ServeHttpHandler | ServeConfig): ServeHandle
-		return nil :: any
-	end,
-	--[=[
-		@within Net
-		@tag must_use
+--[=[
+	@within Net
 
-		Encodes the given value as JSON.
+	Creates an HTTP server that listens on the given `port`.
 
-		@param value The value to encode as JSON
-		@param pretty If the encoded JSON string should include newlines and spaces. Defaults to false
-		@return The encoded JSON string
-	]=]
-	jsonEncode = function(value: any, pretty: boolean?): string
-		return nil :: any
-	end,
-	--[=[
-		@within Net
-		@tag must_use
+	This will ***not*** block and will keep listening for requests on the given `port`
+	until the `stop` function on the returned `ServeHandle` has been called.
 
-		Decodes the given JSON string into a lua value.
+	@param port The port to use for the server
+	@param handlerOrConfig The handler function or config to use for the server
+]=]
+function net.serve(port: number, handlerOrConfig: ServeHttpHandler | ServeConfig): ServeHandle
+	return nil :: any
+end
 
-		@param encoded The JSON string to decode
-		@return The decoded lua value
-	]=]
-	jsonDecode = function(encoded: string): any
-		return nil :: any
-	end,
-	--[=[
-		@within Net
-		@tag must_use
+--[=[
+	@within Net
+	@tag must_use
 
-		Encodes the given string using URL encoding.
+	Encodes the given value as JSON.
 
-		@param s The string to encode
-		@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
-		@return The encoded string
-	]=]
-	urlEncode = function(s: string, binary: boolean?): string
-		return nil :: any
-	end,
-	--[=[
-		@within Net
-		@tag must_use
+	@param value The value to encode as JSON
+	@param pretty If the encoded JSON string should include newlines and spaces. Defaults to false
+	@return The encoded JSON string
+]=]
+function net.jsonEncode(value: any, pretty: boolean?): string
+	return nil :: any
+end
 
-		Decodes the given string using URL decoding.
+--[=[
+	@within Net
+	@tag must_use
 
-		@param s The string to decode
-		@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
-		@return The decoded string
-	]=]
-	urlDecode = function(s: string, binary: boolean?): string
-		return nil :: any
-	end,
-}
+	Decodes the given JSON string into a lua value.
+
+	@param encoded The JSON string to decode
+	@return The decoded lua value
+]=]
+function net.jsonDecode(encoded: string): any
+	return nil :: any
+end
+
+--[=[
+	@within Net
+	@tag must_use
+
+	Encodes the given string using URL encoding.
+
+	@param s The string to encode
+	@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
+	@return The encoded string
+]=]
+function net.urlEncode(s: string, binary: boolean?): string
+	return nil :: any
+end
+
+--[=[
+	@within Net
+	@tag must_use
+
+	Decodes the given string using URL decoding.
+
+	@param s The string to decode
+	@param binary If the string should be treated as binary data and/or is not valid utf-8. Defaults to false
+	@return The decoded string
+]=]
+function net.urlDecode(s: string, binary: boolean?): string
+	return nil :: any
+end
+
+return net

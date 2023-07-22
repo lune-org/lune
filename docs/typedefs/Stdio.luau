@@ -60,80 +60,87 @@ end
 	stdio.ewrite("\nAnd some error text, too")
 	```
 ]=]
-return {
-	--[=[
-		@within Stdio
-		@tag must_use
+local stdio = {}
 
-		Return an ANSI string that can be used to modify the persistent output color.
+stdio.prompt = prompt
 
-		Pass `"reset"` to get a string that can reset the persistent output color.
+--[=[
+	@within Stdio
+	@tag must_use
 
-		### Example usage
+	Return an ANSI string that can be used to modify the persistent output color.
 
-		```lua
-		stdio.write(stdio.color("red"))
-		print("This text will be red")
-		stdio.write(stdio.color("reset"))
-		print("This text will be normal")
-		```
+	Pass `"reset"` to get a string that can reset the persistent output color.
 
-		@param color The color to use
-		@return A printable ANSI string
-	]=]
-	color = function(color: Color): string
-		return nil :: any
-	end,
-	--[=[
-		@within Stdio
-		@tag must_use
+	### Example usage
 
-		Return an ANSI string that can be used to modify the persistent output style.
+	```lua
+	stdio.write(stdio.color("red"))
+	print("This text will be red")
+	stdio.write(stdio.color("reset"))
+	print("This text will be normal")
+	```
 
-		Pass `"reset"` to get a string that can reset the persistent output style.
+	@param color The color to use
+	@return A printable ANSI string
+]=]
+function stdio.color(color: Color): string
+	return nil :: any
+end
 
-		### Example usage
+--[=[
+	@within Stdio
+	@tag must_use
 
-		```lua
-		stdio.write(stdio.style("bold"))
-		print("This text will be bold")
-		stdio.write(stdio.style("reset"))
-		print("This text will be normal")
-		```
+	Return an ANSI string that can be used to modify the persistent output style.
 
-		@param style The style to use
-		@return A printable ANSI string
-	]=]
-	style = function(style: Style): string
-		return nil :: any
-	end,
-	--[=[
-		@within Stdio
-		@tag must_use
+	Pass `"reset"` to get a string that can reset the persistent output style.
 
-		Formats arguments into a human-readable string with syntax highlighting for tables.
+	### Example usage
 
-		@param ... The values to format
-		@return The formatted string
-	]=]
-	format = function(...: any): string
-		return nil :: any
-	end,
-	--[=[
-		@within Stdio
+	```lua
+	stdio.write(stdio.style("bold"))
+	print("This text will be bold")
+	stdio.write(stdio.style("reset"))
+	print("This text will be normal")
+	```
 
-		Writes a string directly to stdout, without any newline.
+	@param style The style to use
+	@return A printable ANSI string
+]=]
+function stdio.style(style: Style): string
+	return nil :: any
+end
 
-		@param s The string to write to stdout
-	]=]
-	write = function(s: string) end,
-	--[=[
-		@within Stdio
+--[=[
+	@within Stdio
+	@tag must_use
 
-		Writes a string directly to stderr, without any newline.
+	Formats arguments into a human-readable string with syntax highlighting for tables.
 
-		@param s The string to write to stderr
-	]=]
-	ewrite = function(s: string) end,
-	prompt = prompt,
-}
+	@param ... The values to format
+	@return The formatted string
+]=]
+function stdio.format(...: any): string
+	return nil :: any
+end
+
+--[=[
+	@within Stdio
+
+	Writes a string directly to stdout, without any newline.
+
+	@param s The string to write to stdout
+]=]
+function stdio.write(s: string) end
+
+--[=[
+	@within Stdio
+
+	Writes a string directly to stderr, without any newline.
+
+	@param s The string to write to stderr
+]=]
+function stdio.ewrite(s: string) end
+
+return stdio

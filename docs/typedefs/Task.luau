@@ -27,69 +27,75 @@
 	print("Running after task.spawn yields")
 	```
 ]=]
-return {
-	--[=[
-		@within Task
+local task = {}
 
-		Stops a currently scheduled thread from resuming.
+--[=[
+	@within Task
 
-		@param thread The thread to cancel
-	]=]
-	cancel = function(thread: thread) end,
-	--[=[
-		@within Task
+	Stops a currently scheduled thread from resuming.
 
-		Defers a thread or function to run at the end of the current task queue.
+	@param thread The thread to cancel
+]=]
+function task.cancel(thread: thread) end
 
-		@param functionOrThread The function or thread to defer
-		@return The thread that will be deferred
-	]=]
-	defer = function<T...>(functionOrThread: thread | (T...) -> ...any, ...: T...): thread
-		return nil :: any
-	end,
-	--[=[
-		@within Task
+--[=[
+	@within Task
 
-		Delays a thread or function to run after `duration` seconds.
+	Defers a thread or function to run at the end of the current task queue.
 
-		If no `duration` is given, this will wait for the minimum amount of time possible.
+	@param functionOrThread The function or thread to defer
+	@return The thread that will be deferred
+]=]
+function task.defer<T...>(functionOrThread: thread | (T...) -> ...any, ...: T...): thread
+	return nil :: any
+end
 
-		@param functionOrThread The function or thread to delay
-		@return The thread that will be delayed
-	]=]
-	delay = function<T...>(
-		duration: number?,
-		functionOrThread: thread | (T...) -> ...any,
-		...: T...
-	): thread
-		return nil :: any
-	end,
-	--[=[
-		@within Task
+--[=[
+	@within Task
 
-		Instantly runs a thread or function.
+	Delays a thread or function to run after `duration` seconds.
 
-		If the spawned task yields, the thread that spawned the task
-		will resume, letting the spawned task run in the background.
+	If no `duration` is given, this will wait for the minimum amount of time possible.
 
-		@param functionOrThread The function or thread to spawn
-		@return The thread that was spawned
-	]=]
-	spawn = function<T...>(functionOrThread: thread | (T...) -> ...any, ...: T...): thread
-		return nil :: any
-	end,
-	--[=[
-		@within Task
+	@param functionOrThread The function or thread to delay
+	@return The thread that will be delayed
+]=]
+function task.delay<T...>(
+	duration: number?,
+	functionOrThread: thread | (T...) -> ...any,
+	...: T...
+): thread
+	return nil :: any
+end
 
-		Waits for *at least* the given amount of time.
+--[=[
+	@within Task
 
-		The minimum wait time possible when using `task.wait` is limited by the underlying OS sleep implementation.
-		For most systems this means `task.wait` is accurate down to about 5 milliseconds or less.
+	Instantly runs a thread or function.
 
-		@param duration The amount of time to wait
-		@return The exact amount of time waited
-	]=]
-	wait = function(duration: number?): number
-		return nil :: any
-	end,
-}
+	If the spawned task yields, the thread that spawned the task
+	will resume, letting the spawned task run in the background.
+
+	@param functionOrThread The function or thread to spawn
+	@return The thread that was spawned
+]=]
+function task.spawn<T...>(functionOrThread: thread | (T...) -> ...any, ...: T...): thread
+	return nil :: any
+end
+
+--[=[
+	@within Task
+
+	Waits for *at least* the given amount of time.
+
+	The minimum wait time possible when using `task.wait` is limited by the underlying OS sleep implementation.
+	For most systems this means `task.wait` is accurate down to about 5 milliseconds or less.
+
+	@param duration The amount of time to wait
+	@return The exact amount of time waited
+]=]
+function task.wait(duration: number?): number
+	return nil :: any
+end
+
+return task

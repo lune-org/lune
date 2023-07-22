@@ -213,179 +213,187 @@ export type DataModel =
 	fs.writeFile("myPlaceFile.rbxl", newPlaceFile)
 	```
 ]=]
-return {
-	--[=[
-		@within Roblox
-		@tag must_use
+local roblox = {}
 
-		Deserializes a place into a DataModel instance.
+--[=[
+	@within Roblox
+	@tag must_use
 
-		This function accepts a string of contents, *not* a file path.
-		If reading a place file from a file path is desired, `fs.readFile`
-		can be used and the resulting string may be passed to this function.
+	Deserializes a place into a DataModel instance.
 
-		### Example usage
+	This function accepts a string of contents, *not* a file path.
+	If reading a place file from a file path is desired, `fs.readFile`
+	can be used and the resulting string may be passed to this function.
 
-		```lua
-		local fs = require("@lune/fs")
-		local roblox = require("@lune/roblox")
+	### Example usage
 
-		local placeFile = fs.readFile("filePath.rbxl")
-		local game = roblox.deserializePlace(placeFile)
-		```
+	```lua
+	local fs = require("@lune/fs")
+	local roblox = require("@lune/roblox")
 
-		@param contents The contents of the place to read
-	]=]
-	deserializePlace = function(contents: string): DataModel
-		return nil :: any
-	end,
-	--[=[
-		@within Roblox
-		@tag must_use
+	local placeFile = fs.readFile("filePath.rbxl")
+	local game = roblox.deserializePlace(placeFile)
+	```
 
-		Deserializes a model into an array of instances.
+	@param contents The contents of the place to read
+]=]
+function roblox.deserializePlace(contents: string): DataModel
+	return nil :: any
+end
 
-		This function accepts a string of contents, *not* a file path.
-		If reading a model file from a file path is desired, `fs.readFile`
-		can be used and the resulting string may be passed to this function.
+--[=[
+	@within Roblox
+	@tag must_use
 
-		### Example usage
+	Deserializes a model into an array of instances.
 
-		```lua
-		local fs = require("@lune/fs")
-		local roblox = require("@lune/roblox")
+	This function accepts a string of contents, *not* a file path.
+	If reading a model file from a file path is desired, `fs.readFile`
+	can be used and the resulting string may be passed to this function.
 
-		local modelFile = fs.readFile("filePath.rbxm")
-		local instances = roblox.deserializeModel(modelFile)
-		```
+	### Example usage
 
-		@param contents The contents of the model to read
-	]=]
-	deserializeModel = function(contents: string): { Instance }
-		return nil :: any
-	end,
-	--[=[
-		@within Roblox
-		@tag must_use
+	```lua
+	local fs = require("@lune/fs")
+	local roblox = require("@lune/roblox")
 
-		Serializes a place from a DataModel instance.
+	local modelFile = fs.readFile("filePath.rbxm")
+	local instances = roblox.deserializeModel(modelFile)
+	```
 
-		This string can then be written to a file, or sent over the network.
+	@param contents The contents of the model to read
+]=]
+function roblox.deserializeModel(contents: string): { Instance }
+	return nil :: any
+end
 
-		### Example usage
+--[=[
+	@within Roblox
+	@tag must_use
 
-		```lua
-		local fs = require("@lune/fs")
-		local roblox = require("@lune/roblox")
+	Serializes a place from a DataModel instance.
 
-		local placeFile = roblox.serializePlace(game)
-		fs.writeFile("filePath.rbxl", placeFile)
-		```
+	This string can then be written to a file, or sent over the network.
 
-		@param dataModel The DataModel for the place to serialize
-		@param xml If the place should be serialized as xml or not. Defaults to `false`, meaning the place gets serialized using the binary format and not xml.
-	]=]
-	serializePlace = function(dataModel: DataModel, xml: boolean?): string
-		return nil :: any
-	end,
-	--[=[
-		@within Roblox
-		@tag must_use
+	### Example usage
 
-		Serializes one or more instances as a model.
+	```lua
+	local fs = require("@lune/fs")
+	local roblox = require("@lune/roblox")
 
-		This string can then be written to a file, or sent over the network.
+	local placeFile = roblox.serializePlace(game)
+	fs.writeFile("filePath.rbxl", placeFile)
+	```
 
-		### Example usage
+	@param dataModel The DataModel for the place to serialize
+	@param xml If the place should be serialized as xml or not. Defaults to `false`, meaning the place gets serialized using the binary format and not xml.
+]=]
+function roblox.serializePlace(dataModel: DataModel, xml: boolean?): string
+	return nil :: any
+end
 
-		```lua
-		local fs = require("@lune/fs")
-		local roblox = require("@lune/roblox")
+--[=[
+	@within Roblox
+	@tag must_use
 
-		local modelFile = roblox.serializeModel({ instance1, instance2, ... })
-		fs.writeFile("filePath.rbxm", modelFile)
-		```
+	Serializes one or more instances as a model.
 
-		@param instances The array of instances to serialize
-		@param xml If the model should be serialized as xml or not. Defaults to `false`, meaning the model gets serialized using the binary format and not xml.
-	]=]
-	serializeModel = function(instances: { Instance }, xml: boolean?): string
-		return nil :: any
-	end,
-	--[=[
-		@within Roblox
-		@tag must_use
+	This string can then be written to a file, or sent over the network.
 
-		Gets the current auth cookie, for usage with Roblox web APIs.
+	### Example usage
 
-		Note that this auth cookie is formatted for use as a "Cookie" header,
-		and that it contains restrictions so that it may only be used for
-		official Roblox endpoints. To get the raw cookie value without any
-		additional formatting, you can pass `true` as the first and only parameter.
+	```lua
+	local fs = require("@lune/fs")
+	local roblox = require("@lune/roblox")
 
-		### Example usage
+	local modelFile = roblox.serializeModel({ instance1, instance2, ... })
+	fs.writeFile("filePath.rbxm", modelFile)
+	```
 
-		```lua
-		local roblox = require("@lune/roblox")
-		local net = require("@lune/net")
+	@param instances The array of instances to serialize
+	@param xml If the model should be serialized as xml or not. Defaults to `false`, meaning the model gets serialized using the binary format and not xml.
+]=]
+function roblox.serializeModel(instances: { Instance }, xml: boolean?): string
+	return nil :: any
+end
 
-		local cookie = roblox.getAuthCookie()
-		assert(cookie ~= nil, "Failed to get roblox auth cookie")
+--[=[
+	@within Roblox
+	@tag must_use
 
-		local myPrivatePlaceId = 1234567890
+	Gets the current auth cookie, for usage with Roblox web APIs.
 
-		local response = net.request({
-			url = "https://assetdelivery.roblox.com/v2/assetId/" .. tostring(myPrivatePlaceId),
-			headers = {
-				Cookie = cookie,
-			},
-		})
+	Note that this auth cookie is formatted for use as a "Cookie" header,
+	and that it contains restrictions so that it may only be used for
+	official Roblox endpoints. To get the raw cookie value without any
+	additional formatting, you can pass `true` as the first and only parameter.
 
-		local responseTable = net.jsonDecode(response.body)
-		local responseLocation = responseTable.locations[1].location
-		print("Download link to place: " .. responseLocation)
-		```
+	### Example usage
 
-		@param raw If the cookie should be returned as a pure value or not. Defaults to false
-	]=]
-	getAuthCookie = function(raw: boolean?): string?
-		return nil :: any
-	end,
-	--[=[
-		@within Roblox
-		@tag must_use
+	```lua
+	local roblox = require("@lune/roblox")
+	local net = require("@lune/net")
 
-		Gets the bundled reflection database.
+	local cookie = roblox.getAuthCookie()
+	assert(cookie ~= nil, "Failed to get roblox auth cookie")
 
-		This database contains information about Roblox enums, classes, and their properties.
+	local myPrivatePlaceId = 1234567890
 
-		### Example usage
+	local response = net.request({
+		url = "https://assetdelivery.roblox.com/v2/assetId/" .. tostring(myPrivatePlaceId),
+		headers = {
+			Cookie = cookie,
+		},
+	})
 
-		```lua
-		local roblox = require("@lune/roblox")
+	local responseTable = net.jsonDecode(response.body)
+	local responseLocation = responseTable.locations[1].location
+	print("Download link to place: " .. responseLocation)
+	```
 
-		local db = roblox.getReflectionDatabase()
+	@param raw If the cookie should be returned as a pure value or not. Defaults to false
+]=]
+function roblox.getAuthCookie(raw: boolean?): string?
+	return nil :: any
+end
 
-		print("There are", #db:GetClassNames(), "classes in the reflection database")
+--[=[
+	@within Roblox
+	@tag must_use
 
-		print("All base instance properties:")
+	Gets the bundled reflection database.
 
-		local class = db:GetClass("Instance")
-		for name, prop in class.Properties do
-			print(string.format(
-				"- %s with datatype %s and default value %s",
-				prop.Name,
-				prop.Datatype,
-				tostring(class.DefaultProperties[prop.Name])
-			))
-		end
-		```
-	]=]
-	getReflectionDatabase = function(): Database
-		return nil :: any
-	end,
-	-- TODO: Make typedefs for all of the datatypes as well...
-	Instance = (nil :: any) :: {
-		new: ((className: "DataModel") -> DataModel) & ((className: string) -> Instance),
-	},
+	This database contains information about Roblox enums, classes, and their properties.
+
+	### Example usage
+
+	```lua
+	local roblox = require("@lune/roblox")
+
+	local db = roblox.getReflectionDatabase()
+
+	print("There are", #db:GetClassNames(), "classes in the reflection database")
+
+	print("All base instance properties:")
+
+	local class = db:GetClass("Instance")
+	for name, prop in class.Properties do
+		print(string.format(
+			"- %s with datatype %s and default value %s",
+			prop.Name,
+			prop.Datatype,
+			tostring(class.DefaultProperties[prop.Name])
+		))
+	end
+	```
+]=]
+function roblox.getReflectionDatabase(): Database
+	return nil :: any
+end
+
+-- TODO: Make typedefs for all of the datatypes as well...
+roblox.Instance = (nil :: any) :: {
+	new: ((className: "DataModel") -> DataModel) & ((className: string) -> Instance),
 }
+
+return roblox

@@ -78,83 +78,91 @@ export type SpawnResult = {
 	end
 	```
 ]=]
-return {
-	--[=[
-		@within Process
-		@read_only
+local process = {}
 
-		The current operating system being used.
+--[=[
+	@within Process
+	@tag read_only
 
-		Possible values:
+	The current operating system being used.
 
-		* `"linux"`
-		* `"macos"`
-		* `"windows"`
-	]=]
-	os = (nil :: any) :: OS,
-	--[=[
-		@within Process
-		@read_only
+	Possible values:
 
-		The architecture of the processor currently being used.
+	* `"linux"`
+	* `"macos"`
+	* `"windows"`
+]=]
+process.os = (nil :: any) :: OS
 
-		Possible values:
+--[=[
+	@within Process
+	@tag read_only
 
-		* `"x86_64"`
-		* `"aarch64"`
-	]=]
-	arch = (nil :: any) :: Arch,
-	--[=[
-		@within Process
-		@read_only
+	The architecture of the processor currently being used.
 
-		The arguments given when running the Lune script.
-	]=]
-	args = (nil :: any) :: { string },
-	--[=[
-		@within Process
-		@read_only
+	Possible values:
 
-		The current working directory in which the Lune script is running.
-	]=]
-	cwd = (nil :: any) :: string,
-	--[=[
-		@within Process
-		@read_write
+	* `"x86_64"`
+	* `"aarch64"`
+]=]
+process.arch = (nil :: any) :: Arch
 
-		Current environment variables for this process.
+--[=[
+	@within Process
+	@tag read_only
 
-		Setting a value on this table will set the corresponding environment variable.
-	]=]
-	env = (nil :: any) :: { [string]: string? },
-	--[=[
-		@within Process
+	The arguments given when running the Lune script.
+]=]
+process.args = (nil :: any) :: { string }
 
-		Exits the currently running script as soon as possible with the given exit code.
+--[=[
+	@within Process
+	@tag read_only
 
-		Exit code 0 is treated as a successful exit, any other value is treated as an error.
+	The current working directory in which the Lune script is running.
+]=]
+process.cwd = (nil :: any) :: string
 
-		Setting the exit code using this function will override any otherwise automatic exit code.
+--[=[
+	@within Process
+	@read_write
 
-		@param code The exit code to set
-	]=]
-	exit = function(code: number?) end,
-	--[=[
-		@within Process
+	Current environment variables for this process.
 
-		Spawns a child process that will run the program `program`, and returns a dictionary that describes the final status and ouput of the child process.
+	Setting a value on this table will set the corresponding environment variable.
+]=]
+process.env = (nil :: any) :: { [string]: string? }
 
-		The second argument, `params`, can be passed as a list of string parameters to give to the program.
+--[=[
+	@within Process
 
-		The third argument, `options`, can be passed as a dictionary of options to give to the child process.
-		Refer to the documentation for `SpawnOptions` for specific option keys and their values.
+	Exits the currently running script as soon as possible with the given exit code.
 
-		@param program The program to spawn as a child process
-		@param params Additional parameters to pass to the program
-		@param options A dictionary of options for the child process
-		@return A dictionary representing the result of the child process
-	]=]
-	spawn = function(program: string, params: { string }?, options: SpawnOptions?): SpawnResult
-		return nil :: any
-	end,
-}
+	Exit code 0 is treated as a successful exit, any other value is treated as an error.
+
+	Setting the exit code using this function will override any otherwise automatic exit code.
+
+	@param code The exit code to set
+]=]
+function process.exit(code: number?) end
+
+--[=[
+	@within Process
+
+	Spawns a child process that will run the program `program`, and returns a dictionary that describes the final status and ouput of the child process.
+
+	The second argument, `params`, can be passed as a list of string parameters to give to the program.
+
+	The third argument, `options`, can be passed as a dictionary of options to give to the child process.
+	Refer to the documentation for `SpawnOptions` for specific option keys and their values.
+
+	@param program The program to spawn as a child process
+	@param params Additional parameters to pass to the program
+	@param options A dictionary of options for the child process
+	@return A dictionary representing the result of the child process
+]=]
+function process.spawn(program: string, params: { string }?, options: SpawnOptions?): SpawnResult
+	return nil :: any
+end
+
+return process

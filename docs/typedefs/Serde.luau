@@ -27,92 +27,97 @@ export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
 	fs.writeFile("myFile.yaml", serde.encode("yaml", someYaml))
 	```
 ]=]
-return {
-	--[=[
-		@within Serde
-		@tag must_use
+local serde = {}
 
-		Encodes the given value using the given format.
+--[=[
+	@within Serde
+	@tag must_use
 
-		Currently supported formats:
+	Encodes the given value using the given format.
 
-		| Name   | Learn More           |
-		|:-------|:---------------------|
-		| `json` | https://www.json.org |
-		| `yaml` | https://yaml.org     |
-		| `toml` | https://toml.io      |
+	Currently supported formats:
 
-		@param format The format to use
-		@param value The value to encode
-		@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
-		@return The encoded string
-	]=]
-	encode = function(format: EncodeDecodeFormat, value: any, pretty: boolean?): string
-		return nil :: any
-	end,
-	--[=[
-		@within Serde
-		@tag must_use
+	| Name   | Learn More           |
+	|:-------|:---------------------|
+	| `json` | https://www.json.org |
+	| `yaml` | https://yaml.org     |
+	| `toml` | https://toml.io      |
 
-		Decodes the given string using the given format into a lua value.
+	@param format The format to use
+	@param value The value to encode
+	@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
+	@return The encoded string
+]=]
+function serde.encode(format: EncodeDecodeFormat, value: any, pretty: boolean?): string
+	return nil :: any
+end
 
-		Currently supported formats:
+--[=[
+	@within Serde
+	@tag must_use
 
-		| Name   | Learn More           |
-		|:-------|:---------------------|
-		| `json` | https://www.json.org |
-		| `yaml` | https://yaml.org     |
-		| `toml` | https://toml.io      |
+	Decodes the given string using the given format into a lua value.
 
-		@param format The format to use
-		@param encoded The string to decode
-		@return The decoded lua value
-	]=]
-	decode = function(format: EncodeDecodeFormat, encoded: string): any
-		return nil :: any
-	end,
-	--[=[
-		@within Serde
-		@tag must_use
+	Currently supported formats:
 
-		Compresses the given string using the given format.
+	| Name   | Learn More           |
+	|:-------|:---------------------|
+	| `json` | https://www.json.org |
+	| `yaml` | https://yaml.org     |
+	| `toml` | https://toml.io      |
 
-		Currently supported formats:
+	@param format The format to use
+	@param encoded The string to decode
+	@return The decoded lua value
+]=]
+function serde.decode(format: EncodeDecodeFormat, encoded: string): any
+	return nil :: any
+end
 
-		| Name     | Learn More                        |
-		|:---------|:----------------------------------|
-		| `brotli` | https://github.com/google/brotli  |
-		| `gzip`   | https://www.gnu.org/software/gzip |
-		| `lz4`    | https://github.com/lz4/lz4        |
-		| `zlib`   | https://www.zlib.net              |
+--[=[
+	@within Serde
+	@tag must_use
 
-		@param format The format to use
-		@param encoded The string to compress
-		@return The compressed string
-	]=]
-	compress = function(format: CompressDecompressFormat, s: string): string
-		return nil :: any
-	end,
-	--[=[
-		@within Serde
-		@tag must_use
+	Compresses the given string using the given format.
 
-		Decompresses the given string using the given format.
+	Currently supported formats:
 
-		Currently supported formats:
+	| Name     | Learn More                        |
+	|:---------|:----------------------------------|
+	| `brotli` | https://github.com/google/brotli  |
+	| `gzip`   | https://www.gnu.org/software/gzip |
+	| `lz4`    | https://github.com/lz4/lz4        |
+	| `zlib`   | https://www.zlib.net              |
 
-		| Name     | Learn More                        |
-		|:---------|:----------------------------------|
-		| `brotli` | https://github.com/google/brotli  |
-		| `gzip`   | https://www.gnu.org/software/gzip |
-		| `lz4`    | https://github.com/lz4/lz4        |
-		| `zlib`   | https://www.zlib.net              |
+	@param format The format to use
+	@param encoded The string to compress
+	@return The compressed string
+]=]
+function serde.compress(format: CompressDecompressFormat, s: string): string
+	return nil :: any
+end
 
-		@param format The format to use
-		@param encoded The string to decompress
-		@return The decompressed string
-	]=]
-	decompress = function(format: CompressDecompressFormat, s: string): string
-		return nil :: any
-	end,
-}
+--[=[
+	@within Serde
+	@tag must_use
+
+	Decompresses the given string using the given format.
+
+	Currently supported formats:
+
+	| Name     | Learn More                        |
+	|:---------|:----------------------------------|
+	| `brotli` | https://github.com/google/brotli  |
+	| `gzip`   | https://www.gnu.org/software/gzip |
+	| `lz4`    | https://github.com/lz4/lz4        |
+	| `zlib`   | https://www.zlib.net              |
+
+	@param format The format to use
+	@param encoded The string to decompress
+	@return The decompressed string
+]=]
+function serde.decompress(format: CompressDecompressFormat, s: string): string
+	return nil :: any
+end
+
+return serde

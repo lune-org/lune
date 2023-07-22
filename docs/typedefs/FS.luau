@@ -14,7 +14,7 @@ export type MetadataPermissions = {
 	readOnly: boolean,
 }
 
--- FIXME: We lose doc comments here because of the union type
+-- FIXME: We lose doc comments here below in Metadata because of the union type
 
 --[=[
 	@interface Metadata
@@ -87,189 +87,201 @@ export type WriteOptions = {
 	end
 	```
 ]=]
-return {
-	--[=[
-		@within FS
-		@tag must_use
+local fs = {}
 
-		Reads a file at `path`.
+--[=[
+	@within FS
+	@tag must_use
 
-		An error will be thrown in the following situations:
+	Reads a file at `path`.
 
-		* `path` does not point to an existing file.
-		* The current process lacks permissions to read the file.
-		* The contents of the file cannot be read as a UTF-8 string.
-		* Some other I/O error occurred.
+	An error will be thrown in the following situations:
 
-		@param path The path to the file to read
-		@return The contents of the file
-	]=]
-	readFile = function(path: string): string
-		return nil :: any
-	end,
-	--[=[
-		@within FS
-		@tag must_use
+	* `path` does not point to an existing file.
+	* The current process lacks permissions to read the file.
+	* The contents of the file cannot be read as a UTF-8 string.
+	* Some other I/O error occurred.
 
-		Reads entries in a directory at `path`.
+	@param path The path to the file to read
+	@return The contents of the file
+]=]
+function fs.readFile(path: string): string
+	return nil :: any
+end
 
-		An error will be thrown in the following situations:
+--[=[
+	@within FS
+	@tag must_use
 
-		* `path` does not point to an existing directory.
-		* The current process lacks permissions to read the contents of the directory.
-		* Some other I/O error occurred.
+	Reads entries in a directory at `path`.
 
-		@param path The directory path to search in
-		@return A list of files & directories found
-	]=]
-	readDir = function(path: string): { string }
-		return {}
-	end,
-	--[=[
-		@within FS
+	An error will be thrown in the following situations:
 
-		Writes to a file at `path`.
+	* `path` does not point to an existing directory.
+	* The current process lacks permissions to read the contents of the directory.
+	* Some other I/O error occurred.
 
-		An error will be thrown in the following situations:
+	@param path The directory path to search in
+	@return A list of files & directories found
+]=]
+function fs.readDir(path: string): { string }
+	return {}
+end
 
-		* The file's parent directory does not exist.
-		* The current process lacks permissions to write to the file.
-		* Some other I/O error occurred.
+--[=[
+	@within FS
 
-		@param path The path of the file
-		@param contents The contents of the file
-	]=]
-	writeFile = function(path: string, contents: string) end,
-	--[=[
-		@within FS
+	Writes to a file at `path`.
 
-		Creates a directory and its parent directories if they are missing.
+	An error will be thrown in the following situations:
 
-		An error will be thrown in the following situations:
+	* The file's parent directory does not exist.
+	* The current process lacks permissions to write to the file.
+	* Some other I/O error occurred.
 
-		* `path` already points to an existing file or directory.
-		* The current process lacks permissions to create the directory or its missing parents.
-		* Some other I/O error occurred.
+	@param path The path of the file
+	@param contents The contents of the file
+]=]
+function fs.writeFile(path: string, contents: string) end
 
-		@param path The directory to create
-	]=]
-	writeDir = function(path: string) end,
-	--[=[
-		@within FS
+--[=[
+	@within FS
 
-		Removes a file.
+	Creates a directory and its parent directories if they are missing.
 
-		An error will be thrown in the following situations:
+	An error will be thrown in the following situations:
 
-		* `path` does not point to an existing file.
-		* The current process lacks permissions to remove the file.
-		* Some other I/O error occurred.
+	* `path` already points to an existing file or directory.
+	* The current process lacks permissions to create the directory or its missing parents.
+	* Some other I/O error occurred.
 
-		@param path The file to remove
-	]=]
-	removeFile = function(path: string) end,
-	--[=[
-		@within FS
+	@param path The directory to create
+]=]
+function fs.writeDir(path: string) end
 
-		Removes a directory and all of its contents.
+--[=[
+	@within FS
 
-		An error will be thrown in the following situations:
+	Removes a file.
 
-		* `path` is not an existing and empty directory.
-		* The current process lacks permissions to remove the directory.
-		* Some other I/O error occurred.
+	An error will be thrown in the following situations:
 
-		@param path The directory to remove
-	]=]
-	removeDir = function(path: string) end,
-	--[=[
-		@within FS
-		@tag must_use
+	* `path` does not point to an existing file.
+	* The current process lacks permissions to remove the file.
+	* Some other I/O error occurred.
 
-		Gets metadata for the given path.
+	@param path The file to remove
+]=]
+function fs.removeFile(path: string) end
 
-		An error will be thrown in the following situations:
+--[=[
+	@within FS
 
-		* The current process lacks permissions to read at `path`.
-		* Some other I/O error occurred.
+	Removes a directory and all of its contents.
 
-		@param path The path to get metadata for
-		@return Metadata for the path
-	]=]
-	metadata = function(path: string): Metadata
-		return nil :: any
-	end,
-	--[=[
-		@within FS
-		@tag must_use
+	An error will be thrown in the following situations:
 
-		Checks if a given path is a file.
+	* `path` is not an existing and empty directory.
+	* The current process lacks permissions to remove the directory.
+	* Some other I/O error occurred.
 
-		An error will be thrown in the following situations:
+	@param path The directory to remove
+]=]
+function fs.removeDir(path: string) end
 
-		* The current process lacks permissions to read at `path`.
-		* Some other I/O error occurred.
+--[=[
+	@within FS
+	@tag must_use
 
-		@param path The file path to check
-		@return If the path is a file or not
-	]=]
-	isFile = function(path: string): boolean
-		return nil :: any
-	end,
-	--[=[
-		@within FS
-		@tag must_use
+	Gets metadata for the given path.
 
-		Checks if a given path is a directory.
+	An error will be thrown in the following situations:
 
-		An error will be thrown in the following situations:
+	* The current process lacks permissions to read at `path`.
+	* Some other I/O error occurred.
 
-		* The current process lacks permissions to read at `path`.
-		* Some other I/O error occurred.
+	@param path The path to get metadata for
+	@return Metadata for the path
+]=]
+function fs.metadata(path: string): Metadata
+	return nil :: any
+end
 
-		@param path The directory path to check
-		@return If the path is a directory or not
-	]=]
-	isDir = function(path: string): boolean
-		return nil :: any
-	end,
-	--[=[
-		@within FS
+--[=[
+	@within FS
+	@tag must_use
 
-		Moves a file or directory to a new path.
+	Checks if a given path is a file.
 
-		Throws an error if a file or directory already exists at the target path.
-		This can be bypassed by passing `true` as the third argument, or a dictionary of options.
-		Refer to the documentation for `WriteOptions` for specific option keys and their values.
+	An error will be thrown in the following situations:
 
-		An error will be thrown in the following situations:
+	* The current process lacks permissions to read at `path`.
+	* Some other I/O error occurred.
 
-		* The current process lacks permissions to read at `from` or write at `to`.
-		* The new path exists on a different mount point.
-		* Some other I/O error occurred.
+	@param path The file path to check
+	@return If the path is a file or not
+]=]
+function fs.isFile(path: string): boolean
+	return nil :: any
+end
 
-		@param from The path to move from
-		@param to The path to move to
-		@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
-	]=]
-	move = function(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end,
-	--[=[
-		@within FS
+--[=[
+	@within FS
+	@tag must_use
 
-		Copies a file or directory recursively to a new path.
+	Checks if a given path is a directory.
 
-		Throws an error if a file or directory already exists at the target path.
-		This can be bypassed by passing `true` as the third argument, or a dictionary of options.
-		Refer to the documentation for `WriteOptions` for specific option keys and their values.
+	An error will be thrown in the following situations:
 
-		An error will be thrown in the following situations:
+	* The current process lacks permissions to read at `path`.
+	* Some other I/O error occurred.
 
-		* The current process lacks permissions to read at `from` or write at `to`.
-		* Some other I/O error occurred.
+	@param path The directory path to check
+	@return If the path is a directory or not
+]=]
+function fs.isDir(path: string): boolean
+	return nil :: any
+end
 
-		@param from The path to copy from
-		@param to The path to copy to
-		@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
-	]=]
-	copy = function(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end,
-}
+--[=[
+	@within FS
+
+	Moves a file or directory to a new path.
+
+	Throws an error if a file or directory already exists at the target path.
+	This can be bypassed by passing `true` as the third argument, or a dictionary of options.
+	Refer to the documentation for `WriteOptions` for specific option keys and their values.
+
+	An error will be thrown in the following situations:
+
+	* The current process lacks permissions to read at `from` or write at `to`.
+	* The new path exists on a different mount point.
+	* Some other I/O error occurred.
+
+	@param from The path to move from
+	@param to The path to move to
+	@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
+]=]
+function fs.move(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end
+
+--[=[
+	@within FS
+
+	Copies a file or directory recursively to a new path.
+
+	Throws an error if a file or directory already exists at the target path.
+	This can be bypassed by passing `true` as the third argument, or a dictionary of options.
+	Refer to the documentation for `WriteOptions` for specific option keys and their values.
+
+	An error will be thrown in the following situations:
+
+	* The current process lacks permissions to read at `from` or write at `to`.
+	* Some other I/O error occurred.
+
+	@param from The path to copy from
+	@param to The path to copy to
+	@param overwriteOrOptions Options for the target path, such as if should be overwritten if it already exists
+]=]
+function fs.copy(from: string, to: string, overwriteOrOptions: (boolean | WriteOptions)?) end
+
+return fs
