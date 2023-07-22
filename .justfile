@@ -9,22 +9,3 @@ run-file FILE_NAME:
 # Run tests for the Lune library
 test:
 	cargo test --lib -- --test-threads 1
-
-# Generate gitbook directory
-generate-gitbook:
-	rm -rf ./gitbook
-
-	mkdir gitbook
-	mkdir gitbook/docs
-
-	cp -R docs gitbook
-	cp README.md gitbook/docs/README.md
-	cp .gitbook.yaml gitbook/.gitbook.yaml
-
-	rm -rf gitbook/docs/typedefs
-
-	cargo run -- --generate-gitbook-dir
-
-# Publish gitbook directory to gitbook branch
-publish-gitbook: generate-gitbook
-	npx push-dir --dir=gitbook --branch=gitbook

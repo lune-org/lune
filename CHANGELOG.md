@@ -267,7 +267,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added support for instance tags & `CollectionService` in the `roblox` built-in. <br />
-  Currently implemented methods are listed on the [docs site](https://lune.gitbook.io/lune/roblox/api-status).
+  Currently implemented methods are listed on the [docs site](https://lune-org.github.io/docs/roblox/4-api-status).
 
 ### Fixed
 
@@ -305,7 +305,7 @@ This release adds some new features and fixes for the `roblox` built-in.
 - Added a `roblox` built-in
 
   If you're familiar with [Remodel](https://github.com/rojo-rbx/remodel), this new built-in contains more or less the same APIs, integrated into Lune. <br />
-  There are just too many new APIs to list in this changelog, so head over to the [docs sit](https://lune.gitbook.io/lune/roblox/intro) to learn more!
+  There are just too many new APIs to list in this changelog, so head over to the [docs sit](https://lune-org.github.io/docs/roblox/1-introduction) to learn more!
 
 - Added a `serde` built-in
 

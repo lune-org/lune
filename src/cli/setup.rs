@@ -10,7 +10,7 @@ use serde_json::Value as JsonValue;
 
 use super::gen::generate_typedef_files_from_definitions;
 
-pub(crate) static TYPEDEFS_DIR: Dir<'_> = include_dir!("docs/typedefs");
+pub(crate) static TYPEDEFS_DIR: Dir<'_> = include_dir!("types");
 
 pub(crate) static SETTING_NAME_MODE: &str = "luau-lsp.require.mode";
 pub(crate) static SETTING_NAME_ALIASES: &str = "luau-lsp.require.directoryAliases";

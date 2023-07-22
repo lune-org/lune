@@ -2,14 +2,32 @@ use std::collections::HashMap;
 
 use anyhow::{Context, Result};
 use directories::UserDirs;
-
 use futures_util::future::try_join_all;
+use include_dir::Dir;
 use tokio::fs::{create_dir_all, write};
 
-#[allow(clippy::too_many_lines)]
-pub async fn generate_from_type_definitions(
-    typedef_files: HashMap<String, Vec<u8>>,
-) -> Result<String> {
+pub async fn generate_typedef_files_from_definitions(dir: &Dir<'_>) -> Result<String> {
+    let contents = read_typedefs_dir_contents(dir);
+    write_typedef_files(contents).await
+}
+
+fn read_typedefs_dir_contents(dir: &Dir<'_>) -> HashMap<String, Vec<u8>> {
+    let mut definitions = HashMap::new();
+
+    for entry in dir.find("*.luau").unwrap() {
+        let entry_file = entry.as_file().unwrap();
+        let entry_name = entry_file.path().file_name().unwrap().to_string_lossy();
+
+        let typedef_name = entry_name.trim_end_matches(".luau");
+        let typedef_contents = entry_file.contents().to_vec();
+
+        definitions.insert(typedef_name.to_string(), typedef_contents);
+    }
+
+    definitions
+}
+
+async fn write_typedef_files(typedef_files: HashMap<String, Vec<u8>>) -> Result<String> {
     let version_string = env!("CARGO_PKG_VERSION");
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();

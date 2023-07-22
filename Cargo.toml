@@ -24,7 +24,6 @@ cli = [
     "dep:env_logger",
     "dep:itertools",
     "dep:clap",
-    "dep:full_moon",
     "dep:include_dir",
     "dep:regex",
 ]
@@ -111,7 +110,6 @@ env_logger = { optional = true, version = "0.10" }
 itertools = { optional = true, version = "0.10" }
 
 clap = { optional = true, version = "4.1", features = ["derive"] }
-full_moon = { optional = true, version = "0.18", features = ["roblox"] }
 include_dir = { optional = true, version = "0.7.3", features = ["glob"] }
 regex = { optional = true, version = "1.7", default-features = false, features = [
     "std",
