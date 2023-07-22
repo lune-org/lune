@@ -216,7 +216,7 @@ export type DataModel =
 return {
 	--[=[
 		@within Roblox
-		@must_use
+		@tag must_use
 
 		Deserializes a place into a DataModel instance.
 
@@ -241,7 +241,7 @@ return {
 	end,
 	--[=[
 		@within Roblox
-		@must_use
+		@tag must_use
 
 		Deserializes a model into an array of instances.
 
@@ -266,7 +266,7 @@ return {
 	end,
 	--[=[
 		@within Roblox
-		@must_use
+		@tag must_use
 
 		Serializes a place from a DataModel instance.
 
@@ -290,7 +290,7 @@ return {
 	end,
 	--[=[
 		@within Roblox
-		@must_use
+		@tag must_use
 
 		Serializes one or more instances as a model.
 
@@ -314,7 +314,7 @@ return {
 	end,
 	--[=[
 		@within Roblox
-		@must_use
+		@tag must_use
 
 		Gets the current auth cookie, for usage with Roblox web APIs.
 
@@ -353,7 +353,7 @@ return {
 	end,
 	--[=[
 		@within Roblox
-		@must_use
+		@tag must_use
 
 		Gets the bundled reflection database.
 

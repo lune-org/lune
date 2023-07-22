@@ -1,7 +1,7 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
 
 --[=[
-	@type FetchParamsOptions
+	@interface FetchParamsOptions
 	@within Net
 
 	Extra options for `FetchParams`.
@@ -15,7 +15,7 @@ export type FetchParamsOptions = {
 }
 
 --[=[
-	@type FetchParams
+	@interface FetchParams
 	@within Net
 
 	Parameters for sending network requests with `net.request`.
@@ -39,8 +39,8 @@ export type FetchParams = {
 }
 
 --[=[
-	@type FetchResponse
-	@within new
+	@interface FetchResponse
+	@within Net
 
 	Response type for sending network requests with `net.request`.
 
@@ -61,7 +61,7 @@ export type FetchResponse = {
 }
 
 --[=[
-	@type ServeRequest
+	@interface ServeRequest
 	@within Net
 
 	Data type for requests in `net.serve`.
@@ -83,7 +83,7 @@ export type ServeRequest = {
 }
 
 --[=[
-	@type ServeResponse
+	@interface ServeResponse
 	@within Net
 
 	Response type for requests in `net.serve`.
@@ -104,7 +104,7 @@ type ServeHttpHandler = (request: ServeRequest) -> string | ServeResponse
 type ServeWebSocketHandler = (socket: WebSocket) -> ()
 
 --[=[
-	@type ServeConfig
+	@interface ServeConfig
 	@within Net
 
 	Configuration for `net.serve`.
@@ -120,7 +120,7 @@ export type ServeConfig = {
 }
 
 --[=[
-	@type ServeHandle
+	@interface ServeHandle
 	@within Net
 
 	A handle to a currently running web server, containing a single `stop` function to gracefully shut down the web server.
@@ -130,7 +130,7 @@ export type ServeHandle = {
 }
 
 --[=[
-	@type WebSocket
+	@interface WebSocket
 	@within Net
 
 	A reference to a web socket connection.
@@ -212,7 +212,7 @@ return {
 	end,
 	--[=[
 		@within Net
-		@must_use
+		@tag must_use
 
 		Connects to a web socket at the given URL.
 
@@ -241,7 +241,7 @@ return {
 	end,
 	--[=[
 		@within Net
-		@must_use
+		@tag must_use
 
 		Encodes the given value as JSON.
 
@@ -254,7 +254,7 @@ return {
 	end,
 	--[=[
 		@within Net
-		@must_use
+		@tag must_use
 
 		Decodes the given JSON string into a lua value.
 
@@ -266,7 +266,7 @@ return {
 	end,
 	--[=[
 		@within Net
-		@must_use
+		@tag must_use
 
 		Encodes the given string using URL encoding.
 
@@ -279,7 +279,7 @@ return {
 	end,
 	--[=[
 		@within Net
-		@must_use
+		@tag must_use
 
 		Decodes the given string using URL decoding.
 

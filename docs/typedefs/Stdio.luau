@@ -20,7 +20,8 @@ type PromptFn = (
 
 --[=[
 	@within Stdio
-	@must_use
+	@function prompt
+	@tag must_use
 
 	Prompts for user input using the wanted kind of prompt:
 
@@ -62,7 +63,7 @@ end
 return {
 	--[=[
 		@within Stdio
-		@must_use
+		@tag must_use
 
 		Return an ANSI string that can be used to modify the persistent output color.
 
@@ -85,7 +86,7 @@ return {
 	end,
 	--[=[
 		@within Stdio
-		@must_use
+		@tag must_use
 
 		Return an ANSI string that can be used to modify the persistent output style.
 
@@ -108,7 +109,7 @@ return {
 	end,
 	--[=[
 		@within Stdio
-		@must_use
+		@tag must_use
 
 		Formats arguments into a human-readable string with syntax highlighting for tables.
 

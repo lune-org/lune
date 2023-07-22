@@ -1,7 +1,7 @@
 export type MetadataKind = "file" | "dir" | "symlink"
 
 --[=[
-	@type MetadataPermissions
+	@interface MetadataPermissions
 	@within FS
 
 	Permissions for the given file or directory.
@@ -17,7 +17,7 @@ export type MetadataPermissions = {
 -- FIXME: We lose doc comments here because of the union type
 
 --[=[
-	@type Metadata
+	@interface Metadata
 	@within FS
 
 	Metadata for the given file or directory.
@@ -51,7 +51,7 @@ export type Metadata = {
 }
 
 --[=[
-	@type WriteOptions
+	@interface WriteOptions
 	@within FS
 
 	Options for filesystem APIs what write to files and/or directories.
@@ -90,7 +90,7 @@ export type WriteOptions = {
 return {
 	--[=[
 		@within FS
-		@must_use
+		@tag must_use
 
 		Reads a file at `path`.
 
@@ -109,7 +109,7 @@ return {
 	end,
 	--[=[
 		@within FS
-		@must_use
+		@tag must_use
 
 		Reads entries in a directory at `path`.
 
@@ -184,7 +184,7 @@ return {
 	removeDir = function(path: string) end,
 	--[=[
 		@within FS
-		@must_use
+		@tag must_use
 
 		Gets metadata for the given path.
 
@@ -201,7 +201,7 @@ return {
 	end,
 	--[=[
 		@within FS
-		@must_use
+		@tag must_use
 
 		Checks if a given path is a file.
 
@@ -218,7 +218,7 @@ return {
 	end,
 	--[=[
 		@within FS
-		@must_use
+		@tag must_use
 
 		Checks if a given path is a directory.
 

@@ -4,7 +4,7 @@ export type Arch = "x86_64" | "aarch64"
 export type SpawnOptionsStdio = "inherit" | "default"
 
 --[=[
-	@type SpawnOptions
+	@interface SpawnOptions
 	@within Process
 
 	A dictionary of options for `process.spawn`, with the following available values:
@@ -22,7 +22,7 @@ export type SpawnOptions = {
 }
 
 --[=[
-	@type SpawnResult
+	@interface SpawnResult
 	@within Process
 
 	Result type for child processes in `process.spawn`.

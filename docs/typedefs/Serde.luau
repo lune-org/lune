@@ -30,7 +30,7 @@ export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
 return {
 	--[=[
 		@within Serde
-		@must_use
+		@tag must_use
 
 		Encodes the given value using the given format.
 
@@ -52,7 +52,7 @@ return {
 	end,
 	--[=[
 		@within Serde
-		@must_use
+		@tag must_use
 
 		Decodes the given string using the given format into a lua value.
 
@@ -73,7 +73,7 @@ return {
 	end,
 	--[=[
 		@within Serde
-		@must_use
+		@tag must_use
 
 		Compresses the given string using the given format.
 
@@ -95,7 +95,7 @@ return {
 	end,
 	--[=[
 		@within Serde
-		@must_use
+		@tag must_use
 
 		Decompresses the given string using the given format.
 
