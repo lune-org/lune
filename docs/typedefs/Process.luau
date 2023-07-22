@@ -82,6 +82,7 @@ local process = {}
 
 --[=[
 	@within Process
+	@prop os OS
 	@tag read_only
 
 	The current operating system being used.
@@ -96,6 +97,7 @@ process.os = (nil :: any) :: OS
 
 --[=[
 	@within Process
+	@prop arch Arch
 	@tag read_only
 
 	The architecture of the processor currently being used.
@@ -109,6 +111,7 @@ process.arch = (nil :: any) :: Arch
 
 --[=[
 	@within Process
+	@prop args { string }
 	@tag read_only
 
 	The arguments given when running the Lune script.
@@ -117,6 +120,7 @@ process.args = (nil :: any) :: { string }
 
 --[=[
 	@within Process
+	@prop cwd string
 	@tag read_only
 
 	The current working directory in which the Lune script is running.
@@ -125,7 +129,8 @@ process.cwd = (nil :: any) :: string
 
 --[=[
 	@within Process
-	@read_write
+	@prop { [string]: string? } env
+	@tag read_write
 
 	Current environment variables for this process.
 

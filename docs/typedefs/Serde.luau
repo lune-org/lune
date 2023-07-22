@@ -90,7 +90,7 @@ end
 	| `zlib`   | https://www.zlib.net              |
 
 	@param format The format to use
-	@param encoded The string to compress
+	@param s The string to compress
 	@return The compressed string
 ]=]
 function serde.compress(format: CompressDecompressFormat, s: string): string
@@ -113,7 +113,7 @@ end
 	| `zlib`   | https://www.zlib.net              |
 
 	@param format The format to use
-	@param encoded The string to decompress
+	@param s The string to decompress
 	@return The decompressed string
 ]=]
 function serde.decompress(format: CompressDecompressFormat, s: string): string
