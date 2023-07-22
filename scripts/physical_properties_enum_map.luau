@@ -1,3 +1,5 @@
+--!nocheck
+
 -- NOTE: This must be ran in Roblox Studio to get up-to-date enum values
 
 local contents = ""

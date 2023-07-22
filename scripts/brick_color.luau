@@ -1,3 +1,6 @@
+local fs = require("@lune/fs")
+local net = require("@lune/net")
+
 local URL =
 	"https://gist.githubusercontent.com/Anaminus/49ac255a68e7a7bc3cdd72b602d5071f/raw/f1534dcae312dbfda716b7677f8ac338b565afc3/BrickColor.json"
 
