@@ -36,6 +36,9 @@ impl Instance {
 
         Panics if the instance does not exist in the internal dom,
         or if the given dom object ref points to the dom root.
+
+        **WARNING:** Creating a new instance requires locking the internal dom,
+        any existing lock must first be released to prevent any deadlocking.
     */
     pub(crate) fn new(dom_ref: DomRef) -> Self {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -58,6 +61,9 @@ impl Instance {
         Creates a new `Instance` from a dom object ref, if the instance exists.
 
         Panics if the given dom object ref points to the dom root.
+
+        **WARNING:** Creating a new instance requires locking the internal dom,
+        any existing lock must first be released to prevent any deadlocking.
     */
     pub(crate) fn new_opt(dom_ref: DomRef) -> Option<Self> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -80,6 +86,9 @@ impl Instance {
         Creates a new orphaned `Instance` with a given class name.
 
         An orphaned instance is an instance at the root of a weak dom.
+
+        **WARNING:** Creating a new instance requires locking the internal dom,
+        any existing lock must first be released to prevent any deadlocking.
     */
     pub(crate) fn new_orphaned(class_name: impl AsRef<str>) -> Self {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -106,13 +115,12 @@ impl Instance {
         Panics if the given dom ref is the root dom ref of the external weak dom.
     */
     pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
-        {
-            let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-            let dom_root = dom.root_ref();
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        let dom_root = dom.root_ref();
 
-            external_dom.transfer(external_dom_ref, &mut dom, dom_root);
-        }
+        external_dom.transfer(external_dom_ref, &mut dom, dom_root);
 
+        drop(dom); // Self::new needs mutex handle, drop it first
         Self::new(external_dom_ref)
     }
 
@@ -142,13 +150,9 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn clone_instance(&self) -> Instance {
-        // NOTE: We create a new scope here to avoid deadlocking since
-        // our clone implementation must have exclusive write access
-        let new_ref = {
-            let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-            dom.clone_within(self.dom_ref)
-        };
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        let new_ref = dom.clone_within(self.dom_ref);
+        drop(dom); // Self::new needs mutex handle, drop it first
 
         let new_inst = Self::new(new_ref);
         new_inst.set_parent(None);
@@ -281,6 +285,7 @@ impl Instance {
         if parent_ref == dom.root_ref() {
             None
         } else {
+            drop(dom); // Self::new needs mutex handle, drop it first
             Some(Self::new(parent_ref))
         }
     }
@@ -513,6 +518,7 @@ impl Instance {
             .children()
             .to_vec();
 
+        drop(dom); // Self::new needs mutex handle, drop it first
         children.into_iter().map(Self::new).collect()
     }
 
@@ -544,6 +550,7 @@ impl Instance {
             }
         }
 
+        drop(dom); // Self::new needs mutex handle, drop it first
         descendants.into_iter().map(Self::new).collect()
     }
 
@@ -599,17 +606,16 @@ impl Instance {
             .children()
             .to_vec();
 
-        children.into_iter().find_map(|child_ref| {
-            if let Some(child_inst) = dom.get_by_ref(child_ref) {
-                if predicate(child_inst) {
-                    Some(Self::new(child_ref))
-                } else {
-                    None
-                }
+        let found_ref = children.into_iter().find(|child_ref| {
+            if let Some(child_inst) = dom.get_by_ref(*child_ref) {
+                predicate(child_inst)
             } else {
-                None
+                false
             }
-        })
+        });
+
+        drop(dom); // Self::new needs mutex handle, drop it first
+        found_ref.map(Self::new)
     }
 
     /**
@@ -633,6 +639,7 @@ impl Instance {
 
         while let Some(ancestor) = dom.get_by_ref(ancestor_ref) {
             if predicate(ancestor) {
+                drop(dom); // Self::new needs mutex handle, drop it first
                 return Some(Self::new(ancestor_ref));
             } else {
                 ancestor_ref = ancestor.parent();
@@ -667,7 +674,9 @@ impl Instance {
             .and_then(|queue_ref| dom.get_by_ref(*queue_ref))
         {
             if predicate(queue_item) {
-                return Some(Self::new(queue_item.referent()));
+                let queue_ref = queue_item.referent();
+                drop(dom); // Self::new needs mutex handle, drop it first
+                return Some(Self::new(queue_ref));
             } else {
                 queue.extend(queue_item.children())
             }
