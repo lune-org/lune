@@ -31,4 +31,4 @@ jobs:
         run: cargo clippy
 
       - name: Test
-        run: cargo test --package lune -- --test-threads 1
+        run: cargo test --lib
