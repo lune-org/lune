@@ -6,7 +6,6 @@ use std::{
     sync::Arc,
 };
 
-use dunce::canonicalize;
 use mlua::{prelude::*, Compiler as LuaCompiler};
 use tokio::fs;
 use tokio::sync::Mutex as AsyncMutex;
@@ -28,6 +27,19 @@ return yield()
 "#;
 
 type RequireWakersVec<'lua> = Vec<Arc<AsyncMutex<RequireWakerState<'lua>>>>;
+
+fn append_extension_and_canonicalize(
+    path: impl Into<PathBuf>,
+    ext: &'static str,
+) -> Result<PathBuf, std::io::Error> {
+    let mut new = path.into();
+    match new.extension() {
+        // FUTURE: There's probably a better way to do this than converting to a lossy string
+        Some(e) => new.set_extension(format!("{}.{ext}", e.to_string_lossy())),
+        None => new.set_extension(ext),
+    };
+    dunce::canonicalize(new)
+}
 
 #[derive(Debug, Clone, Default)]
 struct RequireContext<'lua> {
@@ -128,25 +140,28 @@ impl<'lua> RequireContext<'lua> {
         .join(&require_path);
         // Try to normalize and resolve relative path segments such as './' and '../'
         let file_path = match (
-            canonicalize(path_relative_to_pwd.with_extension("luau")),
-            canonicalize(path_relative_to_pwd.with_extension("lua")),
+            append_extension_and_canonicalize(&path_relative_to_pwd, "luau"),
+            append_extension_and_canonicalize(&path_relative_to_pwd, "lua"),
         ) {
             (Ok(luau), _) => luau,
             (_, Ok(lua)) => lua,
             // If we did not find a luau/lua file at the wanted path,
             // we should also look for "init" files in directories
-            _ => match (
-                canonicalize(path_relative_to_pwd.join("init").with_extension("luau")),
-                canonicalize(path_relative_to_pwd.join("init").with_extension("lua")),
-            ) {
-                (Ok(luau), _) => luau,
-                (_, Ok(lua)) => lua,
-                _ => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "File does not exist at path '{require_path}'"
-                    )))
+            _ => {
+                let init_dir_path = path_relative_to_pwd.join("init");
+                match (
+                    append_extension_and_canonicalize(&init_dir_path, "luau"),
+                    append_extension_and_canonicalize(&init_dir_path, "lua"),
+                ) {
+                    (Ok(luau), _) => luau,
+                    (_, Ok(lua)) => lua,
+                    _ => {
+                        return Err(LuaError::RuntimeError(format!(
+                            "File does not exist at path '{require_path}'"
+                        )));
+                    }
                 }
-            },
+            }
         };
         let absolute = file_path.to_string_lossy().to_string();
         let relative = absolute.trim_start_matches(&self.pwd).to_string();
