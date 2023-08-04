@@ -2,7 +2,7 @@ use std::{
     collections::{BTreeMap, VecDeque},
     fmt,
     hash::{Hash, Hasher},
-    sync::RwLock,
+    sync::Mutex,
 };
 
 use mlua::prelude::*;
@@ -21,8 +21,8 @@ pub(crate) mod workspace;
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
 const PROPERTY_NAME_TAGS: &str = "Tags";
 
-static INTERNAL_DOM: Lazy<RwLock<WeakDom>> =
-    Lazy::new(|| RwLock::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
+static INTERNAL_DOM: Lazy<Mutex<WeakDom>> =
+    Lazy::new(|| Mutex::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
 
 #[derive(Debug, Clone)]
 pub struct Instance {
@@ -38,9 +38,7 @@ impl Instance {
         or if the given dom object ref points to the dom root.
     */
     pub(crate) fn new(dom_ref: DomRef) -> Self {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let instance = dom
             .get_by_ref(dom_ref)
@@ -62,9 +60,7 @@ impl Instance {
         Panics if the given dom object ref points to the dom root.
     */
     pub(crate) fn new_opt(dom_ref: DomRef) -> Option<Self> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         if let Some(instance) = dom.get_by_ref(dom_ref) {
             if instance.referent() == dom.root_ref() {
@@ -86,9 +82,7 @@ impl Instance {
         An orphaned instance is an instance at the root of a weak dom.
     */
     pub(crate) fn new_orphaned(class_name: impl AsRef<str>) -> Self {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let class_name = class_name.as_ref();
 
@@ -113,9 +107,7 @@ impl Instance {
     */
     pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
         {
-            let mut dom = INTERNAL_DOM
-                .try_write()
-                .expect("Failed to get write access to document");
+            let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
             let dom_root = dom.root_ref();
 
             external_dom.transfer(external_dom_ref, &mut dom, dom_root);
@@ -131,9 +123,7 @@ impl Instance {
         root of the weak dom, and return its referent.
     */
     pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let cloned = dom.clone_into_external(self.dom_ref, external_dom);
         external_dom.transfer_within(cloned, external_dom.root_ref());
@@ -155,9 +145,7 @@ impl Instance {
         // NOTE: We create a new scope here to avoid deadlocking since
         // our clone implementation must have exclusive write access
         let new_ref = {
-            let mut dom = INTERNAL_DOM
-                .try_write()
-                .expect("Failed to get write access to document");
+            let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
             dom.clone_within(self.dom_ref)
         };
@@ -184,9 +172,7 @@ impl Instance {
         if self.is_destroyed() {
             false
         } else {
-            let mut dom = INTERNAL_DOM
-                .try_write()
-                .expect("Failed to get write access to document");
+            let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
             dom.destroy(self.dom_ref);
             true
@@ -197,9 +183,7 @@ impl Instance {
         // NOTE: This property can not be cached since instance references
         // other than this one may have destroyed this one, and we don't
         // keep track of all current instance reference structs
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         dom.get_by_ref(self.dom_ref).is_none()
     }
 
@@ -212,9 +196,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn clear_all_children(&mut self) {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let instance = dom
             .get_by_ref(self.dom_ref)
@@ -258,9 +240,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_name(&self) -> String {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         dom.get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document")
@@ -276,9 +256,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn set_name(&self, name: impl Into<String>) {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         dom.get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document")
@@ -293,9 +271,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_parent(&self) -> Option<Instance> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let parent_ref = dom
             .get_by_ref(self.dom_ref)
@@ -321,9 +297,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn set_parent(&self, parent: Option<Instance>) {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to target document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let parent_ref = parent
             .map(|parent| parent.dom_ref)
@@ -337,8 +311,8 @@ impl Instance {
     */
     pub fn get_property(&self, name: impl AsRef<str>) -> Option<DomValue> {
         INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document")
+            .lock()
+            .expect("Failed to lock document")
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document")
             .properties
@@ -354,8 +328,8 @@ impl Instance {
     */
     pub fn set_property(&self, name: impl AsRef<str>, value: DomValue) {
         INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get read access to document")
+            .lock()
+            .expect("Failed to lock document")
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document")
             .properties
@@ -370,9 +344,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -393,9 +365,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -416,9 +386,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -450,9 +418,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn add_tag(&self, name: impl AsRef<str>) {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -474,9 +440,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_tags(&self) -> Vec<String> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -495,9 +459,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn has_tag(&self, name: impl AsRef<str>) -> bool {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -517,9 +479,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn remove_tag(&self, name: impl AsRef<str>) {
-        let mut dom = INTERNAL_DOM
-            .try_write()
-            .expect("Failed to get write access to document");
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let inst = dom
             .get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document");
@@ -545,9 +505,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_children(&self) -> Vec<Instance> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let children = dom
             .get_by_ref(self.dom_ref)
@@ -569,9 +527,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_descendants(&self) -> Vec<Instance> {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let mut descendants = Vec::new();
         let mut queue = VecDeque::from_iter(
@@ -604,9 +560,7 @@ impl Instance {
         on the Roblox Developer Hub
     */
     pub fn get_full_name(&self) -> String {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let dom_root = dom.root_ref();
 
         let mut parts = Vec::new();
@@ -637,9 +591,7 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let children = dom
             .get_by_ref(self.dom_ref)
@@ -672,9 +624,7 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let mut ancestor_ref = dom
             .get_by_ref(self.dom_ref)
@@ -704,9 +654,7 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        let dom = INTERNAL_DOM
-            .try_read()
-            .expect("Failed to get read access to document");
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let mut queue = VecDeque::from_iter(
             dom.get_by_ref(self.dom_ref)
