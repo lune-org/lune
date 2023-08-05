@@ -78,6 +78,7 @@ pub fn create() -> LuaResult<&'static Lua> {
     let lua = Lua::new().into_static();
 
     // Enable jit and set global compiler options
+    lua.enable_jit(true);
     lua.set_compiler(
         LuaCompiler::default()
             .set_coverage_level(0)
