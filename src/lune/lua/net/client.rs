@@ -23,8 +23,8 @@ impl NetClientBuilder {
     {
         let mut map = HeaderMap::new();
         for (key, val) in headers {
-            let hkey = HeaderName::from_str(key.as_ref()).map_err(LuaError::external)?;
-            let hval = HeaderValue::from_bytes(val.as_ref()).map_err(LuaError::external)?;
+            let hkey = HeaderName::from_str(key.as_ref()).into_lua_err()?;
+            let hval = HeaderValue::from_bytes(val.as_ref()).into_lua_err()?;
             map.insert(hkey, hval);
         }
         self.builder = self.builder.default_headers(map);
@@ -32,7 +32,7 @@ impl NetClientBuilder {
     }
 
     pub fn build(self) -> LuaResult<NetClient> {
-        let client = self.builder.build().map_err(LuaError::external)?;
+        let client = self.builder.build().into_lua_err()?;
         Ok(NetClient(client))
     }
 }

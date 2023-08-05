@@ -61,23 +61,23 @@ impl EncodeDecodeConfig {
             EncodeDecodeFormat::Json => {
                 let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
                 if self.pretty {
-                    serde_json::to_vec_pretty(&serialized).map_err(LuaError::external)?
+                    serde_json::to_vec_pretty(&serialized).into_lua_err()?
                 } else {
-                    serde_json::to_vec(&serialized).map_err(LuaError::external)?
+                    serde_json::to_vec(&serialized).into_lua_err()?
                 }
             }
             EncodeDecodeFormat::Yaml => {
                 let serialized: YamlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
                 let mut writer = Vec::with_capacity(128);
-                serde_yaml::to_writer(&mut writer, &serialized).map_err(LuaError::external)?;
+                serde_yaml::to_writer(&mut writer, &serialized).into_lua_err()?;
                 writer
             }
             EncodeDecodeFormat::Toml => {
                 let serialized: TomlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
                 let s = if self.pretty {
-                    toml::to_string_pretty(&serialized).map_err(LuaError::external)?
+                    toml::to_string_pretty(&serialized).into_lua_err()?
                 } else {
-                    toml::to_string(&serialized).map_err(LuaError::external)?
+                    toml::to_string(&serialized).into_lua_err()?
                 };
                 s.as_bytes().to_vec()
             }
@@ -93,16 +93,16 @@ impl EncodeDecodeConfig {
         let bytes = string.as_bytes();
         match self.format {
             EncodeDecodeFormat::Json => {
-                let value: JsonValue = serde_json::from_slice(bytes).map_err(LuaError::external)?;
+                let value: JsonValue = serde_json::from_slice(bytes).into_lua_err()?;
                 lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
             }
             EncodeDecodeFormat::Yaml => {
-                let value: YamlValue = serde_yaml::from_slice(bytes).map_err(LuaError::external)?;
+                let value: YamlValue = serde_yaml::from_slice(bytes).into_lua_err()?;
                 lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
             }
             EncodeDecodeFormat::Toml => {
                 if let Ok(s) = string.to_str() {
-                    let value: TomlValue = toml::from_str(s).map_err(LuaError::external)?;
+                    let value: TomlValue = toml::from_str(s).into_lua_err()?;
                     lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
                 } else {
                     Err(LuaError::RuntimeError(

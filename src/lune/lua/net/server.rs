@@ -57,7 +57,7 @@ impl Service<Request<Body>> for NetServiceInner {
             task::spawn_local(async move {
                 // Create our new full websocket object, then
                 // schedule our handler to get called asap
-                let ws = ws.await.map_err(LuaError::external)?;
+                let ws = ws.await.into_lua_err()?;
                 let sock = NetWebSocket::new(ws).into_lua_table(lua)?;
                 let sched = lua
                     .app_data_ref::<&TaskScheduler>()
@@ -77,7 +77,7 @@ impl Service<Request<Body>> for NetServiceInner {
             let (parts, body) = req.into_parts();
             Box::pin(async move {
                 // Convert request body into bytes, extract handler
-                let bytes = to_bytes(body).await.map_err(LuaError::external)?;
+                let bytes = to_bytes(body).await.into_lua_err()?;
                 let handler: LuaFunction = lua.registry_value(&key)?;
                 // Create a readonly table for the request query params
                 let query_params = TableBuilder::new(lua)?

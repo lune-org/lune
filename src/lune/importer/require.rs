@@ -202,7 +202,7 @@ async fn load_file<'lua>(
             }
             // Try to read the wanted file, note that we use bytes instead of reading
             // to a string since lua scripts are not necessarily valid utf-8 strings
-            let contents = fs::read(&absolute_path).await.map_err(LuaError::external)?;
+            let contents = fs::read(&absolute_path).await.into_lua_err()?;
             // Use a name without extensions for loading the chunk, some
             // other code assumes the require path is without extensions
             let path_relative_no_extension = relative_path

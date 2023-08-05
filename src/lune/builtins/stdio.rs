@@ -43,7 +43,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("prompt", |_, options: PromptOptions| async move {
             task::spawn_blocking(move || prompt(options))
                 .await
-                .map_err(LuaError::external)?
+                .into_lua_err()?
         })?
         .build_readonly()
 }

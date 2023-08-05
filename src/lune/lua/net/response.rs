@@ -24,7 +24,7 @@ impl NetServeResponse {
                 .status(200)
                 .header("Content-Type", "text/plain")
                 .body(Body::from(self.body.unwrap()))
-                .map_err(LuaError::external)?,
+                .into_lua_err()?,
             NetServeResponseKind::Table => {
                 let mut response = Response::builder();
                 for (key, value) in self.headers {
@@ -33,7 +33,7 @@ impl NetServeResponse {
                 response
                     .status(self.status)
                     .body(Body::from(self.body.unwrap_or_default()))
-                    .map_err(LuaError::external)?
+                    .into_lua_err()?
             }
         })
     }
