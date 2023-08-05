@@ -1,4 +1,4 @@
-use mlua::prelude::*;
+use mlua::{prelude::*, Compiler as LuaCompiler};
 
 /*
     - Level 0 is the call to info
@@ -76,14 +76,27 @@ end
 */
 pub fn create() -> LuaResult<&'static Lua> {
     let lua = Lua::new().into_static();
+
+    // Enable jit and set global compiler options
+    lua.set_compiler(
+        LuaCompiler::default()
+            .set_coverage_level(0)
+            .set_debug_level(1)
+            .set_optimization_level(1),
+    );
+
+    // Extract some global tables that we will extract
+    // built-in functions from and store in the registry
     let globals = &lua.globals();
     let debug: LuaTable = globals.raw_get("debug")?;
     let table: LuaTable = globals.raw_get("table")?;
     let string: LuaTable = globals.raw_get("string")?;
     let coroutine: LuaTable = globals.get("coroutine")?;
+
     // Create a _G table that is separate from our built-in globals
     let global_table = lua.create_table()?;
     globals.set("_G", global_table)?;
+
     // Store original lua global functions in the registry so we can use
     // them later without passing them around and dealing with lifetimes
     lua.set_named_registry_value("print", globals.get::<_, LuaFunction>("print")?)?;
@@ -109,6 +122,7 @@ pub fn create() -> LuaResult<&'static Lua> {
         "tab.setmeta",
         globals.get::<_, LuaFunction>("setmetatable")?,
     )?;
+
     // Create a trace function that can be called to obtain a full stack trace from
     // lua, this is not possible to do from rust when using our manual scheduler
     let dbg_trace_env = lua.create_table_with_capacity(0, 1)?;
@@ -122,6 +136,7 @@ pub fn create() -> LuaResult<&'static Lua> {
         .set_environment(dbg_trace_env)
         .into_function()?;
     lua.set_named_registry_value("dbg.trace", dbg_trace_fn)?;
+
     // Modify the _VERSION global to also contain the current version of Lune
     let luau_version_full = globals
         .get::<_, LuaString>("_VERSION")
@@ -142,6 +157,7 @@ pub fn create() -> LuaResult<&'static Lua> {
             luau = luau_version,
         ))?,
     )?;
+
     // All done
     Ok(lua)
 }

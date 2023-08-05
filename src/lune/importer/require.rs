@@ -6,7 +6,7 @@ use std::{
     sync::Arc,
 };
 
-use mlua::{prelude::*, Compiler as LuaCompiler};
+use mlua::prelude::*;
 use tokio::fs;
 use tokio::sync::Mutex as AsyncMutex;
 
@@ -209,9 +209,8 @@ async fn load_file<'lua>(
                 .trim_end_matches(".lua")
                 .trim_end_matches(".luau");
             // Load the file into a thread
-            let compiled_func = LuaCompiler::default().compile(&contents);
             let loaded_func = lua
-                .load(compiled_func)
+                .load(contents)
                 .set_name(path_relative_no_extension)
                 .into_function()?;
             let loaded_thread = lua.create_thread(loaded_func)?;

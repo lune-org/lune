@@ -2,7 +2,6 @@ use std::process::ExitCode;
 
 use lua::task::{TaskScheduler, TaskSchedulerResumeExt, TaskSchedulerScheduleExt};
 use mlua::prelude::*;
-use mlua::Compiler as LuaCompiler;
 use tokio::task::LocalSet;
 
 pub mod builtins;
@@ -67,7 +66,6 @@ impl Lune {
     ) -> Result<ExitCode, LuaError> {
         // Create our special lune-flavored Lua object with extra registry values
         let lua = lua::create_lune_lua()?;
-        let script = LuaCompiler::default().compile(script_contents);
         // Create our task scheduler and all globals
         // NOTE: Some globals require the task scheduler to exist on startup
         let sched = TaskScheduler::new(lua)?.into_static();
@@ -75,7 +73,7 @@ impl Lune {
         importer::create(lua, self.args.clone())?;
         // Create the main thread and schedule it
         let main_chunk = lua
-            .load(script)
+            .load(script_contents.as_ref())
             .set_name(script_name.as_ref())
             .into_function()?;
         let main_thread = lua.create_thread(main_chunk)?;
