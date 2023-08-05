@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Enabled Luau JIT backend for potential performance improvements 🚀 <br/>
+  If you run into any strange behavior please open an issue!
+
 ### Fixed
 
 - Fixed `serde.decode` deserializing `null` values as `userdata` instead of `nil`.
