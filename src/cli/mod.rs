@@ -7,7 +7,9 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser};
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{
+    error::ReadlineError, Cmd, DefaultEditor, EventHandler, KeyCode, KeyEvent, Modifiers,
+};
 
 use lune::Lune;
 use tokio::{
@@ -198,6 +200,11 @@ impl Cli {
                 }
             };
 
+            // repl.bind_sequence(
+            //     KeyEvent(KeyCode::Enter, Modifiers::SHIFT),
+            //     EventHandler::Simple(Cmd::AcceptOrInsertLine { accept_in_the_middle: true }),
+            // );
+
             let mut interrupt_counter = 0u32;
 
             loop {
@@ -205,7 +212,8 @@ impl Cli {
 
                 match repl.readline("> ") {
                     Ok(code) => {
-                        source_code = code;
+                        source_code = code.clone();
+                        repl.add_history_entry(code.as_str())?;
 
                         // If source code eval was requested, we reset the counter
                         interrupt_counter = 0;
