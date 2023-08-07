@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update to Luau version `0.588`
 - Enabled Luau JIT backend for potential performance improvements 🚀 <br/>
   If you run into any strange behavior please open an issue!
 
