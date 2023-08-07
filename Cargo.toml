@@ -125,7 +125,7 @@ regex = { optional = true, version = "1.7", default-features = false, features =
 glam = { optional = true, version = "0.24" }
 rand = { optional = true, version = "0.8" }
 
-rbx_cookie = { optional = true, version = "0.1.2" }
+rbx_cookie = { optional = true, version = "0.1.3", default-features = false }
 
 rbx_binary = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
 rbx_dom_weak = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
