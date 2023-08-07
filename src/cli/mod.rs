@@ -1,15 +1,10 @@
 use std::{
     fmt::Write as _,
-    io::ErrorKind,
-    path::PathBuf,
-    process::{exit, ExitCode},
+    process::ExitCode,
 };
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser};
-use rustyline::{
-    error::ReadlineError, Cmd, DefaultEditor, EventHandler, KeyCode, KeyEvent, Modifiers,
-};
 
 use lune::Lune;
 use tokio::{
