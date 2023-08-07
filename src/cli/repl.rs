@@ -1,17 +1,18 @@
 use std::{
-    io::{Error, ErrorKind},
+    io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
 };
 
+use anyhow::Error;
 use clap::Command;
 use lune::{Lune, LuneError};
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
 
 use super::Cli;
 
 // Isn't dependency injection plain awesome?!
-pub async fn show_interface(cmd: Command) -> Result<ExitCode, anyhow::Error> {
+pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
     let lune_version = cmd.get_version();
 
     // The version is mandatory and will always exist
@@ -77,10 +78,14 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, anyhow::Error> {
                     // Increment the counter
                     interrupt_counter += 1;
                 } else {
+                    save_repl_activity(repl)?;
                     break;
                 }
             }
-            Err(ReadlineError::Eof) => break,
+            Err(ReadlineError::Eof) => {
+                save_repl_activity(repl)?;
+                break;
+            }
             Err(err) => {
                 eprintln!("REPL ERROR: {}", err.to_string());
 
@@ -98,4 +103,12 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, anyhow::Error> {
     }
 
     Ok(ExitCode::SUCCESS)
+}
+
+fn save_repl_activity(mut repl: Editor<(), FileHistory>) -> Result<(), Error> {
+    // Once again, we know that the specified home directory
+    // and history file already exist
+    repl.save_history(&home::home_dir().unwrap().join(".lune_history"))?;
+
+    Ok(())
 }
