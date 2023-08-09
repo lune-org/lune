@@ -70,14 +70,18 @@ thiserror = "1.0"
 async-trait = "0.1"
 dialoguer = "0.10"
 dunce = "1.0"
-lz4_flex = "0.10"
+lz4_flex = "0.11"
 pin-project = "1.0"
 os_str_bytes = "6.4"
-urlencoding = "2.1.2"
+urlencoding = "2.1"
 
 ### RUNTIME
 
-mlua = { version = "0.9.0-beta.3", features = ["luau", "serialize"] }
+mlua = { version = "0.9.0-beta.3", features = [
+    "luau",
+    "luau-jit",
+    "serialize",
+] }
 tokio = { version = "1.24", features = ["full"] }
 
 ### SERDE
@@ -97,11 +101,11 @@ toml = { version = "0.7", features = ["preserve_order"] }
 ### NET
 
 hyper = { version = "0.14", features = ["full"] }
-hyper-tungstenite = { version = "0.10" }
+hyper-tungstenite = { version = "0.11" }
 reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
-tokio-tungstenite = { version = "0.19", features = ["rustls-tls-webpki-roots"] }
+tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
 
 ### CLI
 
@@ -121,7 +125,7 @@ regex = { optional = true, version = "1.7", default-features = false, features =
 glam = { optional = true, version = "0.24" }
 rand = { optional = true, version = "0.8" }
 
-rbx_cookie = { optional = true, version = "0.1.2" }
+rbx_cookie = { optional = true, version = "0.1.3", default-features = false }
 
 rbx_binary = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }
 rbx_dom_weak = { optional = true, git = "https://github.com/rojo-rbx/rbx-dom", rev = "e7a813d569c3f8a54be8a8873c33f8976c37b8b1" }

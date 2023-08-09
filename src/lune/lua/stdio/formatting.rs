@@ -197,12 +197,12 @@ pub fn pretty_format_multi_value(multi: &LuaMultiValue) -> LuaResult<String> {
     for value in multi {
         counter += 1;
         if let LuaValue::String(s) = value {
-            write!(buffer, "{}", s.to_string_lossy()).map_err(LuaError::external)?;
+            write!(buffer, "{}", s.to_string_lossy()).into_lua_err()?;
         } else {
-            pretty_format_value(&mut buffer, value, 0).map_err(LuaError::external)?;
+            pretty_format_value(&mut buffer, value, 0).into_lua_err()?;
         }
         if counter < multi.len() {
-            write!(&mut buffer, " ").map_err(LuaError::external)?;
+            write!(&mut buffer, " ").into_lua_err()?;
         }
     }
     Ok(buffer)

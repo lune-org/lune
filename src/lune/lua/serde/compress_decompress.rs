@@ -102,7 +102,7 @@ pub async fn compress<'lua>(
         let source = source.as_ref().to_vec();
         return task::spawn_blocking(move || compress_prepend_size(&source))
             .await
-            .map_err(LuaError::external);
+            .into_lua_err();
     }
 
     let mut bytes = Vec::new();
@@ -135,8 +135,8 @@ pub async fn decompress<'lua>(
         let source = source.as_ref().to_vec();
         return task::spawn_blocking(move || decompress_size_prepended(&source))
             .await
-            .map_err(LuaError::external)?
-            .map_err(LuaError::external);
+            .into_lua_err()?
+            .into_lua_err();
     }
 
     let mut bytes = Vec::new();

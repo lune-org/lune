@@ -69,6 +69,7 @@ create_tests! {
     require_children: "require/tests/children",
     require_init: "require/tests/init",
     require_invalid: "require/tests/invalid",
+    require_multi_ext: "require/tests/multi_ext",
     require_nested: "require/tests/nested",
     require_parents: "require/tests/parents",
     require_siblings: "require/tests/siblings",

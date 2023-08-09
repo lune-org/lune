@@ -24,9 +24,7 @@ pub async fn pipe_and_inherit_child_process_stdio(
         let mut stdout = io::stdout();
         let mut tee = AsyncTeeWriter::new(&mut stdout);
 
-        io::copy(&mut child_stdout, &mut tee)
-            .await
-            .map_err(LuaError::external)?;
+        io::copy(&mut child_stdout, &mut tee).await.into_lua_err()?;
 
         Ok::<_, LuaError>(tee.into_vec())
     });
@@ -35,9 +33,7 @@ pub async fn pipe_and_inherit_child_process_stdio(
         let mut stderr = io::stderr();
         let mut tee = AsyncTeeWriter::new(&mut stderr);
 
-        io::copy(&mut child_stderr, &mut tee)
-            .await
-            .map_err(LuaError::external)?;
+        io::copy(&mut child_stderr, &mut tee).await.into_lua_err()?;
 
         Ok::<_, LuaError>(tee.into_vec())
     });

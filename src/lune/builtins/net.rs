@@ -73,7 +73,7 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
         .body(config.body.unwrap_or_default())
         .send()
         .await
-        .map_err(LuaError::external)?;
+        .into_lua_err()?;
     // Extract status, headers
     let res_status = res.status().as_u16();
     let res_status_text = res.status().canonical_reason();
@@ -88,7 +88,7 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
         })
         .collect::<HashMap<String, String>>();
     // Read response bytes
-    let mut res_bytes = res.bytes().await.map_err(LuaError::external)?.to_vec();
+    let mut res_bytes = res.bytes().await.into_lua_err()?.to_vec();
     // Check for extra options, decompression
     if config.options.decompress {
         // NOTE: Header names are guaranteed to be lowercase because of the above
@@ -120,9 +120,7 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
 }
 
 async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
-    let (ws, _) = tokio_tungstenite::connect_async(url)
-        .await
-        .map_err(LuaError::external)?;
+    let (ws, _) = tokio_tungstenite::connect_async(url).await.into_lua_err()?;
     NetWebSocket::new(ws).into_lua_table(lua)
 }
 

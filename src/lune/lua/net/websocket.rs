@@ -167,10 +167,10 @@ where
         reason: "".into(),
     })))
     .await
-    .map_err(LuaError::external)?;
+    .into_lua_err()?;
 
     let res = ws.close();
-    res.await.map_err(LuaError::external)
+    res.await.into_lua_err()
 }
 
 async fn send<'lua, T>(
@@ -187,11 +187,11 @@ where
     let msg = if matches!(as_binary, Some(true)) {
         WsMessage::Binary(string.as_bytes().to_vec())
     } else {
-        let s = string.to_str().map_err(LuaError::external)?;
+        let s = string.to_str().into_lua_err()?;
         WsMessage::Text(s.to_string())
     };
     let mut ws = socket.write_stream.lock().await;
-    ws.send(msg).await.map_err(LuaError::external)
+    ws.send(msg).await.into_lua_err()
 }
 
 async fn next<'lua, T>(
@@ -202,7 +202,7 @@ where
     T: AsyncRead + AsyncWrite + Unpin,
 {
     let mut ws = socket.read_stream.lock().await;
-    let item = ws.next().await.transpose().map_err(LuaError::external);
+    let item = ws.next().await.transpose().into_lua_err();
     let msg = match item {
         Ok(Some(WsMessage::Close(msg))) => {
             if let Some(msg) = &msg {

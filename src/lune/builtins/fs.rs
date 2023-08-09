@@ -26,14 +26,14 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
 }
 
 async fn fs_read_file(lua: &'static Lua, path: String) -> LuaResult<LuaString> {
-    let bytes = fs::read(&path).await.map_err(LuaError::external)?;
+    let bytes = fs::read(&path).await.into_lua_err()?;
     lua.create_string(bytes)
 }
 
 async fn fs_read_dir(_: &'static Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
-    let mut dir = fs::read_dir(&path).await.map_err(LuaError::external)?;
-    while let Some(dir_entry) = dir.next_entry().await.map_err(LuaError::external)? {
+    let mut dir = fs::read_dir(&path).await.into_lua_err()?;
+    while let Some(dir_entry) = dir.next_entry().await.into_lua_err()? {
         if let Some(dir_path_str) = dir_entry.path().to_str() {
             dir_strings.push(dir_path_str.to_owned());
         } else {
@@ -63,21 +63,19 @@ async fn fs_write_file(
     _: &'static Lua,
     (path, contents): (String, LuaString<'_>),
 ) -> LuaResult<()> {
-    fs::write(&path, &contents.as_bytes())
-        .await
-        .map_err(LuaError::external)
+    fs::write(&path, &contents.as_bytes()).await.into_lua_err()
 }
 
 async fn fs_write_dir(_: &'static Lua, path: String) -> LuaResult<()> {
-    fs::create_dir_all(&path).await.map_err(LuaError::external)
+    fs::create_dir_all(&path).await.into_lua_err()
 }
 
 async fn fs_remove_file(_: &'static Lua, path: String) -> LuaResult<()> {
-    fs::remove_file(&path).await.map_err(LuaError::external)
+    fs::remove_file(&path).await.into_lua_err()
 }
 
 async fn fs_remove_dir(_: &'static Lua, path: String) -> LuaResult<()> {
-    fs::remove_dir_all(&path).await.map_err(LuaError::external)
+    fs::remove_dir_all(&path).await.into_lua_err()
 }
 
 async fn fs_metadata(_: &'static Lua, path: String) -> LuaResult<FsMetadata> {
@@ -122,9 +120,7 @@ async fn fs_move(
             path_to.display()
         )));
     }
-    fs::rename(path_from, path_to)
-        .await
-        .map_err(LuaError::external)?;
+    fs::rename(path_from, path_to).await.into_lua_err()?;
     Ok(())
 }
 

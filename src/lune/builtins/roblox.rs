@@ -41,7 +41,7 @@ async fn deserialize_place<'lua>(
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await.map_err(LuaError::external)??.into_lua(lua)
+    fut.await.into_lua_err()??.into_lua(lua)
 }
 
 async fn deserialize_model<'lua>(
@@ -54,7 +54,7 @@ async fn deserialize_model<'lua>(
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await.map_err(LuaError::external)??.into_lua(lua)
+    fut.await.into_lua_err()??.into_lua(lua)
 }
 
 async fn serialize_place<'lua>(
@@ -70,7 +70,7 @@ async fn serialize_place<'lua>(
         })?;
         Ok::<_, DocumentError>(bytes)
     });
-    let bytes = fut.await.map_err(LuaError::external)??;
+    let bytes = fut.await.into_lua_err()??;
     lua.create_string(bytes)
 }
 
@@ -87,7 +87,7 @@ async fn serialize_model<'lua>(
         })?;
         Ok::<_, DocumentError>(bytes)
     });
-    let bytes = fut.await.map_err(LuaError::external)??;
+    let bytes = fut.await.into_lua_err()??;
     lua.create_string(bytes)
 }
 
