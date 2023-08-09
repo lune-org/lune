@@ -111,7 +111,7 @@ tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
 
 anyhow = { optional = true, version = "1.0" }
 env_logger = { optional = true, version = "0.10" }
-itertools = { optional = true, version = "0.10" }
+itertools = { optional = true, version = "0.11" }
 
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7.3", features = ["glob"] }
