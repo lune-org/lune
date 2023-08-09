@@ -31,7 +31,7 @@ impl Database {
         Creates a new database struct, referencing the bundled reflection database.
     */
     pub fn new() -> Self {
-        Self(rbx_reflection_database::get())
+        Self::default()
     }
 
     /**
@@ -122,6 +122,12 @@ impl LuaUserData for Database {
         methods.add_method("FindClass", |_, this, name: String| {
             Ok(this.find_class(name))
         });
+    }
+}
+
+impl Default for Database {
+    fn default() -> Self {
+        Self(rbx_reflection_database::get())
     }
 }
 
