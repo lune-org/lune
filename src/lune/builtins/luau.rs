@@ -1,7 +1,9 @@
+use mlua::ffi::lua_Number;
 use mlua::prelude::*;
 use mlua::Compiler as LuaCompiler;
 
 use crate::lune::lua::table::TableBuilder;
+// use  as LuaNumber;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
@@ -19,10 +21,21 @@ fn compile_source<'a>(
     let mut debug_level = 1;
 
     if let Some(options) = options {
-        optimization_level = options.raw_get("optimizationLevel")?;
-        coverage_level = options.raw_get("coverageLevel")?;
-        debug_level = options.raw_get("debugLevel")?;
-    }
+        optimization_level = match options.raw_get("optimizationLevel")? {
+            LuaValue::Integer(val) => val as u8,
+            _ => optimization_level,
+        };
+
+        coverage_level = match options.raw_get("coverageLevel")? {
+            LuaValue::Integer(val) => val as u8,
+            _ => coverage_level,
+        };
+
+        debug_level = match options.raw_get("debugLevel")? {
+            LuaValue::Integer(val) => val as u8,
+            _ => debug_level,
+        };
+    };
 
     let source_bytecode_bytes = LuaCompiler::default()
         .set_optimization_level(optimization_level)
@@ -40,10 +53,13 @@ fn load_source<'a>(
     lua: &'static Lua,
     (source, options): (LuaString<'a>, Option<LuaTable<'a>>),
 ) -> LuaResult<LuaFunction<'a>> {
-    let mut lua_debug_name = "".to_string();
+    let mut lua_debug_name = source.to_str()?.to_string();
 
     if let Some(options) = options {
-        lua_debug_name = options.raw_get("debugName")?
+        lua_debug_name = match options.raw_get("debugName")? {
+            LuaValue::String(val) => val.to_str()?.to_string(),
+            _ => lua_debug_name,
+        };
     }
 
     let lua_object = lua
