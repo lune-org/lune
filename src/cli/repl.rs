@@ -1,4 +1,5 @@
 use std::{
+    env,
     io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
@@ -7,9 +8,21 @@ use std::{
 use anyhow::Error;
 use clap::Command;
 use lune::{Lune, LuneError};
+use mlua::ExternalError;
+use once_cell::sync::Lazy;
 use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
 
-use super::Cli;
+use lune::lua::stdio::formatting::pretty_format_luau_error;
+
+fn env_var_bool(value: String) -> Option<bool> {
+    match value.to_lowercase().as_str() {
+        "true" => Some(true),
+        "1" => Some(true),
+        "0" => Some(false),
+        "false" => Some(false),
+        &_ => None,
+    }
+}
 
 // Isn't dependency injection plain awesome?!
 pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
@@ -56,6 +69,16 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
 
     let mut interrupt_counter = 0u32;
 
+    let colorize: Lazy<bool> = Lazy::new(|| {
+        let no_color = env::var("NO_COLOR").unwrap_or_else(|_| "false".to_string());
+
+        if no_color.is_empty() {
+            false
+        } else {
+            !env_var_bool(no_color).unwrap_or_else(|| false)
+        }
+    });
+
     loop {
         let mut source_code = String::new();
 
@@ -98,7 +121,12 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
 
         match eval_result {
             Ok(_) => (),
-            Err(err) => eprintln!("{}", err),
+            Err(err) => {
+                eprintln!(
+                    "{}",
+                    pretty_format_luau_error(&err.into_lua_err(), (&*colorize).to_owned())
+                )
+            }
         };
     }
 
