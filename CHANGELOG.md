@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed publishing of the Lune library to `crates.io`
 - Fixed `serde.decode` deserializing `null` values as `userdata` instead of `nil`.
 - Fixed not being able to require files with multiple extensions, eg. `module.spec.luau` was not require-able using `require("module.spec")`.
 - Fixed instances and `roblox` built-in library APIs erroring when used asynchronously/concurrently.
