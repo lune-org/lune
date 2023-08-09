@@ -1,4 +1,3 @@
-use mlua::ffi::lua_Number;
 use mlua::prelude::*;
 use mlua::Compiler as LuaCompiler;
 
