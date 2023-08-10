@@ -118,11 +118,9 @@ fn compile_source<'lua>(
 
 fn load_source<'a>(
     lua: &'static Lua,
-    (source, options): (LuaString<'a>, Option<LoadOptions>),
+    (source, options): (LuaString<'a>, LoadOptions),
 ) -> LuaResult<LuaFunction<'a>> {
-    let _options = options.unwrap_or_default();
-
     lua.load(source.to_str()?.trim_start())
-        .set_name(_options.debug_name)
+        .set_name(options.debug_name)
         .into_function()
 }
