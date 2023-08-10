@@ -1,8 +1,8 @@
 --[=[
-	@interface CompileSettings
+	@interface CompileOptions
 	@within Luau
 
-	The Luau compiler settings used in generating luau bytecode
+	The Luau compiler options used in generating luau bytecode
 
 	This is a dictionary that may contain one or more of the following values:
 
@@ -13,23 +13,23 @@
 	Documentation regarding what these values represent can be found here;
 	* https://github.com/Roblox/luau/blob/bd229816c0a82a8590395416c81c333087f541fd/Compiler/include/luacode.h#L13
 ]=]
-export type CompileSettings = {
+export type CompileOptions = {
 	optimizationLevel: number,
 	coverageLevel: number,
 	debugLevel: number,
 }
 
 --[=[
-	@interface LoadSettings
+	@interface LoadOptions
 	@within Luau
 
-	The Luau load settings are used for generating a lua function from either bytecode or sourcecode
+	The Luau load options are used for generating a lua function from either bytecode or sourcecode
 
 	This is a dictionary that may contain one or more of the following values:
 
 	* `debugName` - The debug name of the closure. Defaults to `string ["..."]`
 ]=]
-export type LoadSettings = {
+export type LoadOptions = {
 	debugName: string,
 }
 
@@ -76,11 +76,11 @@ local luau = {}
 	```
 
 	@param source The string that'll be compiled into bytecode
-	@param compileSettings The luau compiler settings used when compiling the source string
+	@param CompileOptions The luau compiler options used when compiling the source string
 
 	@return luau bytecode
 ]=]
-function luau.compile(source: string, compileSettings: CompileSettings): string
+function luau.compile(source: string, CompileOptions: CompileOptions): string
 	return nil :: any
 end
 
@@ -105,11 +105,11 @@ end
 	```
 
 	@param source Either bytecode or sourcecode
-	@param loadSettings The load settings used when creating a callbable function
+	@param loadOptions The load options used when creating a callbable function
 
 	@return luau function
 ]=]
-function luau.load(source: string, loadSettings: LoadSettings): string
+function luau.load(source: string, loadOptions: LoadOptions): string
 	return nil :: any
 end
 
