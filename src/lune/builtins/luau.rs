@@ -2,7 +2,6 @@ use mlua::prelude::*;
 use mlua::Compiler as LuaCompiler;
 
 use crate::lune::lua::table::TableBuilder;
-// use  as LuaNumber;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
