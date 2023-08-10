@@ -4,6 +4,7 @@ use mlua::Compiler as LuaCompiler;
 use crate::lune::lua::table::TableBuilder;
 
 const DEFAULT_DEBUG_NAME: &str = "luau.load(...)";
+const BYTECODE_ERROR_BYTE: u8 = 0;
 
 struct CompileOptions {
     pub optimization_level: u8,
@@ -114,7 +115,14 @@ fn compile_source<'lua>(
         .set_debug_level(_options.debug_level)
         .compile(source);
 
-    lua.create_string(source_bytecode_bytes)
+    let first_byte = source_bytecode_bytes.first().unwrap();
+
+    match *first_byte {
+        BYTECODE_ERROR_BYTE => Err(LuaError::RuntimeError(
+            String::from_utf8(source_bytecode_bytes).unwrap(),
+        )),
+        _ => lua.create_string(source_bytecode_bytes),
+    }
 }
 
 fn load_source<'a>(
