@@ -41,10 +41,7 @@ fn compile_source<'lua>(
         .set_debug_level(debug_level)
         .compile(source);
 
-    match lua.create_string(source_bytecode_bytes) {
-        Ok(lua_string) => Ok(lua_string),
-        Err(exception) => Err(LuaError::RuntimeError(exception.to_string())),
-    }
+    lua.create_string(source_bytecode_bytes)
 }
 
 fn load_source<'a>(
@@ -60,13 +57,7 @@ fn load_source<'a>(
         };
     }
 
-    let lua_object = lua
-        .load(source.to_str()?.trim_start())
+    lua.load(source.to_str()?.trim_start())
         .set_name(lua_debug_name.unwrap_or("luau.load(...)".to_string()))
-        .into_function();
-
-    match lua_object {
-        Ok(lua_function) => Ok(lua_function),
-        Err(exception) => Err(LuaError::RuntimeError(exception.to_string())),
-    }
+        .into_function()
 }
