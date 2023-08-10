@@ -105,13 +105,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
 
 fn compile_source<'lua>(
     lua: &'lua Lua,
-    (source, options): (LuaString<'lua>, Option<CompileOptions>),
+    (source, options): (LuaString<'lua>, CompileOptions),
 ) -> LuaResult<LuaString<'lua>> {
-    let _options = options.unwrap_or_default();
     let source_bytecode_bytes = LuaCompiler::default()
-        .set_optimization_level(_options.optimization_level)
-        .set_coverage_level(_options.coverage_level)
-        .set_debug_level(_options.debug_level)
+        .set_optimization_level(options.optimization_level)
+        .set_coverage_level(options.coverage_level)
+        .set_debug_level(options.debug_level)
         .compile(source);
 
     lua.create_string(source_bytecode_bytes)
