@@ -21,16 +21,19 @@ fn compile_source<'lua>(
     if let Some(options) = options {
         optimization_level = match options.raw_get("optimizationLevel")? {
             LuaValue::Integer(val) => val as u8,
+            LuaValue::Number(val) => val as u8,
             _ => optimization_level,
         };
 
         coverage_level = match options.raw_get("coverageLevel")? {
             LuaValue::Integer(val) => val as u8,
+            LuaValue::Number(val) => val as u8,
             _ => coverage_level,
         };
 
         debug_level = match options.raw_get("debugLevel")? {
             LuaValue::Integer(val) => val as u8,
+            LuaValue::Number(val) => val as u8,
             _ => debug_level,
         };
     };
