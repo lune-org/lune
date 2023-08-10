@@ -11,10 +11,10 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn compile_source<'a>(
-    lua: &'static Lua,
-    (source, options): (LuaString<'a>, Option<LuaTable<'a>>),
-) -> LuaResult<LuaString<'a>> {
+fn compile_source<'lua>(
+    lua: &'lua Lua,
+    (source, options): (LuaString<'lua>, Option<LuaTable<'lua>>),
+) -> LuaResult<LuaString<'lua>> {
     let mut optimization_level = 1;
     let mut coverage_level = 0;
     let mut debug_level = 1;
