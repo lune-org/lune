@@ -8,6 +8,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added a new `luau` built-in library for manually compiling and loading Luau source code. ([#82])
+
+  Example usage:
+
+  ```lua
+  local luau = require("@lune/luau")
+
+  local bytecode = luau.compile("print('Hello, World!')")
+  local callableFn = luau.load(bytecode)
+
+  callableFn()
+
+  -- Additionally, we can skip the bytecode generation and
+  -- load a callable function directly from the code itself.
+  local callableFn2 = luau.load("print('Hello, World!')")
+
+  callableFn2()
+  ```
+
+[#82]: https://github.com/filiptibell/lune/pull/82
+
 ## `0.7.6` - August 9th, 2023
 
 ### Changed
