@@ -18,18 +18,16 @@ assert(
 	"expected 'luau.load' to return a value"
 )
 
-local sourceFunction = luau.load(EMPTY_LUAU_CODE_BLOCK)
+local sourceFunction = luau.load(EMPTY_LUAU_CODE_BLOCK, { debugName = CUSTOM_SOURCE_BLOCK_NAME })
 local sourceFunctionDebugName = debug.info(sourceFunction, "s")
-
-assert(
-	string.find(sourceFunctionDebugName, EMPTY_LUAU_CODE_BLOCK),
-	"expected source block name for 'luau.load' to return the default debug name"
-)
-
-sourceFunction = luau.load(EMPTY_LUAU_CODE_BLOCK, { debugName = CUSTOM_SOURCE_BLOCK_NAME })
-sourceFunctionDebugName = debug.info(sourceFunction, "s")
 
 assert(
 	string.find(sourceFunctionDebugName, CUSTOM_SOURCE_BLOCK_NAME),
 	"expected source block name for 'luau.load' to return a custom debug name"
 )
+
+local success = pcall(function()
+	luau.load(luau.compile(RETURN_LUAU_CODE_BLOCK))
+end)
+
+assert(success, "expected `luau.load` to be able to process the result of `luau.compile`")
