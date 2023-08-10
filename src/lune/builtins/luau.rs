@@ -88,7 +88,7 @@ impl<'lua> FromLua<'lua> for LoadOptions {
                     from: value.type_name(),
                     to: "LoadOptions",
                     message: Some(format!(
-                        "Invalid compile options - expected string or table, got {}",
+                        "Invalid load options - expected string or table, got {}",
                         value.type_name()
                     )),
                 })
@@ -106,13 +106,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
 
 fn compile_source<'lua>(
     lua: &'lua Lua,
-    (source, options): (LuaString<'lua>, Option<CompileOptions>),
+    (source, options): (LuaString<'lua>, CompileOptions),
 ) -> LuaResult<LuaString<'lua>> {
-    let _options = options.unwrap_or_default();
     let source_bytecode_bytes = LuaCompiler::default()
-        .set_optimization_level(_options.optimization_level)
-        .set_coverage_level(_options.coverage_level)
-        .set_debug_level(_options.debug_level)
+        .set_optimization_level(options.optimization_level)
+        .set_coverage_level(options.coverage_level)
+        .set_debug_level(options.debug_level)
         .compile(source);
 
     let first_byte = source_bytecode_bytes.first().unwrap();
@@ -127,11 +126,9 @@ fn compile_source<'lua>(
 
 fn load_source<'a>(
     lua: &'static Lua,
-    (source, options): (LuaString<'a>, Option<LoadOptions>),
+    (source, options): (LuaString<'a>, LoadOptions),
 ) -> LuaResult<LuaFunction<'a>> {
-    let _options = options.unwrap_or_default();
-
     lua.load(source.to_str()?.trim_start())
-        .set_name(_options.debug_name)
+        .set_name(options.debug_name)
         .into_function()
 }
