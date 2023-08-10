@@ -10,7 +10,8 @@ assert(
 	"expected `luau.compile` to return bytecode string"
 )
 
-assert(
-	string.byte(luau.compile(BROKEN_LUAU_CODE_BLOCK), 1, 1) == 0,
-	"expected errors to return with \0 byte, error message attached afterwards."
-)
+local success = pcall(function()
+	luau.compile(BROKEN_LUAU_CODE_BLOCK)
+end)
+
+assert(success == false, "expected 'BROKEN_LUAU_CODE_BLOCK' to fail to compile into bytecode.")
