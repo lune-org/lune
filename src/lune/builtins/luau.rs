@@ -87,7 +87,7 @@ impl<'lua> FromLua<'lua> for LoadOptions {
                     from: value.type_name(),
                     to: "LoadOptions",
                     message: Some(format!(
-                        "Invalid compile options - expected string or table, got {}",
+                        "Invalid load options - expected string or table, got {}",
                         value.type_name()
                     )),
                 })
