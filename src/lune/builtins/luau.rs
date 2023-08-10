@@ -52,18 +52,18 @@ fn load_source<'a>(
     lua: &'static Lua,
     (source, options): (LuaString<'a>, Option<LuaTable<'a>>),
 ) -> LuaResult<LuaFunction<'a>> {
-    let mut lua_debug_name = source.to_str()?.to_string();
+    let mut lua_debug_name = None;
 
     if let Some(options) = options {
         lua_debug_name = match options.raw_get("debugName")? {
-            LuaValue::String(val) => val.to_str()?.to_string(),
+            LuaValue::String(val) => Some(val.to_str()?.to_string()),
             _ => lua_debug_name,
         };
     }
 
     let lua_object = lua
         .load(source.to_str()?.trim_start())
-        .set_name(lua_debug_name)
+        .set_name(lua_debug_name.unwrap_or("luau.load(...)".to_string()))
         .into_function();
 
     match lua_object {
