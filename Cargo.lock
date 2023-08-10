@@ -82,9 +82,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "180abfa45703aebe0093f79badacc01b8fd4ea2e35118747e5811127f926e188"
+checksum = "c677ab05e09154296dd37acecd46420c17b9713e8366facafa8fc0885167cf4c"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -296,9 +296,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clap"
-version = "4.3.19"
+version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd304a20bff958a57f04c4e96a2e7594cc4490a0e809cbd48bb6437edaa452d"
+checksum = "c27cdf28c0f604ba3f512b0c9a409f8de8513e4816705deb0498b627e7c3a3fd"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -307,9 +307,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.19"
+version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01c6a3f08f1fe5662a35cfe393aec09c4df95f60ee93b7556505260f75eee9e1"
+checksum = "08a9f1ab5e9f01a9b81f202e8562eb9a10de70abf9eaeac1be465c28b75aa4aa"
 dependencies = [
  "anstream",
  "anstyle",
@@ -802,7 +802,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2",
+ "socket2 0.4.9",
  "tokio",
  "tower-service",
  "tracing",
@@ -905,9 +905,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.10.5"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
 ]
@@ -981,7 +981,7 @@ dependencies = [
 
 [[package]]
 name = "lune"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1226,9 +1226,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c516611246607d0c04186886dbb3a754368ef82c79e9827a802c6d836dd111c"
+checksum = "12cc1b0bf1727a77a54b6654e7b5f1af8604923edc8b81885f8ec92f9e3f0a05"
 
 [[package]]
 name = "pin-utils"
@@ -1346,8 +1346,9 @@ dependencies = [
 
 [[package]]
 name = "rbx_binary"
-version = "0.7.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=e7a813d569c3f8a54be8a8873c33f8976c37b8b1#e7a813d569c3f8a54be8a8873c33f8976c37b8b1"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e50573021d04b680018955662eba7dc4aac3de92219231798f6c9b41e38ab01"
 dependencies = [
  "log",
  "lz4",
@@ -1375,8 +1376,9 @@ dependencies = [
 
 [[package]]
 name = "rbx_dom_weak"
-version = "2.4.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=e7a813d569c3f8a54be8a8873c33f8976c37b8b1#e7a813d569c3f8a54be8a8873c33f8976c37b8b1"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "161729449bbb0cfa657ce7bcca6a160d0af06d8b8d9efdc9abe14735dccacdb9"
 dependencies = [
  "rbx_types",
  "serde",
@@ -1384,8 +1386,9 @@ dependencies = [
 
 [[package]]
 name = "rbx_reflection"
-version = "4.2.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=e7a813d569c3f8a54be8a8873c33f8976c37b8b1#e7a813d569c3f8a54be8a8873c33f8976c37b8b1"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08bd48487192046fec8f805f3fa29f3d7d5beb9890b0859b1a92bd8aff580343"
 dependencies = [
  "rbx_types",
  "serde",
@@ -1394,8 +1397,9 @@ dependencies = [
 
 [[package]]
 name = "rbx_reflection_database"
-version = "0.2.6+roblox-572"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=e7a813d569c3f8a54be8a8873c33f8976c37b8b1#e7a813d569c3f8a54be8a8873c33f8976c37b8b1"
+version = "0.2.7+roblox-588"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1be6cf674182806f11ad4899dd1feafe977591f1ae035ae05a58d4b74e487276"
 dependencies = [
  "lazy_static",
  "rbx_reflection",
@@ -1405,8 +1409,9 @@ dependencies = [
 
 [[package]]
 name = "rbx_types"
-version = "1.5.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=e7a813d569c3f8a54be8a8873c33f8976c37b8b1#e7a813d569c3f8a54be8a8873c33f8976c37b8b1"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "070106e926b8ae54c7bc443e5db4d868d7f0af51c1d7cfd7efe1364c1753d8a3"
 dependencies = [
  "base64 0.13.1",
  "bitflags 1.3.2",
@@ -1419,8 +1424,9 @@ dependencies = [
 
 [[package]]
 name = "rbx_xml"
-version = "0.13.0"
-source = "git+https://github.com/rojo-rbx/rbx-dom?rev=e7a813d569c3f8a54be8a8873c33f8976c37b8b1#e7a813d569c3f8a54be8a8873c33f8976c37b8b1"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bc65b70827519fdc4ab47416d1085b912f087fadab9ed415471b6daba635574"
 dependencies = [
  "base64 0.13.1",
  "log",
@@ -1635,7 +1641,7 @@ checksum = "1d1feddffcfcc0b33f5c6ce9a29e341e4cd59c3f78e7ee45f4a40c038b1d6cbb"
 dependencies = [
  "log",
  "ring",
- "rustls-webpki 0.101.2",
+ "rustls-webpki 0.101.3",
  "sct",
 ]
 
@@ -1660,9 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.101.2"
+version = "0.101.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "513722fd73ad80a71f72b61009ea1b584bcfa1483ca93949c8f290298837fa59"
+checksum = "261e9e0888cba427c3316e6322805653c9425240b6fd96cee7cb671ab70ab8d0"
 dependencies = [
  "ring",
  "untrusted",
@@ -1851,6 +1857,16 @@ checksum = "64a4a911eed85daf18834cfaa86a79b7d266ff93ff5ba14005426219480ed662"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "socket2"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2538b18701741680e0322a2302176d3253a35388e2e62f172f64f4f16605f877"
+dependencies = [
+ "libc",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -2082,11 +2098,10 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.29.1"
+version = "1.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "532826ff75199d5833b9d2c5fe410f29235e25704ee5f0ef599fb51c21f4a4da"
+checksum = "2d3ce25f50619af8b0aec2eb23deebe84249e19e2ddd393a6e16e3300a6dadfd"
 dependencies = [
- "autocfg",
  "backtrace",
  "bytes",
  "libc",
@@ -2095,7 +2110,7 @@ dependencies = [
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
- "socket2",
+ "socket2 0.5.3",
  "tokio-macros",
  "windows-sys 0.48.0",
 ]

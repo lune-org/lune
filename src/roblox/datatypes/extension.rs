@@ -29,6 +29,7 @@ impl DomValueExt for DomType {
             Font => "Font",
             Int32 => "Int32",
             Int64 => "Int64",
+            MaterialColors => "MaterialColors",
             NumberRange => "NumberRange",
             NumberSequence => "NumberSequence",
             PhysicalProperties => "PhysicalProperties",

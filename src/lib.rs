@@ -1,5 +1,7 @@
 mod lune;
-mod roblox;
+
+#[cfg(feature = "roblox")]
+pub mod roblox;
 
 #[cfg(test)]
 mod tests;
