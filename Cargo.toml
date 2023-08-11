@@ -132,7 +132,6 @@ regex = { optional = true, version = "1.7", default-features = false, features =
     "std",
     "unicode-perl",
 ] }
-fancy-regex = "0.11.0"
 rustyline = "12.0.0"
 
 ### ROBLOX
