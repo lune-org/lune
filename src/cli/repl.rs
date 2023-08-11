@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::Error;
 use clap::Command;
-use fancy_regex::Regex;
+use regex::Regex;
 use lune::lua::stdio::formatting::{pretty_format_luau_error, pretty_format_value};
 use lune::Lune;
 use mlua::ExternalError;
@@ -77,14 +77,8 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
             !env_var_bool(no_color).unwrap_or_else(|| false)
         }
     });
-
-    // Group 2 of this match pattern is the variable contents
-
-    // We're using fancy_regex instead of regex for backreferences
-    // and lookaround. I'm not too good at regex, so if there's a
-    // way to do this without backreferences and lookarounds,
-    // please let me know.
-    const VARIABLE_DECLARATION_PAT: &str = r#"(?!local.*)(?!\s)(=\s*)(.*)"#;
+    
+    const VARIABLE_DECLARATION_PAT: &str = r#"(local)?\s*(.*)\s*(=)\s*(.*)\s*"#;
 
     // HACK: Prepend this "context" to the source code provided,
     // so that the variable is preserved even the following steps
@@ -138,7 +132,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
 
         match eval_result {
             Ok(_) => {
-                if Regex::new(VARIABLE_DECLARATION_PAT)?.is_match(&source_code)?
+                if Regex::new(VARIABLE_DECLARATION_PAT)?.is_match(&source_code)
                     && !&source_code.contains("\n")
                 {
                     let declaration = source_code.split("=").collect::<Vec<&str>>()[1]
