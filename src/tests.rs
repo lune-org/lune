@@ -101,6 +101,9 @@ create_tests! {
     task_delay: "task/delay",
     task_spawn: "task/spawn",
     task_wait: "task/wait",
+
+    luau_compile: "luau/compile",
+    luau_load: "luau/load",
 }
 
 #[cfg(feature = "roblox")]

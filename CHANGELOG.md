@@ -10,13 +10,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added a new `luau` built-in library for manually compiling and loading Luau source code. ([#82])
+
+  Example usage:
+
+  ```lua
+  local luau = require("@lune/luau")
+
+  local bytecode = luau.compile("print('Hello, World!')")
+  local callableFn = luau.load(bytecode)
+
+  callableFn()
+
+  -- Additionally, we can skip the bytecode generation and
+  -- load a callable function directly from the code itself.
+  local callableFn2 = luau.load("print('Hello, World!')")
+
+  callableFn2()
+  ```
+
+[#82]: https://github.com/filiptibell/lune/pull/82
+
+## `0.7.6` - August 9th, 2023
+
 ### Changed
 
+- Update to Luau version `0.588`
 - Enabled Luau JIT backend for potential performance improvements 🚀 <br/>
   If you run into any strange behavior please open an issue!
 
 ### Fixed
 
+- Fixed publishing of the Lune library to `crates.io`
 - Fixed `serde.decode` deserializing `null` values as `userdata` instead of `nil`.
 - Fixed not being able to require files with multiple extensions, eg. `module.spec.luau` was not require-able using `require("module.spec")`.
 - Fixed instances and `roblox` built-in library APIs erroring when used asynchronously/concurrently.

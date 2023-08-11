@@ -1,0 +1,106 @@
+use mlua::prelude::*;
+use mlua::Compiler as LuaCompiler;
+
+const DEFAULT_DEBUG_NAME: &str = "luau.load(...)";
+
+pub struct LuauCompileOptions {
+    pub(crate) optimization_level: u8,
+    pub(crate) coverage_level: u8,
+    pub(crate) debug_level: u8,
+}
+
+impl LuauCompileOptions {
+    pub fn into_compiler(self) -> LuaCompiler {
+        LuaCompiler::default()
+            .set_optimization_level(self.optimization_level)
+            .set_coverage_level(self.coverage_level)
+            .set_debug_level(self.debug_level)
+    }
+}
+
+impl Default for LuauCompileOptions {
+    fn default() -> Self {
+        // NOTE: This is the same as LuaCompiler::default() values, but they are
+        // not accessible from outside of mlua so we need to recreate them here.
+        Self {
+            optimization_level: 1,
+            coverage_level: 0,
+            debug_level: 1,
+        }
+    }
+}
+
+impl<'lua> FromLua<'lua> for LuauCompileOptions {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        Ok(match value {
+            LuaValue::Nil => Self::default(),
+            LuaValue::Table(t) => {
+                let mut options = Self::default();
+
+                if let Some(optimization_level) = t.get("optimizationLevel")? {
+                    options.optimization_level = optimization_level;
+                }
+                if let Some(coverage_level) = t.get("coverageLevel")? {
+                    options.coverage_level = coverage_level;
+                }
+                if let Some(debug_level) = t.get("debugLevel")? {
+                    options.debug_level = debug_level;
+                }
+
+                options
+            }
+            _ => {
+                return Err(LuaError::FromLuaConversionError {
+                    from: value.type_name(),
+                    to: "CompileOptions",
+                    message: Some(format!(
+                        "Invalid compile options - expected table, got {}",
+                        value.type_name()
+                    )),
+                })
+            }
+        })
+    }
+}
+
+pub struct LuauLoadOptions {
+    pub(crate) debug_name: String,
+}
+
+impl Default for LuauLoadOptions {
+    fn default() -> Self {
+        Self {
+            debug_name: DEFAULT_DEBUG_NAME.to_string(),
+        }
+    }
+}
+
+impl<'lua> FromLua<'lua> for LuauLoadOptions {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        Ok(match value {
+            LuaValue::Nil => Self::default(),
+            LuaValue::Table(t) => {
+                let mut options = Self::default();
+
+                if let Some(debug_name) = t.get("debugName")? {
+                    options.debug_name = debug_name;
+                }
+
+                options
+            }
+            LuaValue::String(s) => Self {
+                debug_name: s.to_string_lossy().to_string(),
+            },
+            _ => {
+                return Err(LuaError::FromLuaConversionError {
+                    from: value.type_name(),
+                    to: "LoadOptions",
+                    message: Some(format!(
+                        "Invalid load options - expected string or table, got {}",
+                        value.type_name()
+                    )),
+                })
+            }
+        })
+    }
+}

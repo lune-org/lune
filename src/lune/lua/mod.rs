@@ -2,6 +2,7 @@ mod create;
 
 pub mod async_ext;
 pub mod fs;
+pub mod luau;
 pub mod net;
 pub mod process;
 pub mod serde;
