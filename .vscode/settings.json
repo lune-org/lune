@@ -4,7 +4,7 @@
     "luau-lsp.types.roblox": false,
     "luau-lsp.require.mode": "relativeToFile",
     "luau-lsp.require.directoryAliases": {
-        "@lune/": "~/.lune/.typedefs/0.7.5/"
+        "@lune/": "./types/"
     },
     // Luau - ignore type defs file in docs dir and dev scripts we use
     "luau-lsp.ignoreGlobs": [
