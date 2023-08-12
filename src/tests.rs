@@ -44,6 +44,10 @@ create_tests! {
     fs_metadata: "fs/metadata",
     fs_move: "fs/move",
 
+    luau_compile: "luau/compile",
+    luau_load: "luau/load",
+    luau_options: "luau/options",
+
     net_request_codes: "net/request/codes",
     net_request_compression: "net/request/compression",
     net_request_methods: "net/request/methods",
@@ -101,9 +105,6 @@ create_tests! {
     task_delay: "task/delay",
     task_spawn: "task/spawn",
     task_wait: "task/wait",
-
-    luau_compile: "luau/compile",
-    luau_load: "luau/load",
 }
 
 #[cfg(feature = "roblox")]

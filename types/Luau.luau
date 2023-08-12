@@ -71,8 +71,6 @@ local luau = {}
 		coverageLevel: 0,
 		debugLevel: 1,
 	})
-
-	...
 	```
 
 	@param source The string that'll be compiled into bytecode
@@ -80,7 +78,7 @@ local luau = {}
 
 	@return luau bytecode
 ]=]
-function luau.compile(source: string, CompileOptions: CompileOptions): string
+function luau.compile(source: string, CompileOptions: CompileOptions?): string
 	return nil :: any
 end
 
@@ -109,7 +107,7 @@ end
 
 	@return luau function
 ]=]
-function luau.load(source: string, loadOptions: LoadOptions): string
+function luau.load(source: string, loadOptions: LoadOptions?): (...any) -> ...any
 	return nil :: any
 end
 

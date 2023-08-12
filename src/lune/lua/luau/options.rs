@@ -37,13 +37,23 @@ impl<'lua> FromLua<'lua> for LuauCompileOptions {
             LuaValue::Table(t) => {
                 let mut options = Self::default();
 
-                if let Some(optimization_level) = t.get("optimizationLevel")? {
+                let get_and_check = |name: &'static str| -> LuaResult<Option<u8>> {
+                    match t.get(name)? {
+                        Some(n @ (0 | 1 | 2)) => Ok(Some(n)),
+                        Some(n) => Err(LuaError::runtime(format!(
+                            "'{name}' must be one of: 0, 1, or 2 - got {n}"
+                        ))),
+                        None => Ok(None),
+                    }
+                };
+
+                if let Some(optimization_level) = get_and_check("optimizationLevel")? {
                     options.optimization_level = optimization_level;
                 }
-                if let Some(coverage_level) = t.get("coverageLevel")? {
+                if let Some(coverage_level) = get_and_check("coverageLevel")? {
                     options.coverage_level = coverage_level;
                 }
-                if let Some(debug_level) = t.get("debugLevel")? {
+                if let Some(debug_level) = get_and_check("debugLevel")? {
                     options.debug_level = debug_level;
                 }
 
