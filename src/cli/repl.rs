@@ -1,6 +1,5 @@
 use std::{
     env,
-    fmt::Write,
     io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
@@ -8,8 +7,7 @@ use std::{
 
 use anyhow::Error;
 use clap::Command;
-use regex::Regex;
-use lune::lua::stdio::formatting::{pretty_format_luau_error, pretty_format_value};
+use lune::lua::stdio::formatting::pretty_format_luau_error;
 use lune::Lune;
 use mlua::ExternalError;
 use once_cell::sync::Lazy;
@@ -77,24 +75,13 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
             !env_var_bool(no_color).unwrap_or_else(|| false)
         }
     });
-    
-    const VARIABLE_DECLARATION_PAT: &str = r#"(local)?\s*(.*)\s*(=)\s*(.*)\s*"#;
-
-    // HACK: Prepend this "context" to the source code provided,
-    // so that the variable is preserved even the following steps
-    let mut source_code_context: Option<String> = None;
 
     loop {
         let mut source_code = String::new();
 
         match repl.readline("> ") {
             Ok(code) => {
-                if let Some(ref ctx) = source_code_context {
-                    // If something breaks, blame this
-                    source_code = format!("{}    {}", ctx, code);
-                } else {
-                    source_code.push_str(code.as_str());
-                }
+                source_code = code.clone();
 
                 repl.add_history_entry(code.as_str())?;
 
@@ -131,32 +118,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
         let eval_result = lune_instance.run("REPL", source_code.clone()).await;
 
         match eval_result {
-            Ok(_) => {
-                if Regex::new(VARIABLE_DECLARATION_PAT)?.is_match(&source_code)
-                    && !&source_code.contains("\n")
-                {
-                    let declaration = source_code.split("=").collect::<Vec<&str>>()[1]
-                        .trim()
-                        .replace("\"", "");
-
-                    let mut formatted_output = String::new();
-                    pretty_format_value(
-                        &mut formatted_output,
-                        &mlua::IntoLua::into_lua(declaration, &mlua::Lua::new())?,
-                        1,
-                    )?;
-
-                    source_code_context = (|| -> Result<Option<String>, Error> {
-                        let mut ctx = String::new();
-                        write!(&mut ctx, "{}\n", &source_code)?;
-
-                        Ok(Some(ctx))
-                    })()?;
-
-                    println!("{}", formatted_output);
-                }
-            }
-
+            Ok(_) => (),
             Err(err) => {
                 eprintln!(
                     "{}",
