@@ -1,28 +1,19 @@
 use std::{
-    env,
     io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
 };
 
-use anyhow::Error;
+use anyhow::Result;
 use clap::Command;
+use directories::UserDirs;
 use lune::lua::stdio::formatting::pretty_format_luau_error;
 use lune::Lune;
 use mlua::ExternalError;
-use once_cell::sync::Lazy;
 use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
 
-fn env_var_bool(value: String) -> Option<bool> {
-    match value.to_lowercase().as_str() {
-        "true" | "1" => Some(true),
-        "false" | "0" => Some(false),
-        &_ => None,
-    }
-}
-
 // Isn't dependency injection plain awesome?!
-pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
+pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
     let lune_version = cmd.get_version();
 
     // The version is mandatory and will always exist
@@ -33,10 +24,12 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
     let mut repl = DefaultEditor::new()?;
 
     match repl.load_history(&(|| -> PathBuf {
-        let dir_opt = home::home_dir();
+        let dir_opt = UserDirs::new();
 
-        if let Some(dir) = dir_opt {
-            dir.join(".lune_history")
+        if let Some(dirs) = dir_opt {
+            let home_dir = dirs.home_dir();
+
+            home_dir.join(".lune_history")
         } else {
             eprintln!("Failed to find user home directory, abort!");
             // Doesn't feel right to exit directly with a exit code of 1
@@ -46,17 +39,14 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
     })()) {
         Ok(_) => (),
         Err(err) => {
-            match err {
-                err => {
-                    if let ReadlineError::Io(io_err) = err {
-                        if io_err.kind() == ErrorKind::NotFound {
-                            std::fs::write(
-                                // We know for sure that the home dir already exists
-                                home::home_dir().unwrap().join(".lune_history"),
-                                String::new(),
-                            )?;
-                        }
-                    }
+            if let ReadlineError::Io(io_err) = err {
+                // If global history file does not exist, we create it
+                if io_err.kind() == ErrorKind::NotFound {
+                    std::fs::write(
+                        // We know for sure that the home dir already exists
+                        directories::UserDirs::new().unwrap().home_dir().join(".lune_history"),
+                        String::new(),
+                    )?;
                 }
             }
 
@@ -65,16 +55,6 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
     };
 
     let mut interrupt_counter = 0u32;
-
-    let colorize: Lazy<bool> = Lazy::new(|| {
-        let no_color = env::var("NO_COLOR").unwrap_or_else(|_| "false".to_string());
-
-        if no_color.is_empty() {
-            true
-        } else {
-            !env_var_bool(no_color).unwrap_or_else(|| false)
-        }
-    });
 
     loop {
         let mut source_code = String::new();
@@ -122,7 +102,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
             Err(err) => {
                 eprintln!(
                     "{}",
-                    pretty_format_luau_error(&err.into_lua_err(), (&*colorize).to_owned())
+                    pretty_format_luau_error(&err.into_lua_err(), true)
                 )
             }
         };
@@ -131,10 +111,10 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode, Error> {
     Ok(ExitCode::SUCCESS)
 }
 
-fn save_repl_activity(mut repl: Editor<(), FileHistory>) -> Result<(), Error> {
+fn save_repl_activity(mut repl: Editor<(), FileHistory>) -> Result<()> {
     // Once again, we know that the specified home directory
     // and history file already exist
-    repl.save_history(&home::home_dir().unwrap().join(".lune_history"))?;
+    repl.save_history(directories::UserDirs::new().unwrap().home_dir())?;
 
     Ok(())
 }

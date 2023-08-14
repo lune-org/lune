@@ -1041,7 +1041,6 @@ dependencies = [
  "env_logger",
  "futures-util",
  "glam",
- "home",
  "hyper",
  "hyper-tungstenite",
  "include_dir",

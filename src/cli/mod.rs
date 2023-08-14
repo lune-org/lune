@@ -1,7 +1,4 @@
-use std::{
-    fmt::Write as _,
-    process::ExitCode,
-};
+use std::{fmt::Write as _, process::ExitCode};
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser};

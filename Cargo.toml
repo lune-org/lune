@@ -74,7 +74,6 @@ lz4_flex = "0.11"
 pin-project = "1.0"
 os_str_bytes = "6.4"
 urlencoding = "2.1"
-home = "0.5.5"
 
 ### RUNTIME
 
