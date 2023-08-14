@@ -1,5 +1,4 @@
 use std::{
-    fmt::Write,
     io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
@@ -9,14 +8,9 @@ use anyhow::Result;
 use clap::Command;
 use directories::UserDirs;
 use lune::lua::stdio::formatting::pretty_format_luau_error;
-use lune::{Lune, LuneError};
+use lune::Lune;
 use mlua::ExternalError;
 use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
-
-enum PromptState {
-    Regular,
-    Continuation,
-}
 
 // Isn't dependency injection plain awesome?!
 pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
@@ -63,18 +57,12 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
         }
     };
 
-    let mut prompt_kind: PromptState = PromptState::Regular;
     let mut interrupt_counter = 0u32;
 
     loop {
         let mut source_code = String::new();
 
-        let prompt = match prompt_kind {
-            PromptState::Regular => "> ",
-            PromptState::Continuation => ">> ",
-        };
-
-        match repl.readline(prompt) {
+        match repl.readline("> ") {
             Ok(code) => {
                 source_code = code.clone();
 
