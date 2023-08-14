@@ -1,4 +1,5 @@
 use std::{
+    fmt::Write,
     io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
@@ -8,9 +9,14 @@ use anyhow::Result;
 use clap::Command;
 use directories::UserDirs;
 use lune::lua::stdio::formatting::pretty_format_luau_error;
-use lune::Lune;
+use lune::{Lune, LuneError};
 use mlua::ExternalError;
 use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
+
+enum PromptState {
+    Regular,
+    Continuation,
+}
 
 // Isn't dependency injection plain awesome?!
 pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
@@ -44,7 +50,10 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
                 if io_err.kind() == ErrorKind::NotFound {
                     std::fs::write(
                         // We know for sure that the home dir already exists
-                        directories::UserDirs::new().unwrap().home_dir().join(".lune_history"),
+                        directories::UserDirs::new()
+                            .unwrap()
+                            .home_dir()
+                            .join(".lune_history"),
                         String::new(),
                     )?;
                 }
@@ -54,12 +63,18 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
         }
     };
 
+    let mut prompt_kind: PromptState = PromptState::Regular;
     let mut interrupt_counter = 0u32;
 
     loop {
         let mut source_code = String::new();
 
-        match repl.readline("> ") {
+        let prompt = match prompt_kind {
+            PromptState::Regular => "> ",
+            PromptState::Continuation => ">> ",
+        };
+
+        match repl.readline(prompt) {
             Ok(code) => {
                 source_code = code.clone();
 
@@ -99,11 +114,14 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
 
         match eval_result {
             Ok(_) => (),
+
             Err(err) => {
-                eprintln!(
-                    "{}",
-                    pretty_format_luau_error(&err.into_lua_err(), true)
-                )
+                println!("{}", err.to_string());
+
+                write!(&mut source_code, "{}", "\n")?;
+                prompt_kind = PromptState::Continuation;
+
+                eprintln!("{}", pretty_format_luau_error(&err.into_lua_err(), true))
             }
         };
     }
@@ -114,7 +132,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
 fn save_repl_activity(mut repl: Editor<(), FileHistory>) -> Result<()> {
     // Once again, we know that the specified home directory
     // and history file already exist
-    repl.save_history(directories::UserDirs::new().unwrap().home_dir())?;
+    repl.save_history(&directories::UserDirs::new().unwrap().home_dir().join(".lune_history"))?;
 
     Ok(())
 }
