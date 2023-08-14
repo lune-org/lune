@@ -74,3 +74,13 @@ end)()
 assert(not flag2, "Wait failed while inside wrap (1)")
 task.wait(0.2)
 assert(flag2, "Wait failed while inside wrap (2)")
+
+-- Coroutines should be passed arguments on initial resume
+
+local co = coroutine.create(function(a, b, c)
+	assert(a == 1)
+	assert(b == "Hello, world!")
+	assert(c == true)
+end)
+
+coroutine.resume(co, 1, "Hello, world!", true)
