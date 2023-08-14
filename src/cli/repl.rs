@@ -1,22 +1,19 @@
 use std::{
     fmt::Write,
-    io::ErrorKind,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{exit, ExitCode},
 };
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use clap::Command;
 use directories::UserDirs;
-use lune::lua::stdio::formatting::pretty_format_luau_error;
 use lune::Lune;
-use mlua::ExternalError;
-use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
+use rustyline::{error::ReadlineError, DefaultEditor};
 
 #[derive(PartialEq)]
 enum PromptState {
     Regular,
-    Continuation
+    Continuation,
 }
 
 // Isn't dependency injection plain awesome?!
@@ -29,40 +26,23 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
     let lune_instance = Lune::new();
 
     let mut repl = DefaultEditor::new()?;
+    let history_file_path: &PathBuf = &UserDirs::new()
+        .ok_or(Error::msg("cannot find user home directory"))?
+        .home_dir()
+        .join(".lune_history");
 
-    match repl.load_history(&(|| -> PathBuf {
-        let dir_opt = UserDirs::new();
+    if !history_file_path.exists() {
+        std::fs::write(
+            // We know for sure that the home dir already exists
+            directories::UserDirs::new()
+                .unwrap()
+                .home_dir()
+                .join(".lune_history"),
+            String::new(),
+        )?;
+    }
 
-        if let Some(dirs) = dir_opt {
-            let home_dir = dirs.home_dir();
-
-            home_dir.join(".lune_history")
-        } else {
-            eprintln!("Failed to find user home directory, abort!");
-            // Doesn't feel right to exit directly with a exit code of 1
-            // Lmk if there is a better way of doing this
-            exit(1);
-        }
-    })()) {
-        Ok(_) => (),
-        Err(err) => {
-            if let ReadlineError::Io(io_err) = err {
-                // If global history file does not exist, we create it
-                if io_err.kind() == ErrorKind::NotFound {
-                    std::fs::write(
-                        // We know for sure that the home dir already exists
-                        directories::UserDirs::new()
-                            .unwrap()
-                            .home_dir()
-                            .join(".lune_history"),
-                        String::new(),
-                    )?;
-                }
-            }
-
-            eprintln!("WARN: Failed to load REPL history")
-        }
-    };
+    repl.load_history(history_file_path)?;
 
     let mut interrupt_counter = 0u32;
     let mut prompt_state: PromptState = PromptState::Regular;
@@ -71,7 +51,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
     loop {
         let prompt = match prompt_state {
             PromptState::Regular => "> ",
-            PromptState::Continuation => ">> "
+            PromptState::Continuation => ">> ",
         };
 
         match repl.readline(prompt) {
@@ -98,12 +78,12 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
                     // Increment the counter
                     interrupt_counter += 1;
                 } else {
-                    save_repl_activity(repl)?;
+                    repl.save_history(history_file_path)?;
                     break;
                 }
             }
             Err(ReadlineError::Eof) => {
-                save_repl_activity(repl)?;
+                repl.save_history(history_file_path)?;
                 break;
             }
             Err(err) => {
@@ -124,24 +104,11 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
                     prompt_state = PromptState::Continuation;
                     source_code.push_str("\n")
                 } else {
-                    eprintln!("{}", pretty_format_luau_error(&err.into_lua_err(), true))
+                    eprintln!("{}", err);
                 }
             }
         };
     }
 
     Ok(ExitCode::SUCCESS)
-}
-
-fn save_repl_activity(mut repl: Editor<(), FileHistory>) -> Result<()> {
-    // Once again, we know that the specified home directory
-    // and history file already exist
-    repl.save_history(
-        &directories::UserDirs::new()
-            .unwrap()
-            .home_dir()
-            .join(".lune_history"),
-    )?;
-
-    Ok(())
 }
