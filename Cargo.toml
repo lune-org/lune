@@ -53,18 +53,6 @@ opt-level = "z"
 strip = true
 lto = true
 
-[profile.dev]
-lto = "off"
-strip = "none"
-codegen-units = 256
-panic = "unwind"
-opt-level = 0
-incremental = true
-overflow-checks = true
-debug-assertions = true
-debug = true
-rpath = false
-
 # All of the dependencies for Lune.
 #
 # Dependencies are categorized as following:
