@@ -12,35 +12,72 @@ use crate::lune::lua::stdio::formatting::pretty_format_luau_error;
 */
 #[derive(Debug, Clone)]
 pub struct LuneError {
-    message: String,
-    incomplete_input: bool,
+    error: LuaError,
+    disable_colors: bool,
 }
 
 impl LuneError {
-    pub(crate) fn from_lua_error(error: LuaError, disable_colors: bool) -> Self {
-        Self {
-            message: pretty_format_luau_error(&error, !disable_colors),
-            incomplete_input: matches!(
-                error,
-                LuaError::SyntaxError {
-                    incomplete_input: true,
-                    ..
-                }
-            ),
-        }
+    /**
+        Enables colorization of the error message when formatted using the [`Display`] trait.
+
+        Colorization is enabled by default.
+    */
+    #[doc(hidden)]
+    pub fn enable_colors(mut self) -> Self {
+        self.disable_colors = false;
+        self
+    }
+
+    /**
+        Disables colorization of the error message when formatted using the [`Display`] trait.
+
+        Colorization is enabled by default.
+    */
+    #[doc(hidden)]
+    pub fn disable_colors(mut self) -> Self {
+        self.disable_colors = true;
+        self
+    }
+
+    /**
+        Returns `true` if the error can likely be fixed by appending more input to the source code.
+
+        See [`mlua::Error::SyntaxError`] for more information.
+    */
+    pub fn is_incomplete_input(&self) -> bool {
+        matches!(
+            self.error,
+            LuaError::SyntaxError {
+                incomplete_input: true,
+                ..
+            }
+        )
     }
 }
 
-impl LuneError {
-    pub fn is_incomplete_input(&self) -> bool {
-        self.incomplete_input
+impl From<LuaError> for LuneError {
+    fn from(value: LuaError) -> Self {
+        Self {
+            error: value,
+            disable_colors: false,
+        }
     }
 }
 
 impl Display for LuneError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.message)
+        write!(
+            f,
+            "{}",
+            pretty_format_luau_error(&self.error, !self.disable_colors)
+        )
     }
 }
 
-impl Error for LuneError {}
+impl Error for LuneError {
+    // TODO: Comment this out when we are ready to also re-export
+    // `mlua` as part of our public library interface in Lune
+    // fn cause(&self) -> Option<&dyn Error> {
+    //     Some(&self.error)
+    // }
+}
