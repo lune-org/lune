@@ -13,20 +13,27 @@ use crate::lune::lua::stdio::formatting::pretty_format_luau_error;
 #[derive(Debug, Clone)]
 pub struct LuneError {
     message: String,
+    incomplete_input: bool,
 }
 
-#[allow(dead_code)]
 impl LuneError {
-    pub(crate) fn new(message: String) -> Self {
-        Self { message }
+    pub(crate) fn from_lua_error(error: LuaError, disable_colors: bool) -> Self {
+        Self {
+            message: pretty_format_luau_error(&error, !disable_colors),
+            incomplete_input: matches!(
+                error,
+                LuaError::SyntaxError {
+                    incomplete_input: true,
+                    ..
+                }
+            ),
+        }
     }
+}
 
-    pub(crate) fn from_lua_error(error: LuaError) -> Self {
-        Self::new(pretty_format_luau_error(&error, true))
-    }
-
-    pub(crate) fn from_lua_error_plain(error: LuaError) -> Self {
-        Self::new(pretty_format_luau_error(&error, false))
+impl LuneError {
+    pub fn is_incomplete_input(&self) -> bool {
+        self.incomplete_input
     }
 }
 

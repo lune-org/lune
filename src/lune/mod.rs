@@ -56,7 +56,7 @@ impl Lune {
     ) -> Result<ExitCode, LuneError> {
         self.run_inner(script_name, script_contents)
             .await
-            .map_err(LuneError::from_lua_error)
+            .map_err(|err| LuneError::from_lua_error(err, false))
     }
 
     async fn run_inner(
@@ -87,7 +87,7 @@ impl Lune {
                 loop {
                     let result = sched.resume_queue().await;
                     if let Some(err) = result.get_lua_error() {
-                        eprintln!("{}", LuneError::from_lua_error(err));
+                        eprintln!("{}", LuneError::from_lua_error(err, false));
                         got_error = true;
                     }
                     if result.is_done() {
