@@ -31,7 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   callableFn2()
   ```
 
+- Implemented support for a variable number of arguments for `CFrame` methods in the `roblox` built-in library. ([#85])
+
+### Fixed
+
+- Fixed not being able to pass arguments to the thread using `coroutine.resume`. ([#86])
+
 [#82]: https://github.com/filiptibell/lune/pull/82
+[#85]: https://github.com/filiptibell/lune/pull/85
+[#86]: https://github.com/filiptibell/lune/pull/86
 
 ## `0.7.6` - August 9th, 2023
 
