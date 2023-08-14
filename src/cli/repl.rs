@@ -1,4 +1,5 @@
 use std::{
+    fmt::Write,
     io::ErrorKind,
     path::PathBuf,
     process::{exit, ExitCode},
@@ -11,6 +12,12 @@ use lune::lua::stdio::formatting::pretty_format_luau_error;
 use lune::Lune;
 use mlua::ExternalError;
 use rustyline::{error::ReadlineError, history::FileHistory, DefaultEditor, Editor};
+
+#[derive(PartialEq)]
+enum PromptState {
+    Regular,
+    Continuation
+}
 
 // Isn't dependency injection plain awesome?!
 pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
@@ -58,13 +65,22 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
     };
 
     let mut interrupt_counter = 0u32;
+    let mut prompt_state: PromptState = PromptState::Regular;
+    let mut source_code = String::new();
 
     loop {
-        let mut source_code = String::new();
+        let prompt = match prompt_state {
+            PromptState::Regular => "> ",
+            PromptState::Continuation => ">> "
+        };
 
-        match repl.readline("> ") {
+        match repl.readline(prompt) {
             Ok(code) => {
-                source_code = code.clone();
+                if prompt_state == PromptState::Continuation {
+                    write!(&mut source_code, "{}", code)?;
+                } else if prompt_state == PromptState::Regular {
+                    source_code = code.clone();
+                }
 
                 repl.add_history_entry(code.as_str())?;
 
@@ -101,10 +117,15 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
         let eval_result = lune_instance.run("REPL", source_code.clone()).await;
 
         match eval_result {
-            Ok(_) => (),
+            Ok(_) => prompt_state = PromptState::Regular,
 
             Err(err) => {
-                eprintln!("{}", pretty_format_luau_error(&err.into_lua_err(), true))
+                if err.is_incomplete_input() {
+                    prompt_state = PromptState::Continuation;
+                    source_code.push_str("\n")
+                } else {
+                    eprintln!("{}", pretty_format_luau_error(&err.into_lua_err(), true))
+                }
             }
         };
     }
