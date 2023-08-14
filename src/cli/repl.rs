@@ -116,11 +116,6 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
             Ok(_) => (),
 
             Err(err) => {
-                println!("{}", err.to_string());
-
-                write!(&mut source_code, "{}", "\n")?;
-                prompt_kind = PromptState::Continuation;
-
                 eprintln!("{}", pretty_format_luau_error(&err.into_lua_err(), true))
             }
         };
@@ -132,7 +127,12 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
 fn save_repl_activity(mut repl: Editor<(), FileHistory>) -> Result<()> {
     // Once again, we know that the specified home directory
     // and history file already exist
-    repl.save_history(&directories::UserDirs::new().unwrap().home_dir().join(".lune_history"))?;
+    repl.save_history(
+        &directories::UserDirs::new()
+            .unwrap()
+            .home_dir()
+            .join(".lune_history"),
+    )?;
 
     Ok(())
 }
