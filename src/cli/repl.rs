@@ -1,7 +1,6 @@
 use std::{
-    fmt::Write,
-    path::{Path, PathBuf},
-    process::{exit, ExitCode},
+    path::PathBuf,
+    process::ExitCode,
 };
 
 use anyhow::{Error, Result};
