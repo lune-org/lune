@@ -32,14 +32,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
         .join(".lune_history");
 
     if !history_file_path.exists() {
-        std::fs::write(
-            // We know for sure that the home dir already exists
-            directories::UserDirs::new()
-                .unwrap()
-                .home_dir()
-                .join(".lune_history"),
-            String::new(),
-        )?;
+        std::fs::write(&history_file_path, String::new())?;
     }
 
     repl.load_history(history_file_path)?;
