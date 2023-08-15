@@ -50,7 +50,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
         match repl.readline(prompt) {
             Ok(code) => {
                 if prompt_state == PromptState::Continuation {
-                    write!(&mut source_code, "{}", code)?;
+                    source_code.push_str(&code);
                 } else if prompt_state == PromptState::Regular {
                     source_code = code.clone();
                 }
