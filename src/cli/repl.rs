@@ -95,7 +95,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
             Err(err) => {
                 if err.is_incomplete_input() {
                     prompt_state = PromptState::Continuation;
-                    source_code.push_str("\n")
+                    source_code.push('\n')
                 } else {
                     eprintln!("{}", err);
                 }
