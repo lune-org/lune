@@ -44,59 +44,38 @@ end
 "#;
 
 /**
-    Creates a [`mlua::Lua`] object with certain globals stored in the Lua registry.
+    Stores the following globals in the Lua registry:
 
-    These globals can then be modified safely after constructing Lua using this function.
+    | Registry Name   | Global            |
+    |-----------------|-------------------|
+    | `"print"`       | `print`           |
+    | `"error"`       | `error`           |
+    | `"type"`        | `type`            |
+    | `"typeof"`      | `typeof`          |
+    | `"pcall"`       | `pcall`           |
+    | `"xpcall"`      | `xpcall`          |
+    | `"tostring"`    | `tostring`        |
+    | `"tonumber"`    | `tonumber`        |
+    | `"co.yield"`    | `coroutine.yield` |
+    | `"co.close"`    | `coroutine.close` |
+    | `"tab.pack"`    | `table.pack`      |
+    | `"tab.unpack"`  | `table.unpack`    |
+    | `"tab.freeze"`  | `table.freeze`    |
+    | `"tab.getmeta"` | `getmetatable`    |
+    | `"tab.setmeta"` | `setmetatable`    |
+    | `"dbg.info"`    | `debug.info`      |
+    | `"dbg.trace"`   | `debug.traceback` |
 
-    ---
-    * `"print"` -> `print`
-    * `"error"` -> `error`
-    ---
-    * `"type"` -> `type`
-    * `"typeof"` -> `typeof`
-    ---
-    * `"pcall"` -> `pcall`
-    * `"xpcall"` -> `xpcall`
-    ---
-    * `"tostring"` -> `tostring`
-    * `"tonumber"` -> `tonumber`
-    ---
-    * `"co.yield"` -> `coroutine.yield`
-    * `"co.close"` -> `coroutine.close`
-    ---
-    * `"tab.pack"` -> `table.pack`
-    * `"tab.unpack"` -> `table.unpack`
-    * `"tab.freeze"` -> `table.freeze`
-    * `"tab.getmeta"` -> `getmetatable`
-    * `"tab.setmeta"` -> `setmetatable`
-    ---
-    * `"dbg.info"` -> `debug.info`
-    * `"dbg.trace"` -> `debug.traceback`
-    ---
+    These globals can then be modified safely from other runtime code.
 */
-pub fn create() -> LuaResult<&'static Lua> {
-    let lua = Lua::new().into_static();
-
-    // Enable jit and set global compiler options
-    lua.enable_jit(true);
-    lua.set_compiler(
-        LuaCompiler::default()
-            .set_coverage_level(0)
-            .set_debug_level(1)
-            .set_optimization_level(1),
-    );
-
+fn store_globals_in_registry(lua: &Lua) -> LuaResult<()> {
     // Extract some global tables that we will extract
     // built-in functions from and store in the registry
-    let globals = &lua.globals();
-    let debug: LuaTable = globals.raw_get("debug")?;
-    let table: LuaTable = globals.raw_get("table")?;
-    let string: LuaTable = globals.raw_get("string")?;
+    let globals = lua.globals();
+    let debug: LuaTable = globals.get("debug")?;
+    let string: LuaTable = globals.get("string")?;
+    let table: LuaTable = globals.get("table")?;
     let coroutine: LuaTable = globals.get("coroutine")?;
-
-    // Create a _G table that is separate from our built-in globals
-    let global_table = lua.create_table()?;
-    globals.set("_G", global_table)?;
 
     // Store original lua global functions in the registry so we can use
     // them later without passing them around and dealing with lifetimes
@@ -131,6 +110,7 @@ pub fn create() -> LuaResult<&'static Lua> {
     dbg_trace_env.set("push", table.get::<_, LuaFunction>("insert")?)?;
     dbg_trace_env.set("concat", table.get::<_, LuaFunction>("concat")?)?;
     dbg_trace_env.set("format", string.get::<_, LuaFunction>("format")?)?;
+
     let dbg_trace_fn = lua
         .load(TRACE_IMPL_LUA)
         .set_name("=dbg.trace")
@@ -138,8 +118,16 @@ pub fn create() -> LuaResult<&'static Lua> {
         .into_function()?;
     lua.set_named_registry_value("dbg.trace", dbg_trace_fn)?;
 
-    // Modify the _VERSION global to also contain the current version of Lune
-    let luau_version_full = globals
+    Ok(())
+}
+
+/**
+    Sets the `_VERSION` global to a value matching the string `Lune x.y.z+w` where
+    `x.y.z` is the current Lune runtime version and `w` is the current Luau version
+*/
+fn set_global_version(lua: &Lua) -> LuaResult<()> {
+    let luau_version_full = lua
+        .globals()
         .get::<_, LuaString>("_VERSION")
         .expect("Missing _VERSION global");
     let luau_version = luau_version_full
@@ -150,15 +138,47 @@ pub fn create() -> LuaResult<&'static Lua> {
     if luau_version.is_empty() {
         panic!("_VERSION global is missing version number")
     }
-    globals.set(
+    lua.globals().set(
         "_VERSION",
         lua.create_string(&format!(
             "Lune {lune}+{luau}",
             lune = env!("CARGO_PKG_VERSION"),
             luau = luau_version,
         ))?,
-    )?;
+    )
+}
 
-    // All done
+/**
+    Creates a _G table that is separate from our built-in globals
+*/
+fn set_global_table(lua: &Lua) -> LuaResult<()> {
+    lua.globals().set("_G", lua.create_table()?)
+}
+
+/**
+    Enables JIT and sets default compiler settings for the Lua struct.
+*/
+fn init_compiler_settings(lua: &Lua) {
+    lua.enable_jit(true);
+    lua.set_compiler(
+        LuaCompiler::default()
+            .set_coverage_level(0)
+            .set_debug_level(1)
+            .set_optimization_level(1),
+    );
+}
+
+/**
+    Creates a new [`mlua::Lua`] struct with compiler,
+    registry, and globals customized for the Lune runtime.
+
+    Refer to the source code for additional details and specifics.
+*/
+pub fn create() -> LuaResult<Lua> {
+    let lua = Lua::new();
+    init_compiler_settings(&lua);
+    store_globals_in_registry(&lua)?;
+    set_global_version(&lua)?;
+    set_global_table(&lua)?;
     Ok(lua)
 }

@@ -65,7 +65,7 @@ impl Lune {
         script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuaError> {
         // Create our special lune-flavored Lua object with extra registry values
-        let lua = lua::create_lune_lua()?;
+        let lua = lua::create_lune_lua()?.into_static();
         // Create our task scheduler and all globals
         // NOTE: Some globals require the task scheduler to exist on startup
         let sched = TaskScheduler::new(lua)?.into_static();
