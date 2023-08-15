@@ -80,10 +80,8 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
                 break;
             }
             Err(err) => {
-                eprintln!("REPL ERROR: {}", err.to_string());
-
-                // This isn't a good way to exit imo, once again
-                exit(1);
+                eprintln!("REPL ERROR: {err}");
+                return Ok(ExitCode::FAILURE);
             }
         };
 
