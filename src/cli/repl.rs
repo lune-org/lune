@@ -95,7 +95,7 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
                     prompt_state = PromptState::Continuation;
                     source_code.push('\n')
                 } else {
-                    eprintln!("{}", err);
+                    eprintln!("{err}");
                 }
             }
         };
