@@ -117,7 +117,7 @@ fn coroutine_status<'a>(
 
 fn coroutine_resume<'lua>(
     lua: &'lua Lua,
-    value: LuaThreadOrTaskReference,
+    (value, arguments): (LuaThreadOrTaskReference, LuaMultiValue<'lua>),
 ) -> LuaResult<(bool, LuaMultiValue<'lua>)> {
     let sched = lua.app_data_ref::<&TaskScheduler>().unwrap();
     if sched.current_task().is_none() {
@@ -128,10 +128,10 @@ fn coroutine_resume<'lua>(
     let current = sched.current_task().unwrap();
     let result = match value {
         LuaThreadOrTaskReference::Thread(t) => {
-            let task = sched.create_task(TaskKind::Instant, t, None, true)?;
+            let task = sched.create_task(TaskKind::Instant, t, Some(arguments), true)?;
             sched.resume_task(task, None)
         }
-        LuaThreadOrTaskReference::TaskReference(t) => sched.resume_task(t, None),
+        LuaThreadOrTaskReference::TaskReference(t) => sched.resume_task(t, Some(Ok(arguments))),
     };
     sched.force_set_current_task(Some(current));
     match result {
