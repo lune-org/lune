@@ -9,7 +9,6 @@ use lune::Lune;
 const MESSAGE_WELCOME: &str = concat!("Lune v", env!("CARGO_PKG_VERSION"));
 const MESSAGE_INTERRUPT: &str = "Interrupt: ^C again to exit";
 
-#[derive(PartialEq)]
 enum PromptState {
     Regular,
     Continuation,
