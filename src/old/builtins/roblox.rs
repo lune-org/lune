@@ -10,7 +10,7 @@ use crate::roblox::{
 
 use tokio::task;
 
-use crate::lune::lua::table::TableBuilder;
+use crate::lune_temp::lua::table::TableBuilder;
 
 static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
 

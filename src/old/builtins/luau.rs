@@ -1,6 +1,6 @@
 use mlua::prelude::*;
 
-use crate::lune::lua::{
+use crate::lune_temp::lua::{
     luau::{LuauCompileOptions, LuauLoadOptions},
     table::TableBuilder,
 };
