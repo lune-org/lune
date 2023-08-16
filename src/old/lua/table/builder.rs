@@ -2,7 +2,7 @@ use std::future::Future;
 
 use mlua::prelude::*;
 
-use crate::lune::lua::async_ext::LuaAsyncExt;
+use crate::lune_temp::lua::async_ext::LuaAsyncExt;
 
 pub struct TableBuilder {
     lua: &'static Lua,

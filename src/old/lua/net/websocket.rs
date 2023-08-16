@@ -22,7 +22,7 @@ use hyper_tungstenite::{
 };
 use tokio_tungstenite::MaybeTlsStream;
 
-use crate::lune::lua::table::TableBuilder;
+use crate::lune_temp::lua::table::TableBuilder;
 
 const WEB_SOCKET_IMPL_LUA: &str = r#"
 return freeze(setmetatable({
