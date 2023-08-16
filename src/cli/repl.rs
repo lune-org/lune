@@ -1,10 +1,13 @@
 use std::{path::PathBuf, process::ExitCode};
 
-use anyhow::{Error, Result};
-use clap::Command;
+use anyhow::{Context, Result};
 use directories::UserDirs;
-use lune::Lune;
 use rustyline::{error::ReadlineError, DefaultEditor};
+
+use lune::Lune;
+
+const MESSAGE_WELCOME: &str = concat!("Lune v", env!("CARGO_PKG_VERSION"));
+const MESSAGE_INTERRUPT: &str = "Interrupt: ^C again to exit";
 
 #[derive(PartialEq)]
 enum PromptState {
@@ -12,30 +15,25 @@ enum PromptState {
     Continuation,
 }
 
-// Isn't dependency injection plain awesome?!
-pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
-    let lune_version = cmd.get_version();
+pub async fn show_interface() -> Result<ExitCode> {
+    println!("{MESSAGE_WELCOME}");
 
-    // The version is mandatory and will always exist
-    println!("Lune v{}", lune_version.unwrap());
-
-    let lune_instance = Lune::new();
-
-    let mut repl = DefaultEditor::new()?;
     let history_file_path: &PathBuf = &UserDirs::new()
-        .ok_or(Error::msg("cannot find user home directory"))?
+        .context("Failed to find user home directory")?
         .home_dir()
         .join(".lune_history");
-
     if !history_file_path.exists() {
-        std::fs::write(&history_file_path, String::new())?;
+        tokio::fs::write(history_file_path, &[]).await?;
     }
 
+    let mut repl = DefaultEditor::new()?;
     repl.load_history(history_file_path)?;
 
-    let mut interrupt_counter = 0u32;
-    let mut prompt_state: PromptState = PromptState::Regular;
+    let mut interrupt_counter = 0;
+    let mut prompt_state = PromptState::Regular;
     let mut source_code = String::new();
+
+    let lune_instance = Lune::new();
 
     loop {
         let prompt = match prompt_state {
@@ -45,43 +43,43 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
 
         match repl.readline(prompt) {
             Ok(code) => {
-                if prompt_state == PromptState::Continuation {
-                    source_code.push_str(&code);
-                } else if prompt_state == PromptState::Regular {
-                    source_code = code.clone();
-                }
-
-                repl.add_history_entry(code.as_str())?;
-
-                // If source code eval was requested, we reset the counter
                 interrupt_counter = 0;
-            }
 
-            Err(ReadlineError::Interrupted) => {
-                // HACK: We actually want the user to do ^C twice to exit,
-                // but the user would need to ^C one more time even after
-                // the check passes, so we check for 1 instead of 2
-                if interrupt_counter != 1 {
-                    println!("Interrupt: ^C again to exit");
+                // TODO: Should we add history entries for each separate line?
+                // Or should we add and save history only when we have complete
+                // lua input that may or may not be multiple lines long?
+                repl.add_history_entry(&code)?;
+                repl.save_history(history_file_path)?;
 
-                    // Increment the counter
-                    interrupt_counter += 1;
-                } else {
-                    repl.save_history(history_file_path)?;
-                    break;
+                match prompt_state {
+                    PromptState::Regular => source_code = code,
+                    PromptState::Continuation => source_code.push_str(&code),
                 }
             }
-            Err(ReadlineError::Eof) => {
-                repl.save_history(history_file_path)?;
+
+            Err(ReadlineError::Eof) => break,
+            Err(ReadlineError::Interrupted) => {
+                interrupt_counter += 1;
+
+                // NOTE: We actually want the user to do ^C twice to exit,
+                // and if we get an interrupt we should continue to the next
+                // readline loop iteration so we don't run input code twice
+                if interrupt_counter == 1 {
+                    println!("{MESSAGE_INTERRUPT}");
+                    continue;
+                }
+
                 break;
             }
+
             Err(err) => {
                 eprintln!("REPL ERROR: {err}");
                 return Ok(ExitCode::FAILURE);
             }
         };
 
-        let eval_result = lune_instance.run("REPL", source_code.clone()).await;
+        // TODO: Preserve context here somehow?
+        let eval_result = lune_instance.run("REPL", &source_code).await;
 
         match eval_result {
             Ok(_) => prompt_state = PromptState::Regular,
@@ -89,13 +87,15 @@ pub async fn show_interface(cmd: Command) -> Result<ExitCode> {
             Err(err) => {
                 if err.is_incomplete_input() {
                     prompt_state = PromptState::Continuation;
-                    source_code.push('\n')
+                    source_code.push('\n');
                 } else {
                     eprintln!("{err}");
                 }
             }
         };
     }
+
+    repl.save_history(history_file_path)?;
 
     Ok(ExitCode::SUCCESS)
 }

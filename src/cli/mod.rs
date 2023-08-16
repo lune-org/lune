@@ -1,7 +1,7 @@
 use std::{fmt::Write as _, process::ExitCode};
 
 use anyhow::{Context, Result};
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 
 use lune::Lune;
 use tokio::{
@@ -147,14 +147,9 @@ impl Cli {
             if generate_file_requested {
                 return Ok(ExitCode::SUCCESS);
             }
-
-            // HACK: We know that we didn't get any arguments here but since
-            // script_path is optional clap will not error on its own, to fix
-            // we will duplicate the CLI command and fetch the version of
-            // lune to display
-            let exit_code_status = repl::show_interface(Cli::command()).await;
-
-            return exit_code_status;
+            // If we did not generate any typedefs we know that the user did not
+            // provide any other options, and in that case we should enter the REPL
+            return repl::show_interface().await;
         }
         // Figure out if we should read from stdin or from a file,
         // reading from stdin is marked by passing a single "-"
