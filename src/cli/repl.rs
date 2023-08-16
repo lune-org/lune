@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    process::ExitCode,
-};
+use std::{path::PathBuf, process::ExitCode};
 
 use anyhow::{Error, Result};
 use clap::Command;
