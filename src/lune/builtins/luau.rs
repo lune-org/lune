@@ -29,10 +29,10 @@ fn compile_source<'lua>(
     }
 }
 
-fn load_source<'a>(
-    lua: &'static Lua,
-    (source, options): (LuaString<'a>, LuauLoadOptions),
-) -> LuaResult<LuaFunction<'a>> {
+fn load_source<'lua>(
+    lua: &'lua Lua,
+    (source, options): (LuaString<'lua>, LuauLoadOptions),
+) -> LuaResult<LuaFunction<'lua>> {
     lua.load(source.as_bytes())
         .set_name(options.debug_name)
         .into_function()

@@ -47,19 +47,22 @@ fn create_user_agent_header() -> String {
     format!("{github_owner}-{github_repo}-cli")
 }
 
-fn net_json_encode<'a>(
-    lua: &'static Lua,
-    (val, pretty): (LuaValue<'a>, Option<bool>),
-) -> LuaResult<LuaString<'a>> {
+fn net_json_encode<'lua>(
+    lua: &'lua Lua,
+    (val, pretty): (LuaValue<'lua>, Option<bool>),
+) -> LuaResult<LuaString<'lua>> {
     EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()))
         .serialize_to_string(lua, val)
 }
 
-fn net_json_decode<'a>(lua: &'static Lua, json: LuaString<'a>) -> LuaResult<LuaValue<'a>> {
+fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<LuaValue<'lua>> {
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
-async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaResult<LuaTable<'a>> {
+async fn net_request<'lua>(
+    lua: &'static Lua,
+    config: RequestConfig<'lua>,
+) -> LuaResult<LuaTable<'lua>> {
     // Create and send the request
     let client: LuaUserDataRef<NetClient> = lua.named_registry_value("net.client")?;
     let mut request = client.request(config.method, &config.url);
@@ -119,15 +122,15 @@ async fn net_request<'a>(lua: &'static Lua, config: RequestConfig<'a>) -> LuaRes
         .build_readonly()
 }
 
-async fn net_socket<'a>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
+async fn net_socket<'lua>(lua: &'static Lua, url: String) -> LuaResult<LuaTable> {
     let (ws, _) = tokio_tungstenite::connect_async(url).await.into_lua_err()?;
     NetWebSocket::new(ws).into_lua_table(lua)
 }
 
-async fn net_serve<'a>(
+async fn net_serve<'lua>(
     lua: &'static Lua,
-    (port, config): (u16, ServeConfig<'a>),
-) -> LuaResult<LuaTable<'a>> {
+    (port, config): (u16, ServeConfig<'lua>),
+) -> LuaResult<LuaTable<'lua>> {
     // Note that we need to use a mpsc here and not
     // a oneshot channel since we move the sender
     // into our table with the stop function
@@ -188,10 +191,10 @@ async fn net_serve<'a>(
         .build_readonly()
 }
 
-fn net_url_encode<'a>(
-    lua: &'static Lua,
-    (lua_string, as_binary): (LuaString<'a>, Option<bool>),
-) -> LuaResult<LuaValue<'a>> {
+fn net_url_encode<'lua>(
+    lua: &'lua Lua,
+    (lua_string, as_binary): (LuaString<'lua>, Option<bool>),
+) -> LuaResult<LuaValue<'lua>> {
     if matches!(as_binary, Some(true)) {
         urlencoding::encode_binary(lua_string.as_bytes()).into_lua(lua)
     } else {
@@ -199,10 +202,10 @@ fn net_url_encode<'a>(
     }
 }
 
-fn net_url_decode<'a>(
-    lua: &'static Lua,
-    (lua_string, as_binary): (LuaString<'a>, Option<bool>),
-) -> LuaResult<LuaValue<'a>> {
+fn net_url_decode<'lua>(
+    lua: &'lua Lua,
+    (lua_string, as_binary): (LuaString<'lua>, Option<bool>),
+) -> LuaResult<LuaValue<'lua>> {
     if matches!(as_binary, Some(true)) {
         urlencoding::decode_binary(lua_string.as_bytes()).into_lua(lua)
     } else {

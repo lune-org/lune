@@ -81,10 +81,10 @@ pub fn create(lua: &'static Lua, args_vec: Vec<String>) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn process_env_get<'a>(
-    lua: &'static Lua,
-    (_, key): (LuaValue<'a>, String),
-) -> LuaResult<LuaValue<'a>> {
+fn process_env_get<'lua>(
+    lua: &'lua Lua,
+    (_, key): (LuaValue<'lua>, String),
+) -> LuaResult<LuaValue<'lua>> {
     match env::var_os(key) {
         Some(value) => {
             let raw_value = RawOsString::new(value);
@@ -96,9 +96,9 @@ fn process_env_get<'a>(
     }
 }
 
-fn process_env_set(
-    _: &'static Lua,
-    (_, key, value): (LuaValue, String, Option<String>),
+fn process_env_set<'lua>(
+    _: &'lua Lua,
+    (_, key, value): (LuaValue<'lua>, String, Option<String>),
 ) -> LuaResult<()> {
     // Make sure key is valid, otherwise set_var will panic
     if key.is_empty() {
@@ -150,10 +150,10 @@ fn process_env_iter<'lua>(
     })
 }
 
-async fn process_spawn<'a>(
+async fn process_spawn<'lua>(
     lua: &'static Lua,
-    (mut program, args, options): (String, Option<Vec<String>>, Option<LuaTable<'a>>),
-) -> LuaResult<LuaTable<'a>> {
+    (mut program, args, options): (String, Option<Vec<String>>, Option<LuaTable<'lua>>),
+) -> LuaResult<LuaTable<'lua>> {
     // Parse any given options or create defaults
     let (child_cwd, child_envs, child_shell, child_stdio_inherit) = match options {
         Some(options) => {
