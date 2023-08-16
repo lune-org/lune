@@ -10,6 +10,7 @@ use tokio::{
 };
 
 pub(crate) mod gen;
+pub(crate) mod repl;
 pub(crate) mod setup;
 pub(crate) mod utils;
 
@@ -146,12 +147,14 @@ impl Cli {
             if generate_file_requested {
                 return Ok(ExitCode::SUCCESS);
             }
+
             // HACK: We know that we didn't get any arguments here but since
             // script_path is optional clap will not error on its own, to fix
-            // we will duplicate the cli command and make arguments required,
-            // which will then fail and print out the normal help message
-            let cmd = Cli::command();
-            cmd.arg_required_else_help(true).get_matches();
+            // we will duplicate the CLI command and fetch the version of
+            // lune to display
+            let exit_code_status = repl::show_interface(Cli::command()).await;
+
+            return exit_code_status;
         }
         // Figure out if we should read from stdin or from a file,
         // reading from stdin is marked by passing a single "-"
