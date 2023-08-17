@@ -1,10 +1,11 @@
-use std::cell::RefCell;
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 #[derive(Debug, Default)]
 pub struct SchedulerState {
-    exit_code: RefCell<Option<u8>>,
-    num_resumptions: RefCell<usize>,
-    num_errors: RefCell<usize>,
+    exit_state: AtomicBool,
+    exit_code: AtomicU8,
+    num_resumptions: AtomicUsize,
+    num_errors: AtomicUsize,
 }
 
 impl SchedulerState {
@@ -13,26 +14,31 @@ impl SchedulerState {
     }
 
     pub fn add_resumption(&self) {
-        *self.num_resumptions.borrow_mut() += 1;
+        self.num_resumptions.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn add_error(&self) {
-        *self.num_errors.borrow_mut() += 1;
+        self.num_errors.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn has_errored(&self) -> bool {
-        *self.num_errors.borrow() > 0
+        self.num_errors.load(Ordering::SeqCst) > 0
     }
 
     pub fn exit_code(&self) -> Option<u8> {
-        *self.exit_code.borrow()
+        if self.exit_state.load(Ordering::SeqCst) {
+            Some(self.exit_code.load(Ordering::SeqCst))
+        } else {
+            None
+        }
     }
 
     pub fn has_exit_code(&self) -> bool {
-        self.exit_code.borrow().is_some()
+        self.exit_state.load(Ordering::SeqCst)
     }
 
     pub fn set_exit_code(&self, code: impl Into<u8>) {
-        self.exit_code.replace(Some(code.into()));
+        self.exit_state.store(true, Ordering::SeqCst);
+        self.exit_code.store(code.into(), Ordering::SeqCst);
     }
 }
