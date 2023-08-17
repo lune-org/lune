@@ -63,7 +63,7 @@ impl SchedulerImpl {
         let mut futs = self
             .futures
             .try_lock()
-            .expect("Failed to lock futures for resumption");
+            .expect("Failed to lock futures queue");
         while futs.next().await.is_some() {
             resumed_any = true;
             if self.has_thread() {
