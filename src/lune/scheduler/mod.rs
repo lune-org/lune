@@ -2,10 +2,13 @@ use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
     ops::Deref,
+    pin::Pin,
     sync::Arc,
 };
 
+use futures_util::{stream::FuturesUnordered, Future};
 use mlua::prelude::*;
+use tokio::sync::Mutex as AsyncMutex;
 
 mod state;
 mod thread;
@@ -66,6 +69,7 @@ pub struct SchedulerImpl {
     state: SchedulerState,
     threads: RefCell<VecDeque<SchedulerThread>>,
     thread_senders: RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>,
+    futures: AsyncMutex<FuturesUnordered<Pin<Box<dyn Future<Output = ()>>>>>,
 }
 
 impl SchedulerImpl {
@@ -75,6 +79,7 @@ impl SchedulerImpl {
             state: SchedulerState::new(),
             threads: RefCell::new(VecDeque::new()),
             thread_senders: RefCell::new(HashMap::new()),
+            futures: AsyncMutex::new(FuturesUnordered::new()),
         }
     }
 }
