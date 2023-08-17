@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use mlua::prelude::*;
 
 use super::{
@@ -7,6 +9,17 @@ use super::{
 };
 
 impl<'lua> SchedulerImpl {
+    /**
+        Checks if there are any lua threads to run.
+    */
+    pub(super) fn has_thread(&self) -> bool {
+        !self
+            .threads
+            .try_borrow()
+            .expect("Failed to borrow threads vec")
+            .is_empty()
+    }
+
     /**
         Pops the next thread to run, from the front of the scheduler.
 
@@ -111,6 +124,16 @@ impl<'lua> SchedulerImpl {
                     .lua
                     .registry_value::<Vec<LuaValue>>(&k)
                     .expect("Received invalid registry key for thread");
+
+                // NOTE: This is not strictly necessary, mlua can clean
+                // up registry values on its own, but doing this will add
+                // some extra safety and clean up registry values faster
+                if let Some(key) = Arc::into_inner(k) {
+                    self.lua
+                        .remove_registry_value(key)
+                        .expect("Failed to remove registry key for thread");
+                }
+
                 Ok(LuaMultiValue::from_vec(vals))
             }
         }

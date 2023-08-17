@@ -1,5 +1,6 @@
 use std::{process::ExitCode, sync::Arc};
 
+use futures_util::StreamExt;
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
@@ -52,6 +53,28 @@ impl SchedulerImpl {
     }
 
     /**
+        Runs futures until none are left or a future spawned a new lua thread.
+
+        Returns `true` if any future was resumed, `false` otherwise.
+    */
+    async fn run_futures(&self) -> bool {
+        let mut resumed_any = false;
+
+        let mut futs = self
+            .futures
+            .try_lock()
+            .expect("Failed to lock futures for resumption");
+        while futs.next().await.is_some() {
+            resumed_any = true;
+            if self.has_thread() {
+                break;
+            }
+        }
+
+        resumed_any
+    }
+
+    /**
         Runs the scheduler to completion in a [`LocalSet`],
         both normal lua threads and futures, prioritizing
         lua threads over completion of any pending futures.
@@ -71,14 +94,13 @@ impl SchedulerImpl {
                     break;
                 }
 
-                // 3. Wait for the next future to complete, this may
-                // add more lua threads to run in the next iteration
-
-                // TODO: Implement futures resumption
+                // 3. Keep resuming futures until we get a new lua thread to
+                // resume, or until we don't have any futures left to wait for
+                let resumed_fut = self.run_futures().await;
 
                 // 4. If we did not resume any lua threads, and we have no futures
-                // queued either, we have now run the scheduler until completion
-                if !resumed_lua {
+                // remaining either, we have now run the scheduler until completion
+                if !resumed_lua && !resumed_fut {
                     break;
                 }
             }
