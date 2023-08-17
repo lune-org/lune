@@ -1,8 +1,11 @@
-use std::process::ExitCode;
+use std::{process::ExitCode, sync::Arc};
 
 use mlua::prelude::*;
 
 mod error;
+mod scheduler;
+
+use self::scheduler::Scheduler;
 
 pub use error::LuneError;
 
@@ -38,16 +41,14 @@ impl Lune {
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuneError> {
-        self.run_inner(script_name, script_contents)
-            .await
-            .map_err(LuneError::from)
-    }
+        let lua = Arc::new(Lua::new());
+        let sched = Scheduler::new(Arc::clone(&lua));
 
-    async fn run_inner(
-        &self,
-        _script_name: impl AsRef<str>,
-        _script_contents: impl AsRef<[u8]>,
-    ) -> LuaResult<ExitCode> {
-        Ok(ExitCode::SUCCESS)
+        let main = lua
+            .load(script_contents.as_ref())
+            .set_name(script_name.as_ref());
+        sched.push_front(main, ())?;
+
+        Ok(sched.run_to_completion().await)
     }
 }
