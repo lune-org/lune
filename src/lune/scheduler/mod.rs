@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::VecDeque, ops::Deref, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, VecDeque},
+    ops::Deref,
+    sync::Arc,
+};
 
 use mlua::prelude::*;
 
@@ -9,7 +14,10 @@ mod traits;
 mod impl_runner;
 mod impl_threads;
 
-use self::{state::SchedulerState, thread::SchedulerThread};
+use self::{
+    state::SchedulerState,
+    thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
+};
 
 /**
     Scheduler for Lua threads.
@@ -57,6 +65,7 @@ pub struct SchedulerImpl {
     lua: Arc<Lua>,
     state: SchedulerState,
     threads: RefCell<VecDeque<SchedulerThread>>,
+    thread_senders: RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>,
 }
 
 impl SchedulerImpl {
@@ -65,6 +74,7 @@ impl SchedulerImpl {
             lua,
             state: SchedulerState::new(),
             threads: RefCell::new(VecDeque::new()),
+            thread_senders: RefCell::new(HashMap::new()),
         }
     }
 }
