@@ -14,6 +14,7 @@ mod state;
 mod thread;
 mod traits;
 
+mod impl_async;
 mod impl_runner;
 mod impl_threads;
 
