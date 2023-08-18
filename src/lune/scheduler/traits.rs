@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use futures_util::Future;
 use mlua::prelude::*;
 
@@ -20,11 +18,6 @@ where
     'lua: 'fut,
 {
     /**
-        Creates a new [`Lua`] struct with a [`Scheduler`].
-    */
-    fn new_with_scheduler() -> Arc<Self>;
-
-    /**
         Creates a function callable from Lua that runs an async
         closure and returns the results of it to the call site.
     */
@@ -40,12 +33,6 @@ impl<'lua, 'fut> LuaSchedulerExt<'lua, 'fut> for Lua
 where
     'lua: 'fut,
 {
-    fn new_with_scheduler() -> Arc<Self> {
-        let lua = Arc::new(Lua::new());
-        lua.set_app_data(Scheduler::new(Arc::clone(&lua)));
-        lua
-    }
-
     fn create_async_function<A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
     where
         A: FromLuaMulti<'lua>,
