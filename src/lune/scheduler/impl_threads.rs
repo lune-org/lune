@@ -39,7 +39,7 @@ where
         {
             Some(thread) => {
                 let thread_id = &thread.id();
-                let (thread, args) = thread.into_inner(&self.lua);
+                let (thread, args) = thread.into_inner(self.lua);
                 let sender = self
                     .thread_senders
                     .borrow_mut()
@@ -60,10 +60,10 @@ where
         thread: impl IntoLuaOwnedThread,
         args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_owned_lua_thread(&self.lua)?;
-        let args = args.into_lua_multi(&self.lua)?;
+        let thread = thread.into_owned_lua_thread(self.lua)?;
+        let args = args.into_lua_multi(self.lua)?;
 
-        let thread = SchedulerThread::new(&self.lua, thread, args)?;
+        let thread = SchedulerThread::new(self.lua, thread, args)?;
         let thread_id = thread.id();
 
         self.threads
@@ -87,10 +87,10 @@ where
         thread: impl IntoLuaOwnedThread,
         args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_owned_lua_thread(&self.lua)?;
-        let args = args.into_lua_multi(&self.lua)?;
+        let thread = thread.into_owned_lua_thread(self.lua)?;
+        let args = args.into_lua_multi(self.lua)?;
 
-        let thread = SchedulerThread::new(&self.lua, thread, args)?;
+        let thread = SchedulerThread::new(self.lua, thread, args)?;
         let thread_id = thread.id();
 
         self.threads

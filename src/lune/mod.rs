@@ -6,9 +6,11 @@ mod scheduler;
 use self::scheduler::Scheduler;
 
 pub use error::LuneError;
+use mlua::Lua;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone)]
 pub struct Lune {
+    lua: &'static Lua,
     args: Vec<String>,
 }
 
@@ -16,8 +18,12 @@ impl Lune {
     /**
         Creates a new Lune script runner.
     */
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            lua: Lua::new().into_static(),
+            args: Vec::new(),
+        }
     }
 
     /**
@@ -39,15 +45,25 @@ impl Lune {
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuneError> {
-        let scheduler = Scheduler::new();
+        let scheduler = Scheduler::new(self.lua);
+        self.lua.set_app_data(scheduler.clone());
 
-        let main = scheduler
+        let main = self
             .lua
             .load(script_contents.as_ref())
             .set_name(script_name.as_ref());
 
         scheduler.push_back(main, ())?;
-
         Ok(scheduler.run_to_completion().await)
+    }
+}
+
+impl Drop for Lune {
+    fn drop(&mut self) {
+        // SAFETY: The scheduler needs the static lifetime reference to lua,
+        // when dropped nothing outside of here has access to the scheduler
+        unsafe {
+            Lua::from_static(self.lua);
+        }
     }
 }

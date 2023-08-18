@@ -33,11 +33,11 @@ where
         FR: IntoLuaMulti<'fut>,
         F: Future<Output = LuaResult<FR>> + 'fut,
     {
-        let thread = thread.into_owned_lua_thread(&self.lua)?;
+        let thread = thread.into_owned_lua_thread(self.lua)?;
         self.schedule_future(async move {
             let rets = fut.await.expect("Failed to receive result");
             let rets = rets
-                .into_lua_multi(&self.lua)
+                .into_lua_multi(self.lua)
                 .expect("Failed to create return multi value");
             self.push_back(thread, rets)
                 .expect("Failed to schedule future thread");
