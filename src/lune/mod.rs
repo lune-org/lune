@@ -44,11 +44,15 @@ impl Lune {
         let lua = Arc::new(Lua::new());
         let sched = Scheduler::new(Arc::clone(&lua));
 
-        let main = lua
+        let main_fn = lua
             .load(script_contents.as_ref())
-            .set_name(script_name.as_ref());
-        sched.push_front(main, ())?;
+            .set_name(script_name.as_ref())
+            .into_function()?;
+        let main_thread = lua.create_thread(main_fn)?.into_owned();
 
+        sched
+            .push_back(main_thread, ())
+            .expect("Failed to enqueue thread for main");
         Ok(sched.run_to_completion().await)
     }
 }

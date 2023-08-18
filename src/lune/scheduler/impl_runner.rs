@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
-use super::{traits::IntoLuaOwnedThread, SchedulerImpl};
+use super::SchedulerImpl;
 
 impl<'lua, 'fut> SchedulerImpl<'fut>
 where
@@ -118,23 +118,5 @@ where
         } else {
             ExitCode::SUCCESS
         }
-    }
-
-    /**
-        Schedules a new main thread and runs the scheduler until completion.
-
-        See [`Self::run_to_completion`] for more info.
-    */
-    pub async fn run_main(
-        &'lua self,
-        main: impl IntoLuaOwnedThread,
-        args: impl IntoLuaMulti<'lua>,
-    ) -> ExitCode {
-        let thread = main
-            .into_owned_lua_thread(&self.lua)
-            .expect("Failed to create thread for main");
-        self.push_back(thread, args)
-            .expect("Failed to queue thread for main");
-        self.run_to_completion().await
     }
 }

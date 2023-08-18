@@ -4,7 +4,6 @@ use mlua::prelude::*;
 
 use super::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
-    traits::IntoLuaOwnedThread,
     SchedulerImpl,
 };
 
@@ -58,10 +57,9 @@ where
     */
     pub fn push_front(
         &'lua self,
-        thread: impl IntoLuaOwnedThread,
+        thread: LuaOwnedThread,
         args: impl IntoLuaMulti<'lua>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_owned_lua_thread(&self.lua)?;
         let args = args.into_lua_multi(&self.lua)?;
 
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
@@ -85,10 +83,9 @@ where
     */
     pub fn push_back(
         &'lua self,
-        thread: impl IntoLuaOwnedThread,
+        thread: LuaOwnedThread,
         args: impl IntoLuaMulti<'lua>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_owned_lua_thread(&self.lua)?;
         let args = args.into_lua_multi(&self.lua)?;
 
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
