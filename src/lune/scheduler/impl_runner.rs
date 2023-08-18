@@ -5,9 +5,7 @@ use mlua::prelude::*;
 
 use tokio::task::LocalSet;
 
-use super::{IntoLuaOwnedThread, Scheduler};
-
-const EMPTY_MULTI_VALUE: LuaMultiValue = LuaMultiValue::new();
+use super::Scheduler;
 
 impl<'lua, 'fut> Scheduler<'fut>
 where
@@ -120,32 +118,5 @@ where
         } else {
             ExitCode::SUCCESS
         }
-    }
-
-    /**
-        Runs a script with the given `script_name` and `script_contents` to completion.
-
-        Refer to [`run_to_completion`] for additional details.
-    */
-    pub async fn run_main(
-        self,
-        script_name: impl AsRef<str>,
-        script_contents: impl AsRef<[u8]>,
-    ) -> ExitCode {
-        let main_fn = self
-            .lua
-            .load(script_contents.as_ref())
-            .set_name(script_name.as_ref())
-            .into_function()
-            .expect("Failed to create function for main");
-
-        let main_thread = main_fn
-            .into_owned_lua_thread(&self.lua)
-            .expect("Failed to create thread for main");
-
-        self.push_back(main_thread, EMPTY_MULTI_VALUE)
-            .expect("Failed to enqueue thread for main");
-
-        self.run_to_completion().await
     }
 }
