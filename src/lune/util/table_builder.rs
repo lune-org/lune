@@ -52,15 +52,18 @@ impl<'lua> TableBuilder<'lua> {
     }
 }
 
-// FIXME: Remove static lifetimes here when possible and move into above impl
-impl TableBuilder<'static> {
+// FIXME: Remove static lifetime bound here when possible and move into above impl
+impl<'lua> TableBuilder<'lua>
+where
+    'lua: 'static,
+{
     pub fn with_async_function<K, A, R, F, FR>(self, key: K, func: F) -> LuaResult<Self>
     where
-        K: IntoLua<'static>,
-        A: FromLuaMulti<'static>,
-        R: IntoLuaMulti<'static>,
-        F: Fn(&'static Lua, A) -> FR + 'static,
-        FR: Future<Output = LuaResult<R>> + 'static,
+        K: IntoLua<'lua>,
+        A: FromLuaMulti<'lua>,
+        R: IntoLuaMulti<'lua>,
+        F: Fn(&'lua Lua, A) -> FR + 'lua,
+        FR: Future<Output = LuaResult<R>> + 'lua,
     {
         let f = self.lua.create_async_function(func)?;
         self.with_value(key, LuaValue::Function(f))
