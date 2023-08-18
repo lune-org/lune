@@ -4,10 +4,10 @@ use mlua::prelude::*;
 
 use super::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
-    SchedulerImpl,
+    Scheduler,
 };
 
-impl<'lua, 'fut> SchedulerImpl<'fut>
+impl<'lua, 'fut> Scheduler<'fut>
 where
     'lua: 'fut,
 {
@@ -28,8 +28,8 @@ where
         Returns `None` if there are no threads left to run.
     */
     pub(super) fn pop_thread(
-        &'lua self,
-    ) -> LuaResult<Option<(LuaOwnedThread, LuaMultiValue<'lua>, SchedulerThreadSender)>> {
+        &self,
+    ) -> LuaResult<Option<(LuaOwnedThread, LuaMultiValue<'_>, SchedulerThreadSender)>> {
         match self
             .threads
             .try_borrow_mut()
@@ -56,12 +56,10 @@ where
         right away, before any other currently scheduled threads.
     */
     pub fn push_front(
-        &'lua self,
+        &self,
         thread: LuaOwnedThread,
-        args: impl IntoLuaMulti<'lua>,
+        args: LuaMultiValue<'_>,
     ) -> LuaResult<SchedulerThreadId> {
-        let args = args.into_lua_multi(&self.lua)?;
-
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
         let thread_id = thread.id();
 
@@ -82,12 +80,10 @@ where
         after all other current threads have been resumed.
     */
     pub fn push_back(
-        &'lua self,
+        &self,
         thread: LuaOwnedThread,
-        args: impl IntoLuaMulti<'lua>,
+        args: LuaMultiValue<'_>,
     ) -> LuaResult<SchedulerThreadId> {
-        let args = args.into_lua_multi(&self.lua)?;
-
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
         let thread_id = thread.id();
 
@@ -107,9 +103,9 @@ where
         Waits for the given thread to finish running, and returns its result.
     */
     pub async fn wait_for_thread(
-        &'lua self,
+        &self,
         thread_id: SchedulerThreadId,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
+    ) -> LuaResult<LuaMultiValue<'_>> {
         let mut recv = {
             let senders = self.thread_senders.borrow();
             let sender = senders
