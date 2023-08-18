@@ -4,15 +4,18 @@ use futures_util::StreamExt;
 use mlua::prelude::*;
 use tokio::task::LocalSet;
 
-use super::SchedulerImpl;
+use super::{traits::IntoLuaOwnedThread, SchedulerImpl};
 
-impl<'lua> SchedulerImpl {
+impl<'lua, 'fut> SchedulerImpl<'fut>
+where
+    'lua: 'fut,
+{
     /**
         Runs all lua threads to completion.
 
         Returns `true` if any thread was resumed, `false` otherwise.
     */
-    fn run_lua_threads(&self) -> bool {
+    fn run_lua_threads(&'lua self) -> bool {
         if self.state.has_exit_code() {
             return false;
         }
@@ -57,7 +60,7 @@ impl<'lua> SchedulerImpl {
 
         Returns `true` if any future was resumed, `false` otherwise.
     */
-    async fn run_futures(&self) -> bool {
+    async fn run_futures(&'lua self) -> bool {
         let mut resumed_any = false;
 
         let mut futs = self
@@ -81,7 +84,7 @@ impl<'lua> SchedulerImpl {
 
         Will emit lua output and errors to stdout and stderr.
     */
-    pub async fn run_to_completion(&self) -> ExitCode {
+    pub async fn run_to_completion(&'lua self) -> ExitCode {
         let fut = async move {
             loop {
                 // 1. Run lua threads until exit or there are none left,
@@ -115,5 +118,23 @@ impl<'lua> SchedulerImpl {
         } else {
             ExitCode::SUCCESS
         }
+    }
+
+    /**
+        Schedules a new main thread and runs the scheduler until completion.
+
+        See [`Self::run_to_completion`] for more info.
+    */
+    pub async fn run_main(
+        &'lua self,
+        main: impl IntoLuaOwnedThread,
+        args: impl IntoLuaMulti<'lua>,
+    ) -> ExitCode {
+        let thread = main
+            .into_owned_lua_thread(&self.lua)
+            .expect("Failed to create thread for main");
+        self.push_back(thread, args)
+            .expect("Failed to queue thread for main");
+        self.run_to_completion().await
     }
 }

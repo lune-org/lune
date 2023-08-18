@@ -18,6 +18,8 @@ mod impl_async;
 mod impl_runner;
 mod impl_threads;
 
+pub use self::traits::*;
+
 use self::{
     state::SchedulerState,
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
@@ -30,12 +32,11 @@ use self::{
     to the same underlying scheduler and Lua struct.
 */
 #[derive(Debug, Clone)]
-pub struct Scheduler {
-    lua: Arc<Lua>,
-    inner: Arc<SchedulerImpl>,
+pub(crate) struct Scheduler<'fut> {
+    inner: Arc<SchedulerImpl<'fut>>,
 }
 
-impl Scheduler {
+impl<'fut> Scheduler<'fut> {
     /**
         Creates a new scheduler for the given [`Lua`] struct.
     */
@@ -45,12 +46,12 @@ impl Scheduler {
 
         let inner = Arc::new(sched_impl);
 
-        Self { lua, inner }
+        Self { inner }
     }
 }
 
-impl Deref for Scheduler {
-    type Target = SchedulerImpl;
+impl<'fut> Deref for Scheduler<'fut> {
+    type Target = SchedulerImpl<'fut>;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
@@ -62,15 +63,15 @@ impl Deref for Scheduler {
     Not meant to be used directly, use [`Scheduler`] instead.
 */
 #[derive(Debug)]
-pub struct SchedulerImpl {
+pub(crate) struct SchedulerImpl<'fut> {
     lua: Arc<Lua>,
     state: SchedulerState,
     threads: RefCell<VecDeque<SchedulerThread>>,
     thread_senders: RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>,
-    futures: AsyncMutex<FuturesUnordered<Pin<Box<dyn Future<Output = ()>>>>>,
+    futures: AsyncMutex<FuturesUnordered<Pin<Box<dyn Future<Output = ()> + 'fut>>>>,
 }
 
-impl SchedulerImpl {
+impl<'fut> SchedulerImpl<'fut> {
     fn new(lua: Arc<Lua>) -> Self {
         Self {
             lua,

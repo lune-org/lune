@@ -1,64 +1,83 @@
+use std::sync::Arc;
+
 use futures_util::Future;
-use mlua::{chunk, prelude::*};
+use mlua::prelude::*;
 
 use super::Scheduler;
+
+const ASYNC_IMPL_LUA: &str = r#"
+schedule(...)
+return yield()
+"#;
 
 /**
     Trait for extensions to the [`Lua`] struct, allowing
     for access to the scheduler without having to import
     it or handle registry / app data references manually.
 */
-pub trait LuaSchedulerExt {
+pub trait LuaSchedulerExt<'lua, 'fut>
+where
+    'lua: 'fut,
+{
     /**
-        Get a reference to the scheduler for the [`Lua`] struct.
+        Creates a new [`Lua`] struct with a [`Scheduler`].
     */
-    fn scheduler(&self) -> &Scheduler;
+    fn new_with_scheduler() -> Arc<Self>;
 
     /**
         Creates a function callable from Lua that runs an async
         closure and returns the results of it to the call site.
     */
-    fn create_async_function<'lua, A, R, F, FR>(
-        &'lua self,
-        func: F,
-    ) -> LuaResult<LuaFunction<'lua>>
+    fn create_async_function<A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
     where
         A: FromLuaMulti<'lua>,
         R: IntoLuaMulti<'lua>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'static + Future<Output = LuaResult<R>>;
+        FR: 'fut + Future<Output = LuaResult<R>>;
 }
 
-impl LuaSchedulerExt for Lua {
-    fn scheduler(&self) -> &Scheduler {
-        *self
-            .app_data_ref::<&Scheduler>()
-            .expect("Lua struct is missing scheduler")
+impl<'lua, 'fut> LuaSchedulerExt<'lua, 'fut> for Lua
+where
+    'lua: 'fut,
+{
+    fn new_with_scheduler() -> Arc<Self> {
+        let lua = Arc::new(Lua::new());
+        lua.set_app_data(Scheduler::new(Arc::clone(&lua)));
+        lua
     }
 
-    fn create_async_function<'lua, A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
+    fn create_async_function<A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
     where
         A: FromLuaMulti<'lua>,
         R: IntoLuaMulti<'lua>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'static + Future<Output = LuaResult<R>>,
+        FR: 'fut + Future<Output = LuaResult<R>>,
     {
-        let coroutine_yield = self
-            .globals()
-            .get::<_, LuaTable>("coroutine")?
-            .get::<_, LuaFunction>("yield")?;
-        let schedule = LuaFunction::wrap(move |lua: &Lua, args: A| {
-            let thread = lua.current_thread().into_owned();
-            let future = func(lua, args);
-            lua.scheduler().schedule_future_thread(thread, future);
-            Ok(())
-        });
+        let async_env = self.create_table_with_capacity(0, 2)?;
+
+        async_env.set(
+            "yield",
+            self.globals()
+                .get::<_, LuaTable>("coroutine")?
+                .get::<_, LuaFunction>("yield")?,
+        )?;
+
+        async_env.set(
+            "schedule",
+            LuaFunction::wrap(move |lua: &Lua, args: A| {
+                let _thread = lua.current_thread().into_owned();
+                let _future = func(lua, args);
+                let _sched = lua
+                    .app_data_ref::<&Scheduler>()
+                    .expect("Lua struct is missing scheduler");
+                // FIXME: `self` escapes outside of method
+                // sched.schedule_future_thread(thread, future)?;
+                Ok(())
+            }),
+        )?;
 
         let async_func = self
-            .load(chunk!({
-                $schedule(...)
-                return $coroutine_yield()
-            }))
+            .load(ASYNC_IMPL_LUA)
             .set_name("async")
             .into_function()?;
         Ok(async_func)

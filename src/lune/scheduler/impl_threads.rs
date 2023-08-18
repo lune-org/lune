@@ -8,7 +8,10 @@ use super::{
     SchedulerImpl,
 };
 
-impl<'lua> SchedulerImpl {
+impl<'lua, 'fut> SchedulerImpl<'fut>
+where
+    'lua: 'fut,
+{
     /**
         Checks if there are any lua threads to run.
     */
