@@ -3,7 +3,7 @@ use mlua::prelude::*;
 
 use super::{traits::IntoLuaOwnedThread, SchedulerImpl};
 
-impl<'lua, 'fut> SchedulerImpl
+impl<'lua, 'fut> SchedulerImpl<'fut>
 where
     'lua: 'fut,
 {
@@ -12,7 +12,7 @@ where
     */
     pub fn schedule_future<F>(&self, fut: F)
     where
-        F: 'static + Future<Output = ()>,
+        F: 'fut + Future<Output = ()>,
     {
         let futs = self
             .futures
@@ -24,11 +24,11 @@ where
     /**
         Schedules the given `thread` to run when the given `fut` completes.
     */
-    pub fn schedule_future_thread<T, F, R>(&'lua self, thread: T, fut: F) -> LuaResult<()>
+    pub fn schedule_future_thread<T, R, F>(&'fut self, thread: T, fut: F) -> LuaResult<()>
     where
-        T: 'static + IntoLuaOwnedThread,
-        F: 'static + Future<Output = LuaResult<R>>,
+        T: IntoLuaOwnedThread,
         R: IntoLuaMulti<'fut>,
+        F: 'fut + Future<Output = LuaResult<R>>,
     {
         let thread = thread.into_owned_lua_thread(&self.lua)?;
 
