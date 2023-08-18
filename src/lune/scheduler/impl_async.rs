@@ -1,7 +1,7 @@
 use futures_util::Future;
 use mlua::prelude::*;
 
-use super::Scheduler;
+use super::{IntoLuaOwnedThread, Scheduler};
 
 impl<'lua, 'fut> Scheduler<'fut>
 where
@@ -12,7 +12,7 @@ where
     */
     pub fn schedule_future<F>(&'fut self, fut: F)
     where
-        F: 'fut + Future<Output = ()>,
+        F: Future<Output = ()> + 'fut,
     {
         let futs = self
             .futures
@@ -26,13 +26,14 @@ where
     */
     pub fn schedule_future_thread<F, FR>(
         &'fut self,
-        thread: LuaOwnedThread,
+        thread: impl IntoLuaOwnedThread,
         fut: F,
     ) -> LuaResult<()>
     where
         FR: IntoLuaMulti<'fut>,
-        F: 'fut + Future<Output = LuaResult<FR>>,
+        F: Future<Output = LuaResult<FR>> + 'fut,
     {
+        let thread = thread.into_owned_lua_thread(&self.lua)?;
         self.schedule_future(async move {
             let rets = fut.await.expect("Failed to receive result");
             let rets = rets
