@@ -2,6 +2,7 @@ use std::process::ExitCode;
 
 mod error;
 mod scheduler;
+mod util;
 
 use self::scheduler::Scheduler;
 
