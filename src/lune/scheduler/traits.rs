@@ -25,8 +25,8 @@ where
     where
         A: FromLuaMulti<'lua>,
         R: IntoLuaMulti<'lua>,
-        F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'static + Future<Output = LuaResult<R>>;
+        F: Fn(&'lua Lua, A) -> FR + 'static,
+        FR: Future<Output = LuaResult<R>> + 'fut;
 }
 
 impl<'lua, 'fut> LuaSchedulerExt<'lua, 'fut> for Lua
@@ -37,8 +37,8 @@ where
     where
         A: FromLuaMulti<'lua>,
         R: IntoLuaMulti<'lua>,
-        F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'static + Future<Output = LuaResult<R>>,
+        F: Fn(&'lua Lua, A) -> FR + 'static,
+        FR: Future<Output = LuaResult<R>> + 'fut,
     {
         let async_env = self.create_table_with_capacity(0, 2)?;
 
@@ -52,12 +52,12 @@ where
         async_env.set(
             "schedule",
             LuaFunction::wrap(move |lua: &Lua, args: A| {
-                let _thread = lua.current_thread().into_owned();
-                let _future = func(lua, args);
-                let _sched = lua
+                let thread = lua.current_thread();
+                let future = func(lua, args);
+                let sched = lua
                     .app_data_ref::<&Scheduler>()
                     .expect("Lua struct is missing scheduler");
-                // FIXME: `self` escapes outside of method
+                // FIXME: `self` escapes outside of method because we are borrowing `func`?
                 // sched.schedule_future_thread(thread, future)?;
                 Ok(())
             }),
