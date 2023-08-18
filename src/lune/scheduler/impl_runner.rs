@@ -6,7 +6,7 @@ use tokio::task::LocalSet;
 
 use super::SchedulerImpl;
 
-impl SchedulerImpl {
+impl<'lua> SchedulerImpl {
     /**
         Runs all lua threads to completion.
 

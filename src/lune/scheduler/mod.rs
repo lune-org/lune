@@ -30,32 +30,29 @@ use self::{
     to the same underlying scheduler and Lua struct.
 */
 #[derive(Debug, Clone)]
-pub struct Scheduler(Arc<SchedulerImpl>);
+pub struct Scheduler {
+    lua: Arc<Lua>,
+    inner: Arc<SchedulerImpl>,
+}
 
 impl Scheduler {
     /**
         Creates a new scheduler for the given [`Lua`] struct.
     */
     pub fn new(lua: Arc<Lua>) -> Self {
-        assert!(
-            lua.app_data_ref::<Self>().is_none() && lua.app_data_ref::<&Self>().is_none(),
-            "Only one scheduler may be created per Lua struct"
-        );
+        let sched_lua = Arc::clone(&lua);
+        let sched_impl = SchedulerImpl::new(sched_lua);
 
-        let inner = SchedulerImpl::new(Arc::clone(&lua));
-        let sched = Self(Arc::new(inner));
+        let inner = Arc::new(sched_impl);
 
-        lua.set_app_data(sched.clone());
-        lua.set_interrupt(move |_| Ok(LuaVmState::Continue));
-
-        sched
+        Self { lua, inner }
     }
 }
 
 impl Deref for Scheduler {
     type Target = SchedulerImpl;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 

@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use super::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
-    traits::IntoLuaThread,
+    traits::IntoLuaOwnedThread,
     SchedulerImpl,
 };
 
@@ -27,7 +27,7 @@ impl<'lua> SchedulerImpl {
     */
     pub(super) fn pop_thread(
         &'lua self,
-    ) -> LuaResult<Option<(LuaThread<'lua>, LuaMultiValue<'lua>, SchedulerThreadSender)>> {
+    ) -> LuaResult<Option<(LuaOwnedThread, LuaMultiValue<'lua>, SchedulerThreadSender)>> {
         match self
             .threads
             .try_borrow_mut()
@@ -55,10 +55,10 @@ impl<'lua> SchedulerImpl {
     */
     pub fn push_front(
         &'lua self,
-        thread: impl IntoLuaThread<'lua>,
+        thread: impl IntoLuaOwnedThread,
         args: impl IntoLuaMulti<'lua>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_lua_thread(&self.lua)?;
+        let thread = thread.into_owned_lua_thread(&self.lua)?;
         let args = args.into_lua_multi(&self.lua)?;
 
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
@@ -82,10 +82,10 @@ impl<'lua> SchedulerImpl {
     */
     pub fn push_back(
         &'lua self,
-        thread: impl IntoLuaThread<'lua>,
+        thread: impl IntoLuaOwnedThread,
         args: impl IntoLuaMulti<'lua>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_lua_thread(&self.lua)?;
+        let thread = thread.into_owned_lua_thread(&self.lua)?;
         let args = args.into_lua_multi(&self.lua)?;
 
         let thread = SchedulerThread::new(&self.lua, thread, args)?;

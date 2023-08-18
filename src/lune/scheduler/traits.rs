@@ -10,12 +10,9 @@ use super::Scheduler;
 */
 pub trait LuaSchedulerExt {
     /**
-        Get a strong reference to the scheduler for the [`Lua`] struct.
-
-        Note that if this reference is not dropped, `Lua` can
-        not be dropped either because of the strong reference.
+        Get a reference to the scheduler for the [`Lua`] struct.
     */
-    fn scheduler(&self) -> Scheduler;
+    fn scheduler(&self) -> &Scheduler;
 
     /**
         Creates a function callable from Lua that runs an async
@@ -33,10 +30,10 @@ pub trait LuaSchedulerExt {
 }
 
 impl LuaSchedulerExt for Lua {
-    fn scheduler(&self) -> Scheduler {
-        self.app_data_ref::<Scheduler>()
+    fn scheduler(&self) -> &Scheduler {
+        *self
+            .app_data_ref::<&Scheduler>()
             .expect("Lua struct is missing scheduler")
-            .clone()
     }
 
     fn create_async_function<'lua, A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
@@ -46,21 +43,21 @@ impl LuaSchedulerExt for Lua {
         F: 'static + Fn(&'lua Lua, A) -> FR,
         FR: 'static + Future<Output = LuaResult<R>>,
     {
-        let async_yield = self
+        let coroutine_yield = self
             .globals()
             .get::<_, LuaTable>("coroutine")?
             .get::<_, LuaFunction>("yield")?;
-        let async_schedule = self.create_function(move |lua: &Lua, args: A| {
-            let thread = lua.current_thread();
+        let schedule = LuaFunction::wrap(move |lua: &Lua, args: A| {
+            let thread = lua.current_thread().into_owned();
             let future = func(lua, args);
-            // TODO: Add to scheduler
+            lua.scheduler().schedule_future_thread(thread, future);
             Ok(())
-        })?;
+        });
 
         let async_func = self
             .load(chunk!({
-                $async_schedule(...)
-                return $async_yield()
+                $schedule(...)
+                return $coroutine_yield()
             }))
             .set_name("async")
             .into_function()?;
@@ -76,27 +73,33 @@ impl LuaSchedulerExt for Lua {
     - Lua functions ([`LuaFunction`])
     - Lua chunks ([`LuaChunk`])
 */
-pub trait IntoLuaThread<'lua> {
+pub trait IntoLuaOwnedThread {
     /**
         Converts the value into a lua thread.
     */
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>>;
+    fn into_owned_lua_thread(self, lua: &Lua) -> LuaResult<LuaOwnedThread>;
 }
 
-impl<'lua> IntoLuaThread<'lua> for LuaThread<'lua> {
-    fn into_lua_thread(self, _: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+impl IntoLuaOwnedThread for LuaOwnedThread {
+    fn into_owned_lua_thread(self, _lua: &Lua) -> LuaResult<LuaOwnedThread> {
         Ok(self)
     }
 }
 
-impl<'lua> IntoLuaThread<'lua> for LuaFunction<'lua> {
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
-        lua.create_thread(self)
+impl<'lua> IntoLuaOwnedThread for LuaThread<'lua> {
+    fn into_owned_lua_thread(self, _lua: &Lua) -> LuaResult<LuaOwnedThread> {
+        Ok(self.into_owned())
     }
 }
 
-impl<'lua, 'a> IntoLuaThread<'lua> for LuaChunk<'lua, 'a> {
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
-        lua.create_thread(self.into_function()?)
+impl<'lua> IntoLuaOwnedThread for LuaFunction<'lua> {
+    fn into_owned_lua_thread(self, lua: &Lua) -> LuaResult<LuaOwnedThread> {
+        Ok(lua.create_thread(self)?.into_owned())
+    }
+}
+
+impl<'lua, 'a> IntoLuaOwnedThread for LuaChunk<'lua, 'a> {
+    fn into_owned_lua_thread(self, lua: &Lua) -> LuaResult<LuaOwnedThread> {
+        Ok(lua.create_thread(self.into_function()?)?.into_owned())
     }
 }

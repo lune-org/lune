@@ -1,9 +1,12 @@
 use futures_util::Future;
 use mlua::prelude::*;
 
-use super::{traits::IntoLuaThread, SchedulerImpl};
+use super::{traits::IntoLuaOwnedThread, SchedulerImpl};
 
-impl<'lua> SchedulerImpl {
+impl<'lua, 'fut> SchedulerImpl
+where
+    'lua: 'fut,
+{
     /**
         Schedules a plain future to run whenever the scheduler is available.
     */
@@ -11,30 +14,30 @@ impl<'lua> SchedulerImpl {
     where
         F: 'static + Future<Output = ()>,
     {
-        self.futures
+        let futs = self
+            .futures
             .try_lock()
-            .expect("Failed to lock futures queue")
-            .push(Box::pin(fut))
+            .expect("Failed to lock futures queue");
+        futs.push(Box::pin(fut))
     }
+
     /**
         Schedules the given `thread` to run when the given `fut` completes.
     */
-    pub fn schedule_thread<T, R, F>(&'lua self, thread: T, fut: F) -> LuaResult<()>
+    pub fn schedule_future_thread<T, F, R>(&'lua self, thread: T, fut: F) -> LuaResult<()>
     where
-        T: IntoLuaThread<'lua>,
-        R: IntoLuaMulti<'lua>,
+        T: 'static + IntoLuaOwnedThread,
         F: 'static + Future<Output = LuaResult<R>>,
+        R: IntoLuaMulti<'fut>,
     {
-        let thread = thread.into_lua_thread(&self.lua)?;
+        let thread = thread.into_owned_lua_thread(&self.lua)?;
 
-        let fut = async move {
+        // FIXME: We use self in the future below, so this doesn't compile... how to fix?
+        self.schedule_future(async move {
             let rets = fut.await.expect("Failed to receive result");
             self.push_back(thread, rets)
                 .expect("Failed to schedule future thread");
-        };
-
-        // TODO: Lifetime issues
-        // self.schedule_future(fut);
+        });
 
         Ok(())
     }
