@@ -7,7 +7,7 @@ use tokio::task::LocalSet;
 
 use super::Scheduler;
 
-impl<'lua, 'fut> Scheduler<'fut>
+impl<'lua, 'fut> Scheduler<'lua, 'fut>
 where
     'lua: 'fut,
 {

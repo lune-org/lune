@@ -33,16 +33,16 @@ type SchedulerFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
     and data will remain unchanged and accessible from all clones.
 */
 #[derive(Debug, Clone)]
-pub(crate) struct Scheduler<'fut> {
-    lua: &'static Lua,
+pub(crate) struct Scheduler<'lua, 'fut> {
+    lua: &'lua Lua,
     state: Arc<SchedulerState>,
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
     futures: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
 }
 
-impl<'fut> Scheduler<'fut> {
-    pub fn new(lua: &'static Lua) -> Self {
+impl<'lua, 'fut> Scheduler<'lua, 'fut> {
+    pub fn new(lua: &'lua Lua) -> Self {
         Self {
             lua,
             state: Arc::new(SchedulerState::new()),

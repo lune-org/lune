@@ -3,7 +3,7 @@ use mlua::prelude::*;
 
 use super::{IntoLuaOwnedThread, Scheduler};
 
-impl<'lua, 'fut> Scheduler<'fut>
+impl<'lua, 'fut> Scheduler<'lua, 'fut>
 where
     'lua: 'fut,
 {

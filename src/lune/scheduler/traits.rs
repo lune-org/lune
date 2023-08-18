@@ -55,7 +55,7 @@ impl LuaSchedulerExt for Lua {
                     .app_data_ref::<&Scheduler>()
                     .expect("Lua struct is missing scheduler");
                 // FIXME: `self` escapes outside of method because we are borrowing `func`?
-                // For now we solve this by just using a &'static Lua reference everywhere
+                // For now we solve this by using 'static lifetimes for this entire method
                 sched.schedule_future_thread(thread, future)?;
                 Ok(())
             }),
