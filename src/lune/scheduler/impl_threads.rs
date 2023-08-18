@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use super::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
-    Scheduler,
+    IntoLuaOwnedThread, Scheduler,
 };
 
 impl<'lua, 'fut> Scheduler<'fut>
@@ -55,11 +55,14 @@ where
         Schedules the `thread` to be resumed with the given `args`
         right away, before any other currently scheduled threads.
     */
-    pub fn push_front(
-        &self,
-        thread: LuaOwnedThread,
-        args: LuaMultiValue<'_>,
+    pub fn push_front<'a>(
+        &'a self,
+        thread: impl IntoLuaOwnedThread,
+        args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
+        let thread = thread.into_owned_lua_thread(&self.lua)?;
+        let args = args.into_lua_multi(&self.lua)?;
+
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
         let thread_id = thread.id();
 
@@ -79,11 +82,14 @@ where
         Schedules the `thread` to be resumed with the given `args`
         after all other current threads have been resumed.
     */
-    pub fn push_back(
-        &self,
-        thread: LuaOwnedThread,
-        args: LuaMultiValue<'_>,
+    pub fn push_back<'a>(
+        &'a self,
+        thread: impl IntoLuaOwnedThread,
+        args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
+        let thread = thread.into_owned_lua_thread(&self.lua)?;
+        let args = args.into_lua_multi(&self.lua)?;
+
         let thread = SchedulerThread::new(&self.lua, thread, args)?;
         let thread_id = thread.id();
 

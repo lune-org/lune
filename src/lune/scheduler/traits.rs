@@ -26,7 +26,7 @@ where
         A: FromLuaMulti<'lua>,
         R: IntoLuaMulti<'lua>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'fut + Future<Output = LuaResult<R>>;
+        FR: 'static + Future<Output = LuaResult<R>>;
 }
 
 impl<'lua, 'fut> LuaSchedulerExt<'lua, 'fut> for Lua
@@ -38,7 +38,7 @@ where
         A: FromLuaMulti<'lua>,
         R: IntoLuaMulti<'lua>,
         F: 'static + Fn(&'lua Lua, A) -> FR,
-        FR: 'fut + Future<Output = LuaResult<R>>,
+        FR: 'static + Future<Output = LuaResult<R>>,
     {
         let async_env = self.create_table_with_capacity(0, 2)?;
 

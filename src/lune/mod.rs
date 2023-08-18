@@ -39,8 +39,15 @@ impl Lune {
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuneError> {
-        Ok(Scheduler::new()
-            .run_main(script_name, script_contents)
-            .await)
+        let scheduler = Scheduler::new();
+
+        let main = scheduler
+            .lua
+            .load(script_contents.as_ref())
+            .set_name(script_name.as_ref());
+
+        scheduler.push_back(main, ())?;
+
+        Ok(scheduler.run_to_completion().await)
     }
 }

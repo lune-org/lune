@@ -24,12 +24,20 @@ where
     /**
         Schedules the given `thread` to run when the given `fut` completes.
     */
-    pub fn schedule_future_thread<F>(&'fut self, thread: LuaOwnedThread, fut: F) -> LuaResult<()>
+    pub fn schedule_future_thread<F, FR>(
+        &'fut self,
+        thread: LuaOwnedThread,
+        fut: F,
+    ) -> LuaResult<()>
     where
-        F: 'fut + Future<Output = LuaResult<LuaMultiValue<'fut>>>,
+        FR: IntoLuaMulti<'fut>,
+        F: 'fut + Future<Output = LuaResult<FR>>,
     {
         self.schedule_future(async move {
             let rets = fut.await.expect("Failed to receive result");
+            let rets = rets
+                .into_lua_multi(&self.lua)
+                .expect("Failed to create return multi value");
             self.push_back(thread, rets)
                 .expect("Failed to schedule future thread");
         });
