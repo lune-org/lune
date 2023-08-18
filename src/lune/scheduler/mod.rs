@@ -51,4 +51,14 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
             futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
         }
     }
+
+    #[doc(hidden)]
+    pub fn into_static(self) -> &'static Self {
+        Box::leak(Box::new(self))
+    }
+
+    #[doc(hidden)]
+    pub unsafe fn from_static(lua: &'static Scheduler) -> Self {
+        *Box::from_raw(lua as *const Scheduler as *mut Scheduler)
+    }
 }

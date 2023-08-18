@@ -32,7 +32,7 @@ pub async fn show_interface() -> Result<ExitCode> {
     let mut prompt_state = PromptState::Regular;
     let mut source_code = String::new();
 
-    let lune_instance = Lune::new();
+    let mut lune_instance = Lune::new();
 
     loop {
         let prompt = match prompt_state {

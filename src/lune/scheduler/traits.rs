@@ -65,6 +65,7 @@ where
         let async_func = self
             .load(ASYNC_IMPL_LUA)
             .set_name("async")
+            .set_environment(async_env)
             .into_function()?;
         Ok(async_func)
     }

@@ -23,6 +23,8 @@ where
 
     /**
         Schedules the given `thread` to run when the given `fut` completes.
+
+        If the given future returns a [`LuaError`], that error will be passed to the given `thread`.
     */
     pub fn schedule_future_thread<F, FR>(
         &'fut self,
@@ -35,6 +37,7 @@ where
     {
         let thread = thread.into_owned_lua_thread(self.lua)?;
         self.schedule_future(async move {
+            // TODO: Throw any error back to lua instead of panicking here
             let rets = fut.await.expect("Failed to receive result");
             let rets = rets
                 .into_lua_multi(self.lua)
