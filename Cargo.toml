@@ -78,10 +78,11 @@ urlencoding = "2.1"
 ### RUNTIME
 
 mlua = { version = "0.9.0", features = [
-    "macros",
     "luau",
     "luau-jit",
     "serialize",
+    "macros",
+    "unstable",
 ] }
 tokio = { version = "1.24", features = ["full"] }
 
