@@ -2,6 +2,7 @@ use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
     pin::Pin,
+    sync::Arc,
 };
 
 use futures_util::{stream::FuturesUnordered, Future};
@@ -23,30 +24,31 @@ use self::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
 };
 
-/**
-    Scheduler for Lua threads.
+type SchedulerFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
 
-    This wraps a [`Lua`] struct and exposes it as the `lua` property.
+/**
+    Scheduler for Lua threads and futures.
+
+    This scheduler can be cheaply cloned and the underlying state
+    and data will remain unchanged and accessible from all clones.
 */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Scheduler<'fut> {
-    pub(crate) lua: Lua,
-    state: SchedulerState,
-    threads: RefCell<VecDeque<SchedulerThread>>,
-    thread_senders: RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>,
-    futures: AsyncMutex<FuturesUnordered<Pin<Box<dyn Future<Output = ()> + 'fut>>>>,
+    lua: &'static Lua,
+    state: Arc<SchedulerState>,
+    threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
+    thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
+    futures: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
 }
 
 impl<'fut> Scheduler<'fut> {
-    pub fn new() -> Self {
-        let lua = Lua::new();
-
+    pub fn new(lua: &'static Lua) -> Self {
         Self {
             lua,
-            state: SchedulerState::new(),
-            threads: RefCell::new(VecDeque::new()),
-            thread_senders: RefCell::new(HashMap::new()),
-            futures: AsyncMutex::new(FuturesUnordered::new()),
+            state: Arc::new(SchedulerState::new()),
+            threads: Arc::new(RefCell::new(VecDeque::new())),
+            thread_senders: Arc::new(RefCell::new(HashMap::new())),
+            futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
         }
     }
 }

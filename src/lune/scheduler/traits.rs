@@ -13,32 +13,29 @@ return yield()
     for access to the scheduler without having to import
     it or handle registry / app data references manually.
 */
-pub trait LuaSchedulerExt<'lua, 'fut>
-where
-    'lua: 'fut,
-{
+pub trait LuaSchedulerExt {
     /**
         Creates a function callable from Lua that runs an async
         closure and returns the results of it to the call site.
     */
-    fn create_async_function<A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
+    fn create_async_function<A, R, F, FR>(
+        &'static self,
+        func: F,
+    ) -> LuaResult<LuaFunction<'static>>
     where
-        A: FromLuaMulti<'lua>,
-        R: IntoLuaMulti<'lua>,
-        F: Fn(&'lua Lua, A) -> FR + 'static,
-        FR: Future<Output = LuaResult<R>> + 'fut;
+        A: FromLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
+        F: Fn(&'static Lua, A) -> FR + 'static,
+        FR: Future<Output = LuaResult<R>> + 'static;
 }
 
-impl<'lua, 'fut> LuaSchedulerExt<'lua, 'fut> for Lua
-where
-    'lua: 'fut,
-{
-    fn create_async_function<A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
+impl LuaSchedulerExt for Lua {
+    fn create_async_function<A, R, F, FR>(&'static self, func: F) -> LuaResult<LuaFunction<'static>>
     where
-        A: FromLuaMulti<'lua>,
-        R: IntoLuaMulti<'lua>,
-        F: Fn(&'lua Lua, A) -> FR + 'static,
-        FR: Future<Output = LuaResult<R>> + 'fut,
+        A: FromLuaMulti<'static>,
+        R: IntoLuaMulti<'static>,
+        F: Fn(&'static Lua, A) -> FR + 'static,
+        FR: Future<Output = LuaResult<R>> + 'static,
     {
         let async_env = self.create_table_with_capacity(0, 2)?;
 
@@ -58,7 +55,8 @@ where
                     .app_data_ref::<&Scheduler>()
                     .expect("Lua struct is missing scheduler");
                 // FIXME: `self` escapes outside of method because we are borrowing `func`?
-                // sched.schedule_future_thread(thread, future)?;
+                // For now we solve this by just using a &'static Lua reference everywhere
+                sched.schedule_future_thread(thread, future)?;
                 Ok(())
             }),
         )?;
