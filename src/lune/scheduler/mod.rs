@@ -17,11 +17,12 @@ mod impl_async;
 mod impl_runner;
 mod impl_threads;
 
+pub use self::thread::SchedulerThreadId;
 pub use self::traits::*;
 
 use self::{
     state::SchedulerState,
-    thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
+    thread::{SchedulerThread, SchedulerThreadSender},
 };
 
 type SchedulerFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
