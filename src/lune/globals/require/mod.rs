@@ -11,10 +11,10 @@ mod builtin;
 mod relative;
 
 pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
-    RequireContext::new().insert_into_registry(lua);
+    RequireContext::create(lua);
 
     lua.create_async_function(|lua, path: LuaString| async move {
-        let context = RequireContext::from_registry(lua);
+        let context = RequireContext::from(lua);
 
         let path = path
             .to_str()
@@ -32,7 +32,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
                 "Require with custom alias must contain '/' delimiter",
             ))?;
             alias::require(lua, context, alias, name).await
-        } else if context.use_absolute_paths {
+        } else if context.use_absolute_paths() {
             absolute::require(lua, context, &path).await
         } else {
             relative::require(lua, context, &path).await
