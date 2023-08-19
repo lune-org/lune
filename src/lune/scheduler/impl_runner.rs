@@ -34,6 +34,12 @@ where
             let thread_id = thread.id();
             let (thread, args) = thread.into_inner(self.lua);
 
+            // Make sure this thread is still resumable, it might have
+            // been resumed somewhere else or even have been cancelled
+            if thread.status() != LuaThreadStatus::Resumable {
+                continue;
+            }
+
             // Resume the thread, ensuring that the schedulers
             // current thread id is set correctly for error catching
             self.state.set_current_thread_id(Some(thread_id));
