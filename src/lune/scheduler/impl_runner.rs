@@ -23,29 +23,45 @@ where
 
         let mut resumed_any = false;
 
-        while let Some((thread, args, sender)) = self
+        // Pop threads from the scheduler until there are none left
+        while let Some(thread) = self
             .pop_thread()
             .expect("Failed to pop thread from scheduler")
         {
+            // Deconstruct the scheduler thread into its parts
+            let thread_id = thread.id();
+            let (thread, args) = thread.into_inner(self.lua);
+
+            // Resume the thread, ensuring that the schedulers
+            // current thread id is set correctly for error catching
+            self.state.set_current_thread_id(Some(thread_id));
             let res = thread.resume::<_, LuaMultiValue>(args);
-            self.state.add_resumption();
+            self.state.set_current_thread_id(None);
+
             resumed_any = true;
 
+            // If we got any resumption (lua-side) error, increment
+            // the error count of the scheduler so we can exit with
+            // a non-zero exit code, and print it out to stderr
+            // TODO: Pretty print the lua error here
             if let Err(err) = &res {
-                self.state.add_error();
-                eprint!("{err}"); // TODO: Pretty print the lua error here
+                self.state.increment_error_count();
+                eprint!("{err}");
             }
 
-            if sender.receiver_count() > 0 {
-                sender
-                    .send(res.map(|v| {
-                        Arc::new(
-                            self.lua
-                                .create_registry_value(v.into_vec())
-                                .expect("Failed to store return values in registry"),
-                        )
-                    }))
-                    .expect("Failed to broadcast return values of thread");
+            // Send results of resuming this thread to any listeners
+            if let Some(sender) = self.thread_senders.borrow_mut().remove(&thread_id) {
+                if sender.receiver_count() > 0 {
+                    sender
+                        .send(res.map(|v| {
+                            Arc::new(
+                                self.lua
+                                    .create_registry_value(v.into_vec())
+                                    .expect("Failed to store return values in registry"),
+                            )
+                        }))
+                        .expect("Failed to broadcast return values of thread");
+                }
             }
 
             if self.state.has_exit_code() {

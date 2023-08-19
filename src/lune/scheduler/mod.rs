@@ -52,12 +52,18 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
             futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
         };
 
-        // HACK: Propagate errors given to the scheduler back to their lua threads
+        // Propagate errors given to the scheduler back to their lua threads
         // FUTURE: Do profiling and anything else we need inside of this interrupt
         let state = this.state.clone();
-        lua.set_interrupt(move |_| match state.get_lua_error() {
-            Some(e) => Err(e),
-            None => Ok(LuaVmState::Continue),
+        lua.set_interrupt(move |_| {
+            if let Some(id) = state.get_current_thread_id() {
+                match state.get_thread_error(id) {
+                    Some(e) => Err(e),
+                    None => Ok(LuaVmState::Continue),
+                }
+            } else {
+                Ok(LuaVmState::Continue)
+            }
         });
 
         this
