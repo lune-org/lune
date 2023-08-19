@@ -44,13 +44,23 @@ pub(crate) struct Scheduler<'lua, 'fut> {
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut> {
     pub fn new(lua: &'lua Lua) -> Self {
-        Self {
+        let this = Self {
             lua,
             state: Arc::new(SchedulerState::new()),
             threads: Arc::new(RefCell::new(VecDeque::new())),
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
             futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
-        }
+        };
+
+        // HACK: Propagate errors given to the scheduler back to their lua threads
+        // FUTURE: Do profiling and anything else we need inside of this interrupt
+        let state = this.state.clone();
+        lua.set_interrupt(move |_| match state.get_lua_error() {
+            Some(e) => Err(e),
+            None => Ok(LuaVmState::Continue),
+        });
+
+        this
     }
 
     #[doc(hidden)]

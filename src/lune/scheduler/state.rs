@@ -1,4 +1,9 @@
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+use std::{
+    cell::RefCell,
+    sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
+};
+
+use mlua::Error as LuaError;
 
 #[derive(Debug, Default)]
 pub struct SchedulerState {
@@ -6,6 +11,7 @@ pub struct SchedulerState {
     exit_code: AtomicU8,
     num_resumptions: AtomicUsize,
     num_errors: AtomicUsize,
+    lua_error: RefCell<Option<LuaError>>,
 }
 
 impl SchedulerState {
@@ -40,5 +46,13 @@ impl SchedulerState {
     pub fn set_exit_code(&self, code: impl Into<u8>) {
         self.exit_state.store(true, Ordering::SeqCst);
         self.exit_code.store(code.into(), Ordering::SeqCst);
+    }
+
+    pub fn get_lua_error(&self) -> Option<LuaError> {
+        self.lua_error.take()
+    }
+
+    pub fn set_lua_error(&self, e: LuaError) {
+        self.lua_error.replace(Some(e));
     }
 }

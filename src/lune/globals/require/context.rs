@@ -23,17 +23,15 @@ impl RequireContext {
         context should be created per [`Lua`] struct, creating more
         than one context may lead to undefined require-behavior.
     */
-    pub fn create(lua: &Lua) {
-        let this = Self {
+    pub fn new() -> Self {
+        Self {
             // TODO: Set to false by default, load some kind of config
             // or env var to check if we should be using absolute paths
             use_absolute_paths: true,
             working_directory: env::current_dir().expect("Failed to get current working directory"),
             cache_results: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_pending: Arc::new(AsyncMutex::new(HashMap::new())),
-        };
-        lua.set_named_registry_value(REGISTRY_KEY, this)
-            .expect("Failed to insert RequireContext into registry");
+        }
     }
 
     /**
@@ -102,9 +100,9 @@ impl RequireContext {
         path will first be transformed into an absolute path.
     */
     pub fn get_from_cache<'lua>(
-        &'lua self,
+        &self,
         lua: &'lua Lua,
-        path: impl AsRef<str> + 'lua,
+        path: impl AsRef<str>,
     ) -> LuaResult<LuaMultiValue<'lua>> {
         let path = self.abs_path(path);
 
@@ -136,9 +134,9 @@ impl RequireContext {
         path will first be transformed into an absolute path.
     */
     pub async fn wait_for_cache<'lua>(
-        &'lua self,
+        &self,
         lua: &'lua Lua,
-        path: impl AsRef<str> + 'lua,
+        path: impl AsRef<str>,
     ) -> LuaResult<LuaMultiValue<'lua>> {
         let path = self.abs_path(path);
         let sched = lua
@@ -166,9 +164,9 @@ impl RequireContext {
         path will first be transformed into an absolute path.
     */
     pub async fn load<'lua>(
-        &'lua self,
+        &self,
         lua: &'lua Lua,
-        path: impl AsRef<str> + 'lua,
+        path: impl AsRef<str>,
     ) -> LuaResult<LuaMultiValue<'lua>> {
         let path = self.abs_path(path);
         let sched = lua
