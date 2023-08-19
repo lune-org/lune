@@ -5,6 +5,8 @@ use mlua::prelude::*;
 
 use tokio::task::LocalSet;
 
+use crate::LuneError;
+
 use super::Scheduler;
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut>
@@ -43,10 +45,10 @@ where
             // If we got any resumption (lua-side) error, increment
             // the error count of the scheduler so we can exit with
             // a non-zero exit code, and print it out to stderr
-            // TODO: Pretty print the lua error here
             if let Err(err) = &res {
                 self.state.increment_error_count();
-                eprint!("{err}");
+                // NOTE: LuneError will pretty-format this error
+                eprint!("{}", LuneError::from(err));
             }
 
             // Send results of resuming this thread to any listeners

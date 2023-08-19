@@ -62,6 +62,15 @@ impl From<LuaError> for LuneError {
     }
 }
 
+impl From<&LuaError> for LuneError {
+    fn from(value: &LuaError) -> Self {
+        Self {
+            error: value.clone(),
+            disable_colors: false,
+        }
+    }
+}
+
 impl Display for LuneError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.error) // TODO: Pretty formatting
