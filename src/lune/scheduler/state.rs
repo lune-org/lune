@@ -1,9 +1,12 @@
 use std::{
     cell::RefCell,
+    collections::HashMap,
     sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
 };
 
 use mlua::Error as LuaError;
+
+use super::SchedulerThreadId;
 
 #[derive(Debug, Default)]
 pub struct SchedulerState {
@@ -11,7 +14,8 @@ pub struct SchedulerState {
     exit_code: AtomicU8,
     num_resumptions: AtomicUsize,
     num_errors: AtomicUsize,
-    lua_error: RefCell<Option<LuaError>>,
+    thread_id: RefCell<Option<SchedulerThreadId>>,
+    thread_errors: RefCell<HashMap<SchedulerThreadId, LuaError>>,
 }
 
 impl SchedulerState {
@@ -19,11 +23,7 @@ impl SchedulerState {
         Self::default()
     }
 
-    pub fn add_resumption(&self) {
-        self.num_resumptions.fetch_add(1, Ordering::Relaxed);
-    }
-
-    pub fn add_error(&self) {
+    pub fn increment_error_count(&self) {
         self.num_errors.fetch_add(1, Ordering::Relaxed);
     }
 
@@ -48,11 +48,20 @@ impl SchedulerState {
         self.exit_code.store(code.into(), Ordering::SeqCst);
     }
 
-    pub fn get_lua_error(&self) -> Option<LuaError> {
-        self.lua_error.take()
+    pub fn get_current_thread_id(&self) -> Option<SchedulerThreadId> {
+        *self.thread_id.borrow()
     }
 
-    pub fn set_lua_error(&self, e: LuaError) {
-        self.lua_error.replace(Some(e));
+    pub fn set_current_thread_id(&self, id: Option<SchedulerThreadId>) {
+        self.thread_id.replace(id);
+        self.num_resumptions.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn get_thread_error(&self, id: SchedulerThreadId) -> Option<LuaError> {
+        self.thread_errors.borrow_mut().remove(&id)
+    }
+
+    pub fn set_thread_error(&self, id: SchedulerThreadId, err: LuaError) {
+        self.thread_errors.borrow_mut().insert(id, err);
     }
 }

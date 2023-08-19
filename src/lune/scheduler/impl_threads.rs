@@ -27,9 +27,7 @@ where
 
         Returns `None` if there are no threads left to run.
     */
-    pub(super) fn pop_thread(
-        &self,
-    ) -> LuaResult<Option<(LuaOwnedThread, LuaMultiValue<'_>, SchedulerThreadSender)>> {
+    pub(super) fn pop_thread(&self) -> LuaResult<Option<SchedulerThread>> {
         match self
             .threads
             .try_borrow_mut()
@@ -37,18 +35,29 @@ where
             .context("Failed to borrow threads vec")?
             .pop_front()
         {
-            Some(thread) => {
-                let thread_id = &thread.id();
-                let (thread, args) = thread.into_inner(self.lua);
-                let sender = self
-                    .thread_senders
-                    .borrow_mut()
-                    .remove(thread_id)
-                    .expect("Missing thread sender");
-                Ok(Some((thread, args, sender)))
-            }
+            Some(thread) => Ok(Some(thread)),
             None => Ok(None),
         }
+    }
+
+    /**
+        Schedules the `thread` to be resumed with the given [`LuaError`].
+    */
+    pub fn push_err(&self, thread: impl IntoLuaOwnedThread, err: LuaError) -> LuaResult<()> {
+        let thread = thread.into_owned_lua_thread(self.lua)?;
+        let args = LuaMultiValue::new(); // Will be resumed with error, don't need real args
+
+        let thread = SchedulerThread::new(self.lua, thread, args)?;
+        let thread_id = thread.id();
+
+        self.state.set_thread_error(thread_id, err);
+        self.threads
+            .try_borrow_mut()
+            .into_lua_err()
+            .context("Failed to borrow threads vec")?
+            .push_front(thread);
+
+        Ok(())
     }
 
     /**

@@ -39,12 +39,8 @@ where
         self.schedule_future(async move {
             match fut.await.and_then(|rets| rets.into_lua_multi(self.lua)) {
                 Err(e) => {
-                    self.state.set_lua_error(e);
-                    // NOTE: We push the thread to the front of the scheduler
-                    // to ensure that it runs first to be able to catch the
-                    // stored error from within the scheduler lua interrupt
-                    self.push_front(thread, ())
-                        .expect("Failed to schedule future thread");
+                    self.push_err(thread, e)
+                        .expect("Failed to schedule future err thread");
                 }
                 Ok(v) => {
                     self.push_back(thread, v)
