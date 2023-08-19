@@ -52,7 +52,8 @@ impl<'lua> TableBuilder<'lua> {
     }
 }
 
-// FIXME: Remove static lifetime bound here when possible and move into above impl
+// FIXME: Remove static lifetime bound here when `create_async_function`
+// no longer needs it to compile, then move this into the above impl
 impl<'lua> TableBuilder<'lua>
 where
     'lua: 'static,

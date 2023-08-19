@@ -3,7 +3,10 @@ use std::{collections::HashMap, env, path::PathBuf, sync::Arc};
 use mlua::prelude::*;
 use tokio::{fs, sync::Mutex as AsyncMutex};
 
-use crate::lune::scheduler::{IntoLuaOwnedThread, Scheduler, SchedulerThreadId};
+use crate::lune::{
+    builtins::LuneBuiltin,
+    scheduler::{IntoLuaOwnedThread, Scheduler, SchedulerThreadId},
+};
 
 const REGISTRY_KEY: &str = "RequireContext";
 
@@ -11,6 +14,7 @@ const REGISTRY_KEY: &str = "RequireContext";
 pub(super) struct RequireContext {
     use_absolute_paths: bool,
     working_directory: PathBuf,
+    cache_builtins: Arc<AsyncMutex<HashMap<LuneBuiltin, LuaResult<LuaRegistryKey>>>>,
     cache_results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
     cache_pending: Arc<AsyncMutex<HashMap<PathBuf, SchedulerThreadId>>>,
 }
@@ -24,11 +28,13 @@ impl RequireContext {
         than one context may lead to undefined require-behavior.
     */
     pub fn new() -> Self {
+        let cwd = env::current_dir().expect("Failed to get current working directory");
         Self {
             // TODO: Set to false by default, load some kind of config
             // or env var to check if we should be using absolute paths
             use_absolute_paths: true,
-            working_directory: env::current_dir().expect("Failed to get current working directory"),
+            working_directory: cwd,
+            cache_builtins: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_results: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_pending: Arc::new(AsyncMutex::new(HashMap::new())),
         }
@@ -223,6 +229,58 @@ impl RequireContext {
             .expect("Pending require thread id was unexpectedly removed");
 
         thread_res
+    }
+
+    /**
+        Loads (requires) the builtin with the given name.
+    */
+    pub fn load_builtin<'lua>(
+        &self,
+        lua: &'lua Lua,
+        name: impl AsRef<str>,
+    ) -> LuaResult<LuaMultiValue<'lua>>
+    where
+        'lua: 'static, // FIXME: Remove static lifetime bound here when builtin libraries no longer need it
+    {
+        let builtin: LuneBuiltin = match name.as_ref().parse() {
+            Err(e) => return Err(LuaError::runtime(e)),
+            Ok(b) => b,
+        };
+
+        let mut cache = self
+            .cache_builtins
+            .try_lock()
+            .expect("RequireContext may not be used from multiple threads");
+
+        if let Some(res) = cache.get(&builtin) {
+            return match res {
+                Err(e) => return Err(e.clone()),
+                Ok(key) => {
+                    let multi_vec = lua
+                        .registry_value::<Vec<LuaValue>>(key)
+                        .expect("Missing builtin result in lua registry");
+                    Ok(LuaMultiValue::from_vec(multi_vec))
+                }
+            };
+        };
+
+        let result = builtin.create(lua);
+
+        cache.insert(
+            builtin,
+            match result.clone() {
+                Err(e) => Err(e),
+                Ok(multi) => {
+                    let multi_vec = multi.into_vec();
+                    let multi_key = lua
+                        .create_registry_value(multi_vec)
+                        .expect("Failed to store require result in registry");
+                    Ok(multi_key)
+                }
+            },
+        );
+
+        result
     }
 }
 

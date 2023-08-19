@@ -1,5 +1,6 @@
 use std::process::ExitCode;
 
+mod builtins;
 mod error;
 mod globals;
 mod scheduler;

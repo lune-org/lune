@@ -3,14 +3,13 @@ use mlua::prelude::*;
 use super::context::*;
 
 pub(super) async fn require<'lua, 'ctx>(
-    _lua: &'lua Lua,
-    _ctx: &'ctx RequireContext,
+    lua: &'lua Lua,
+    ctx: &'ctx RequireContext,
     name: &str,
 ) -> LuaResult<LuaMultiValue<'lua>>
 where
     'lua: 'ctx,
+    'lua: 'static, // FIXME: Remove static lifetime bound here when builtin libraries no longer need it
 {
-    Err(LuaError::runtime(format!(
-        "TODO: Support require for built-in libraries (tried to require '{name}')"
-    )))
+    ctx.load_builtin(lua, name)
 }
