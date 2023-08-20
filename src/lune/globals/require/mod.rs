@@ -66,8 +66,6 @@ async fn require<'lua>(
 where
     'lua: 'static, // FIXME: Remove static lifetime bound here when builtin libraries no longer need it
 {
-    // TODO: Use proper lua strings, os strings, to avoid lossy conversions
-
     let source = source
         .to_str()
         .into_lua_err()
