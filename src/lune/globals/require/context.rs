@@ -136,9 +136,7 @@ impl<'lua> RequireContext<'lua> {
                     .lua
                     .registry_value::<Vec<LuaValue>>(k)
                     .expect("Missing require result in lua registry");
-                let multi = LuaMultiValue::from_vec(multi_vec);
-                println!("Got multi value from cache: {multi:?}");
-                Ok(multi)
+                Ok(LuaMultiValue::from_vec(multi_vec))
             }
         }
     }
@@ -193,13 +191,13 @@ impl<'lua> RequireContext<'lua> {
 
         // Schedule the thread to run, wait for it to finish running
         let thread_id = sched.push_back(file_thread, ())?;
+        println!("Waiting for thread with id {thread_id:?}");
         let thread_res = sched.wait_for_thread(thread_id).await;
 
         // Return the result of the thread, storing any lua value(s) in the registry
         match thread_res {
             Err(e) => Err(e),
             Ok(v) => {
-                println!("Got multi value from require: {v:?}");
                 let multi_vec = v.into_vec();
                 let multi_key = self
                     .lua
@@ -259,8 +257,6 @@ impl<'lua> RequireContext<'lua> {
             .remove(abs_path)
             .expect("Pending require broadcaster was unexpectedly removed");
         broadcast_tx.send(()).ok();
-
-        println!("Got return value from require: {load_val:?}");
 
         load_val
     }

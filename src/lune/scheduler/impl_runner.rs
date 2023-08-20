@@ -42,6 +42,7 @@ where
 
             // Resume the thread, ensuring that the schedulers
             // current thread id is set correctly for error catching
+            println!("Resuming thread with id {thread_id:?}");
             self.state.set_current_thread_id(Some(thread_id));
             let res = thread.resume::<_, LuaMultiValue>(args);
             self.state.set_current_thread_id(None);
@@ -56,7 +57,8 @@ where
                 self.lua.emit_error(err.clone());
             }
 
-            // Send results of resuming this thread to any listeners
+            // If the thread has finished running completely,
+            // send results of final resume to any listeners
             if let Some(sender) = self.thread_senders.borrow_mut().remove(&thread_id) {
                 if sender.receiver_count() > 0 {
                     let stored = match res {
