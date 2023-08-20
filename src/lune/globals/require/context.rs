@@ -191,7 +191,6 @@ impl<'lua> RequireContext<'lua> {
 
         // Schedule the thread to run, wait for it to finish running
         let thread_id = sched.push_back(file_thread, ())?;
-        println!("Waiting for thread with id {thread_id:?}");
         let thread_res = sched.wait_for_thread(thread_id).await;
 
         // Return the result of the thread, storing any lua value(s) in the registry

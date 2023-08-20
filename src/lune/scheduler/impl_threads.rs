@@ -86,9 +86,14 @@ where
             .into_lua_err()
             .context("Failed to borrow threads vec")?
             .push_front(thread);
+
+        // NOTE: We might be resuming the same thread several times and
+        // pushing it to the scheduler several times before it is done,
+        // and we should only ever create one result sender per thread
         self.thread_senders
             .borrow_mut()
-            .insert(thread_id, SchedulerThreadSender::new(1));
+            .entry(thread_id)
+            .or_insert_with(|| SchedulerThreadSender::new(1));
 
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
@@ -119,9 +124,14 @@ where
             .into_lua_err()
             .context("Failed to borrow threads vec")?
             .push_back(thread);
+
+        // NOTE: We might be resuming the same thread several times and
+        // pushing it to the scheduler several times before it is done,
+        // and we should only ever create one result sender per thread
         self.thread_senders
             .borrow_mut()
-            .insert(thread_id, SchedulerThreadSender::new(1));
+            .entry(thread_id)
+            .or_insert_with(|| SchedulerThreadSender::new(1));
 
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
@@ -146,7 +156,11 @@ where
                 .expect("Tried to wait for thread that is not queued");
             sender.subscribe()
         };
-        match recv.recv().await.expect("Failed to receive thread result") {
+        let res = match recv.recv().await {
+            Err(_) => panic!("Sender was dropped while waiting for {thread_id:?}"),
+            Ok(r) => r,
+        };
+        match res {
             Err(e) => Err(e),
             Ok(k) => {
                 let vals = self
