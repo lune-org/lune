@@ -1,6 +1,8 @@
 local task = require("@lune/task")
 
+print("Requiring 1")
 local module1 = require("./modules/async")
+print("Requiring 2")
 local module2 = require("./modules/async")
 
 task.wait(1)
