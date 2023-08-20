@@ -83,6 +83,11 @@ assert(#homeDir1 > 0, "Home dir from echo was empty")
 assert(#homeDir2 > 0, "Home dir from pwd was empty")
 assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde substitution")
 
+-- FIXME: The below tests with sleeping do not work properly and block
+-- indefinitely, causing cargo test to timeout, for now we error prematurely
+
+error("FIXME")
+
 --[[
 	Spawning a process should not block any lua thread(s)
 
