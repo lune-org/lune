@@ -4,6 +4,7 @@ use mlua::prelude::*;
 
 mod fs;
 mod luau;
+mod net;
 mod process;
 mod serde;
 mod stdio;
@@ -16,6 +17,7 @@ mod roblox;
 pub enum LuneBuiltin {
     Fs,
     Luau,
+    Net,
     Task,
     Process,
     Serde,
@@ -32,6 +34,7 @@ where
         match self {
             Self::Fs => "fs",
             Self::Luau => "luau",
+            Self::Net => "net",
             Self::Task => "task",
             Self::Process => "process",
             Self::Serde => "serde",
@@ -45,6 +48,7 @@ where
         let res = match self {
             Self::Fs => fs::create(lua),
             Self::Luau => luau::create(lua),
+            Self::Net => net::create(lua),
             Self::Task => task::create(lua),
             Self::Process => process::create(lua),
             Self::Serde => serde::create(lua),
@@ -68,6 +72,7 @@ impl FromStr for LuneBuiltin {
         match s.trim().to_ascii_lowercase().as_str() {
             "fs" => Ok(Self::Fs),
             "luau" => Ok(Self::Luau),
+            "net" => Ok(Self::Net),
             "task" => Ok(Self::Task),
             "process" => Ok(Self::Process),
             "serde" => Ok(Self::Serde),
