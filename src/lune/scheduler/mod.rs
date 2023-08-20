@@ -43,7 +43,7 @@ pub(crate) struct Scheduler<'lua, 'fut> {
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
     futures: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
-    futures_break_signal: Sender<()>,
+    futures_break_signal: Sender<bool>,
 }
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut> {
@@ -87,10 +87,5 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
     #[doc(hidden)]
     pub fn into_static(self) -> &'static Self {
         Box::leak(Box::new(self))
-    }
-
-    #[doc(hidden)]
-    pub unsafe fn from_static(lua: &'static Scheduler) -> Self {
-        *Box::from_raw(lua as *const Scheduler as *mut Scheduler)
     }
 }

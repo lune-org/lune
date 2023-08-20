@@ -104,12 +104,18 @@ where
 
             // Wait until we either manually break out of resumption or a future completes
             tokio::select! {
-                _res = rx.recv() => break,
-                res = futs.next() => {
-                    match res {
-                        Some(_) => resumed_any = true,
-                        None => break,
+                res = rx.recv() => {
+                    if res.is_err() {
+                        panic!(
+                            "Futures break signal was dropped but futures still remain - \
+                            this may cause memory unsafety if a future accesses lua struct"
+                        )
                     }
+                    break;
+                },
+                res = futs.next() => match res {
+                    Some(_) => resumed_any = true,
+                    None => break,
                 },
             }
 

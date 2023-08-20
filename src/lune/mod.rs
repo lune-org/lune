@@ -24,10 +24,9 @@ impl Lune {
     */
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        // FIXME: Leaking these and using a manual drop implementation
-        // does not feel great... is there any way for us to create a
-        // scheduler, store it in app data, and guarantee it has
-        // the same lifetime as Lua without using any unsafe?
+        // FIXME: Leaking these here does not feel great... is there
+        // any way for us to create a scheduler, store it in app data, and
+        // guarantee it has the same lifetime as Lua without using any unsafe?
         let lua = Lua::new().into_static();
         let scheduler = Scheduler::new(lua).into_static();
 
@@ -68,18 +67,5 @@ impl Lune {
 
         self.scheduler.push_back(main, ())?;
         Ok(self.scheduler.run_to_completion().await)
-    }
-}
-
-impl Drop for Lune {
-    fn drop(&mut self) {
-        // SAFETY: When the Lune struct is dropped, it is guaranteed
-        // that the Lua and Scheduler structs are no longer being used,
-        // since all the methods that reference them (eg. `run`)
-        // take an exclusive / mutable reference
-        unsafe {
-            Lua::from_static(self.lua);
-            Scheduler::from_static(self.scheduler);
-        }
     }
 }
