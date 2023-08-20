@@ -4,6 +4,7 @@ use mlua::prelude::*;
 
 mod fs;
 mod luau;
+mod process;
 mod serde;
 mod stdio;
 mod task;
@@ -13,6 +14,7 @@ pub enum LuneBuiltin {
     Fs,
     Luau,
     Task,
+    Process,
     Serde,
     Stdio,
 }
@@ -26,6 +28,7 @@ where
             Self::Fs => "fs",
             Self::Luau => "luau",
             Self::Task => "task",
+            Self::Process => "process",
             Self::Serde => "serde",
             Self::Stdio => "stdio",
         }
@@ -36,6 +39,7 @@ where
             Self::Fs => fs::create(lua),
             Self::Luau => luau::create(lua),
             Self::Task => task::create(lua),
+            Self::Process => process::create(lua),
             Self::Serde => serde::create(lua),
             Self::Stdio => stdio::create(lua),
         };
@@ -56,6 +60,7 @@ impl FromStr for LuneBuiltin {
             "fs" => Ok(Self::Fs),
             "luau" => Ok(Self::Luau),
             "task" => Ok(Self::Task),
+            "process" => Ok(Self::Process),
             "serde" => Ok(Self::Serde),
             "stdio" => Ok(Self::Stdio),
             _ => Err(format!("Unknown builtin library '{s}'")),
