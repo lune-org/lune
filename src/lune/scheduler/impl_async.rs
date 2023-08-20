@@ -8,16 +8,38 @@ where
     'lua: 'fut,
 {
     /**
-        Schedules a plain future to run whenever the scheduler is available.
+        Checks if there are any futures to run, for
+        lua futures and background futures respectively.
     */
-    pub fn schedule_future<F>(&'fut self, fut: F)
+    pub(super) fn has_futures(&self) -> (bool, bool) {
+        (
+            self.futures_lua
+                .try_lock()
+                .expect("Failed to lock lua futures for check")
+                .len()
+                > 0,
+            self.futures_background
+                .try_lock()
+                .expect("Failed to lock background futures for check")
+                .len()
+                > 0,
+        )
+    }
+
+    /**
+        Schedules a plain future to run in the background.
+
+        Note that this will keep the scheduler alive even
+        if the future does not spawn any new lua threads.
+    */
+    pub fn schedule_future_background<F>(&self, fut: F)
     where
-        F: Future<Output = ()> + 'fut,
+        F: Future<Output = ()> + 'static,
     {
         let futs = self
-            .futures
+            .futures_background
             .try_lock()
-            .expect("TODO: Make scheduling futures during resumption work");
+            .expect("Failed to lock futures queue for background tasks");
         futs.push(Box::pin(fut))
     }
 
@@ -36,7 +58,7 @@ where
         F: Future<Output = LuaResult<FR>> + 'fut,
     {
         let thread = thread.into_lua_thread(self.lua)?;
-        let futs = self.futures.try_lock().expect(
+        let futs = self.futures_lua.try_lock().expect(
             "Failed to lock futures queue - \
             can't schedule future lua threads during futures resumption",
         );

@@ -172,7 +172,7 @@ where
         Ok(bound) => bound,
     };
     // Start up our web server
-    sched.schedule_future(async move {
+    sched.schedule_future_background(async move {
         bound
             .http1_only(true) // Web sockets can only use http1
             .http1_keepalive(true) // Web sockets must be kept alive

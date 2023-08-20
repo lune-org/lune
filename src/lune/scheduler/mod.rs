@@ -42,8 +42,9 @@ pub(crate) struct Scheduler<'lua, 'fut> {
     state: Arc<SchedulerState>,
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
-    futures: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
-    futures_break_signal: Sender<bool>,
+    futures_lua: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
+    futures_background: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'static>>>>,
+    futures_break_signal: Sender<()>,
 }
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut> {
@@ -55,7 +56,8 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
             state: Arc::new(SchedulerState::new()),
             threads: Arc::new(RefCell::new(VecDeque::new())),
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
-            futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
+            futures_lua: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
+            futures_background: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
             futures_break_signal,
         };
 
