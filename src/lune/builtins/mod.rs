@@ -3,6 +3,7 @@ use std::str::FromStr;
 use mlua::prelude::*;
 
 mod luau;
+mod serde;
 mod stdio;
 mod task;
 
@@ -10,6 +11,7 @@ mod task;
 pub enum LuneBuiltin {
     Luau,
     Task,
+    Serde,
     Stdio,
 }
 
@@ -21,6 +23,7 @@ where
         match self {
             Self::Luau => "luau",
             Self::Task => "task",
+            Self::Serde => "serde",
             Self::Stdio => "stdio",
         }
     }
@@ -29,6 +32,7 @@ where
         let res = match self {
             Self::Luau => luau::create(lua),
             Self::Task => task::create(lua),
+            Self::Serde => serde::create(lua),
             Self::Stdio => stdio::create(lua),
         };
         match res {
@@ -47,6 +51,7 @@ impl FromStr for LuneBuiltin {
         match s.trim().to_ascii_lowercase().as_str() {
             "luau" => Ok(Self::Luau),
             "task" => Ok(Self::Task),
+            "serde" => Ok(Self::Serde),
             "stdio" => Ok(Self::Stdio),
             _ => Err(format!("Unknown builtin library '{s}'")),
         }
