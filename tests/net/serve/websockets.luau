@@ -1,5 +1,6 @@
 local net = require("@lune/net")
 local process = require("@lune/process")
+local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
 local PORT = 8081
@@ -8,26 +9,15 @@ local WS_URL = `ws://127.0.0.1:{PORT}`
 local REQUEST = "Hello from client!"
 local RESPONSE = "Hello, lune!"
 
+-- Serve should not block the thread from continuing
+
 local thread = task.delay(0.2, function()
-	task.spawn(error, "Serve must not block the current thread")
+	stdio.ewrite("Serve must not block the current thread\n")
+	task.wait(1)
 	process.exit(1)
 end)
 
---[[
-	Serve should also take a full config with handler functions
-
-	A server should also be able to start on a previously closed port
-]]
-
-local handle = net.serve(PORT, function(request)
-	return RESPONSE
-end)
-
-task.cancel(thread)
-handle.stop()
-task.wait()
-
-local handle2 = net.serve(PORT, {
+local handle = net.serve(PORT, {
 	handleRequest = function()
 		return RESPONSE
 	end,
@@ -39,10 +29,29 @@ local handle2 = net.serve(PORT, {
 	end,
 })
 
+task.cancel(thread)
+
+-- Serve should respond to a request we send to it
+
+local thread2 = task.delay(1, function()
+	stdio.ewrite("Serve should respond to requests in a reasonable amount of time\n")
+	task.wait(1)
+	process.exit(1)
+end)
+
 local response = net.request(URL).body
 assert(response == RESPONSE, "Invalid response from server")
 
--- Web socket client should work
+task.cancel(thread2)
+
+-- Web socket responses should also be responded to
+
+local thread3 = task.delay(1, function()
+	stdio.ewrite("Serve should respond to websockets in a reasonable amount of time\n")
+	task.wait(1)
+	process.exit(1)
+end)
+
 local socket = net.socket(WS_URL)
 
 socket.send(REQUEST)
@@ -52,6 +61,8 @@ assert(socketMessage ~= nil, "Got no web socket response from server")
 assert(socketMessage == RESPONSE, "Invalid web socket response from server")
 
 socket.close()
+
+task.cancel(thread3)
 
 -- Wait for the socket to close and make sure we can't send messages afterwards
 task.wait()
@@ -64,4 +75,4 @@ assert(
 )
 
 -- Stop the server to end the test
-handle2.stop()
+handle.stop()

@@ -88,42 +88,44 @@ where
 
     /**
         Runs futures until none are left or a future spawned a new lua thread.
-
-        Returns `true` if any future was resumed, `false` otherwise.
     */
-    async fn run_futures(&self) -> bool {
-        let mut resumed_any = false;
+    async fn run_futures_lua(&self) {
+        let mut futs = self
+            .futures_lua
+            .try_lock()
+            .expect("Failed to lock lua futures for resumption");
 
-        loop {
-            let mut rx = self.futures_break_signal.subscribe();
-            let mut futs = self
-                .futures
-                .try_lock()
-                .expect("Failed to lock futures for resumption");
-
-            // Wait until we either manually break out of resumption or a future completes
-            tokio::select! {
-                res = rx.recv() => {
-                    if res.is_err() {
-                        panic!(
-                            "Futures break signal was dropped but futures still remain - \
-                            this may cause memory unsafety if a future accesses lua struct"
-                        )
-                    }
-                    break;
-                },
-                res = futs.next() => match res {
-                    Some(_) => resumed_any = true,
-                    None => break,
-                },
-            }
-
+        while futs.next().await.is_some() {
             if self.has_thread() {
                 break;
             }
         }
+    }
 
-        resumed_any
+    /**
+        Runs background futures until none are left or a future spawned a new lua thread.
+    */
+    async fn run_futures_background(&self) {
+        let mut futs = self
+            .futures_background
+            .try_lock()
+            .expect("Failed to lock background futures for resumption");
+
+        while futs.next().await.is_some() {
+            if self.has_thread() {
+                break;
+            }
+        }
+    }
+
+    async fn run_futures(&self) {
+        let mut rx = self.futures_break_signal.subscribe();
+
+        tokio::select! {
+            _ = self.run_futures_lua() => {},
+            _ = self.run_futures_background() => {},
+            _ = rx.recv() => {},
+        };
     }
 
     /**
@@ -138,9 +140,8 @@ where
         let _guard = set.enter();
 
         loop {
-            // 1. Run lua threads until exit or there are none left,
-            // if any thread was resumed it may have spawned futures
-            let resumed_lua = self.run_lua_threads();
+            // 1. Run lua threads until exit or there are none left
+            self.run_lua_threads();
 
             // 2. If we got a manual exit code from lua we should
             // not try to wait for any pending futures to complete
@@ -148,13 +149,20 @@ where
                 break;
             }
 
-            // 3. Keep resuming futures until we get a new lua thread to
-            // resume, or until we don't have any futures left to wait for
-            let resumed_fut = self.run_futures().await;
+            // 3. Keep resuming futures until there are no futures left to
+            // resume, or until we manually break out of resumption for any
+            // reason, this may be because a future spawned a new lua thread
+            self.run_futures().await;
 
-            // 4. If we did not resume any lua threads, and we have no futures
-            // remaining either, we have now run the scheduler until completion
-            if !resumed_lua && !resumed_fut {
+            // 4. Once again, check for an exit code, in case a future sets one
+            if self.state.has_exit_code() {
+                break;
+            }
+
+            // 5. If we have no lua threads or futures remaining,
+            // we have now run the scheduler until completion
+            let (has_future_lua, has_future_background) = self.has_futures();
+            if !has_future_lua && !has_future_background && !self.has_thread() {
                 break;
             }
         }

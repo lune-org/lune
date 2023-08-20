@@ -60,7 +60,7 @@ where
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
         if self.futures_break_signal.receiver_count() > 0 {
-            self.futures_break_signal.send(false).ok();
+            self.futures_break_signal.send(()).ok();
         }
 
         Ok(())
@@ -98,7 +98,7 @@ where
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
         if self.futures_break_signal.receiver_count() > 0 {
-            self.futures_break_signal.send(false).ok();
+            self.futures_break_signal.send(()).ok();
         }
 
         Ok(thread_id)
@@ -136,7 +136,7 @@ where
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
         if self.futures_break_signal.receiver_count() > 0 {
-            self.futures_break_signal.send(false).ok();
+            self.futures_break_signal.send(()).ok();
         }
 
         Ok(thread_id)

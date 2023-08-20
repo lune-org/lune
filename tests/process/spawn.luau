@@ -1,11 +1,20 @@
 local process = require("@lune/process")
+local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
--- Spawning a child process should work with options
+-- Spawning a child process should work, with options
+
+local thread = task.delay(1, function()
+	stdio.ewrite("Spawning a process should take a reasonable amount of time\n")
+	task.wait(1)
+	process.exit(1)
+end)
 
 local result = process.spawn("ls", {
 	"-a",
 })
+
+task.cancel(thread)
 
 assert(result.ok, "Failed to spawn child process")
 
@@ -85,6 +94,12 @@ assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde subs
 local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
 
+local thread2 = task.delay(SLEEP_DURATION * 1.5, function()
+	stdio.ewrite("Spawning a sleep process should take a reasonable amount of time\n")
+	task.wait(1)
+	process.exit(1)
+end)
+
 local sleepStart = os.clock()
 local sleepCounter = 0
 for i = 1, SLEEP_SAMPLES, 1 do
@@ -97,9 +112,15 @@ while sleepCounter < SLEEP_SAMPLES do
 	task.wait()
 end
 
+task.cancel(thread2)
+
 local sleepElapsed = os.clock() - sleepStart
 assert(
-	(sleepElapsed >= SLEEP_DURATION) and (sleepElapsed < SLEEP_DURATION * 1.5),
+	sleepElapsed >= SLEEP_DURATION,
+	"Spawning a process that does blocking sleep did not sleep enough"
+)
+assert(
+	sleepElapsed < SLEEP_DURATION * 1.5,
 	"Coroutine yielded the main lua thread during process yield"
 )
 
