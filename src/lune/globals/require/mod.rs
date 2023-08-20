@@ -5,10 +5,9 @@ use crate::lune::{scheduler::LuaSchedulerExt, util::TableBuilder};
 mod context;
 use context::RequireContext;
 
-mod absolute;
 mod alias;
 mod builtin;
-mod relative;
+mod path;
 
 const REQUIRE_IMPL: &str = r#"
 return require(source(), ...)
@@ -67,6 +66,8 @@ async fn require<'lua>(
 where
     'lua: 'static, // FIXME: Remove static lifetime bound here when builtin libraries no longer need it
 {
+    // TODO: Use proper lua strings, os strings, to avoid lossy conversions
+
     let source = source
         .to_str()
         .into_lua_err()
@@ -93,9 +94,7 @@ where
             "Require with custom alias must contain '/' delimiter",
         ))?;
         alias::require(lua, &context, alias, name).await
-    } else if context.use_cwd_relative_paths() {
-        absolute::require(lua, &context, &path).await
     } else {
-        relative::require(lua, &context, &source, &path).await
+        path::require(lua, &context, &source, &path).await
     }
 }
