@@ -9,6 +9,9 @@ mod serde;
 mod stdio;
 mod task;
 
+#[cfg(feature = "roblox")]
+mod roblox;
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum LuneBuiltin {
     Fs,
@@ -17,6 +20,8 @@ pub enum LuneBuiltin {
     Process,
     Serde,
     Stdio,
+    #[cfg(feature = "roblox")]
+    Roblox,
 }
 
 impl<'lua> LuneBuiltin
@@ -31,6 +36,8 @@ where
             Self::Process => "process",
             Self::Serde => "serde",
             Self::Stdio => "stdio",
+            #[cfg(feature = "roblox")]
+            Self::Roblox => "roblox",
         }
     }
 
@@ -42,6 +49,8 @@ where
             Self::Process => process::create(lua),
             Self::Serde => serde::create(lua),
             Self::Stdio => stdio::create(lua),
+            #[cfg(feature = "roblox")]
+            Self::Roblox => roblox::create(lua),
         };
         match res {
             Ok(v) => v.into_lua_multi(lua),
@@ -63,6 +72,8 @@ impl FromStr for LuneBuiltin {
             "process" => Ok(Self::Process),
             "serde" => Ok(Self::Serde),
             "stdio" => Ok(Self::Stdio),
+            #[cfg(feature = "roblox")]
+            "roblox" => Ok(Self::Roblox),
             _ => Err(format!("Unknown builtin library '{s}'")),
         }
     }
