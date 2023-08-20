@@ -9,7 +9,7 @@ use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 mod tof;
 use tof::LuaThreadOrFunction;
 
-pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLuaMulti<'_>> {
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'_>> {
     TableBuilder::new(lua)?
         .with_function("cancel", task_cancel)?
         .with_function("defer", task_defer)?
