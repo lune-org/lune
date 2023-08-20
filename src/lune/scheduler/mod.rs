@@ -69,6 +69,14 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
         this
     }
 
+    pub fn set_exit_code(&self, code: impl Into<u8>) {
+        assert!(
+            self.state.exit_code().is_none(),
+            "Exit code may only be set exactly once"
+        );
+        self.state.set_exit_code(code.into())
+    }
+
     #[doc(hidden)]
     pub fn into_static(self) -> &'static Self {
         Box::leak(Box::new(self))

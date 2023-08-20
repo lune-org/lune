@@ -26,6 +26,35 @@ impl<'lua> TableBuilder<'lua> {
         Ok(self)
     }
 
+    pub fn with_values<K, V>(self, values: Vec<(K, V)>) -> LuaResult<Self>
+    where
+        K: IntoLua<'lua>,
+        V: IntoLua<'lua>,
+    {
+        for (key, value) in values {
+            self.tab.raw_set(key, value)?;
+        }
+        Ok(self)
+    }
+
+    pub fn with_sequential_value<V>(self, value: V) -> LuaResult<Self>
+    where
+        V: IntoLua<'lua>,
+    {
+        self.tab.raw_push(value)?;
+        Ok(self)
+    }
+
+    pub fn with_sequential_values<V>(self, values: Vec<V>) -> LuaResult<Self>
+    where
+        V: IntoLua<'lua>,
+    {
+        for value in values {
+            self.tab.raw_push(value)?;
+        }
+        Ok(self)
+    }
+
     pub fn with_function<K, A, R, F>(self, key: K, func: F) -> LuaResult<Self>
     where
         K: IntoLua<'lua>,

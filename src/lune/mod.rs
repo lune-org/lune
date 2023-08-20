@@ -49,6 +49,7 @@ impl Lune {
         V: Into<Vec<String>>,
     {
         self.args = args.into();
+        self.lua.set_app_data(self.args.clone());
         self
     }
 
