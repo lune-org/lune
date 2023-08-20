@@ -96,11 +96,10 @@ where
 
         loop {
             let mut rx = self.futures_break_signal.subscribe();
-
             let mut futs = self
                 .futures
                 .try_lock()
-                .expect("Failed to lock futures queue");
+                .expect("Failed to lock futures for resumption");
 
             // Wait until we either manually break out of resumption or a future completes
             tokio::select! {
