@@ -57,6 +57,12 @@ where
             .context("Failed to borrow threads vec")?
             .push_front(thread);
 
+        // NOTE: We might be resuming futures, need to signal that a
+        // new lua thread is ready to break out of futures resumption
+        if self.new_thread_ready.receiver_count() > 0 {
+            self.new_thread_ready.send(()).ok();
+        }
+
         Ok(())
     }
 
@@ -84,6 +90,12 @@ where
             .borrow_mut()
             .insert(thread_id, SchedulerThreadSender::new(1));
 
+        // NOTE: We might be resuming futures, need to signal that a
+        // new lua thread is ready to break out of futures resumption
+        if self.new_thread_ready.receiver_count() > 0 {
+            self.new_thread_ready.send(()).ok();
+        }
+
         Ok(thread_id)
     }
 
@@ -110,6 +122,12 @@ where
         self.thread_senders
             .borrow_mut()
             .insert(thread_id, SchedulerThreadSender::new(1));
+
+        // NOTE: We might be resuming futures, need to signal that a
+        // new lua thread is ready to break out of futures resumption
+        if self.new_thread_ready.receiver_count() > 0 {
+            self.new_thread_ready.send(()).ok();
+        }
 
         Ok(thread_id)
     }
