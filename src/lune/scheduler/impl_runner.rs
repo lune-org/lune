@@ -5,7 +5,7 @@ use mlua::prelude::*;
 
 use tokio::task::LocalSet;
 
-use crate::LuneError;
+use crate::lune::util::traits::LuaEmitErrorExt;
 
 use super::Scheduler;
 
@@ -53,8 +53,7 @@ where
             // a non-zero exit code, and print it out to stderr
             if let Err(err) = &res {
                 self.state.increment_error_count();
-                // NOTE: LuneError will pretty-format this error
-                eprintln!("{}", LuneError::from(err));
+                self.lua.emit_error(err.clone());
             }
 
             // Send results of resuming this thread to any listeners
