@@ -42,7 +42,6 @@ where
 
             // Resume the thread, ensuring that the schedulers
             // current thread id is set correctly for error catching
-            println!("Resuming thread with id {thread_id:?}");
             self.state.set_current_thread_id(Some(thread_id));
             let res = thread.resume::<_, LuaMultiValue>(args);
             self.state.set_current_thread_id(None);
@@ -59,19 +58,23 @@ where
 
             // If the thread has finished running completely,
             // send results of final resume to any listeners
-            if let Some(sender) = self.thread_senders.borrow_mut().remove(&thread_id) {
-                if sender.receiver_count() > 0 {
-                    let stored = match res {
-                        Err(e) => Err(e),
-                        Ok(v) => Ok(Arc::new(
-                            self.lua
-                                .create_registry_value(v.into_vec())
-                                .expect("Failed to store return values in registry"),
-                        )),
-                    };
-                    sender
-                        .send(stored)
-                        .expect("Failed to broadcast return values of thread");
+            if thread.status() != LuaThreadStatus::Resumable {
+                // NOTE: Threads that were spawned to resume
+                // with an error will not have a result sender
+                if let Some(sender) = self.thread_senders.borrow_mut().remove(&thread_id) {
+                    if sender.receiver_count() > 0 {
+                        let stored = match res {
+                            Err(e) => Err(e),
+                            Ok(v) => Ok(Arc::new(
+                                self.lua
+                                    .create_registry_value(v.into_vec())
+                                    .expect("Failed to store return values in registry"),
+                            )),
+                        };
+                        sender
+                            .send(stored)
+                            .expect("Failed to broadcast return values of thread");
+                    }
                 }
             }
 
