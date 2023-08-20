@@ -5,6 +5,8 @@ use std::{
 
 use mlua::prelude::*;
 
+use crate::lune::util::formatting::pretty_format_luau_error;
+
 /**
     An opaque error type for formatted lua errors.
 */
@@ -73,7 +75,11 @@ impl From<&LuaError> for LuneError {
 
 impl Display for LuneError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.error) // TODO: Pretty formatting
+        write!(
+            f,
+            "{}",
+            pretty_format_luau_error(&self.error, !self.disable_colors)
+        )
     }
 }
 

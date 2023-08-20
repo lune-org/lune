@@ -54,7 +54,7 @@ where
             if let Err(err) = &res {
                 self.state.increment_error_count();
                 // NOTE: LuneError will pretty-format this error
-                eprint!("{}", LuneError::from(err));
+                eprintln!("{}", LuneError::from(err));
             }
 
             // Send results of resuming this thread to any listeners
