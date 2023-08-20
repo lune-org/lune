@@ -7,7 +7,10 @@ use std::{
 
 use futures_util::{stream::FuturesUnordered, Future};
 use mlua::prelude::*;
-use tokio::sync::Mutex as AsyncMutex;
+use tokio::sync::{
+    broadcast::{channel, Sender},
+    Mutex as AsyncMutex,
+};
 
 mod state;
 mod thread;
@@ -40,16 +43,20 @@ pub(crate) struct Scheduler<'lua, 'fut> {
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
     futures: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
+    new_thread_ready: Sender<()>,
 }
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut> {
     pub fn new(lua: &'lua Lua) -> Self {
+        let (new_thread_ready, _) = channel(1);
+
         let this = Self {
             lua,
             state: Arc::new(SchedulerState::new()),
             threads: Arc::new(RefCell::new(VecDeque::new())),
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
             futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
+            new_thread_ready,
         };
 
         // Propagate errors given to the scheduler back to their lua threads

@@ -89,12 +89,25 @@ where
     async fn run_futures(&self) -> bool {
         let mut resumed_any = false;
 
-        let mut futs = self
-            .futures
-            .try_lock()
-            .expect("Failed to lock futures queue");
-        while futs.next().await.is_some() {
-            resumed_any = true;
+        loop {
+            let mut rx = self.new_thread_ready.subscribe();
+
+            let mut futs = self
+                .futures
+                .try_lock()
+                .expect("Failed to lock futures queue");
+
+            // Wait until we either get a new lua thread or a future completes
+            tokio::select! {
+                _res = rx.recv() => break,
+                res = futs.next() => {
+                    match res {
+                        Some(_) => resumed_any = true,
+                        None => break,
+                    }
+                },
+            }
+
             if self.has_thread() {
                 break;
             }
