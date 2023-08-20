@@ -2,11 +2,13 @@ use std::str::FromStr;
 
 use mlua::prelude::*;
 
+mod luau;
 mod stdio;
 mod task;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum LuneBuiltin {
+    Luau,
     Task,
     Stdio,
 }
@@ -17,6 +19,7 @@ where
 {
     pub fn name(&self) -> &'static str {
         match self {
+            Self::Luau => "luau",
             Self::Task => "task",
             Self::Stdio => "stdio",
         }
@@ -24,6 +27,7 @@ where
 
     pub fn create(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
         let res = match self {
+            Self::Luau => luau::create(lua),
             Self::Task => task::create(lua),
             Self::Stdio => stdio::create(lua),
         };
@@ -41,6 +45,7 @@ impl FromStr for LuneBuiltin {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_ascii_lowercase().as_str() {
+            "luau" => Ok(Self::Luau),
             "task" => Ok(Self::Task),
             "stdio" => Ok(Self::Stdio),
             _ => Err(format!("Unknown builtin library '{s}'")),
