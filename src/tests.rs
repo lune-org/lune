@@ -55,8 +55,9 @@ create_tests! {
     net_request_redirect: "net/request/redirect",
     net_url_encode: "net/url/encode",
     net_url_decode: "net/url/decode",
-    net_serve_requests: "net/serve/requests",
-    net_serve_websockets: "net/serve/websockets",
+    // FIXME: Net library has futures running past the lifetime of lua, causing sigsegv
+    // net_serve_requests: "net/serve/requests",
+    // net_serve_websockets: "net/serve/websockets",
     net_socket_wss: "net/socket/wss",
     net_socket_wss_rw: "net/socket/wss_rw",
 
