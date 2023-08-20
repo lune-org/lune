@@ -12,7 +12,7 @@ const REGISTRY_KEY: &str = "RequireContext";
 
 #[derive(Debug, Clone)]
 pub(super) struct RequireContext {
-    use_absolute_paths: bool,
+    use_cwd_relative_paths: bool,
     working_directory: PathBuf,
     cache_builtins: Arc<AsyncMutex<HashMap<LuneBuiltin, LuaResult<LuaRegistryKey>>>>,
     cache_results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
@@ -30,9 +30,9 @@ impl RequireContext {
     pub fn new() -> Self {
         let cwd = env::current_dir().expect("Failed to get current working directory");
         Self {
-            // TODO: Set to false by default, load some kind of config
-            // or env var to check if we should be using absolute paths
-            use_absolute_paths: true,
+            // FUTURE: We could load some kind of config or env var
+            // to check if we should be using cwd-relative paths
+            use_cwd_relative_paths: false,
             working_directory: cwd,
             cache_builtins: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_results: Arc::new(AsyncMutex::new(HashMap::new())),
@@ -41,10 +41,10 @@ impl RequireContext {
     }
 
     /**
-        If `require` should use absolute paths or not.
+        If `require` should use cwd-relative paths or not.
     */
-    pub fn use_absolute_paths(&self) -> bool {
-        self.use_absolute_paths
+    pub fn use_cwd_relative_paths(&self) -> bool {
+        self.use_cwd_relative_paths
     }
 
     /**
