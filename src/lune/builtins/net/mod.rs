@@ -7,10 +7,7 @@ use hyper::{
     header::{CONTENT_ENCODING, CONTENT_LENGTH},
     Server,
 };
-use tokio::{
-    sync::{mpsc, oneshot},
-    task,
-};
+use tokio::sync::mpsc;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -174,32 +171,27 @@ where
         }
         Ok(bound) => bound,
     };
-    // Register a background task to prevent the task scheduler from
-    // exiting early and start up our web server on the bound address
-    // TODO: Implement background task registration in scheduler
-    let (background_tx, background_rx) = oneshot::channel();
+    // Start up our web server
     sched.schedule_future(async move {
-        let _ = background_rx.await;
+        bound
+            .http1_only(true) // Web sockets can only use http1
+            .http1_keepalive(true) // Web sockets must be kept alive
+            .executor(NetLocalExec)
+            .serve(NetService::new(
+                lua,
+                server_request_callback,
+                server_websocket_callback,
+            ))
+            .with_graceful_shutdown(async move {
+                shutdown_rx
+                    .recv()
+                    .await
+                    .expect("Server was stopped instantly");
+                shutdown_rx.close();
+            })
+            .await
+            .unwrap();
     });
-    let server = bound
-        .http1_only(true) // Web sockets can only use http1
-        .http1_keepalive(true) // Web sockets must be kept alive
-        .executor(NetLocalExec)
-        .serve(NetService::new(
-            lua,
-            server_request_callback,
-            server_websocket_callback,
-        ))
-        .with_graceful_shutdown(async move {
-            let _ = background_tx.send(());
-            shutdown_rx
-                .recv()
-                .await
-                .expect("Server was stopped instantly");
-            shutdown_rx.close();
-        });
-    // Spawn a new tokio task so we don't block
-    task::spawn_local(server);
     // Create a new read-only table that contains methods
     // for manipulating server behavior and shutting it down
     let handle_stop = move |_, _: ()| match shutdown_tx.try_send(()) {

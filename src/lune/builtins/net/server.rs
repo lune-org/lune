@@ -10,7 +10,7 @@ use mlua::prelude::*;
 use hyper::{body::to_bytes, server::conn::AddrStream, service::Service};
 use hyper::{Body, Request, Response};
 use hyper_tungstenite::{is_upgrade_request as is_ws_upgrade_request, upgrade as ws_upgrade};
-use tokio::{sync::oneshot, task};
+use tokio::task;
 
 use crate::lune::{
     scheduler::Scheduler,
@@ -47,31 +47,26 @@ impl Service<Request<Body>> for NetServiceInner {
             let key = kopt.as_ref().as_ref().unwrap();
             let handler: LuaFunction = lua.registry_value(key).expect("Missing websocket handler");
             let (response, ws) = ws_upgrade(&mut req, None).expect("Failed to upgrade websocket");
-            // This should be spawned as a registered task, otherwise
+            // This should be spawned as a scheduler task, otherwise
             // the scheduler may exit early and cancel this even though what
             // we want here is a long-running task that keeps the program alive
             let sched = lua
                 .app_data_ref::<&Scheduler>()
                 .expect("Lua struct is missing scheduler");
-            // TODO: Implement background task registration in scheduler
-            let (background_tx, background_rx) = oneshot::channel();
             sched.schedule_future(async move {
-                let _ = background_rx.await;
-            });
-            task::spawn_local(async move {
                 // Create our new full websocket object, then
                 // schedule our handler to get called asap
-                let ws = ws.await.into_lua_err()?;
-                let sock = NetWebSocket::new(ws).into_lua_table(lua)?;
-                let sched = lua
-                    .app_data_ref::<&Scheduler>()
-                    .expect("Lua struct is missing scheduler");
-                let result = sched.push_front(
-                    lua.create_thread(handler)?,
-                    LuaMultiValue::from_vec(vec![LuaValue::Table(sock)]),
-                );
-                let _ = background_tx.send(());
-                result
+                let res = async move {
+                    let ws = ws.await.into_lua_err()?;
+                    let sock = NetWebSocket::new(ws).into_lua_table(lua)?;
+                    sched.push_front(
+                        lua.create_thread(handler)?,
+                        LuaMultiValue::from_vec(vec![LuaValue::Table(sock)]),
+                    )
+                };
+                if let Err(e) = res.await {
+                    lua.emit_error(e);
+                }
             });
             Box::pin(async move { Ok(response) })
         } else {
