@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use mlua::prelude::*;
-use rand::Rng;
 use tokio::sync::broadcast::Sender;
 
 /**
@@ -18,12 +17,23 @@ pub type SchedulerThreadSender = Sender<LuaResult<Arc<LuaRegistryKey>>>;
     Unique, randomly generated id for a scheduler thread.
 */
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct SchedulerThreadId(u128);
+pub struct SchedulerThreadId(usize);
 
-impl SchedulerThreadId {
-    fn gen() -> Self {
-        // FUTURE: Use a faster rng here?
-        Self(rand::thread_rng().gen())
+impl From<&LuaOwnedThread> for SchedulerThreadId {
+    fn from(value: &LuaOwnedThread) -> Self {
+        // HACK: We rely on the debug format of owned
+        // thread refs here, but currently this is the
+        // only way to get a proper unique id using mlua
+        let addr_string = format!("{value:?}");
+        let addr = addr_string
+            .strip_prefix("OwnedThread(OwnedRef(0x")
+            .expect("Invalid thread address format - unknown prefix")
+            .split_once(')')
+            .map(|(s, _)| s)
+            .expect("Invalid thread address format - missing ')'");
+        let id = usize::from_str_radix(addr, 16)
+            .expect("Failed to parse thread address as hexadecimal into usize");
+        Self(id)
     }
 }
 
@@ -32,7 +42,7 @@ impl SchedulerThreadId {
 */
 #[derive(Debug)]
 pub(super) struct SchedulerThread {
-    scheduler_id: SchedulerThreadId,
+    thread_id: SchedulerThreadId,
     thread: LuaOwnedThread,
     args: LuaRegistryKey,
 }
@@ -55,7 +65,7 @@ impl SchedulerThread {
             .context("Failed to store value in registry")?;
 
         Ok(Self {
-            scheduler_id: SchedulerThreadId::gen(),
+            thread_id: SchedulerThreadId::from(&thread),
             thread,
             args,
         })
@@ -81,6 +91,6 @@ impl SchedulerThread {
         Retrieves the unique, randomly generated id for this scheduler thread.
     */
     pub(super) fn id(&self) -> SchedulerThreadId {
-        self.scheduler_id
+        self.thread_id
     }
 }
