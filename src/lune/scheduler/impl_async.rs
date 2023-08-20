@@ -14,10 +14,10 @@ where
     where
         F: Future<Output = ()> + 'fut,
     {
-        let futs = self
-            .futures
-            .try_lock()
-            .expect("Failed to lock futures queue");
+        let futs = self.futures.try_lock().expect(
+            "Failed to lock futures queue - \
+            make sure not to schedule futures during futures resumption",
+        );
         futs.push(Box::pin(fut))
     }
 
