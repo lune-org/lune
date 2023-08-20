@@ -12,9 +12,9 @@ use hyper::{Body, Request, Response};
 use hyper_tungstenite::{is_upgrade_request as is_ws_upgrade_request, upgrade as ws_upgrade};
 use tokio::{sync::oneshot, task};
 
-use crate::{
-    lune::{scheduler::Scheduler, util::TableBuilder},
-    LuneError,
+use crate::lune::{
+    scheduler::Scheduler,
+    util::{traits::LuaEmitErrorExt, TableBuilder},
 };
 
 use super::{NetServeResponse, NetWebSocket};
@@ -116,15 +116,14 @@ impl Service<Request<Body>> for NetServiceInner {
                     .with_value("body", lua.create_string(&bytes)?)?
                     .build_readonly()?;
                 let response: LuaResult<NetServeResponse> = handler.call(request);
-                // Send below errors to task scheduler so that they can emit properly
-                let lua_error = match response {
+                // Return successful response, or emit any error using pretty formatting
+                lua.emit_error(match response {
                     Ok(r) => match r.into_response() {
                         Ok(res) => return Ok(res),
                         Err(err) => err,
                     },
                     Err(err) => err,
-                };
-                eprintln!("{}", LuneError::from(lua_error));
+                });
                 Ok(Response::builder()
                     .status(500)
                     .body(Body::from("Internal Server Error"))
