@@ -14,10 +14,10 @@ where
     where
         F: Future<Output = ()> + 'fut,
     {
-        let futs = self.futures.try_lock().expect(
-            "Failed to lock futures queue - \
-            make sure not to schedule futures during futures resumption",
-        );
+        let futs = self
+            .futures
+            .try_lock()
+            .expect("TODO: Make scheduling futures during resumption work");
         futs.push(Box::pin(fut))
     }
 
@@ -36,7 +36,12 @@ where
         F: Future<Output = LuaResult<FR>> + 'fut,
     {
         let thread = thread.into_lua_thread(self.lua)?;
-        self.schedule_future(async move {
+        let futs = self.futures.try_lock().expect(
+            "Failed to lock futures queue - \
+            can't schedule future lua threads during futures resumption",
+        );
+
+        futs.push(Box::pin(async move {
             match fut.await.and_then(|rets| rets.into_lua_multi(self.lua)) {
                 Err(e) => {
                     self.push_err(thread, e)
@@ -47,7 +52,7 @@ where
                         .expect("Failed to schedule future thread");
                 }
             }
-        });
+        }));
 
         Ok(())
     }
