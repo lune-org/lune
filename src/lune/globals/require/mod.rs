@@ -14,7 +14,7 @@ return require(source(), ...)
 "#;
 
 pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
-    lua.set_app_data(RequireContext::new());
+    lua.set_app_data(RequireContext::new(lua));
 
     /*
         Require implementation needs a few workarounds:
@@ -88,13 +88,13 @@ where
         .strip_prefix("@lune/")
         .map(|name| name.to_ascii_lowercase())
     {
-        builtin::require(lua, &context, &builtin_name).await
+        builtin::require(&context, &builtin_name).await
     } else if let Some(aliased_path) = path.strip_prefix('@') {
         let (alias, name) = aliased_path.split_once('/').ok_or(LuaError::runtime(
             "Require with custom alias must contain '/' delimiter",
         ))?;
-        alias::require(lua, &context, alias, name).await
+        alias::require(&context, alias, name).await
     } else {
-        path::require(lua, &context, &source, &path).await
+        path::require(&context, &source, &path).await
     }
 }
