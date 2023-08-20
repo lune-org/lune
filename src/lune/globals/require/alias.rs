@@ -3,8 +3,7 @@ use mlua::prelude::*;
 use super::context::*;
 
 pub(super) async fn require<'lua, 'ctx>(
-    _lua: &'lua Lua,
-    _ctx: &'ctx RequireContext,
+    _ctx: &'ctx RequireContext<'lua>,
     alias: &str,
     name: &str,
 ) -> LuaResult<LuaMultiValue<'lua>>
