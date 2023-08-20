@@ -131,12 +131,14 @@ impl<'lua> RequireContext<'lua> {
             .expect("Path does not exist in results cache");
         match cached {
             Err(e) => Err(e.clone()),
-            Ok(key) => {
+            Ok(k) => {
                 let multi_vec = self
                     .lua
-                    .registry_value::<Vec<LuaValue>>(key)
+                    .registry_value::<Vec<LuaValue>>(k)
                     .expect("Missing require result in lua registry");
-                Ok(LuaMultiValue::from_vec(multi_vec))
+                let multi = LuaMultiValue::from_vec(multi_vec);
+                println!("Got multi value from cache: {multi:?}");
+                Ok(multi)
             }
         }
     }
@@ -196,8 +198,9 @@ impl<'lua> RequireContext<'lua> {
         // Return the result of the thread, storing any lua value(s) in the registry
         match thread_res {
             Err(e) => Err(e),
-            Ok(multi) => {
-                let multi_vec = multi.into_vec();
+            Ok(v) => {
+                println!("Got multi value from require: {v:?}");
+                let multi_vec = v.into_vec();
                 let multi_key = self
                     .lua
                     .create_registry_value(multi_vec)
@@ -255,9 +258,9 @@ impl<'lua> RequireContext<'lua> {
             .expect("RequireContext may not be used from multiple threads")
             .remove(abs_path)
             .expect("Pending require broadcaster was unexpectedly removed");
-        broadcast_tx
-            .send(())
-            .expect("Failed to send require broadcast");
+        broadcast_tx.send(()).ok();
+
+        println!("Got return value from require: {load_val:?}");
 
         load_val
     }

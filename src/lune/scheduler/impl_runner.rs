@@ -59,14 +59,16 @@ where
             // Send results of resuming this thread to any listeners
             if let Some(sender) = self.thread_senders.borrow_mut().remove(&thread_id) {
                 if sender.receiver_count() > 0 {
+                    let stored = match res {
+                        Err(e) => Err(e),
+                        Ok(v) => Ok(Arc::new(
+                            self.lua
+                                .create_registry_value(v.into_vec())
+                                .expect("Failed to store return values in registry"),
+                        )),
+                    };
                     sender
-                        .send(res.map(|v| {
-                            Arc::new(
-                                self.lua
-                                    .create_registry_value(v.into_vec())
-                                    .expect("Failed to store return values in registry"),
-                            )
-                        }))
+                        .send(stored)
                         .expect("Failed to broadcast return values of thread");
                 }
             }
@@ -115,7 +117,9 @@ where
         loop {
             // 1. Run lua threads until exit or there are none left,
             // if any thread was resumed it may have spawned futures
+            println!("Resuming lua");
             let resumed_lua = self.run_lua_threads();
+            println!("Resumed lua");
 
             // 2. If we got a manual exit code from lua we should
             // not try to wait for any pending futures to complete
@@ -125,7 +129,9 @@ where
 
             // 3. Keep resuming futures until we get a new lua thread to
             // resume, or until we don't have any futures left to wait for
+            println!("Resuming futures");
             let resumed_fut = self.run_futures().await;
+            println!("Resumed futures");
 
             // 4. If we did not resume any lua threads, and we have no futures
             // remaining either, we have now run the scheduler until completion
