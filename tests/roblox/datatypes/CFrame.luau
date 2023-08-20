@@ -99,7 +99,7 @@ assertEq(
 
 -- World & object space conversions
 
--- FIXME: ToWorldSpace and/or ToObjectSpace are causing SIGTRAP? What the heck?
+-- FIXME: ToWorldSpace and/or ToObjectSpace are causing SIGSEGV? Invalid memory reference? What the heck?
 if true then
 	return
 end
