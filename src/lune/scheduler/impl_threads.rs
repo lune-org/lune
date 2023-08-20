@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use super::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
-    IntoLuaOwnedThread, Scheduler,
+    IntoLuaThread, Scheduler,
 };
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut>
@@ -43,8 +43,8 @@ where
     /**
         Schedules the `thread` to be resumed with the given [`LuaError`].
     */
-    pub fn push_err(&self, thread: impl IntoLuaOwnedThread, err: LuaError) -> LuaResult<()> {
-        let thread = thread.into_owned_lua_thread(self.lua)?;
+    pub fn push_err<'a>(&'a self, thread: impl IntoLuaThread<'a>, err: LuaError) -> LuaResult<()> {
+        let thread = thread.into_lua_thread(self.lua)?;
         let args = LuaMultiValue::new(); // Will be resumed with error, don't need real args
 
         let thread = SchedulerThread::new(self.lua, thread, args)?;
@@ -72,10 +72,10 @@ where
     */
     pub fn push_front<'a>(
         &'a self,
-        thread: impl IntoLuaOwnedThread,
+        thread: impl IntoLuaThread<'a>,
         args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_owned_lua_thread(self.lua)?;
+        let thread = thread.into_lua_thread(self.lua)?;
         let args = args.into_lua_multi(self.lua)?;
 
         let thread = SchedulerThread::new(self.lua, thread, args)?;
@@ -110,10 +110,10 @@ where
     */
     pub fn push_back<'a>(
         &'a self,
-        thread: impl IntoLuaOwnedThread,
+        thread: impl IntoLuaThread<'a>,
         args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_owned_lua_thread(self.lua)?;
+        let thread = thread.into_lua_thread(self.lua)?;
         let args = args.into_lua_multi(self.lua)?;
 
         let thread = SchedulerThread::new(self.lua, thread, args)?;

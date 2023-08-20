@@ -19,14 +19,14 @@ pub type SchedulerThreadSender = Sender<LuaResult<Arc<LuaRegistryKey>>>;
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct SchedulerThreadId(usize);
 
-impl From<&LuaOwnedThread> for SchedulerThreadId {
-    fn from(value: &LuaOwnedThread) -> Self {
-        // HACK: We rely on the debug format of owned
+impl From<&LuaThread<'_>> for SchedulerThreadId {
+    fn from(value: &LuaThread) -> Self {
+        // HACK: We rely on the debug format of mlua
         // thread refs here, but currently this is the
         // only way to get a proper unique id using mlua
         let addr_string = format!("{value:?}");
         let addr = addr_string
-            .strip_prefix("OwnedThread(OwnedRef(0x")
+            .strip_prefix("Thread(Ref(0x")
             .expect("Invalid thread address format - unknown prefix")
             .split_once(')')
             .map(|(s, _)| s)
@@ -43,8 +43,8 @@ impl From<&LuaOwnedThread> for SchedulerThreadId {
 #[derive(Debug)]
 pub(super) struct SchedulerThread {
     thread_id: SchedulerThreadId,
-    thread: LuaOwnedThread,
-    args: LuaRegistryKey,
+    key_thread: LuaRegistryKey,
+    key_args: LuaRegistryKey,
 }
 
 impl SchedulerThread {
@@ -55,36 +55,45 @@ impl SchedulerThread {
     */
     pub(super) fn new<'lua>(
         lua: &'lua Lua,
-        thread: LuaOwnedThread,
+        thread: LuaThread<'lua>,
         args: LuaMultiValue<'lua>,
     ) -> LuaResult<Self> {
         let args_vec = args.into_vec();
+        let thread_id = SchedulerThreadId::from(&thread);
 
-        let args = lua
+        let key_thread = lua
+            .create_registry_value(thread)
+            .context("Failed to store value in registry")?;
+        let key_args = lua
             .create_registry_value(args_vec)
             .context("Failed to store value in registry")?;
 
         Ok(Self {
-            thread_id: SchedulerThreadId::from(&thread),
-            thread,
-            args,
+            thread_id,
+            key_thread,
+            key_args,
         })
     }
 
     /**
         Extracts the inner thread and args from the container.
     */
-    pub(super) fn into_inner(self, lua: &Lua) -> (LuaOwnedThread, LuaMultiValue<'_>) {
+    pub(super) fn into_inner(self, lua: &Lua) -> (LuaThread<'_>, LuaMultiValue<'_>) {
+        let thread = lua
+            .registry_value(&self.key_thread)
+            .expect("Failed to get thread from registry");
         let args_vec = lua
-            .registry_value(&self.args)
+            .registry_value(&self.key_args)
             .expect("Failed to get thread args from registry");
 
         let args = LuaMultiValue::from_vec(args_vec);
 
-        lua.remove_registry_value(self.args)
+        lua.remove_registry_value(self.key_thread)
+            .expect("Failed to remove thread from registry");
+        lua.remove_registry_value(self.key_args)
             .expect("Failed to remove thread args from registry");
 
-        (self.thread, args)
+        (thread, args)
     }
 
     /**

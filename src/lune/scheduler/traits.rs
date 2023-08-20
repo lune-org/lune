@@ -79,33 +79,27 @@ where
     - Lua functions ([`LuaFunction`])
     - Lua chunks ([`LuaChunk`])
 */
-pub trait IntoLuaOwnedThread {
+pub trait IntoLuaThread<'lua> {
     /**
         Converts the value into a lua thread.
     */
-    fn into_owned_lua_thread(self, lua: &Lua) -> LuaResult<LuaOwnedThread>;
+    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>>;
 }
 
-impl IntoLuaOwnedThread for LuaOwnedThread {
-    fn into_owned_lua_thread(self, _lua: &Lua) -> LuaResult<LuaOwnedThread> {
+impl<'lua> IntoLuaThread<'lua> for LuaThread<'lua> {
+    fn into_lua_thread(self, _: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
         Ok(self)
     }
 }
 
-impl<'lua> IntoLuaOwnedThread for LuaThread<'lua> {
-    fn into_owned_lua_thread(self, _lua: &Lua) -> LuaResult<LuaOwnedThread> {
-        Ok(self.into_owned())
+impl<'lua> IntoLuaThread<'lua> for LuaFunction<'lua> {
+    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+        lua.create_thread(self)
     }
 }
 
-impl<'lua> IntoLuaOwnedThread for LuaFunction<'lua> {
-    fn into_owned_lua_thread(self, lua: &Lua) -> LuaResult<LuaOwnedThread> {
-        Ok(lua.create_thread(self)?.into_owned())
-    }
-}
-
-impl<'lua, 'a> IntoLuaOwnedThread for LuaChunk<'lua, 'a> {
-    fn into_owned_lua_thread(self, lua: &Lua) -> LuaResult<LuaOwnedThread> {
-        Ok(lua.create_thread(self.into_function()?)?.into_owned())
+impl<'lua, 'a> IntoLuaThread<'lua> for LuaChunk<'lua, 'a> {
+    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+        lua.create_thread(self.into_function()?)
     }
 }

@@ -16,7 +16,7 @@ use tokio::{
 
 use crate::lune::{
     builtins::LuneBuiltin,
-    scheduler::{IntoLuaOwnedThread, Scheduler},
+    scheduler::{IntoLuaThread, Scheduler},
 };
 
 const REGISTRY_KEY: &str = "RequireContext";
@@ -187,7 +187,7 @@ impl<'lua> RequireContext<'lua> {
             .load(file_contents)
             .set_name(rel_path.to_string_lossy().to_string())
             .into_function()?
-            .into_owned_lua_thread(self.lua)?;
+            .into_lua_thread(self.lua)?;
 
         // Schedule the thread to run, wait for it to finish running
         let thread_id = sched.push_back(file_thread, ())?;
