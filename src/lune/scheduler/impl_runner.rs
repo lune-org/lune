@@ -95,14 +95,14 @@ where
         let mut resumed_any = false;
 
         loop {
-            let mut rx = self.new_thread_ready.subscribe();
+            let mut rx = self.futures_break_signal.subscribe();
 
             let mut futs = self
                 .futures
                 .try_lock()
                 .expect("Failed to lock futures queue");
 
-            // Wait until we either get a new lua thread or a future completes
+            // Wait until we either manually break out of resumption or a future completes
             tokio::select! {
                 _res = rx.recv() => break,
                 res = futs.next() => {

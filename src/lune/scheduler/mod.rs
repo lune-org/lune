@@ -43,12 +43,12 @@ pub(crate) struct Scheduler<'lua, 'fut> {
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
     futures: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
-    new_thread_ready: Sender<()>,
+    futures_break_signal: Sender<()>,
 }
 
 impl<'lua, 'fut> Scheduler<'lua, 'fut> {
     pub fn new(lua: &'lua Lua) -> Self {
-        let (new_thread_ready, _) = channel(1);
+        let (futures_break_signal, _) = channel(1);
 
         let this = Self {
             lua,
@@ -56,7 +56,7 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
             threads: Arc::new(RefCell::new(VecDeque::new())),
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
             futures: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
-            new_thread_ready,
+            futures_break_signal,
         };
 
         // Propagate errors given to the scheduler back to their lua threads
