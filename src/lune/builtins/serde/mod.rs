@@ -1,9 +1,9 @@
 use mlua::prelude::*;
 
-mod compress_decompress;
-use compress_decompress::{compress, decompress, CompressDecompressFormat};
+pub(super) mod compress_decompress;
+pub(super) mod encode_decode;
 
-mod encode_decode;
+use compress_decompress::{compress, decompress, CompressDecompressFormat};
 use encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
 use crate::lune::util::TableBuilder;
