@@ -33,9 +33,8 @@ where
     /**
         Schedules a plain future to run in the background.
 
-        This will spawn the future both on the scheduler and
-        potentially on a different thread using [`task::spawn`],
-        meaning the provided future must implement [`Send`].
+        This will potentially spawn the future on a different thread, using
+        [`task::spawn`], meaning the provided future must implement [`Send`].
 
         Returns a [`Receiver`] which may be `await`-ed
         to retrieve the result of the spawned future.
@@ -43,10 +42,10 @@ where
         This [`Receiver`] may be safely ignored if the result of the
         spawned future is not needed, the future will run either way.
     */
-    pub fn schedule_future_background<F, FR>(&self, fut: F) -> Receiver<FR>
+    pub fn spawn<F>(&self, fut: F) -> Receiver<F::Output>
     where
-        F: Future<Output = FR> + Send + 'static,
-        FR: Send + 'static,
+        F: Future + Send + 'static,
+        F::Output: Send + 'static,
     {
         let (tx, rx) = oneshot::channel();
 
@@ -55,6 +54,8 @@ where
             tx.send(res).ok();
         });
 
+        // NOTE: We must spawn a future on our scheduler which awaits
+        // the handle from tokio to start driving our future properly
         let futs = self
             .futures_background
             .try_lock()
@@ -67,13 +68,13 @@ where
     }
 
     /**
-        Equivalent to [`schedule_future_background`], except the
-        future is only spawned on the scheduler, on the main thread.
+        Equivalent to [`spawn`], except the future is only
+        spawned on the Lune scheduler, and on the main thread.
     */
-    pub fn schedule_future_background_local<F, FR>(&self, fut: F) -> Receiver<FR>
+    pub fn spawn_local<F>(&self, fut: F) -> Receiver<F::Output>
     where
-        F: Future<Output = FR> + 'static,
-        FR: 'static,
+        F: Future + 'static,
+        F::Output: 'static,
     {
         let (tx, rx) = oneshot::channel();
 
@@ -94,7 +95,7 @@ where
 
         If the given future returns a [`LuaError`], that error will be passed to the given `thread`.
     */
-    pub fn schedule_future_thread<F, FR>(
+    pub fn spawn_thread<F, FR>(
         &'fut self,
         thread: impl IntoLuaThread<'fut>,
         fut: F,

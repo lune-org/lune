@@ -175,10 +175,8 @@ async fn process_spawn(
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
 
-    let fut = spawn_command(program, args, options);
-    let recv = sched.schedule_future_background(fut);
-
-    let (status, stdout, stderr) = recv
+    let (status, stdout, stderr) = sched
+        .spawn(spawn_command(program, args, options))
         .await
         .expect("Failed to receive result of spawned process")?;
 
