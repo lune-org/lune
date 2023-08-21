@@ -7,7 +7,6 @@ use std::{
 use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use tokio::task;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -164,12 +163,24 @@ async fn process_spawn(
     lua: &Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
-    // Spawn the new process in the background,
-    // letting the tokio runtime place it on a
-    // different thread if necessary, and wait
-    let (status, stdout, stderr) = task::spawn(spawn_command(program, args, options))
+    /*
+        Spawn the new process in the background, letting the tokio
+        runtime place it on a different thread if possible / necessary
+
+        Note that we have to use our scheduler here, we can't
+        use anything like tokio::task::spawn because our lua
+        scheduler will not drive those futures to completion
+    */
+    let sched = lua
+        .app_data_ref::<&Scheduler>()
+        .expect("Lua struct is missing scheduler");
+
+    let fut = spawn_command(program, args, options);
+    let recv = sched.schedule_future_background(fut);
+
+    let (status, stdout, stderr) = recv
         .await
-        .expect("Spawned process should not be cancellable")?;
+        .expect("Failed to receive result of spawned process")?;
 
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
