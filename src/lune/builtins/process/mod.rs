@@ -169,7 +169,7 @@ async fn process_spawn(
     // different thread if necessary, and wait
     let (status, stdout, stderr) = task::spawn(spawn_command(program, args, options))
         .await
-        .into_lua_err()??;
+        .expect("Spawned process should not be cancellable")?;
 
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
