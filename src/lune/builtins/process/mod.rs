@@ -1,12 +1,13 @@
 use std::{
     env::{self, consts},
     path,
-    process::Stdio,
+    process::{ExitStatus, Stdio},
 };
 
 use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
+use tokio::task;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -163,29 +164,20 @@ async fn process_spawn<'lua>(
     lua: &'static Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable<'lua>> {
-    let inherit_stdio = options.inherit_stdio;
-    // Spawn the child process
-    let child = options
-        .into_command(program, args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    // Inherit the output and stderr if wanted
-    let result = if inherit_stdio {
-        pipe_and_inherit_child_process_stdio(child).await
-    } else {
-        let output = child.wait_with_output().await?;
-        Ok((output.status, output.stdout, output.stderr))
-    };
-    // Extract result
-    let (status, stdout, stderr) = result?;
+    // Spawn the new process in the background,
+    // letting the tokio runtime place it on a
+    // different thread if necessary, and wait
+    let (status, stdout, stderr) = task::spawn(spawn_command(program, args, options))
+        .await
+        .into_lua_err()??;
+
     // NOTE: If an exit code was not given by the child process,
     // we default to 1 if it yielded any error output, otherwise 0
     let code = status.code().unwrap_or(match stderr.is_empty() {
         true => 0,
         false => 1,
     });
+
     // Construct and return a readonly lua table with results
     TableBuilder::new(lua)?
         .with_value("ok", code == 0)?
@@ -193,4 +185,26 @@ async fn process_spawn<'lua>(
         .with_value("stdout", lua.create_string(&stdout)?)?
         .with_value("stderr", lua.create_string(&stderr)?)?
         .build_readonly()
+}
+
+async fn spawn_command(
+    program: String,
+    args: Option<Vec<String>>,
+    options: ProcessSpawnOptions,
+) -> LuaResult<(ExitStatus, Vec<u8>, Vec<u8>)> {
+    let inherit_stdio = options.inherit_stdio;
+
+    let child = options
+        .into_command(program, args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    if inherit_stdio {
+        pipe_and_inherit_child_process_stdio(child).await
+    } else {
+        let output = child.wait_with_output().await?;
+        Ok((output.status, output.stdout, output.stderr))
+    }
 }
