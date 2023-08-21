@@ -2,14 +2,11 @@ use std::collections::HashMap;
 
 use mlua::prelude::*;
 
-use console::style;
-use hyper::{
-    header::{CONTENT_ENCODING, CONTENT_LENGTH},
-    Server,
-};
-use tokio::sync::mpsc::{self, channel};
+use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH};
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
+
+use self::server::create_server;
 
 use super::serde::{
     compress_decompress::{decompress, CompressDecompressFormat},
@@ -19,11 +16,13 @@ use super::serde::{
 mod client;
 mod config;
 mod response;
+mod server;
 mod websocket;
 
 use client::{NetClient, NetClientBuilder};
 use config::{RequestConfig, ServeConfig};
 use response::NetServeResponse;
+use server::bind_to_localhost;
 use websocket::NetWebSocket;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -140,36 +139,13 @@ async fn net_serve<'lua>(
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
-    // Note that we need to use a mpsc here and not
-    // a oneshot channel since we move the sender
-    // into our table with the stop function
-    let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
-    let server_request_callback = lua
-        .create_registry_value(config.handle_request)
-        .expect("Failed to store request handler in registry - out of memory");
-    let server_websocket_callback = config.handle_web_socket.map(|handler| {
-        lua.create_registry_value(handler)
-            .expect("Failed to store websocket handler in registry - out of memory")
-    });
     let sched = lua
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
-    // TODO: Spawn a scheduler background task here, communicate using
-    // mpsc channels, do any heavy lifting possible in the other thread
-    let (tx_request, mut rx_request) = channel::<()>(64);
-    let (tx_websocket, mut rx_websocket) = channel::<()>(64);
 
-    // Create a new read-only table that contains methods
-    // for manipulating server behavior and shutting it down
-    let handle_stop = move |_, _: ()| match shutdown_tx.try_send(()) {
-        Ok(_) => Ok(()),
-        Err(_) => Err(LuaError::RuntimeError(
-            "Server has already been stopped".to_string(),
-        )),
-    };
-    TableBuilder::new(lua)?
-        .with_function("stop", handle_stop)?
-        .build_readonly()
+    let builder = bind_to_localhost(port)?;
+
+    create_server(lua, &sched, config, builder)
 }
 
 fn net_url_encode<'lua>(
