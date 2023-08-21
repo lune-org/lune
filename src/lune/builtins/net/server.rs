@@ -53,7 +53,7 @@ impl Service<Request<Body>> for NetServiceInner {
             let sched = lua
                 .app_data_ref::<&Scheduler>()
                 .expect("Lua struct is missing scheduler");
-            sched.schedule_future_background(async move {
+            sched.schedule_future_background_local(async move {
                 // Create our new full websocket object, then
                 // schedule our handler to get called asap
                 let res = async move {

@@ -1,5 +1,9 @@
 use futures_util::Future;
 use mlua::prelude::*;
+use tokio::{
+    sync::oneshot::{self, Receiver},
+    task,
+};
 
 use super::{IntoLuaThread, Scheduler};
 
@@ -29,18 +33,60 @@ where
     /**
         Schedules a plain future to run in the background.
 
-        Note that this will keep the scheduler alive even
-        if the future does not spawn any new lua threads.
+        This will spawn the future both on the scheduler and
+        potentially on a different thread using [`task::spawn`],
+        meaning the provided future must implement [`Send`].
+
+        Returns a [`Receiver`] which may be `await`-ed
+        to retrieve the result of the spawned future.
+
+        This [`Receiver`] may be safely ignored if the result of the
+        spawned future is not needed, the future will run either way.
     */
-    pub fn schedule_future_background<F>(&self, fut: F)
+    pub fn schedule_future_background<F, FR>(&self, fut: F) -> Receiver<FR>
     where
-        F: Future<Output = ()> + 'static,
+        F: Future<Output = FR> + Send + 'static,
+        FR: Send + 'static,
     {
+        let (tx, rx) = oneshot::channel();
+
+        let handle = task::spawn(async move {
+            let res = fut.await;
+            tx.send(res).ok();
+        });
+
         let futs = self
             .futures_background
             .try_lock()
             .expect("Failed to lock futures queue for background tasks");
-        futs.push(Box::pin(fut))
+        futs.push(Box::pin(async move {
+            handle.await.ok();
+        }));
+
+        rx
+    }
+
+    /**
+        Equivalent to [`schedule_future_background`], except the
+        future is only spawned on the scheduler, on the main thread.
+    */
+    pub fn schedule_future_background_local<F, FR>(&self, fut: F) -> Receiver<FR>
+    where
+        F: Future<Output = FR> + 'static,
+        FR: 'static,
+    {
+        let (tx, rx) = oneshot::channel();
+
+        let futs = self
+            .futures_background
+            .try_lock()
+            .expect("Failed to lock futures queue for background tasks");
+        futs.push(Box::pin(async move {
+            let res = fut.await;
+            tx.send(res).ok();
+        }));
+
+        rx
     }
 
     /**
