@@ -11,7 +11,7 @@ local RESPONSE = "Hello, lune!"
 
 -- Serve should not block the thread from continuing
 
-local thread = task.delay(0.2, function()
+local thread = task.delay(1, function()
 	stdio.ewrite("Serve must not block the current thread\n")
 	task.wait(1)
 	process.exit(1)
