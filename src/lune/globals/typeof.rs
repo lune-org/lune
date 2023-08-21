@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use crate::roblox::datatypes::extension::RobloxUserdataTypenameExt;
 
-const REGISTRY_KEY: &str = "NetClient";
+const REGISTRY_KEY: &str = "LuauTypeof";
 
 pub fn create(lua: &Lua) -> LuaResult<impl IntoLua<'_>> {
     let original = lua.globals().get::<_, LuaFunction>("typeof")?;
