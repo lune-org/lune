@@ -66,13 +66,11 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
         let state = this.state.clone();
         lua.set_interrupt(move |_| {
             if let Some(id) = state.get_current_thread_id() {
-                match state.get_thread_error(id) {
-                    Some(e) => Err(e),
-                    None => Ok(LuaVmState::Continue),
+                if let Some(err) = state.get_thread_error(id) {
+                    return Err(err);
                 }
-            } else {
-                Ok(LuaVmState::Continue)
             }
+            Ok(LuaVmState::Continue)
         });
 
         this
