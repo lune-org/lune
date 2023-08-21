@@ -1,15 +1,12 @@
 use std::{
-    collections::HashMap,
     env::{self, consts},
-    path::{self, PathBuf},
+    path,
     process::Stdio,
 };
 
-use directories::UserDirs;
 use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use tokio::process::Command;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -17,6 +14,9 @@ mod tee_writer;
 
 mod pipe_inherit;
 use pipe_inherit::pipe_and_inherit_child_process_stdio;
+
+mod options;
+use options::ProcessSpawnOptions;
 
 const PROCESS_EXIT_IMPL_LUA: &str = r#"
 exit(...)
@@ -161,127 +161,18 @@ fn process_env_iter<'lua>(
 
 async fn process_spawn<'lua>(
     lua: &'static Lua,
-    (mut program, args, options): (String, Option<Vec<String>>, Option<LuaTable<'lua>>),
+    (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable<'lua>> {
-    // Parse any given options or create defaults
-    let (child_cwd, child_envs, child_shell, child_stdio_inherit) = match options {
-        Some(options) => {
-            let mut cwd = env::current_dir()?;
-            let mut envs = HashMap::new();
-            let mut shell = None;
-            let mut inherit = false;
-            match options.raw_get("cwd")? {
-                LuaValue::Nil => {}
-                LuaValue::String(s) => {
-                    cwd = PathBuf::from(s.to_string_lossy().to_string());
-                    // Substitute leading tilde (~) for the actual home dir
-                    if cwd.starts_with("~") {
-                        if let Some(user_dirs) = UserDirs::new() {
-                            cwd = user_dirs.home_dir().join(cwd.strip_prefix("~").unwrap())
-                        }
-                    };
-                    if !cwd.exists() {
-                        return Err(LuaError::RuntimeError(
-                            "Invalid value for option 'cwd' - path does not exist".to_string(),
-                        ));
-                    }
-                }
-                value => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Invalid type for option 'cwd' - expected 'string', got '{}'",
-                        value.type_name()
-                    )))
-                }
-            }
-            match options.raw_get("env")? {
-                LuaValue::Nil => {}
-                LuaValue::Table(t) => {
-                    for pair in t.pairs::<String, String>() {
-                        let (k, v) = pair?;
-                        envs.insert(k, v);
-                    }
-                }
-                value => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Invalid type for option 'env' - expected 'table', got '{}'",
-                        value.type_name()
-                    )))
-                }
-            }
-            match options.raw_get("shell")? {
-                LuaValue::Nil => {}
-                LuaValue::String(s) => shell = Some(s.to_string_lossy().to_string()),
-                LuaValue::Boolean(true) => {
-                    shell = match env::consts::FAMILY {
-                        "unix" => Some("/bin/sh".to_string()),
-                        "windows" => Some("/bin/sh".to_string()),
-                        _ => None,
-                    };
-                }
-                value => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Invalid type for option 'shell' - expected 'true' or 'string', got '{}'",
-                        value.type_name()
-                    )))
-                }
-            }
-            match options.raw_get("stdio")? {
-                LuaValue::Nil => {}
-                LuaValue::String(s) => {
-                    match s.to_str()? {
-                        "inherit" => {
-                            inherit = true;
-                        },
-                        "default" => {
-                            inherit = false;
-                        }
-                        _ => return Err(LuaError::RuntimeError(
-                            format!("Invalid value for option 'stdio' - expected 'inherit' or 'default', got '{}'", s.to_string_lossy()),
-                        ))
-                    }
-                }
-                value => {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Invalid type for option 'stdio' - expected 'string', got '{}'",
-                        value.type_name()
-                    )))
-                }
-            }
-            Ok::<_, LuaError>((cwd, envs, shell, inherit))
-        }
-        None => Ok((env::current_dir()?, HashMap::new(), None, false)),
-    }?;
-    // Run a shell using the command param if wanted
-    let child_args = if let Some(shell) = child_shell {
-        let shell_args = match args {
-            Some(args) => vec!["-c".to_string(), format!("{} {}", program, args.join(" "))],
-            None => vec!["-c".to_string(), program],
-        };
-        program = shell;
-        Some(shell_args)
-    } else {
-        args
-    };
-    // Create command with the wanted options
-    let mut cmd = match child_args {
-        None => Command::new(program),
-        Some(args) => {
-            let mut cmd = Command::new(program);
-            cmd.args(args);
-            cmd
-        }
-    };
-    // Set dir to run in and env variables
-    cmd.current_dir(child_cwd);
-    cmd.envs(child_envs);
+    let inherit_stdio = options.inherit_stdio;
     // Spawn the child process
-    let child = cmd
+    let child = options
+        .into_command(program, args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
     // Inherit the output and stderr if wanted
-    let result = if child_stdio_inherit {
+    let result = if inherit_stdio {
         pipe_and_inherit_child_process_stdio(child).await
     } else {
         let output = child.wait_with_output().await?;
