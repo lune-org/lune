@@ -7,7 +7,7 @@ use hyper::{
     header::{CONTENT_ENCODING, CONTENT_LENGTH},
     Server,
 };
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, channel};
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -19,13 +19,11 @@ use super::serde::{
 mod client;
 mod config;
 mod response;
-mod server;
 mod websocket;
 
 use client::{NetClient, NetClientBuilder};
 use config::{RequestConfig, ServeConfig};
 use response::NetServeResponse;
-use server::{NetLocalExec, NetService};
 use websocket::NetWebSocket;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -156,42 +154,11 @@ where
     let sched = lua
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
-    // Bind first to make sure that we can bind to this address
-    let bound = match Server::try_bind(&([127, 0, 0, 1], port).into()) {
-        Err(e) => {
-            return Err(LuaError::external(format!(
-                "Failed to bind to localhost on port {port}\n{}",
-                format!("{e}").replace(
-                    "error creating server listener: ",
-                    &format!("{}", style("> ").dim())
-                )
-            )));
-        }
-        Ok(bound) => bound,
-    };
-    // Start up our web server
-    // TODO: Spawn a scheduler background task here,
-    // and communicate using an mpsc channel instead
-    sched.spawn_local(async move {
-        bound
-            .http1_only(true) // Web sockets can only use http1
-            .http1_keepalive(true) // Web sockets must be kept alive
-            .executor(NetLocalExec)
-            .serve(NetService::new(
-                lua,
-                server_request_callback,
-                server_websocket_callback,
-            ))
-            .with_graceful_shutdown(async move {
-                shutdown_rx
-                    .recv()
-                    .await
-                    .expect("Server was stopped instantly");
-                shutdown_rx.close();
-            })
-            .await
-            .unwrap();
-    });
+    // TODO: Spawn a scheduler background task here, communicate using
+    // mpsc channels, do any heavy lifting possible in the other thread
+    let (tx_request, mut rx_request) = channel::<()>(64);
+    let (tx_websocket, mut rx_websocket) = channel::<()>(64);
+
     // Create a new read-only table that contains methods
     // for manipulating server behavior and shutting it down
     let handle_stop = move |_, _: ()| match shutdown_tx.try_send(()) {
