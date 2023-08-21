@@ -5,6 +5,7 @@ use super::util::TableBuilder;
 mod g_table;
 mod print;
 mod require;
+mod r#typeof;
 mod version;
 mod warn;
 
@@ -14,6 +15,7 @@ pub fn inject_all(lua: &'static Lua) -> LuaResult<()> {
         .with_value("_VERSION", version::create(lua)?)?
         .with_value("print", print::create(lua)?)?
         .with_value("require", require::create(lua)?)?
+        .with_value("typeof", r#typeof::create(lua)?)?
         .with_value("warn", warn::create(lua)?)?
         .build_readonly()?;
 

@@ -1,6 +1,6 @@
 use mlua::prelude::*;
 
-pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
+pub fn create(lua: &Lua) -> LuaResult<impl IntoLua<'_>> {
     let luau_version_full = lua
         .globals()
         .get::<_, LuaString>("_VERSION")
