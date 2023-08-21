@@ -160,10 +160,10 @@ fn process_env_iter<'lua>(
     })
 }
 
-async fn process_spawn<'lua>(
-    lua: &'static Lua,
+async fn process_spawn(
+    lua: &Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
-) -> LuaResult<LuaTable<'lua>> {
+) -> LuaResult<LuaTable> {
     // Spawn the new process in the background,
     // letting the tokio runtime place it on a
     // different thread if necessary, and wait
