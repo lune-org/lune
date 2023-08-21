@@ -29,6 +29,10 @@ use server::{NetLocalExec, NetService};
 use websocket::NetWebSocket;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+    NetClientBuilder::new()
+        .headers(&[("User-Agent", create_user_agent_header())])?
+        .build()?
+        .into_registry(lua);
     TableBuilder::new(lua)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
@@ -64,20 +68,8 @@ async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig<'lua>) -> LuaRe
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
-    // Create a reusable client for performing our
-    // web requests and store it in the lua registry,
-    // allowing us to reuse headers and internal structs
-    let client = match lua.app_data_ref::<NetClient>() {
-        Some(client) => client,
-        None => {
-            let client = NetClientBuilder::new()
-                .headers(&[("User-Agent", create_user_agent_header())])?
-                .build()?;
-            lua.set_app_data(client);
-            lua.app_data_ref::<NetClient>().unwrap()
-        }
-    };
     // Create and send the request
+    let client = NetClient::from_registry(lua);
     let mut request = client.request(config.method, &config.url);
     for (query, value) in config.query {
         request = request.query(&[(query.to_str()?, value.to_str()?)]);

@@ -19,8 +19,6 @@ use crate::lune::{
     scheduler::{IntoLuaThread, Scheduler},
 };
 
-const REGISTRY_KEY: &str = "RequireContext";
-
 /**
     Context containing cached results for all `require` operations.
 
@@ -308,26 +306,5 @@ impl<'lua> RequireContext<'lua> {
         );
 
         result
-    }
-}
-
-impl<'lua> LuaUserData for RequireContext<'lua> {}
-
-impl<'lua> FromLua<'lua> for RequireContext<'lua> {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        if let LuaValue::UserData(ud) = value {
-            if let Ok(ctx) = ud.borrow::<RequireContext>() {
-                return Ok(ctx.clone());
-            }
-        }
-        unreachable!("RequireContext should only be used from registry")
-    }
-}
-
-impl<'lua> From<&'lua Lua> for RequireContext<'lua> {
-    fn from(value: &'lua Lua) -> Self {
-        value
-            .named_registry_value(REGISTRY_KEY)
-            .expect("Missing require context in lua registry")
     }
 }
