@@ -89,20 +89,19 @@ where
 type NetWebSocketStreamClient = MaybeTlsStream<TcpStream>;
 impl NetWebSocket<NetWebSocketStreamClient> {
     pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
+        let setmetatable = lua.globals().get::<_, LuaFunction>("setmetatable")?;
+        let table_freeze = lua
+            .globals()
+            .get::<_, LuaTable>("table")?
+            .get::<_, LuaFunction>("freeze")?;
         let socket_env = TableBuilder::new(lua)?
             .with_value("websocket", self)?
             .with_function("close_code", close_code::<NetWebSocketStreamClient>)?
             .with_async_function("close", close::<NetWebSocketStreamClient>)?
             .with_async_function("send", send::<NetWebSocketStreamClient>)?
             .with_async_function("next", next::<NetWebSocketStreamClient>)?
-            .with_value(
-                "setmetatable",
-                lua.named_registry_value::<LuaFunction>("tab.setmeta")?,
-            )?
-            .with_value(
-                "freeze",
-                lua.named_registry_value::<LuaFunction>("tab.freeze")?,
-            )?
+            .with_value("setmetatable", setmetatable)?
+            .with_value("freeze", table_freeze)?
             .build_readonly()?;
         Self::into_lua_table_with_env(lua, socket_env)
     }
@@ -111,20 +110,19 @@ impl NetWebSocket<NetWebSocketStreamClient> {
 type NetWebSocketStreamServer = Upgraded;
 impl NetWebSocket<NetWebSocketStreamServer> {
     pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
+        let setmetatable = lua.globals().get::<_, LuaFunction>("setmetatable")?;
+        let table_freeze = lua
+            .globals()
+            .get::<_, LuaTable>("table")?
+            .get::<_, LuaFunction>("freeze")?;
         let socket_env = TableBuilder::new(lua)?
             .with_value("websocket", self)?
             .with_function("close_code", close_code::<NetWebSocketStreamServer>)?
             .with_async_function("close", close::<NetWebSocketStreamServer>)?
             .with_async_function("send", send::<NetWebSocketStreamServer>)?
             .with_async_function("next", next::<NetWebSocketStreamServer>)?
-            .with_value(
-                "setmetatable",
-                lua.named_registry_value::<LuaFunction>("tab.setmeta")?,
-            )?
-            .with_value(
-                "freeze",
-                lua.named_registry_value::<LuaFunction>("tab.freeze")?,
-            )?
+            .with_value("setmetatable", setmetatable)?
+            .with_value("freeze", table_freeze)?
             .build_readonly()?;
         Self::into_lua_table_with_env(lua, socket_env)
     }
