@@ -37,8 +37,7 @@ type SchedulerFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
     and data will remain unchanged and accessible from all clones.
 */
 #[derive(Debug, Clone)]
-pub(crate) struct Scheduler<'lua, 'fut> {
-    lua: &'lua Lua,
+pub(crate) struct Scheduler<'fut> {
     state: Arc<SchedulerState>,
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
@@ -47,23 +46,33 @@ pub(crate) struct Scheduler<'lua, 'fut> {
     futures_break_signal: Sender<()>,
 }
 
-impl<'lua, 'fut> Scheduler<'lua, 'fut> {
-    pub fn new(lua: &'lua Lua) -> Self {
+impl<'fut> Scheduler<'fut> {
+    /**
+        Creates a new scheduler.
+    */
+    pub fn new() -> Self {
         let (futures_break_signal, _) = channel(1);
 
-        let this = Self {
-            lua,
+        Self {
             state: Arc::new(SchedulerState::new()),
             threads: Arc::new(RefCell::new(VecDeque::new())),
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
             futures_lua: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
             futures_background: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
             futures_break_signal,
-        };
+        }
+    }
 
+    /**
+        Sets the luau interrupt for this scheduler.
+
+        This will propagate errors from any lua-spawned
+        futures back to the lua threads that spawned them.
+    */
+    pub fn set_interrupt_for(&self, lua: &Lua) {
         // Propagate errors given to the scheduler back to their lua threads
         // FUTURE: Do profiling and anything else we need inside of this interrupt
-        let state = this.state.clone();
+        let state = self.state.clone();
         lua.set_interrupt(move |_| {
             if let Some(id) = state.get_current_thread_id() {
                 if let Some(err) = state.get_thread_error(id) {
@@ -72,10 +81,15 @@ impl<'lua, 'fut> Scheduler<'lua, 'fut> {
             }
             Ok(LuaVmState::Continue)
         });
-
-        this
     }
 
+    /**
+        Sets the exit code for the scheduler.
+
+        This will stop the scheduler from resuming any more lua threads or futures.
+
+        Panics if the exit code is set more than once.
+    */
     pub fn set_exit_code(&self, code: impl Into<u8>) {
         assert!(
             self.state.exit_code().is_none(),

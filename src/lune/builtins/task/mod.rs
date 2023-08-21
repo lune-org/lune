@@ -42,7 +42,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'_>> {
             let sched = lua
                 .app_data_ref::<&Scheduler>()
                 .expect("Lua struct is missing scheduler");
-            sched.push_front(thread.clone(), args)?;
+            sched.push_front(lua, thread.clone(), args)?;
             Ok(thread)
         })?;
     let task_spawn_env = TableBuilder::new(lua)?
@@ -85,7 +85,7 @@ fn task_defer<'lua>(
     let sched = lua
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
-    sched.push_back(thread.clone(), args)?;
+    sched.push_back(lua, thread.clone(), args)?;
     Ok(thread)
 }
 
@@ -105,10 +105,10 @@ where
         .expect("Lua struct is missing scheduler");
 
     let thread2 = thread.clone();
-    sched.spawn_thread(thread.clone(), async move {
+    sched.spawn_thread(lua, thread.clone(), async move {
         let duration = Duration::from_secs_f64(secs);
         time::sleep(duration).await;
-        sched.push_back(thread2, args)?;
+        sched.push_back(lua, thread2, args)?;
         Ok(())
     })?;
 

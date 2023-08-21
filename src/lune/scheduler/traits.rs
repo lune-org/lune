@@ -13,7 +13,12 @@ return yield()
     for access to the scheduler without having to import
     it or handle registry / app data references manually.
 */
-pub trait LuaSchedulerExt<'lua> {
+pub(crate) trait LuaSchedulerExt<'lua> {
+    /**
+        Sets the scheduler for the [`Lua`] struct.
+    */
+    fn set_scheduler(&'lua self, scheduler: &'lua Scheduler);
+
     /**
         Creates a function callable from Lua that runs an async
         closure and returns the results of it to the call site.
@@ -33,6 +38,11 @@ impl<'lua> LuaSchedulerExt<'lua> for Lua
 where
     'lua: 'static,
 {
+    fn set_scheduler(&'lua self, scheduler: &'lua Scheduler) {
+        self.set_app_data(scheduler);
+        scheduler.set_interrupt_for(self);
+    }
+
     fn create_async_function<A, R, F, FR>(&'lua self, func: F) -> LuaResult<LuaFunction<'lua>>
     where
         A: FromLuaMulti<'lua>,
@@ -40,6 +50,9 @@ where
         F: Fn(&'lua Lua, A) -> FR + 'lua,
         FR: Future<Output = LuaResult<R>> + 'lua,
     {
+        self.app_data_ref::<&Scheduler>()
+            .expect("Lua must have a scheduler to create async functions");
+
         let async_env = self.create_table_with_capacity(0, 2)?;
 
         async_env.set(
@@ -57,7 +70,7 @@ where
                 let sched = lua
                     .app_data_ref::<&Scheduler>()
                     .expect("Lua struct is missing scheduler");
-                sched.spawn_thread(thread, future)?;
+                sched.spawn_thread(lua, thread, future)?;
                 Ok(())
             }),
         )?;

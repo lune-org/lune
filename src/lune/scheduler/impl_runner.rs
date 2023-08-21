@@ -9,16 +9,13 @@ use crate::lune::util::traits::LuaEmitErrorExt;
 
 use super::Scheduler;
 
-impl<'lua, 'fut> Scheduler<'lua, 'fut>
-where
-    'lua: 'fut,
-{
+impl<'fut> Scheduler<'fut> {
     /**
         Runs all lua threads to completion.
 
         Returns `true` if any thread was resumed, `false` otherwise.
     */
-    fn run_lua_threads(&self) -> bool {
+    fn run_lua_threads(&self, lua: &Lua) -> bool {
         if self.state.has_exit_code() {
             return false;
         }
@@ -32,7 +29,7 @@ where
         {
             // Deconstruct the scheduler thread into its parts
             let thread_id = thread.id();
-            let (thread, args) = thread.into_inner(self.lua);
+            let (thread, args) = thread.into_inner(lua);
 
             // Make sure this thread is still resumable, it might have
             // been resumed somewhere else or even have been cancelled
@@ -53,7 +50,7 @@ where
             // a non-zero exit code, and print it out to stderr
             if let Err(err) = &res {
                 self.state.increment_error_count();
-                self.lua.emit_error(err.clone());
+                lua.emit_error(err.clone());
             }
 
             // If the thread has finished running completely,
@@ -65,11 +62,9 @@ where
                     if sender.receiver_count() > 0 {
                         let stored = match res {
                             Err(e) => Err(e),
-                            Ok(v) => Ok(Arc::new(
-                                self.lua.create_registry_value(v.into_vec()).expect(
-                                    "Failed to store thread results in registry - out of memory",
-                                ),
-                            )),
+                            Ok(v) => Ok(Arc::new(lua.create_registry_value(v.into_vec()).expect(
+                                "Failed to store thread results in registry - out of memory",
+                            ))),
                         };
                         sender
                             .send(stored)
@@ -135,13 +130,17 @@ where
 
         Will emit lua output and errors to stdout and stderr.
     */
-    pub async fn run_to_completion(&self) -> ExitCode {
+    pub async fn run_to_completion(&self, lua: &Lua) -> ExitCode {
+        if let Some(code) = self.state.exit_code() {
+            return ExitCode::from(code);
+        }
+
         let set = LocalSet::new();
         let _guard = set.enter();
 
         loop {
             // 1. Run lua threads until exit or there are none left
-            self.run_lua_threads();
+            self.run_lua_threads(lua);
 
             // 2. If we got a manual exit code from lua we should
             // not try to wait for any pending futures to complete

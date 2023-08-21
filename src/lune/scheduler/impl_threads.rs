@@ -7,10 +7,7 @@ use super::{
     IntoLuaThread, Scheduler,
 };
 
-impl<'lua, 'fut> Scheduler<'lua, 'fut>
-where
-    'lua: 'fut,
-{
+impl<'fut> Scheduler<'fut> {
     /**
         Checks if there are any lua threads to run.
     */
@@ -43,11 +40,16 @@ where
     /**
         Schedules the `thread` to be resumed with the given [`LuaError`].
     */
-    pub fn push_err<'a>(&'a self, thread: impl IntoLuaThread<'a>, err: LuaError) -> LuaResult<()> {
-        let thread = thread.into_lua_thread(self.lua)?;
+    pub fn push_err<'a>(
+        &self,
+        lua: &'a Lua,
+        thread: impl IntoLuaThread<'a>,
+        err: LuaError,
+    ) -> LuaResult<()> {
+        let thread = thread.into_lua_thread(lua)?;
         let args = LuaMultiValue::new(); // Will be resumed with error, don't need real args
 
-        let thread = SchedulerThread::new(self.lua, thread, args);
+        let thread = SchedulerThread::new(lua, thread, args);
         let thread_id = thread.id();
 
         self.state.set_thread_error(thread_id, err);
@@ -71,14 +73,15 @@ where
         right away, before any other currently scheduled threads.
     */
     pub fn push_front<'a>(
-        &'a self,
+        &self,
+        lua: &'a Lua,
         thread: impl IntoLuaThread<'a>,
         args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_lua_thread(self.lua)?;
-        let args = args.into_lua_multi(self.lua)?;
+        let thread = thread.into_lua_thread(lua)?;
+        let args = args.into_lua_multi(lua)?;
 
-        let thread = SchedulerThread::new(self.lua, thread, args);
+        let thread = SchedulerThread::new(lua, thread, args);
         let thread_id = thread.id();
 
         self.threads
@@ -109,14 +112,15 @@ where
         after all other current threads have been resumed.
     */
     pub fn push_back<'a>(
-        &'a self,
+        &self,
+        lua: &'a Lua,
         thread: impl IntoLuaThread<'a>,
         args: impl IntoLuaMulti<'a>,
     ) -> LuaResult<SchedulerThreadId> {
-        let thread = thread.into_lua_thread(self.lua)?;
-        let args = args.into_lua_multi(self.lua)?;
+        let thread = thread.into_lua_thread(lua)?;
+        let args = args.into_lua_multi(lua)?;
 
-        let thread = SchedulerThread::new(self.lua, thread, args);
+        let thread = SchedulerThread::new(lua, thread, args);
         let thread_id = thread.id();
 
         self.threads
@@ -145,10 +149,11 @@ where
     /**
         Waits for the given thread to finish running, and returns its result.
     */
-    pub async fn wait_for_thread(
+    pub async fn wait_for_thread<'a>(
         &self,
+        lua: &'a Lua,
         thread_id: SchedulerThreadId,
-    ) -> LuaResult<LuaMultiValue<'_>> {
+    ) -> LuaResult<LuaMultiValue<'a>> {
         let mut recv = {
             let senders = self.thread_senders.borrow();
             let sender = senders
@@ -163,8 +168,7 @@ where
         match res {
             Err(e) => Err(e),
             Ok(k) => {
-                let vals = self
-                    .lua
+                let vals = lua
                     .registry_value::<Vec<LuaValue>>(&k)
                     .expect("Received invalid registry key for thread");
 
@@ -172,8 +176,7 @@ where
                 // up registry values on its own, but doing this will add
                 // some extra safety and clean up registry values faster
                 if let Some(key) = Arc::into_inner(k) {
-                    self.lua
-                        .remove_registry_value(key)
+                    lua.remove_registry_value(key)
                         .expect("Failed to remove registry key for thread");
                 }
 
