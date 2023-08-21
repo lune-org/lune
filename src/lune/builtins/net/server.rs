@@ -60,6 +60,7 @@ impl Service<Request<Body>> for NetServiceInner {
                     let ws = ws.await.into_lua_err()?;
                     let sock = NetWebSocket::new(ws).into_lua_table(lua)?;
                     sched.push_front(
+                        lua,
                         lua.create_thread(handler)?,
                         LuaMultiValue::from_vec(vec![LuaValue::Table(sock)]),
                     )

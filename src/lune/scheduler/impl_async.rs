@@ -7,10 +7,7 @@ use tokio::{
 
 use super::{IntoLuaThread, Scheduler};
 
-impl<'lua, 'fut> Scheduler<'lua, 'fut>
-where
-    'lua: 'fut,
-{
+impl<'fut> Scheduler<'fut> {
     /**
         Checks if there are any futures to run, for
         lua futures and background futures respectively.
@@ -97,6 +94,7 @@ where
     */
     pub fn spawn_thread<F, FR>(
         &'fut self,
+        lua: &'fut Lua,
         thread: impl IntoLuaThread<'fut>,
         fut: F,
     ) -> LuaResult<()>
@@ -104,20 +102,20 @@ where
         FR: IntoLuaMulti<'fut>,
         F: Future<Output = LuaResult<FR>> + 'fut,
     {
-        let thread = thread.into_lua_thread(self.lua)?;
+        let thread = thread.into_lua_thread(lua)?;
         let futs = self.futures_lua.try_lock().expect(
             "Failed to lock futures queue - \
             can't schedule future lua threads during futures resumption",
         );
 
         futs.push(Box::pin(async move {
-            match fut.await.and_then(|rets| rets.into_lua_multi(self.lua)) {
+            match fut.await.and_then(|rets| rets.into_lua_multi(lua)) {
                 Err(e) => {
-                    self.push_err(thread, e)
+                    self.push_err(lua, thread, e)
                         .expect("Failed to schedule future err thread");
                 }
                 Ok(v) => {
-                    self.push_back(thread, v)
+                    self.push_back(lua, thread, v)
                         .expect("Failed to schedule future thread");
                 }
             }
