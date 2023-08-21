@@ -66,14 +66,14 @@ where
                         let stored = match res {
                             Err(e) => Err(e),
                             Ok(v) => Ok(Arc::new(
-                                self.lua
-                                    .create_registry_value(v.into_vec())
-                                    .expect("Failed to store return values in registry"),
+                                self.lua.create_registry_value(v.into_vec()).expect(
+                                    "Failed to store thread results in registry - out of memory",
+                                ),
                             )),
                         };
                         sender
                             .send(stored)
-                            .expect("Failed to broadcast return values of thread");
+                            .expect("Failed to broadcast thread results");
                     }
                 }
             }

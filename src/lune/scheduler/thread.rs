@@ -57,22 +57,22 @@ impl SchedulerThread {
         lua: &'lua Lua,
         thread: LuaThread<'lua>,
         args: LuaMultiValue<'lua>,
-    ) -> LuaResult<Self> {
+    ) -> Self {
         let args_vec = args.into_vec();
         let thread_id = SchedulerThreadId::from(&thread);
 
         let key_thread = lua
             .create_registry_value(thread)
-            .context("Failed to store value in registry")?;
+            .expect("Failed to store thread in registry - out of memory");
         let key_args = lua
             .create_registry_value(args_vec)
-            .context("Failed to store value in registry")?;
+            .expect("Failed to store thread args in registry - out of memory");
 
-        Ok(Self {
+        Self {
             thread_id,
             key_thread,
             key_args,
-        })
+        }
     }
 
     /**

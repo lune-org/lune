@@ -146,10 +146,12 @@ where
     // a oneshot channel since we move the sender
     // into our table with the stop function
     let (shutdown_tx, mut shutdown_rx) = mpsc::channel::<()>(1);
-    let server_request_callback = lua.create_registry_value(config.handle_request)?;
+    let server_request_callback = lua
+        .create_registry_value(config.handle_request)
+        .expect("Failed to store request handler in registry - out of memory");
     let server_websocket_callback = config.handle_web_socket.map(|handler| {
         lua.create_registry_value(handler)
-            .expect("Failed to store websocket handler")
+            .expect("Failed to store websocket handler in registry - out of memory")
     });
     let sched = lua
         .app_data_ref::<&Scheduler>()

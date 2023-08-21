@@ -199,7 +199,7 @@ impl<'lua> RequireContext<'lua> {
                 let multi_key = self
                     .lua
                     .create_registry_value(multi_vec)
-                    .expect("Failed to store require result in registry");
+                    .expect("Failed to store require result in registry - out of memory");
                 Ok(multi_key)
             }
         }
@@ -299,7 +299,7 @@ impl<'lua> RequireContext<'lua> {
                     let multi_key = self
                         .lua
                         .create_registry_value(multi_vec)
-                        .expect("Failed to store require result in registry");
+                        .expect("Failed to store require result in registry - out of memory");
                     Ok(multi_key)
                 }
             },

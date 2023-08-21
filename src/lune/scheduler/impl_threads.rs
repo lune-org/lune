@@ -47,7 +47,7 @@ where
         let thread = thread.into_lua_thread(self.lua)?;
         let args = LuaMultiValue::new(); // Will be resumed with error, don't need real args
 
-        let thread = SchedulerThread::new(self.lua, thread, args)?;
+        let thread = SchedulerThread::new(self.lua, thread, args);
         let thread_id = thread.id();
 
         self.state.set_thread_error(thread_id, err);
@@ -78,7 +78,7 @@ where
         let thread = thread.into_lua_thread(self.lua)?;
         let args = args.into_lua_multi(self.lua)?;
 
-        let thread = SchedulerThread::new(self.lua, thread, args)?;
+        let thread = SchedulerThread::new(self.lua, thread, args);
         let thread_id = thread.id();
 
         self.threads
@@ -116,7 +116,7 @@ where
         let thread = thread.into_lua_thread(self.lua)?;
         let args = args.into_lua_multi(self.lua)?;
 
-        let thread = SchedulerThread::new(self.lua, thread, args)?;
+        let thread = SchedulerThread::new(self.lua, thread, args);
         let thread_id = thread.id();
 
         self.threads
