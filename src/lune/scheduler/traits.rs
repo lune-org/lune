@@ -57,7 +57,7 @@ where
                 let sched = lua
                     .app_data_ref::<&Scheduler>()
                     .expect("Lua struct is missing scheduler");
-                sched.schedule_future_thread(thread, future)?;
+                sched.spawn_thread(thread, future)?;
                 Ok(())
             }),
         )?;

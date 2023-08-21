@@ -105,7 +105,7 @@ where
         .expect("Lua struct is missing scheduler");
 
     let thread2 = thread.clone();
-    sched.schedule_future_thread(thread.clone(), async move {
+    sched.spawn_thread(thread.clone(), async move {
         let duration = Duration::from_secs_f64(secs);
         time::sleep(duration).await;
         sched.push_back(thread2, args)?;
