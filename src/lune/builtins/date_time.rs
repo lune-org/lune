@@ -1,5 +1,5 @@
-use anyhow::Result;
 use chrono::prelude::*;
+use chrono::DateTime as ChronoDateTime;
 
 // TODO: Proper error handling and stuff
 
@@ -45,7 +45,7 @@ impl DateTime {
 
     pub fn from_local_time(date_time: Option<DateTimeConstructor>) -> Self {
         if let Some(date_time) = date_time {
-            let local_time: DateTime<Local> = Local
+            let local_time: ChronoDateTime<Local> = Local
                 .from_local_datetime(&NaiveDateTime::new(
                     NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
                         .expect("invalid date"),
@@ -77,7 +77,7 @@ impl DateTime {
     where
         T: ToString,
     {
-        let time = DateTime::parse_from_str(iso_date.to_string().as_str(), "%Y-%m-%dT%H:%M:%SZ")
+        let time = ChronoDateTime::parse_from_str(iso_date.to_string().as_str(), "%Y-%m-%dT%H:%M:%SZ")
             .expect("invalid ISO 8601 string");
 
         Self {
