@@ -9,7 +9,7 @@ pub enum NetServeResponseKind {
     Table,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NetServeResponse {
     kind: NetServeResponseKind,
     status: u16,
@@ -79,28 +79,5 @@ impl<'lua> FromLua<'lua> for NetServeResponse {
                 message: None,
             }),
         }
-    }
-}
-
-impl<'lua> IntoLua<'lua> for NetServeResponse {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        if self.headers.len() > i32::MAX as usize {
-            return Err(LuaError::ToLuaConversionError {
-                from: "NetServeResponse",
-                to: "table",
-                message: Some("Too many header values".to_string()),
-            });
-        }
-        let body = self.body.map(|b| lua.create_string(b)).transpose()?;
-        let headers = lua.create_table_with_capacity(0, self.headers.len())?;
-        for (key, value) in self.headers {
-            headers.set(key, lua.create_string(&value)?)?;
-        }
-        let table = lua.create_table_with_capacity(0, 3)?;
-        table.set("status", self.status)?;
-        table.set("headers", headers)?;
-        table.set("body", body)?;
-        table.set_readonly(true);
-        Ok(LuaValue::Table(table))
     }
 }

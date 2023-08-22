@@ -15,13 +15,13 @@ use super::serde::{
 
 mod client;
 mod config;
+mod processing;
 mod response;
 mod server;
 mod websocket;
 
 use client::{NetClient, NetClientBuilder};
 use config::{RequestConfig, ServeConfig};
-use response::NetServeResponse;
 use server::bind_to_localhost;
 use websocket::NetWebSocket;
 
