@@ -5,7 +5,7 @@ use tokio::{
     task,
 };
 
-use super::{IntoLuaThread, Scheduler};
+use super::{IntoLuaThread, Scheduler, SchedulerMessage};
 
 impl<'fut> Scheduler<'fut> {
     /**
@@ -61,6 +61,14 @@ impl<'fut> Scheduler<'fut> {
             handle.await.ok();
         }));
 
+        // NOTE: We might be resuming lua futures, need to signal that a
+        // new background future is ready to break out of futures resumption
+        if self.futures_signal.receiver_count() > 0 {
+            self.futures_signal
+                .send(SchedulerMessage::SpawnedBackgroundFuture)
+                .ok();
+        }
+
         rx
     }
 
@@ -83,6 +91,14 @@ impl<'fut> Scheduler<'fut> {
             let res = fut.await;
             tx.send(res).ok();
         }));
+
+        // NOTE: We might be resuming lua futures, need to signal that a
+        // new background future is ready to break out of futures resumption
+        if self.futures_signal.receiver_count() > 0 {
+            self.futures_signal
+                .send(SchedulerMessage::SpawnedBackgroundFuture)
+                .ok();
+        }
 
         rx
     }
@@ -120,6 +136,14 @@ impl<'fut> Scheduler<'fut> {
                 }
             }
         }));
+
+        // NOTE: We might be resuming background futures, need to signal that a
+        // new background future is ready to break out of futures resumption
+        if self.futures_signal.receiver_count() > 0 {
+            self.futures_signal
+                .send(SchedulerMessage::SpawnedLuaFuture)
+                .ok();
+        }
 
         Ok(())
     }

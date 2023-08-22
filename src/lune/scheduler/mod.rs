@@ -12,6 +12,7 @@ use tokio::sync::{
     Mutex as AsyncMutex,
 };
 
+mod message;
 mod state;
 mod thread;
 mod traits;
@@ -20,6 +21,7 @@ mod impl_async;
 mod impl_runner;
 mod impl_threads;
 
+pub use self::message::SchedulerMessage;
 pub use self::thread::SchedulerThreadId;
 pub use self::traits::*;
 
@@ -43,7 +45,7 @@ pub(crate) struct Scheduler<'fut> {
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
     futures_lua: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
     futures_background: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'static>>>>,
-    futures_break_signal: Sender<()>,
+    futures_signal: Sender<SchedulerMessage>,
 }
 
 impl<'fut> Scheduler<'fut> {
@@ -51,7 +53,7 @@ impl<'fut> Scheduler<'fut> {
         Creates a new scheduler.
     */
     pub fn new() -> Self {
-        let (futures_break_signal, _) = channel(1);
+        let (futures_signal, _) = channel(1);
 
         Self {
             state: Arc::new(SchedulerState::new()),
@@ -59,7 +61,7 @@ impl<'fut> Scheduler<'fut> {
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
             futures_lua: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
             futures_background: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
-            futures_break_signal,
+            futures_signal,
         }
     }
 
@@ -95,7 +97,8 @@ impl<'fut> Scheduler<'fut> {
             self.state.exit_code().is_none(),
             "Exit code may only be set exactly once"
         );
-        self.state.set_exit_code(code.into())
+        self.state.set_exit_code(code.into());
+        self.futures_signal.send(SchedulerMessage::ExitCodeSet).ok();
     }
 
     #[doc(hidden)]
