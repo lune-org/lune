@@ -6,6 +6,7 @@ pub mod serde;
 pub mod stdio;
 pub mod task;
 pub mod top_level;
+pub mod date_time;
 
 #[cfg(feature = "roblox")]
 pub mod roblox;

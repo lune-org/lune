@@ -1,123 +1,187 @@
-use std::io::ErrorKind as IoErrorKind;
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use anyhow::Result;
+use chrono::prelude::*;
 
-use mlua::prelude::*;
-use tokio::fs;
+// TODO: Proper error handling and stuff
 
-use crate::lune::lua::{
-    fs::{copy, FsMetadata, FsWriteOptions},
-    table::TableBuilder,
-};
-
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
-    TableBuilder::new(lua)?
-        .with_async_function("readFile", fs_read_file)?
-        .with_async_function("readDir", fs_read_dir)?
-        .with_async_function("writeFile", fs_write_file)?
-        .with_async_function("writeDir", fs_write_dir)?
-        .with_async_function("removeFile", fs_remove_file)?
-        .with_async_function("removeDir", fs_remove_dir)?
-        .with_async_function("metadata", fs_metadata)?
-        .with_async_function("isFile", fs_is_file)?
-        .with_async_function("isDir", fs_is_dir)?
-        .with_async_function("move", fs_move)?
-        .with_async_function("copy", fs_copy)?
-        .build_readonly()
+pub enum TimestampType {
+    Seconds,
+    Millis,
 }
 
-async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaString> {
-    let bytes = fs::read(&path).await.into_lua_err()?;
-    lua.create_string(bytes)
+pub struct DateTime {
+    pub unix_timestamp: i64,
+    pub unix_timestamp_millis: i64,
 }
 
-async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
-    let mut dir_strings = Vec::new();
-    let mut dir = fs::read_dir(&path).await.into_lua_err()?;
-    while let Some(dir_entry) = dir.next_entry().await.into_lua_err()? {
-        if let Some(dir_path_str) = dir_entry.path().to_str() {
-            dir_strings.push(dir_path_str.to_owned());
-        } else {
-            return Err(LuaError::RuntimeError(format!(
-                "File path could not be converted into a string: '{}'",
-                dir_entry.path().display()
-            )));
+impl DateTime {
+    /// Returns a DateTime representing the current moment in time
+    pub fn now() -> Self {
+        let time = Utc::now();
+
+        Self {
+            unix_timestamp: time.timestamp(),
+            unix_timestamp_millis: time.timestamp_millis(),
         }
     }
-    let mut dir_string_prefix = path;
-    if !dir_string_prefix.ends_with(MAIN_SEPARATOR) {
-        dir_string_prefix.push(MAIN_SEPARATOR);
+
+    /// Returns a new DateTime object from the given unix timestamp, in either seconds on
+    /// milliseconds. In case of failure, defaults to the  (seconds or
+    /// milliseconds) since January 1st, 1970 at 00:00 (UTC)
+    pub fn from_unix_timestamp(timestamp_kind: TimestampType, unix_timestamp: i64) -> Self {
+        let time_chrono = match timestamp_kind {
+            TimestampType::Seconds => NaiveDateTime::from_timestamp_opt(unix_timestamp, 0),
+            TimestampType::Millis => NaiveDateTime::from_timestamp_millis(unix_timestamp),
+        };
+
+        if let Some(time) = time_chrono {
+            Self {
+                unix_timestamp: time.timestamp(),
+                unix_timestamp_millis: time.timestamp_millis(),
+            }
+        } else {
+            Self::now()
+        }
     }
-    let dir_strings_no_prefix = dir_strings
-        .iter()
-        .map(|inner_path| {
-            inner_path
-                .trim()
-                .trim_start_matches(&dir_string_prefix)
-                .to_owned()
-        })
-        .collect::<Vec<_>>();
-    Ok(dir_strings_no_prefix)
-}
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, LuaString<'_>)) -> LuaResult<()> {
-    fs::write(&path, &contents.as_bytes()).await.into_lua_err()
-}
+    pub fn from_local_time(date_time: Option<DateTimeConstructor>) -> Self {
+        if let Some(date_time) = date_time {
+            let local_time: DateTime<Local> = Local
+                .from_local_datetime(&NaiveDateTime::new(
+                    NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
+                        .expect("invalid date"),
+                    NaiveTime::from_hms_milli_opt(
+                        date_time.hour,
+                        date_time.minute,
+                        date_time.second,
+                        date_time.millisecond,
+                    )
+                    .expect("invalid time"),
+                ))
+                .unwrap();
 
-async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {
-    fs::create_dir_all(&path).await.into_lua_err()
-}
+            Self {
+                unix_timestamp: local_time.timestamp(),
+                unix_timestamp_millis: local_time.timestamp_millis(),
+            }
+        } else {
+            let local_time = Local::now();
 
-async fn fs_remove_file(_: &Lua, path: String) -> LuaResult<()> {
-    fs::remove_file(&path).await.into_lua_err()
-}
+            Self {
+                unix_timestamp: local_time.timestamp(),
+                unix_timestamp_millis: local_time.timestamp_millis(),
+            }
+        }
+    }
 
-async fn fs_remove_dir(_: &Lua, path: String) -> LuaResult<()> {
-    fs::remove_dir_all(&path).await.into_lua_err()
-}
+    pub fn from_iso_date<T>(iso_date: T) -> Self
+    where
+        T: ToString,
+    {
+        let time = DateTime::parse_from_str(iso_date.to_string().as_str(), "%Y-%m-%dT%H:%M:%SZ")
+            .expect("invalid ISO 8601 string");
 
-async fn fs_metadata(_: &Lua, path: String) -> LuaResult<FsMetadata> {
-    match fs::metadata(path).await {
-        Err(e) if e.kind() == IoErrorKind::NotFound => Ok(FsMetadata::not_found()),
-        Ok(meta) => Ok(FsMetadata::from(meta)),
-        Err(e) => Err(e.into()),
+        Self {
+            unix_timestamp: time.timestamp(),
+            unix_timestamp_millis: time.timestamp_millis(),
+        }
     }
 }
 
-async fn fs_is_file(_: &Lua, path: String) -> LuaResult<bool> {
-    match fs::metadata(path).await {
-        Err(e) if e.kind() == IoErrorKind::NotFound => Ok(false),
-        Ok(meta) => Ok(meta.is_file()),
-        Err(e) => Err(e.into()),
+pub struct DateTimeConstructor {
+    year: i32,
+    month: u32,
+    day: u32,
+    hour: u32,
+    minute: u32,
+    second: u32,
+    millisecond: u32,
+}
+
+impl Default for DateTimeConstructor {
+    /// Constructs the default state for DateTimeConstructor, which is the Unix Epoch.
+    fn default() -> Self {
+        Self {
+            year: 1970,
+            month: 1,
+            day: 1,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+        }
     }
 }
 
-async fn fs_is_dir(_: &Lua, path: String) -> LuaResult<bool> {
-    match fs::metadata(path).await {
-        Err(e) if e.kind() == IoErrorKind::NotFound => Ok(false),
-        Ok(meta) => Ok(meta.is_dir()),
-        Err(e) => Err(e.into()),
-    }
+pub enum Month {
+    January,
+    February,
+    March,
+    April,
+    May,
+    June,
+    July,
+    August,
+    September,
+    October,
+    November,
+    December,
 }
 
-async fn fs_move(_: &Lua, (from, to, options): (String, String, FsWriteOptions)) -> LuaResult<()> {
-    let path_from = PathBuf::from(from);
-    if !path_from.exists() {
-        return Err(LuaError::RuntimeError(format!(
-            "No file or directory exists at the path '{}'",
-            path_from.display()
-        )));
-    }
-    let path_to = PathBuf::from(to);
-    if !options.overwrite && path_to.exists() {
-        return Err(LuaError::RuntimeError(format!(
-            "A file or directory already exists at the path '{}'",
-            path_to.display()
-        )));
-    }
-    fs::rename(path_from, path_to).await.into_lua_err()?;
-    Ok(())
-}
+impl DateTimeConstructor {
+    pub fn with_year(&mut self, year: i32) -> &Self {
+        self.year = year;
 
-async fn fs_copy(_: &Lua, (from, to, options): (String, String, FsWriteOptions)) -> LuaResult<()> {
-    copy(from, to, options).await
+        self
+    }
+
+    pub fn with_month(&mut self, month: Month) -> &Self {
+        let month = match month {
+            Month::January => 1,
+            Month::February => 2,
+            Month::March => 3,
+            Month::April => 4,
+            Month::May => 5,
+            Month::June => 6,
+            Month::July => 7,
+            Month::August => 8,
+            Month::September => 9,
+            Month::October => 10,
+            Month::November => 11,
+            Month::December => 12,
+        };
+
+        self.month = month;
+
+        self
+    }
+
+    pub fn with_day(&mut self, day: u32) -> &Self {
+        self.day = day;
+
+        self
+    }
+
+    pub fn with_hour(&mut self, hour: u32) -> &Self {
+        self.hour = hour;
+
+        self
+    }
+
+    pub fn with_minute(&mut self, minute: u32) -> &Self {
+        self.minute = minute;
+
+        self
+    }
+
+    pub fn with_second(&mut self, second: u32) -> &Self {
+        self.second = second;
+
+        self
+    }
+
+    pub fn with_millisecond(&mut self, millisecond: u32) -> &Self {
+        self.millisecond = millisecond;
+
+        self
+    }
 }
