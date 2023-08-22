@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use mlua::{Lua, Table as LuaTable, Value as LuaValue};
+use mlua::Lua;
 
 mod builtins;
 mod error;
@@ -55,6 +55,8 @@ impl Lune {
 
     /**
         Runs a Lune script inside of the current runtime.
+
+        This will preserve any modifications to global values / context.
     */
     pub async fn run(
         &mut self,
@@ -69,57 +71,5 @@ impl Lune {
         self.scheduler.push_back(self.lua, main, ())?;
 
         Ok(self.scheduler.run_to_completion(self.lua).await)
-    }
-
-    /**
-        Creates a context struct that can be called / ran multiple times,
-        preserving the function environment / context between each run.
-
-        Note that this is slightly slower than using [`run`] directly.
-    */
-    pub fn context(&self, script_name: impl Into<String>) -> Result<LuneContext, LuneError> {
-        let script_name = script_name.into();
-
-        let environment = self.lua.create_table()?;
-        for pair in self.lua.globals().pairs::<LuaValue, LuaValue>() {
-            let (key, value) = pair?;
-            environment.set(key, value)?;
-        }
-
-        Ok(LuneContext {
-            parent: self,
-            script_name,
-            environment,
-        })
-    }
-}
-
-pub struct LuneContext<'a> {
-    parent: &'a Lune,
-    script_name: String,
-    environment: LuaTable<'a>,
-}
-
-impl<'a> LuneContext<'a> {
-    /**
-        Runs a Lune script inside of the current runtime.
-
-        The function environment / context will be preserved between each run.
-    */
-    pub async fn run(&mut self, script_contents: impl AsRef<[u8]>) -> Result<ExitCode, LuneError> {
-        let main = self
-            .parent
-            .lua
-            .load(script_contents.as_ref())
-            .set_name(&self.script_name)
-            .set_environment(self.environment.clone());
-
-        self.parent.scheduler.push_back(self.parent.lua, main, ())?;
-
-        Ok(self
-            .parent
-            .scheduler
-            .run_to_completion(self.parent.lua)
-            .await)
     }
 }
