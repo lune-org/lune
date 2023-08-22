@@ -81,6 +81,7 @@ create_tests! {
     global_g_table: "globals/_G",
     global_version: "globals/_VERSION",
     global_coroutine: "globals/coroutine",
+    global_error: "globals/error",
     global_pcall: "globals/pcall",
     global_type: "globals/type",
     global_typeof: "globals/typeof",
