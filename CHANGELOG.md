@@ -33,9 +33,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Implemented support for a variable number of arguments for `CFrame` methods in the `roblox` built-in library. ([#85])
 
+### Changed
+
+- Lune's internal task scheduler and `require` functionality has been completely rewritten. <br/>
+  The new scheduler is much more stable, conforms to a larger test suite, and has a few additional benefits:
+
+  - Spawned processes using `process.spawn` now run on different thread(s), freeing up resources for the main thread where luau runs.
+  - Serving requests using `net.serve` now processes requests on background threads, also freeing up resources. In the future, this will also allow us to offload heavy tasks such as compression/decompression to background threads.
+  - Groundwork for custom / user-defined require aliases has been implemented, as well as absolute / cwd-relative requires. These will both be exposed as options and be made available to use some time in the future.
+
 ### Fixed
 
 - Fixed not being able to pass arguments to the thread using `coroutine.resume`. ([#86])
+- Fixed a large number of long-standing issues, from the task scheduler rewrite:
+
+  - Fixed `require` hanging indefinitely when the module being require-d uses an async function in its main body.
+  - Fixed background tasks (such as `net.serve`) not keeping Lune alive even if there are no lua threads to run.
+  - Fixed spurious panics and error messages such as `Tried to resume next queued future but none are queued`.
+  - Fixed not being able to catch non-string errors properly, errors were accidentally being wrapped in an opaque `userdata` type.
 
 [#82]: https://github.com/filiptibell/lune/pull/82
 [#85]: https://github.com/filiptibell/lune/pull/85
