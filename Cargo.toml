@@ -133,3 +133,4 @@ rbx_dom_weak = { optional = true, version = "2.5.0" }
 rbx_reflection = { optional = true, version = "4.3.0" }
 rbx_reflection_database = { optional = true, version = "0.2.7" }
 rbx_xml = { optional = true, version = "0.13.1" }
+chrono = "0.4.26"
