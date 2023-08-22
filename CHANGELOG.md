@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update to Luau version `0.591`
 - Lune's internal task scheduler and `require` functionality has been completely rewritten. <br/>
   The new scheduler is much more stable, conforms to a larger test suite, and has a few additional benefits:
 
