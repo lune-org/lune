@@ -8,7 +8,7 @@ use crate::lune::util::TableBuilder;
 
 static ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub(super) struct ProcessedRequestId(usize);
 
 impl ProcessedRequestId {
@@ -21,7 +21,7 @@ impl ProcessedRequestId {
 }
 
 pub(super) struct ProcessedRequest {
-    id: ProcessedRequestId,
+    pub id: ProcessedRequestId,
     method: String,
     path: String,
     query: Vec<(String, String)>,

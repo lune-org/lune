@@ -4,7 +4,6 @@ local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
 local PORT = 8081
-local URL = `http://127.0.0.1:{PORT}`
 local WS_URL = `ws://127.0.0.1:{PORT}`
 local REQUEST = "Hello from client!"
 local RESPONSE = "Hello, lune!"
@@ -19,7 +18,10 @@ end)
 
 local handle = net.serve(PORT, {
 	handleRequest = function()
-		return RESPONSE
+		stdio.ewrite("Web socket should upgrade automatically, not pass to the request handler\n")
+		task.wait(1)
+		process.exit(1)
+		return "unreachable"
 	end,
 	handleWebSocket = function(socket)
 		local socketMessage = socket.next()
@@ -31,22 +33,9 @@ local handle = net.serve(PORT, {
 
 task.cancel(thread)
 
--- Serve should respond to a request we send to it
-
-local thread2 = task.delay(1, function()
-	stdio.ewrite("Serve should respond to requests in a reasonable amount of time\n")
-	task.wait(1)
-	process.exit(1)
-end)
-
-local response = net.request(URL).body
-assert(response == RESPONSE, "Invalid response from server")
-
-task.cancel(thread2)
-
 -- Web socket responses should also be responded to
 
-local thread3 = task.delay(1, function()
+local thread2 = task.delay(1, function()
 	stdio.ewrite("Serve should respond to websockets in a reasonable amount of time\n")
 	task.wait(1)
 	process.exit(1)
@@ -62,7 +51,7 @@ assert(socketMessage == RESPONSE, "Invalid web socket response from server")
 
 socket.close()
 
-task.cancel(thread3)
+task.cancel(thread2)
 
 -- Wait for the socket to close and make sure we can't send messages afterwards
 task.wait()
