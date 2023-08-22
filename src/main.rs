@@ -21,7 +21,7 @@ use console::style;
 async fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .compact()
-        .with_max_level(tracing::Level::ERROR)
+        .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
         .with_target(true)
         .with_timer(tracing_subscriber::fmt::time::uptime())
         .with_level(true)
