@@ -19,9 +19,12 @@ use console::style;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> ExitCode {
-    let logger_env = env_logger::Env::default().default_filter_or("error");
-    env_logger::Builder::from_env(logger_env)
-        .format_timestamp(None)
+    tracing_subscriber::fmt()
+        .compact()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_target(true)
+        .with_timer(tracing_subscriber::fmt::time::uptime())
+        .with_level(true)
         .init();
     match Cli::parse().run().await {
         Ok(code) => code,

@@ -4,6 +4,7 @@ use futures_util::StreamExt;
 use mlua::prelude::*;
 
 use tokio::task::LocalSet;
+use tracing::debug;
 
 use crate::lune::util::traits::LuaEmitErrorExt;
 
@@ -13,14 +14,14 @@ impl<'fut> Scheduler<'fut> {
     /**
         Runs all lua threads to completion.
 
-        Returns `true` if any thread was resumed, `false` otherwise.
+        Returns the number of threads that were resumed.
     */
-    fn run_lua_threads(&self, lua: &Lua) -> bool {
+    fn run_lua_threads(&self, lua: &Lua) -> usize {
         if self.state.has_exit_code() {
-            return false;
+            return 0;
         }
 
-        let mut resumed_any = false;
+        let mut resumed_count = 0;
 
         // Pop threads from the scheduler until there are none left
         while let Some(thread) = self
@@ -43,7 +44,7 @@ impl<'fut> Scheduler<'fut> {
             let res = thread.resume::<_, LuaMultiValue>(args);
             self.state.set_current_thread_id(None);
 
-            resumed_any = true;
+            resumed_count += 1;
 
             // If we got any resumption (lua-side) error, increment
             // the error count of the scheduler so we can exit with
@@ -78,49 +79,55 @@ impl<'fut> Scheduler<'fut> {
             }
         }
 
-        resumed_any
+        resumed_count
     }
 
     /**
         Runs futures until none are left or a future spawned a new lua thread.
     */
-    async fn run_futures_lua(&self) {
+    async fn run_futures_lua(&self) -> usize {
         let mut futs = self
             .futures_lua
             .try_lock()
             .expect("Failed to lock lua futures for resumption");
 
+        let mut fut_count = 0;
         while futs.next().await.is_some() {
+            fut_count += 1;
             if self.has_thread() {
                 break;
             }
         }
+        fut_count
     }
 
     /**
         Runs background futures until none are left or a future spawned a new lua thread.
     */
-    async fn run_futures_background(&self) {
+    async fn run_futures_background(&self) -> usize {
         let mut futs = self
             .futures_background
             .try_lock()
             .expect("Failed to lock background futures for resumption");
 
+        let mut fut_count = 0;
         while futs.next().await.is_some() {
+            fut_count += 1;
             if self.has_thread() {
                 break;
             }
         }
+        fut_count
     }
 
-    async fn run_futures(&self) {
+    async fn run_futures(&self) -> usize {
         let mut rx = self.futures_break_signal.subscribe();
 
         tokio::select! {
-            _ = self.run_futures_lua() => {},
-            _ = self.run_futures_background() => {},
-            _ = rx.recv() => {},
-        };
+            ran = self.run_futures_lua() => ran,
+            ran = self.run_futures_background() => ran,
+            _ = rx.recv() => 0,
+        }
     }
 
     /**
@@ -140,7 +147,10 @@ impl<'fut> Scheduler<'fut> {
 
         loop {
             // 1. Run lua threads until exit or there are none left
-            self.run_lua_threads(lua);
+            let lua_count = self.run_lua_threads(lua);
+            if lua_count > 0 {
+                debug!("Ran {lua_count} lua threads");
+            }
 
             // 2. If we got a manual exit code from lua we should
             // not try to wait for any pending futures to complete
@@ -151,7 +161,10 @@ impl<'fut> Scheduler<'fut> {
             // 3. Keep resuming futures until there are no futures left to
             // resume, or until we manually break out of resumption for any
             // reason, this may be because a future spawned a new lua thread
-            self.run_futures().await;
+            let fut_count = self.run_futures().await;
+            if fut_count > 0 {
+                debug!("Ran {fut_count} futures");
+            }
 
             // 4. Once again, check for an exit code, in case a future sets one
             if self.state.has_exit_code() {
@@ -167,10 +180,13 @@ impl<'fut> Scheduler<'fut> {
         }
 
         if let Some(code) = self.state.exit_code() {
+            debug!("Scheduler ran to completion, exit code {}", code);
             ExitCode::from(code)
         } else if self.state.has_errored() {
+            debug!("Scheduler ran to completion, with failure");
             ExitCode::FAILURE
         } else {
+            debug!("Scheduler ran to completion, with success");
             ExitCode::SUCCESS
         }
     }
