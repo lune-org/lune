@@ -78,6 +78,8 @@ urlencoding = "2.1"
 
 ### RUNTIME
 
+tracing = "0.1"
+tracing-subscriber = "0.3"
 mlua = { version = "0.9.0", features = ["luau", "luau-jit", "serialize"] }
 tokio = { version = "1.24", features = ["full"] }
 
