@@ -99,17 +99,9 @@ assertEq(
 
 -- World & object space conversions
 
--- FIXME: ToWorldSpace and/or ToObjectSpace are causing SIGTRAP? What the heck?
-if true then
-	return
-end
-
 local offset = CFrame.new(0, 0, -5)
 assert(offset:ToWorldSpace(offset).Z == offset.Z * 2)
 assert(offset:ToObjectSpace(offset).Z == 0)
-
-assert(select("#", offset:ToWorldSpace(offset, offset, offset)) == 3)
-assert(select("#", offset:ToObjectSpace(offset, offset, offset)) == 3)
 
 local world = CFrame.fromOrientation(0, math.rad(90), 0) * CFrame.new(0, 0, -5)
 local world2 = CFrame.fromOrientation(0, -math.rad(90), 0) * CFrame.new(0, 0, -5)
