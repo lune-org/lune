@@ -325,6 +325,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "chrono_locale"
+version = "0.1.1"
+source = "git+https://github.com/0x5eal/chrono-locale.git?rev=ff1df09#ff1df090a1bc55574ffe2bb4c04014ba017c6f36"
+dependencies = [
+ "chrono",
+ "lazy_static",
+ "num-integer",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "walkdir",
+]
+
+[[package]]
 name = "clap"
 version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1093,6 +1107,7 @@ dependencies = [
  "async-compression",
  "async-trait",
  "chrono",
+ "chrono_locale",
  "clap",
  "console",
  "dialoguer",
@@ -1238,6 +1253,16 @@ dependencies = [
  "cfg-if",
  "libc",
  "static_assertions",
+]
+
+[[package]]
+name = "num-integer"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "225d3389fb3509a24c93f5c29eb6bde2586b98d9f016636dff58d7c6f7569cd9"
+dependencies = [
+ "autocfg",
+ "num-traits",
 ]
 
 [[package]]
@@ -1847,6 +1872,15 @@ name = "safemem"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
+
+[[package]]
+name = "same-file"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
+dependencies = [
+ "winapi-util",
+]
 
 [[package]]
 name = "scopeguard"
@@ -2526,6 +2560,16 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "walkdir"
+version = "2.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36df944cda56c7d8d8b7496af378e6b16de9284591917d307c9b4d313c44e698"
+dependencies = [
+ "same-file",
+ "winapi-util",
+]
 
 [[package]]
 name = "want"

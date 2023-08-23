@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use chrono::DateTime as ChronoDateTime;
+use chrono_locale::LocaleDate;
 use once_cell::sync::Lazy;
 
 // TODO: Proper error handling and stuff
@@ -160,33 +161,35 @@ impl DateTime {
 
     pub fn to_iso_date(&self) -> String {
         self.to_universal_time()
-            .to_string::<&str>(Timezone::UTC, None)
+            .to_string::<&str>(Timezone::UTC, None, None)
     }
 
-    // TODO: Implement localization
     // There seems to be only one localization crate for chrono,
     // which has been committed to last 5 years ago. Thus, this crate doesn't
-    // work with the version of chrono we're using. I'll be forking this crate
-    // and making it compatible with our version of chrono for now.
-    pub fn format_universal_time<T>(&self, fmt_str: T, locale: T) -> String
+    // work with the version of chrono we're using. I've forked the crate
+    // and have made it compatible with the latest version of chrono.
+
+    // TODO: Implement more locales for chrono-locale.
+    pub fn format_time<T>(&self, timezone: Timezone, fmt_str: T, locale: T) -> String
     where
         T: ToString,
     {
-        let format = fmt_str.to_string();
-
-        self.to_universal_time()
-            .to_string(Timezone::UTC, Some(format))
+        self.to_universal_time().to_string(
+            timezone,
+            Some(fmt_str.to_string()),
+            Some(locale.to_string()),
+        )
     }
 }
 
 pub struct DateTimeConstructor {
-    year: i32,
-    month: u32,
-    day: u32,
-    hour: u32,
-    minute: u32,
-    second: u32,
-    millisecond: u32,
+    pub year: i32,
+    pub month: u32,
+    pub day: u32,
+    pub hour: u32,
+    pub minute: u32,
+    pub second: u32,
+    pub millisecond: u32,
 }
 
 impl Default for DateTimeConstructor {
@@ -204,7 +207,7 @@ impl Default for DateTimeConstructor {
     }
 }
 
-enum Timezone {
+pub enum Timezone {
     UTC,
     Local,
 }
@@ -252,7 +255,7 @@ impl DateTimeConstructor {
         self
     }
 
-    fn to_string<T>(&self, timezone: Timezone, format: Option<T>) -> String
+    fn to_string<T>(&self, timezone: Timezone, format: Option<T>, locale: Option<T>) -> String
     where
         T: ToString,
     {
@@ -261,6 +264,14 @@ impl DateTimeConstructor {
                 fmt.to_string()
             } else {
                 "%Y-%m-%dT%H:%M:%SZ".to_string()
+            }
+        });
+
+        let locale_lazy: Lazy<String, _> = Lazy::new(|| {
+            if let Some(locale) = locale {
+                locale.to_string()
+            } else {
+                "en".to_string()
             }
         });
 
@@ -275,7 +286,7 @@ impl DateTimeConstructor {
                     self.second,
                 )
                 .unwrap()
-                .format((*format_lazy).as_str())
+                .formatl((*format_lazy).as_str(), (*locale_lazy).as_str())
                 .to_string(),
             Timezone::Local => Local
                 .with_ymd_and_hms(
@@ -287,7 +298,7 @@ impl DateTimeConstructor {
                     self.second,
                 )
                 .unwrap()
-                .format((*format_lazy).as_str())
+                .formatl((*format_lazy).as_str(), (*locale_lazy).as_str())
                 .to_string(),
         }
     }
