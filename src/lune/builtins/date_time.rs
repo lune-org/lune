@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use chrono::DateTime as ChronoDateTime;
+use once_cell::sync::Lazy;
 
 // TODO: Proper error handling and stuff
 
@@ -158,7 +159,23 @@ impl DateTime {
     }
 
     pub fn to_iso_date(&self) -> String {
-        self.to_universal_time().to_iso_string(Timezone::UTC)
+        self.to_universal_time()
+            .to_string::<&str>(Timezone::UTC, None)
+    }
+
+    // TODO: Implement localization
+    // There seems to be only one localization crate for chrono,
+    // which has been committed to last 5 years ago. Thus, this crate doesn't
+    // work with the version of chrono we're using. I'll be forking this crate
+    // and making it compatible with our version of chrono for now.
+    pub fn format_universal_time<T>(&self, fmt_str: T, locale: T) -> String
+    where
+        T: ToString,
+    {
+        let format = fmt_str.to_string();
+
+        self.to_universal_time()
+            .to_string(Timezone::UTC, Some(format))
     }
 }
 
@@ -186,39 +203,6 @@ impl Default for DateTimeConstructor {
         }
     }
 }
-
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-pub enum Month {
-    January,
-    February,
-    March,
-    April,
-    May,
-    June,
-    July,
-    August,
-    September,
-    October,
-    November,
-    December,
-}
-
-// fn match_month_to_num(month: Month) {
-//     match month {
-//         Month::January => 1,
-//         Month::February => 2,
-//         Month::March => 3,
-//         Month::April => 4,
-//         Month::May => 5,
-//         Month::June => 6,
-//         Month::July => 7,
-//         Month::August => 8,
-//         Month::September => 9,
-//         Month::October => 10,
-//         Month::November => 11,
-//         Month::December => 12,
-//     };
-// }
 
 enum Timezone {
     UTC,
@@ -268,8 +252,17 @@ impl DateTimeConstructor {
         self
     }
 
-    fn to_iso_string(&self, timezone: Timezone) -> String {
-        let iso_format = "%Y-%m-%dT%H:%M:%SZ";
+    fn to_string<T>(&self, timezone: Timezone, format: Option<T>) -> String
+    where
+        T: ToString,
+    {
+        let format_lazy: Lazy<String, _> = Lazy::new(|| {
+            if let Some(fmt) = format {
+                fmt.to_string()
+            } else {
+                "%Y-%m-%dT%H:%M:%SZ".to_string()
+            }
+        });
 
         match timezone {
             Timezone::UTC => Utc
@@ -282,7 +275,7 @@ impl DateTimeConstructor {
                     self.second,
                 )
                 .unwrap()
-                .format(iso_format)
+                .format((*format_lazy).as_str())
                 .to_string(),
             Timezone::Local => Local
                 .with_ymd_and_hms(
@@ -294,7 +287,7 @@ impl DateTimeConstructor {
                     self.second,
                 )
                 .unwrap()
-                .format(iso_format)
+                .format((*format_lazy).as_str())
                 .to_string(),
         }
     }

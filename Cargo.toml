@@ -107,6 +107,9 @@ reqwest = { version = "0.11", default-features = false, features = [
 ] }
 tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
 
+### DATETIME
+chrono = "0.4.26"
+
 ### CLI
 
 anyhow = { optional = true, version = "1.0" }
@@ -133,4 +136,3 @@ rbx_dom_weak = { optional = true, version = "2.5.0" }
 rbx_reflection = { optional = true, version = "4.3.0" }
 rbx_reflection_database = { optional = true, version = "0.2.7" }
 rbx_xml = { optional = true, version = "0.13.1" }
-chrono = "0.4.26"
