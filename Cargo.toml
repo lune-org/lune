@@ -109,7 +109,7 @@ tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
 
 ### DATETIME
 chrono = "0.4.26"
-chrono_locale = { git = "https://github.com/0x5eal/chrono-locale.git", rev = "2a7ebcc" }
+chrono_locale = { git = "https://github.com/0x5eal/chrono-locale.git", version = "v0.1.2" }
 
 ### CLI
 
