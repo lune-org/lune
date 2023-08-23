@@ -31,8 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   callableFn2()
   ```
 
-- Implemented support for a variable number of arguments for `CFrame` methods in the `roblox` built-in library. ([#85])
-
 ### Changed
 
 - Update to Luau version `0.591`
