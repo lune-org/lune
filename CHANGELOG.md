@@ -52,7 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed not being able to catch non-string errors properly, errors were accidentally being wrapped in an opaque `userdata` type.
 
 [#82]: https://github.com/filiptibell/lune/pull/82
-[#85]: https://github.com/filiptibell/lune/pull/85
 [#86]: https://github.com/filiptibell/lune/pull/86
 
 ## `0.7.6` - August 9th, 2023
