@@ -10,6 +10,7 @@ const LUA_SERIALIZE_OPTIONS: LuaSerializeOptions = LuaSerializeOptions::new()
     .serialize_unit_to_null(false);
 
 const LUA_DESERIALIZE_OPTIONS: LuaDeserializeOptions = LuaDeserializeOptions::new()
+    .sort_keys(true)
     .deny_recursive_tables(false)
     .deny_unsupported_types(true);
 

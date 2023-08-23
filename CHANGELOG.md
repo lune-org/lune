@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Serving requests using `net.serve` now processes requests on background threads, also freeing up resources. In the future, this will also allow us to offload heavy tasks such as compression/decompression to background threads.
   - Groundwork for custom / user-defined require aliases has been implemented, as well as absolute / cwd-relative requires. These will both be exposed as options and be made available to use some time in the future.
 
+- When using the `serde` built-in library, keys are now sorted during serialization. This means that the output of `encode` is now completely deterministic, and wont cause issues when committing generated files to git etc.
+
 ### Fixed
 
 - Fixed not being able to pass arguments to the thread using `coroutine.resume`. ([#86])
