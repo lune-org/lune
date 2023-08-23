@@ -12,6 +12,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a [REPL](https://en.wikipedia.org/wiki/Read–eval–print_loop) to Lune. ([#83])
+
+  This allows you to run scripts within Lune without writing files!
+
+  Example usage, inside your favorite terminal:
+
+  ```bash
+  # 1. Run the Lune executable, without any arguments
+  lune
+
+  # 2. You will be shown the current Lune version and a blank prompt arrow:
+  Lune v0.7.7
+  >
+
+  # 3. Start typing, and hit enter when you want to run your script!
+  #    Your script will run until completion and output things along the way.
+  > print(2 + 3)
+  5
+  > print("Hello, lune changelog!")
+  Hello, lune changelog!
+
+  # 4. You can also set variables that will get preserved between runs.
+  #    Note that local variables do not get preserved here.
+  > myVariable = 123
+  > print(myVariable)
+  123
+
+  # 5. Press either of these key combinations to exit the REPL:
+  #    - Ctrl + D
+  #    - Ctrl + C
+  ```
+
 - Added a new `luau` built-in library for manually compiling and loading Luau source code. ([#82])
 
   Example usage:
@@ -55,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed not being able to catch non-string errors properly, errors were accidentally being wrapped in an opaque `userdata` type.
 
 [#82]: https://github.com/filiptibell/lune/pull/82
+[#83]: https://github.com/filiptibell/lune/pull/83
 [#86]: https://github.com/filiptibell/lune/pull/86
 
 ## `0.7.6` - August 9th, 2023
