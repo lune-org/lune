@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use super::{
     thread::{SchedulerThread, SchedulerThreadId, SchedulerThreadSender},
-    IntoLuaThread, Scheduler, SchedulerMessage,
+    IntoLuaThread, Scheduler,
 };
 
 impl<'fut> Scheduler<'fut> {
@@ -61,11 +61,7 @@ impl<'fut> Scheduler<'fut> {
 
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
-        if self.futures_signal.receiver_count() > 0 {
-            self.futures_signal
-                .send(SchedulerMessage::PushedLuaThread)
-                .ok();
-        }
+        self.state.message_sender().send_pushed_lua_thread();
 
         Ok(())
     }
@@ -102,11 +98,7 @@ impl<'fut> Scheduler<'fut> {
 
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
-        if self.futures_signal.receiver_count() > 0 {
-            self.futures_signal
-                .send(SchedulerMessage::PushedLuaThread)
-                .ok();
-        }
+        self.state.message_sender().send_pushed_lua_thread();
 
         Ok(thread_id)
     }
@@ -143,11 +135,7 @@ impl<'fut> Scheduler<'fut> {
 
         // NOTE: We might be resuming futures, need to signal that a
         // new lua thread is ready to break out of futures resumption
-        if self.futures_signal.receiver_count() > 0 {
-            self.futures_signal
-                .send(SchedulerMessage::PushedLuaThread)
-                .ok();
-        }
+        self.state.message_sender().send_pushed_lua_thread();
 
         Ok(thread_id)
     }

@@ -147,15 +147,16 @@ impl<'fut> Scheduler<'fut> {
             return;
         }
 
-        let mut rx = self.futures_signal.subscribe();
+        let mut rx = self.state.message_receiver();
         let mut count = 0;
+
         while has_lua || has_background {
             if has_lua && has_background {
                 tokio::select! {
                     _ = self.run_future_lua() => {},
                     _ = self.run_future_background() => {},
                     msg = rx.recv() => {
-                        if let Ok(msg) = msg {
+                        if let Some(msg) = msg {
                             if msg.should_break_futures() {
                                 break;
                             }
@@ -167,7 +168,7 @@ impl<'fut> Scheduler<'fut> {
                 tokio::select! {
                     _ = self.run_future_lua() => {},
                     msg = rx.recv() => {
-                        if let Ok(msg) = msg {
+                        if let Some(msg) = msg {
                             if msg.should_break_lua_futures() {
                                 break;
                             }
@@ -179,7 +180,7 @@ impl<'fut> Scheduler<'fut> {
                 tokio::select! {
                     _ = self.run_future_background() => {},
                     msg = rx.recv() => {
-                        if let Ok(msg) = msg {
+                        if let Some(msg) = msg {
                             if msg.should_break_background_futures() {
                                 break;
                             }
