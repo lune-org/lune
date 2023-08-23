@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lune's internal task scheduler and `require` functionality has been completely rewritten. <br/>
   The new scheduler is much more stable, conforms to a larger test suite, and has a few additional benefits:
 
+  - Built-in libraries are now lazily loaded, meaning nothing gets allocated until the built-in library gets loaded using `require("@lune/builtin-name")`. This also improves startup times slightly.
   - Spawned processes using `process.spawn` now run on different thread(s), freeing up resources for the main thread where luau runs.
   - Serving requests using `net.serve` now processes requests on background threads, also freeing up resources. In the future, this will also allow us to offload heavy tasks such as compression/decompression to background threads.
   - Groundwork for custom / user-defined require aliases has been implemented, as well as absolute / cwd-relative requires. These will both be exposed as options and be made available to use some time in the future.
