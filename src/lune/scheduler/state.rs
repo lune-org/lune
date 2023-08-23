@@ -8,7 +8,12 @@ use std::{
 
 use mlua::Error as LuaError;
 
-use super::SchedulerThreadId;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+
+use super::{
+    message::{SchedulerMessage, SchedulerMessageReceiver, SchedulerMessageSender},
+    SchedulerThreadId,
+};
 
 /**
     Internal state for a [`Scheduler`].
@@ -16,14 +21,16 @@ use super::SchedulerThreadId;
     This scheduler state uses atomic operations for everything
     except lua error storage, and is completely thread safe.
 */
-#[derive(Debug, Default)]
-pub struct SchedulerState {
+#[derive(Debug)]
+pub(crate) struct SchedulerState {
     exit_state: AtomicBool,
     exit_code: AtomicU8,
     num_resumptions: AtomicUsize,
     num_errors: AtomicUsize,
     thread_id: Arc<Mutex<Option<SchedulerThreadId>>>,
     thread_errors: Arc<Mutex<HashMap<SchedulerThreadId, LuaError>>>,
+    pub(super) message_sender: Arc<Mutex<UnboundedSender<SchedulerMessage>>>,
+    pub(super) message_receiver: Arc<Mutex<UnboundedReceiver<SchedulerMessage>>>,
 }
 
 impl SchedulerState {
@@ -31,7 +38,18 @@ impl SchedulerState {
         Creates a new scheduler state.
     */
     pub fn new() -> Self {
-        Self::default()
+        let (message_sender, message_receiver) = unbounded_channel();
+
+        Self {
+            exit_state: AtomicBool::new(false),
+            exit_code: AtomicU8::new(0),
+            num_resumptions: AtomicUsize::new(0),
+            num_errors: AtomicUsize::new(0),
+            thread_id: Arc::new(Mutex::new(None)),
+            thread_errors: Arc::new(Mutex::new(HashMap::new())),
+            message_sender: Arc::new(Mutex::new(message_sender)),
+            message_receiver: Arc::new(Mutex::new(message_receiver)),
+        }
     }
 
     /**
@@ -78,6 +96,7 @@ impl SchedulerState {
     pub fn set_exit_code(&self, code: impl Into<u8>) {
         self.exit_state.store(true, Ordering::SeqCst);
         self.exit_code.store(code.into(), Ordering::SeqCst);
+        self.message_sender().send_exit_code_set();
     }
 
     /**
@@ -137,5 +156,21 @@ impl SchedulerState {
             .lock()
             .expect("Failed to lock thread errors");
         thread_errors.insert(id, err);
+    }
+
+    /**
+        Creates a new message sender for the scheduler.
+    */
+    pub fn message_sender(&self) -> SchedulerMessageSender {
+        SchedulerMessageSender::new(self)
+    }
+
+    /**
+        Tries to borrow the message receiver for the scheduler.
+
+        Panics if the message receiver is already being used.
+    */
+    pub fn message_receiver(&self) -> SchedulerMessageReceiver {
+        SchedulerMessageReceiver::new(self)
     }
 }

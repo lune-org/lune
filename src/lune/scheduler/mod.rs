@@ -7,10 +7,7 @@ use std::{
 
 use futures_util::{stream::FuturesUnordered, Future};
 use mlua::prelude::*;
-use tokio::sync::{
-    broadcast::{channel, Sender},
-    Mutex as AsyncMutex,
-};
+use tokio::sync::Mutex as AsyncMutex;
 
 mod message;
 mod state;
@@ -21,7 +18,6 @@ mod impl_async;
 mod impl_runner;
 mod impl_threads;
 
-pub use self::message::SchedulerMessage;
 pub use self::thread::SchedulerThreadId;
 pub use self::traits::*;
 
@@ -43,9 +39,25 @@ pub(crate) struct Scheduler<'fut> {
     state: Arc<SchedulerState>,
     threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
     thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
+    /*
+        FUTURE: Get rid of these, let the tokio runtime handle running
+        and resumption of futures completely, just use our scheduler
+        state and receiver to know when we have run to completion.
+        If we have no senders left, we have run to completion.
+
+        Once we no longer store futures in our scheduler, we can
+        get rid of the lifetime on it, store it in our lua app
+        data as a Weak<Scheduler>, together with a Weak<Lua>.
+
+        In our lua async functions we can then get a reference to this,
+        upgrade it to an Arc<Scheduler> and Arc<Lua> to extend lifetimes,
+        and hopefully get rid of Box::leak and 'static lifetimes for good.
+
+        Relevant comment on the mlua repository:
+        https://github.com/khvzak/mlua/issues/169#issuecomment-1138863979
+    */
     futures_lua: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'fut>>>>,
     futures_background: Arc<AsyncMutex<FuturesUnordered<SchedulerFuture<'static>>>>,
-    futures_signal: Sender<SchedulerMessage>,
 }
 
 impl<'fut> Scheduler<'fut> {
@@ -53,15 +65,12 @@ impl<'fut> Scheduler<'fut> {
         Creates a new scheduler.
     */
     pub fn new() -> Self {
-        let (futures_signal, _) = channel(1);
-
         Self {
             state: Arc::new(SchedulerState::new()),
             threads: Arc::new(RefCell::new(VecDeque::new())),
             thread_senders: Arc::new(RefCell::new(HashMap::new())),
             futures_lua: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
             futures_background: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
-            futures_signal,
         }
     }
 
@@ -98,7 +107,6 @@ impl<'fut> Scheduler<'fut> {
             "Exit code may only be set exactly once"
         );
         self.state.set_exit_code(code.into());
-        self.futures_signal.send(SchedulerMessage::ExitCodeSet).ok();
     }
 
     #[doc(hidden)]

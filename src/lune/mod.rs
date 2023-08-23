@@ -25,9 +25,12 @@ impl Lune {
     */
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        // FIXME: Leaking these here does not feel great... is there
-        // any way for us to create a scheduler, store it in app data, and
-        // guarantee it has the same lifetime as Lua without using any unsafe?
+        /*
+            FUTURE: Stop leaking these when we have removed the lifetime
+            on the scheduler and can place them in lua app data using arc
+
+            See the scheduler struct for more notes
+        */
         let lua = Lua::new().into_static();
         let scheduler = Scheduler::new().into_static();
 
