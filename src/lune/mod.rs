@@ -6,12 +6,16 @@ mod builtins;
 mod error;
 mod globals;
 mod scheduler;
-mod util;
+
+pub(crate) mod util;
 
 use self::scheduler::{LuaSchedulerExt, Scheduler};
 
 pub use error::LuneError;
 
+// TODO: Rename this struct to "Runtime" instead for the
+// next breaking release, it's a more fitting name and
+// will probably be more obvious when browsing files
 #[derive(Debug, Clone)]
 pub struct Lune {
     lua: &'static Lua,

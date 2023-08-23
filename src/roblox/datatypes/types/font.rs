@@ -6,6 +6,8 @@ use rbx_dom_weak::types::{
     Font as DomFont, FontStyle as DomFontStyle, FontWeight as DomFontWeight,
 };
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, EnumItem};
 
 /**
@@ -34,66 +36,65 @@ impl Font {
                 cached_id: None,
             })
     }
+}
 
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(
-                |_, (family, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
-                    Ok(Font {
-                        family,
-                        weight: weight.unwrap_or_default(),
-                        style: style.unwrap_or_default(),
-                        cached_id: None,
-                    })
-                },
-            )?,
-        )?;
-        datatype_table.set(
-            "fromEnum",
-            lua.create_function(|_, value: LuaUserDataRef<EnumItem>| {
-                if value.parent.desc.name == "Font" {
-                    match Font::from_enum_item(&value) {
-                        Some(props) => Ok(props),
-                        None => Err(LuaError::RuntimeError(format!(
-                            "Found unknown Font '{}'",
-                            value.name
-                        ))),
-                    }
-                } else {
-                    Err(LuaError::RuntimeError(format!(
-                        "Expected argument #1 to be a Font, got {}",
-                        value.parent.desc.name
-                    )))
+impl LuaExportsTable<'_> for Font {
+    const EXPORT_NAME: &'static str = "Font";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let font_from_enum = |_, value: LuaUserDataRef<EnumItem>| {
+            if value.parent.desc.name == "Font" {
+                match Font::from_enum_item(&value) {
+                    Some(props) => Ok(props),
+                    None => Err(LuaError::RuntimeError(format!(
+                        "Found unknown Font '{}'",
+                        value.name
+                    ))),
                 }
-            })?,
-        )?;
-        datatype_table.set(
-            "fromName",
-            lua.create_function(
-                |_, (file, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
-                    Ok(Font {
-                        family: format!("rbxasset://fonts/families/{}.json", file),
-                        weight: weight.unwrap_or_default(),
-                        style: style.unwrap_or_default(),
-                        cached_id: None,
-                    })
-                },
-            )?,
-        )?;
-        datatype_table.set(
-            "fromId",
-            lua.create_function(
-                |_, (id, weight, style): (i32, Option<FontWeight>, Option<FontStyle>)| {
-                    Ok(Font {
-                        family: format!("rbxassetid://{}", id),
-                        weight: weight.unwrap_or_default(),
-                        style: style.unwrap_or_default(),
-                        cached_id: None,
-                    })
-                },
-            )?,
-        )
+            } else {
+                Err(LuaError::RuntimeError(format!(
+                    "Expected argument #1 to be a Font, got {}",
+                    value.parent.desc.name
+                )))
+            }
+        };
+
+        let font_from_name =
+            |_, (file, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
+                Ok(Font {
+                    family: format!("rbxasset://fonts/families/{}.json", file),
+                    weight: weight.unwrap_or_default(),
+                    style: style.unwrap_or_default(),
+                    cached_id: None,
+                })
+            };
+
+        let font_from_id =
+            |_, (id, weight, style): (i32, Option<FontWeight>, Option<FontStyle>)| {
+                Ok(Font {
+                    family: format!("rbxassetid://{}", id),
+                    weight: weight.unwrap_or_default(),
+                    style: style.unwrap_or_default(),
+                    cached_id: None,
+                })
+            };
+
+        let font_new =
+            |_, (family, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
+                Ok(Font {
+                    family,
+                    weight: weight.unwrap_or_default(),
+                    style: style.unwrap_or_default(),
+                    cached_id: None,
+                })
+            };
+
+        TableBuilder::new(lua)?
+            .with_function("fromEnum", font_from_enum)?
+            .with_function("fromName", font_from_name)?
+            .with_function("fromId", font_from_id)?
+            .with_function("new", font_new)?
+            .build_readonly()
     }
 }
 

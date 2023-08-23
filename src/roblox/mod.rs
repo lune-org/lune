@@ -1,63 +1,59 @@
 use mlua::prelude::*;
 
-use crate::roblox::instance::Instance;
+use crate::lune::util::TableBuilder;
 
 pub mod datatypes;
 pub mod document;
 pub mod instance;
 pub mod reflection;
 
+pub(crate) mod exports;
 pub(crate) mod shared;
 
-fn make<F>(lua: &Lua, f: F) -> LuaResult<LuaValue>
-where
-    F: Fn(&Lua, &LuaTable) -> LuaResult<()>,
-{
-    let tab = lua.create_table()?;
-    f(lua, &tab)?;
-    tab.set_readonly(true);
-    Ok(LuaValue::Table(tab))
-}
+use exports::export;
 
-#[rustfmt::skip]
-fn make_all_datatypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
-	use datatypes::types::*;
+fn create_all_exports(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
+    use datatypes::types::*;
+    use instance::Instance;
     Ok(vec![
-		// Datatypes
-        ("Axes",                   make(lua, Axes::make_table)?),
-        ("BrickColor",             make(lua, BrickColor::make_table)?),
-        ("CFrame",                 make(lua, CFrame::make_table)?),
-        ("Color3",                 make(lua, Color3::make_table)?),
-        ("ColorSequence",          make(lua, ColorSequence::make_table)?),
-        ("ColorSequenceKeypoint",  make(lua, ColorSequenceKeypoint::make_table)?),
-        ("Faces",                  make(lua, Faces::make_table)?),
-        ("Font",                   make(lua, Font::make_table)?),
-        ("NumberRange",            make(lua, NumberRange::make_table)?),
-        ("NumberSequence",         make(lua, NumberSequence::make_table)?),
-        ("NumberSequenceKeypoint", make(lua, NumberSequenceKeypoint::make_table)?),
-        ("PhysicalProperties",     make(lua, PhysicalProperties::make_table)?),
-        ("Ray",                    make(lua, Ray::make_table)?),
-        ("Rect",                   make(lua, Rect::make_table)?),
-        ("UDim",                   make(lua, UDim::make_table)?),
-        ("UDim2",                  make(lua, UDim2::make_table)?),
-        ("Region3",                make(lua, Region3::make_table)?),
-        ("Region3int16",           make(lua, Region3int16::make_table)?),
-        ("Vector2",                make(lua, Vector2::make_table)?),
-        ("Vector2int16",           make(lua, Vector2int16::make_table)?),
-        ("Vector3",                make(lua, Vector3::make_table)?),
-        ("Vector3int16",           make(lua, Vector3int16::make_table)?),
-		// Classes
-        ("Instance", make(lua, Instance::make_table)?),
-		// Singletons
+        // Datatypes
+        export::<Axes>(lua)?,
+        export::<BrickColor>(lua)?,
+        export::<CFrame>(lua)?,
+        export::<Color3>(lua)?,
+        export::<ColorSequence>(lua)?,
+        export::<ColorSequenceKeypoint>(lua)?,
+        export::<Faces>(lua)?,
+        export::<Font>(lua)?,
+        export::<NumberRange>(lua)?,
+        export::<NumberSequence>(lua)?,
+        export::<NumberSequenceKeypoint>(lua)?,
+        export::<PhysicalProperties>(lua)?,
+        export::<Ray>(lua)?,
+        export::<Rect>(lua)?,
+        export::<UDim>(lua)?,
+        export::<UDim2>(lua)?,
+        export::<Region3>(lua)?,
+        export::<Region3int16>(lua)?,
+        export::<Vector2>(lua)?,
+        export::<Vector2int16>(lua)?,
+        export::<Vector3>(lua)?,
+        export::<Vector3int16>(lua)?,
+        // Classes
+        export::<Instance>(lua)?,
+        // Singletons
         ("Enum", Enums.into_lua(lua)?),
     ])
 }
 
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    let exports = lua.create_table()?;
-    for (name, tab) in make_all_datatypes(lua)? {
-        exports.set(name, tab)?;
-    }
-    exports.set_readonly(true);
-    Ok(exports)
+    // FUTURE: We can probably create these lazily as users
+    // index the main exports (this return value) table and
+    // save some memory and startup time. The full exports
+    // table is quite big and probably won't get any smaller
+    // since we impl all roblox constructors for each datatype.
+    let exports = create_all_exports(lua)?;
+    TableBuilder::new(lua)?
+        .with_values(exports)?
+        .build_readonly()
 }

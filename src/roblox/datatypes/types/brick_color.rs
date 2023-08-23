@@ -4,6 +4,8 @@ use mlua::prelude::*;
 use rand::seq::SliceRandom;
 use rbx_dom_weak::types::BrickColor as DomBrickColor;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Color3};
 
 /**
@@ -20,57 +22,58 @@ pub struct BrickColor {
     pub(crate) rgb: (u8, u8, u8),
 }
 
-impl BrickColor {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+impl LuaExportsTable<'_> for BrickColor {
+    const EXPORT_NAME: &'static str = "BrickColor";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
         type ArgsNumber = u16;
         type ArgsName = String;
         type ArgsRgb = (u8, u8, u8);
         type ArgsColor3<'lua> = LuaUserDataRef<'lua, Color3>;
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if let Ok(number) = ArgsNumber::from_lua_multi(args.clone(), lua) {
-                    Ok(color_from_number(number))
-                } else if let Ok(name) = ArgsName::from_lua_multi(args.clone(), lua) {
-                    Ok(color_from_name(name))
-                } else if let Ok((r, g, b)) = ArgsRgb::from_lua_multi(args.clone(), lua) {
-                    Ok(color_from_rgb(r, g, b))
-                } else if let Ok(color) = ArgsColor3::from_lua_multi(args.clone(), lua) {
-                    Ok(Self::from(*color))
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )?;
-        datatype_table.set(
-            "palette",
-            lua.create_function(|_, index: u16| {
-                if index == 0 {
-                    Err(LuaError::RuntimeError("Invalid index".to_string()))
-                } else if let Some(number) = BRICK_COLOR_PALETTE.get((index - 1) as usize) {
-                    Ok(color_from_number(*number))
-                } else {
-                    Err(LuaError::RuntimeError("Invalid index".to_string()))
-                }
-            })?,
-        )?;
-        datatype_table.set(
-            "random",
-            lua.create_function(|_, ()| {
-                let number = BRICK_COLOR_PALETTE.choose(&mut rand::thread_rng());
-                Ok(color_from_number(*number.unwrap()))
-            })?,
-        )?;
+
+        let brick_color_new = |lua, args: LuaMultiValue| {
+            if let Ok(number) = ArgsNumber::from_lua_multi(args.clone(), lua) {
+                Ok(color_from_number(number))
+            } else if let Ok(name) = ArgsName::from_lua_multi(args.clone(), lua) {
+                Ok(color_from_name(name))
+            } else if let Ok((r, g, b)) = ArgsRgb::from_lua_multi(args.clone(), lua) {
+                Ok(color_from_rgb(r, g, b))
+            } else if let Ok(color) = ArgsColor3::from_lua_multi(args.clone(), lua) {
+                Ok(Self::from(*color))
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        let brick_color_palette = |_, index: u16| {
+            if index == 0 {
+                Err(LuaError::RuntimeError("Invalid index".to_string()))
+            } else if let Some(number) = BRICK_COLOR_PALETTE.get((index - 1) as usize) {
+                Ok(color_from_number(*number))
+            } else {
+                Err(LuaError::RuntimeError("Invalid index".to_string()))
+            }
+        };
+
+        let brick_color_random = |_, ()| {
+            let number = BRICK_COLOR_PALETTE.choose(&mut rand::thread_rng());
+            Ok(color_from_number(*number.unwrap()))
+        };
+
+        let mut builder = TableBuilder::new(lua)?
+            .with_function("new", brick_color_new)?
+            .with_function("palette", brick_color_palette)?
+            .with_function("random", brick_color_random)?;
+
         for (name, number) in BRICK_COLOR_CONSTRUCTORS {
-            datatype_table.set(
-                *name,
-                lua.create_function(|_, ()| Ok(color_from_number(*number)))?,
-            )?;
+            let f = |_, ()| Ok(color_from_number(*number));
+            builder = builder.with_function(*name, f)?;
         }
-        Ok(())
+
+        builder.build_readonly()
     }
 }
 

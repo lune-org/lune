@@ -5,6 +5,8 @@ use glam::IVec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector3int16 as DomVector3int16;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -17,18 +19,21 @@ use super::super::*;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3int16(pub IVec3);
 
-impl Vector3int16 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y, z): (Option<i16>, Option<i16>, Option<i16>)| {
-                Ok(Vector3int16(IVec3 {
-                    x: x.unwrap_or_default() as i32,
-                    y: y.unwrap_or_default() as i32,
-                    z: z.unwrap_or_default() as i32,
-                }))
-            })?,
-        )
+impl LuaExportsTable<'_> for Vector3int16 {
+    const EXPORT_NAME: &'static str = "Vector3int16";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let vector3int16_new = |_, (x, y, z): (Option<i16>, Option<i16>, Option<i16>)| {
+            Ok(Vector3int16(IVec3 {
+                x: x.unwrap_or_default() as i32,
+                y: y.unwrap_or_default() as i32,
+                z: z.unwrap_or_default() as i32,
+            }))
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", vector3int16_new)?
+            .build_readonly()
     }
 }
 

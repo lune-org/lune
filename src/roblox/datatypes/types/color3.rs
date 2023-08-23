@@ -5,6 +5,8 @@ use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::{Color3 as DomColor3, Color3uint8 as DomColor3uint8};
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -22,88 +24,87 @@ pub struct Color3 {
     pub(crate) b: f32,
 }
 
-impl Color3 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (r, g, b): (Option<f32>, Option<f32>, Option<f32>)| {
-                Ok(Color3 {
-                    r: r.unwrap_or_default(),
-                    g: g.unwrap_or_default(),
-                    b: b.unwrap_or_default(),
-                })
-            })?,
-        )?;
-        datatype_table.set(
-            "fromRGB",
-            lua.create_function(|_, (r, g, b): (Option<u8>, Option<u8>, Option<u8>)| {
-                Ok(Color3 {
-                    r: (r.unwrap_or_default() as f32) / 255f32,
-                    g: (g.unwrap_or_default() as f32) / 255f32,
-                    b: (b.unwrap_or_default() as f32) / 255f32,
-                })
-            })?,
-        )?;
-        datatype_table.set(
-            "fromHSV",
-            lua.create_function(|_, (h, s, v): (f32, f32, f32)| {
-                // https://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
-                let i = (h * 6.0).floor();
-                let f = h * 6.0 - i;
-                let p = v * (1.0 - s);
-                let q = v * (1.0 - f * s);
-                let t = v * (1.0 - (1.0 - f) * s);
+impl LuaExportsTable<'_> for Color3 {
+    const EXPORT_NAME: &'static str = "Color3";
 
-                let (r, g, b) = match (i % 6.0) as u8 {
-                    0 => (v, t, p),
-                    1 => (q, v, p),
-                    2 => (p, v, t),
-                    3 => (p, q, v),
-                    4 => (t, p, v),
-                    5 => (v, p, q),
-                    _ => unreachable!(),
-                };
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let color3_from_rgb = |_, (r, g, b): (Option<u8>, Option<u8>, Option<u8>)| {
+            Ok(Color3 {
+                r: (r.unwrap_or_default() as f32) / 255f32,
+                g: (g.unwrap_or_default() as f32) / 255f32,
+                b: (b.unwrap_or_default() as f32) / 255f32,
+            })
+        };
 
-                Ok(Color3 { r, g, b })
-            })?,
-        )?;
-        datatype_table.set(
-            "fromHex",
-            lua.create_function(|_, hex: String| {
-                let trimmed = hex.trim_start_matches('#').to_ascii_uppercase();
-                let chars = if trimmed.len() == 3 {
-                    (
-                        u8::from_str_radix(&trimmed[..1].repeat(2), 16),
-                        u8::from_str_radix(&trimmed[1..2].repeat(2), 16),
-                        u8::from_str_radix(&trimmed[2..3].repeat(2), 16),
-                    )
-                } else if trimmed.len() == 6 {
-                    (
-                        u8::from_str_radix(&trimmed[..2], 16),
-                        u8::from_str_radix(&trimmed[2..4], 16),
-                        u8::from_str_radix(&trimmed[4..6], 16),
-                    )
-                } else {
-                    return Err(LuaError::RuntimeError(format!(
-                        "Hex color string must be 3 or 6 characters long, got {} character{}",
-                        trimmed.len(),
-                        if trimmed.len() == 1 { "" } else { "s" }
-                    )));
-                };
-                match chars {
-                    (Ok(r), Ok(g), Ok(b)) => Ok(Color3 {
-                        r: (r as f32) / 255f32,
-                        g: (g as f32) / 255f32,
-                        b: (b as f32) / 255f32,
-                    }),
-                    _ => Err(LuaError::RuntimeError(format!(
-                        "Hex color string '{}' contains invalid character",
-                        trimmed
-                    ))),
-                }
-            })?,
-        )?;
-        Ok(())
+        let color3_from_hsv = |_, (h, s, v): (f32, f32, f32)| {
+            // https://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
+            let i = (h * 6.0).floor();
+            let f = h * 6.0 - i;
+            let p = v * (1.0 - s);
+            let q = v * (1.0 - f * s);
+            let t = v * (1.0 - (1.0 - f) * s);
+
+            let (r, g, b) = match (i % 6.0) as u8 {
+                0 => (v, t, p),
+                1 => (q, v, p),
+                2 => (p, v, t),
+                3 => (p, q, v),
+                4 => (t, p, v),
+                5 => (v, p, q),
+                _ => unreachable!(),
+            };
+
+            Ok(Color3 { r, g, b })
+        };
+
+        let color3_from_hex = |_, hex: String| {
+            let trimmed = hex.trim_start_matches('#').to_ascii_uppercase();
+            let chars = if trimmed.len() == 3 {
+                (
+                    u8::from_str_radix(&trimmed[..1].repeat(2), 16),
+                    u8::from_str_radix(&trimmed[1..2].repeat(2), 16),
+                    u8::from_str_radix(&trimmed[2..3].repeat(2), 16),
+                )
+            } else if trimmed.len() == 6 {
+                (
+                    u8::from_str_radix(&trimmed[..2], 16),
+                    u8::from_str_radix(&trimmed[2..4], 16),
+                    u8::from_str_radix(&trimmed[4..6], 16),
+                )
+            } else {
+                return Err(LuaError::RuntimeError(format!(
+                    "Hex color string must be 3 or 6 characters long, got {} character{}",
+                    trimmed.len(),
+                    if trimmed.len() == 1 { "" } else { "s" }
+                )));
+            };
+            match chars {
+                (Ok(r), Ok(g), Ok(b)) => Ok(Color3 {
+                    r: (r as f32) / 255f32,
+                    g: (g as f32) / 255f32,
+                    b: (b as f32) / 255f32,
+                }),
+                _ => Err(LuaError::RuntimeError(format!(
+                    "Hex color string '{}' contains invalid character",
+                    trimmed
+                ))),
+            }
+        };
+
+        let color3_new = |_, (r, g, b): (Option<f32>, Option<f32>, Option<f32>)| {
+            Ok(Color3 {
+                r: r.unwrap_or_default(),
+                g: g.unwrap_or_default(),
+                b: b.unwrap_or_default(),
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("fromRGB", color3_from_rgb)?
+            .with_function("fromHSV", color3_from_hsv)?
+            .with_function("fromHex", color3_from_hex)?
+            .with_function("new", color3_new)?
+            .build_readonly()
     }
 }
 

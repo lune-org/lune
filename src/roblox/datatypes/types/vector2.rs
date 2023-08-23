@@ -5,6 +5,8 @@ use glam::{Vec2, Vec3};
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector2 as DomVector2;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -17,23 +19,24 @@ use super::super::*;
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Vector2(pub Vec2);
 
-impl Vector2 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        // Constants
-        datatype_table.set("xAxis", Vector2(Vec2::X))?;
-        datatype_table.set("yAxis", Vector2(Vec2::Y))?;
-        datatype_table.set("zero", Vector2(Vec2::ZERO))?;
-        datatype_table.set("one", Vector2(Vec2::ONE))?;
-        // Constructors
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y): (Option<f32>, Option<f32>)| {
-                Ok(Vector2(Vec2 {
-                    x: x.unwrap_or_default(),
-                    y: y.unwrap_or_default(),
-                }))
-            })?,
-        )
+impl LuaExportsTable<'_> for Vector2 {
+    const EXPORT_NAME: &'static str = "Vector2";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let vector2_new = |_, (x, y): (Option<f32>, Option<f32>)| {
+            Ok(Vector2(Vec2 {
+                x: x.unwrap_or_default(),
+                y: y.unwrap_or_default(),
+            }))
+        };
+
+        TableBuilder::new(lua)?
+            .with_value("xAxis", Vector2(Vec2::X))?
+            .with_value("yAxis", Vector2(Vec2::Y))?
+            .with_value("zero", Vector2(Vec2::ZERO))?
+            .with_value("one", Vector2(Vec2::ONE))?
+            .with_function("new", vector2_new)?
+            .build_readonly()
     }
 }
 

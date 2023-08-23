@@ -5,6 +5,8 @@ use glam::{EulerRot, Mat4, Quat, Vec3};
 use mlua::prelude::*;
 use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Vector3};
 
 /**
@@ -35,79 +37,61 @@ impl CFrame {
     fn inverse(&self) -> Self {
         Self(self.0.inverse())
     }
+}
 
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        // Constants
-        datatype_table.set("identity", CFrame(Mat4::IDENTITY))?;
-        // Strict args constructors
-        datatype_table.set(
-            "lookAt",
-            lua.create_function(
-                |_,
-                 (from, to, up): (
-                    LuaUserDataRef<Vector3>,
-                    LuaUserDataRef<Vector3>,
-                    Option<LuaUserDataRef<Vector3>>,
-                )| {
-                    Ok(CFrame(look_at(
-                        from.0,
-                        to.0,
-                        up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
-                    )))
-                },
-            )?,
-        )?;
-        datatype_table.set(
-            "fromEulerAnglesXYZ",
-            lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
-            })?,
-        )?;
-        datatype_table.set(
-            "fromEulerAnglesYXZ",
-            lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
-            })?,
-        )?;
-        datatype_table.set(
-            "Angles",
-            lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
-            })?,
-        )?;
-        datatype_table.set(
-            "fromOrientation",
-            lua.create_function(|_, (rx, ry, rz): (f32, f32, f32)| {
-                Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
-            })?,
-        )?;
-        datatype_table.set(
-            "fromAxisAngle",
-            lua.create_function(|_, (v, r): (LuaUserDataRef<Vector3>, f32)| {
-                Ok(CFrame(Mat4::from_axis_angle(v.0, r)))
-            })?,
-        )?;
-        datatype_table.set(
-            "fromMatrix",
-            lua.create_function(
-                |_,
-                 (pos, rx, ry, rz): (
-                    LuaUserDataRef<Vector3>,
-                    LuaUserDataRef<Vector3>,
-                    LuaUserDataRef<Vector3>,
-                    Option<LuaUserDataRef<Vector3>>,
-                )| {
-                    Ok(CFrame(Mat4::from_cols(
-                        rx.0.extend(0.0),
-                        ry.0.extend(0.0),
-                        rz.map(|r| r.0)
-                            .unwrap_or_else(|| rx.0.cross(ry.0).normalize())
-                            .extend(0.0),
-                        pos.0.extend(1.0),
-                    )))
-                },
-            )?,
-        )?;
+impl LuaExportsTable<'_> for CFrame {
+    const EXPORT_NAME: &'static str = "CFrame";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let cframe_angles = |_, (rx, ry, rz): (f32, f32, f32)| {
+            Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
+        };
+
+        let cframe_from_axis_angle =
+            |_, (v, r): (LuaUserDataRef<Vector3>, f32)| Ok(CFrame(Mat4::from_axis_angle(v.0, r)));
+
+        let cframe_from_euler_angles_xyz = |_, (rx, ry, rz): (f32, f32, f32)| {
+            Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
+        };
+
+        let cframe_from_euler_angles_yxz = |_, (rx, ry, rz): (f32, f32, f32)| {
+            Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
+        };
+
+        let cframe_from_matrix = |_,
+                                  (pos, rx, ry, rz): (
+            LuaUserDataRef<Vector3>,
+            LuaUserDataRef<Vector3>,
+            LuaUserDataRef<Vector3>,
+            Option<LuaUserDataRef<Vector3>>,
+        )| {
+            Ok(CFrame(Mat4::from_cols(
+                rx.0.extend(0.0),
+                ry.0.extend(0.0),
+                rz.map(|r| r.0)
+                    .unwrap_or_else(|| rx.0.cross(ry.0).normalize())
+                    .extend(0.0),
+                pos.0.extend(1.0),
+            )))
+        };
+
+        let cframe_from_orientation = |_, (rx, ry, rz): (f32, f32, f32)| {
+            Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
+        };
+
+        let cframe_look_at = |_,
+                              (from, to, up): (
+            LuaUserDataRef<Vector3>,
+            LuaUserDataRef<Vector3>,
+            Option<LuaUserDataRef<Vector3>>,
+        )| {
+            Ok(CFrame(look_at(
+                from.0,
+                to.0,
+                up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
+            )))
+        };
+
         // Dynamic args constructor
         type ArgsPos<'lua> = LuaUserDataRef<'lua, Vector3>;
         type ArgsLook<'lua> = (
@@ -115,48 +99,59 @@ impl CFrame {
             LuaUserDataRef<'lua, Vector3>,
             Option<LuaUserDataRef<'lua, Vector3>>,
         );
+
         type ArgsPosXYZ = (f32, f32, f32);
         type ArgsPosXYZQuat = (f32, f32, f32, f32, f32, f32, f32);
         type ArgsMatrix = (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if args.clone().into_vec().is_empty() {
-                    Ok(CFrame(Mat4::IDENTITY))
-                } else if let Ok(pos) = ArgsPos::from_lua_multi(args.clone(), lua) {
-                    Ok(CFrame(Mat4::from_translation(pos.0)))
-                } else if let Ok((from, to, up)) = ArgsLook::from_lua_multi(args.clone(), lua) {
-                    Ok(CFrame(look_at(
-                        from.0,
-                        to.0,
-                        up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
-                    )))
-                } else if let Ok((x, y, z)) = ArgsPosXYZ::from_lua_multi(args.clone(), lua) {
-                    Ok(CFrame(Mat4::from_translation(Vec3::new(x, y, z))))
-                } else if let Ok((x, y, z, qx, qy, qz, qw)) =
-                    ArgsPosXYZQuat::from_lua_multi(args.clone(), lua)
-                {
-                    Ok(CFrame(Mat4::from_rotation_translation(
-                        Quat::from_array([qx, qy, qz, qw]),
-                        Vec3::new(x, y, z),
-                    )))
-                } else if let Ok((x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)) =
-                    ArgsMatrix::from_lua_multi(args, lua)
-                {
-                    Ok(CFrame(Mat4::from_cols_array_2d(&[
-                        [r00, r01, r02, 0.0],
-                        [r10, r11, r12, 0.0],
-                        [r20, r21, r22, 0.0],
-                        [x, y, z, 1.0],
-                    ])))
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )
+
+        let cframe_new = |lua, args: LuaMultiValue| {
+            if args.clone().into_vec().is_empty() {
+                Ok(CFrame(Mat4::IDENTITY))
+            } else if let Ok(pos) = ArgsPos::from_lua_multi(args.clone(), lua) {
+                Ok(CFrame(Mat4::from_translation(pos.0)))
+            } else if let Ok((from, to, up)) = ArgsLook::from_lua_multi(args.clone(), lua) {
+                Ok(CFrame(look_at(
+                    from.0,
+                    to.0,
+                    up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
+                )))
+            } else if let Ok((x, y, z)) = ArgsPosXYZ::from_lua_multi(args.clone(), lua) {
+                Ok(CFrame(Mat4::from_translation(Vec3::new(x, y, z))))
+            } else if let Ok((x, y, z, qx, qy, qz, qw)) =
+                ArgsPosXYZQuat::from_lua_multi(args.clone(), lua)
+            {
+                Ok(CFrame(Mat4::from_rotation_translation(
+                    Quat::from_array([qx, qy, qz, qw]),
+                    Vec3::new(x, y, z),
+                )))
+            } else if let Ok((x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)) =
+                ArgsMatrix::from_lua_multi(args, lua)
+            {
+                Ok(CFrame(Mat4::from_cols_array_2d(&[
+                    [r00, r01, r02, 0.0],
+                    [r10, r11, r12, 0.0],
+                    [r20, r21, r22, 0.0],
+                    [x, y, z, 1.0],
+                ])))
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("Angles", cframe_angles)?
+            .with_value("identity", CFrame(Mat4::IDENTITY))?
+            .with_function("fromAxisAngle", cframe_from_axis_angle)?
+            .with_function("fromEulerAnglesXYZ", cframe_from_euler_angles_xyz)?
+            .with_function("fromEulerAnglesYXZ", cframe_from_euler_angles_yxz)?
+            .with_function("fromMatrix", cframe_from_matrix)?
+            .with_function("fromOrientation", cframe_from_orientation)?
+            .with_function("lookAt", cframe_look_at)?
+            .with_function("new", cframe_new)?
+            .build_readonly()
     }
 }
 

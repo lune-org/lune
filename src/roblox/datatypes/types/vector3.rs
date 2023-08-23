@@ -5,6 +5,8 @@ use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector3 as DomVector3;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, EnumItem};
 
 /**
@@ -20,74 +22,73 @@ use super::{super::*, EnumItem};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3(pub Vec3);
 
-impl Vector3 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        // Constants
-        datatype_table.set("xAxis", Vector3(Vec3::X))?;
-        datatype_table.set("yAxis", Vector3(Vec3::Y))?;
-        datatype_table.set("zAxis", Vector3(Vec3::Z))?;
-        datatype_table.set("zero", Vector3(Vec3::ZERO))?;
-        datatype_table.set("one", Vector3(Vec3::ONE))?;
-        // Constructors
-        datatype_table.set(
-            "fromAxis",
-            lua.create_function(|_, normal_id: LuaUserDataRef<EnumItem>| {
-                if normal_id.parent.desc.name == "Axis" {
-                    Ok(match normal_id.name.as_str() {
-                        "X" => Vector3(Vec3::X),
-                        "Y" => Vector3(Vec3::Y),
-                        "Z" => Vector3(Vec3::Z),
-                        name => {
-                            return Err(LuaError::RuntimeError(format!(
-                                "Axis '{}' is not known",
-                                name
-                            )))
-                        }
-                    })
-                } else {
-                    Err(LuaError::RuntimeError(format!(
-                        "EnumItem must be a Axis, got {}",
-                        normal_id.parent.desc.name
-                    )))
-                }
-            })?,
-        )?;
-        datatype_table.set(
-            "fromNormalId",
-            lua.create_function(|_, normal_id: LuaUserDataRef<EnumItem>| {
-                if normal_id.parent.desc.name == "NormalId" {
-                    Ok(match normal_id.name.as_str() {
-                        "Left" => Vector3(Vec3::X),
-                        "Top" => Vector3(Vec3::Y),
-                        "Front" => Vector3(-Vec3::Z),
-                        "Right" => Vector3(-Vec3::X),
-                        "Bottom" => Vector3(-Vec3::Y),
-                        "Back" => Vector3(Vec3::Z),
-                        name => {
-                            return Err(LuaError::RuntimeError(format!(
-                                "NormalId '{}' is not known",
-                                name
-                            )))
-                        }
-                    })
-                } else {
-                    Err(LuaError::RuntimeError(format!(
-                        "EnumItem must be a NormalId, got {}",
-                        normal_id.parent.desc.name
-                    )))
-                }
-            })?,
-        )?;
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
-                Ok(Vector3(Vec3 {
-                    x: x.unwrap_or_default(),
-                    y: y.unwrap_or_default(),
-                    z: z.unwrap_or_default(),
-                }))
-            })?,
-        )
+impl LuaExportsTable<'_> for Vector3 {
+    const EXPORT_NAME: &'static str = "Vector3";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let vector3_from_axis = |_, normal_id: LuaUserDataRef<EnumItem>| {
+            if normal_id.parent.desc.name == "Axis" {
+                Ok(match normal_id.name.as_str() {
+                    "X" => Vector3(Vec3::X),
+                    "Y" => Vector3(Vec3::Y),
+                    "Z" => Vector3(Vec3::Z),
+                    name => {
+                        return Err(LuaError::RuntimeError(format!(
+                            "Axis '{}' is not known",
+                            name
+                        )))
+                    }
+                })
+            } else {
+                Err(LuaError::RuntimeError(format!(
+                    "EnumItem must be a Axis, got {}",
+                    normal_id.parent.desc.name
+                )))
+            }
+        };
+
+        let vector3_from_normal_id = |_, normal_id: LuaUserDataRef<EnumItem>| {
+            if normal_id.parent.desc.name == "NormalId" {
+                Ok(match normal_id.name.as_str() {
+                    "Left" => Vector3(Vec3::X),
+                    "Top" => Vector3(Vec3::Y),
+                    "Front" => Vector3(-Vec3::Z),
+                    "Right" => Vector3(-Vec3::X),
+                    "Bottom" => Vector3(-Vec3::Y),
+                    "Back" => Vector3(Vec3::Z),
+                    name => {
+                        return Err(LuaError::RuntimeError(format!(
+                            "NormalId '{}' is not known",
+                            name
+                        )))
+                    }
+                })
+            } else {
+                Err(LuaError::RuntimeError(format!(
+                    "EnumItem must be a NormalId, got {}",
+                    normal_id.parent.desc.name
+                )))
+            }
+        };
+
+        let vector3_new = |_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
+            Ok(Vector3(Vec3 {
+                x: x.unwrap_or_default(),
+                y: y.unwrap_or_default(),
+                z: z.unwrap_or_default(),
+            }))
+        };
+
+        TableBuilder::new(lua)?
+            .with_value("xAxis", Vector3(Vec3::X))?
+            .with_value("yAxis", Vector3(Vec3::Y))?
+            .with_value("zAxis", Vector3(Vec3::Z))?
+            .with_value("zero", Vector3(Vec3::ZERO))?
+            .with_value("one", Vector3(Vec3::ONE))?
+            .with_function("fromAxis", vector3_from_axis)?
+            .with_function("fromNormalId", vector3_from_normal_id)?
+            .with_function("new", vector3_new)?
+            .build_readonly()
     }
 }
 

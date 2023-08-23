@@ -3,6 +3,8 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::ColorSequenceKeypoint as DomColorSequenceKeypoint;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Color3};
 
 /**
@@ -16,18 +18,20 @@ pub struct ColorSequenceKeypoint {
     pub(crate) color: Color3,
 }
 
-impl ColorSequenceKeypoint {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (time, color): (f32, LuaUserDataRef<Color3>)| {
-                Ok(ColorSequenceKeypoint {
-                    time,
-                    color: *color,
-                })
-            })?,
-        )?;
-        Ok(())
+impl LuaExportsTable<'_> for ColorSequenceKeypoint {
+    const EXPORT_NAME: &'static str = "ColorSequenceKeypoint";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let color_sequence_keypoint_new = |_, (time, color): (f32, LuaUserDataRef<Color3>)| {
+            Ok(ColorSequenceKeypoint {
+                time,
+                color: *color,
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", color_sequence_keypoint_new)?
+            .build_readonly()
     }
 }
 

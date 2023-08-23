@@ -3,6 +3,8 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::NumberRange as DomNumberRange;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -16,20 +18,23 @@ pub struct NumberRange {
     pub(crate) max: f32,
 }
 
-impl NumberRange {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (min, max): (f32, Option<f32>)| {
-                Ok(match max {
-                    Some(max) => NumberRange {
-                        min: min.min(max),
-                        max: min.max(max),
-                    },
-                    None => NumberRange { min, max: min },
-                })
-            })?,
-        )
+impl LuaExportsTable<'_> for NumberRange {
+    const EXPORT_NAME: &'static str = "NumberRange";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let number_range_new = |_, (min, max): (f32, Option<f32>)| {
+            Ok(match max {
+                Some(max) => NumberRange {
+                    min: min.min(max),
+                    max: min.max(max),
+                },
+                None => NumberRange { min, max: min },
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", number_range_new)?
+            .build_readonly()
     }
 }
 

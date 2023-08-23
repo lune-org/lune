@@ -16,6 +16,8 @@ pub struct LuneError {
     disable_colors: bool,
 }
 
+// TODO: Rename this struct to "RuntimeError" instead for
+// the next breaking release, it's a more fitting name
 impl LuneError {
     /**
         Enables colorization of the error message when formatted using the [`Display`] trait.

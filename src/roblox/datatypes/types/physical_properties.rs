@@ -3,6 +3,8 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::CustomPhysicalProperties as DomCustomPhysicalProperties;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, EnumItem};
 
 /**
@@ -32,51 +34,52 @@ impl PhysicalProperties {
                 elasticity_weight: props.5,
             })
     }
+}
 
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+impl LuaExportsTable<'_> for PhysicalProperties {
+    const EXPORT_NAME: &'static str = "PhysicalProperties";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
         type ArgsMaterial<'lua> = LuaUserDataRef<'lua, EnumItem>;
         type ArgsNumbers = (f32, f32, f32, Option<f32>, Option<f32>);
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if let Ok(value) = ArgsMaterial::from_lua_multi(args.clone(), lua) {
-                    if value.parent.desc.name == "Material" {
-                        match PhysicalProperties::from_material(&value) {
-                            Some(props) => Ok(props),
-                            None => Err(LuaError::RuntimeError(format!(
-                                "Found unknown Material '{}'",
-                                value.name
-                            ))),
-                        }
-                    } else {
-                        Err(LuaError::RuntimeError(format!(
-                            "Expected argument #1 to be a Material, got {}",
-                            value.parent.desc.name
-                        )))
+
+        let physical_properties_new = |lua, args: LuaMultiValue| {
+            if let Ok(value) = ArgsMaterial::from_lua_multi(args.clone(), lua) {
+                if value.parent.desc.name == "Material" {
+                    match PhysicalProperties::from_material(&value) {
+                        Some(props) => Ok(props),
+                        None => Err(LuaError::RuntimeError(format!(
+                            "Found unknown Material '{}'",
+                            value.name
+                        ))),
                     }
-                } else if let Ok((
+                } else {
+                    Err(LuaError::RuntimeError(format!(
+                        "Expected argument #1 to be a Material, got {}",
+                        value.parent.desc.name
+                    )))
+                }
+            } else if let Ok((density, friction, elasticity, friction_weight, elasticity_weight)) =
+                ArgsNumbers::from_lua_multi(args, lua)
+            {
+                Ok(PhysicalProperties {
                     density,
                     friction,
+                    friction_weight: friction_weight.unwrap_or(1.0),
                     elasticity,
-                    friction_weight,
-                    elasticity_weight,
-                )) = ArgsNumbers::from_lua_multi(args, lua)
-                {
-                    Ok(PhysicalProperties {
-                        density,
-                        friction,
-                        friction_weight: friction_weight.unwrap_or(1.0),
-                        elasticity,
-                        elasticity_weight: elasticity_weight.unwrap_or(1.0),
-                    })
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )
+                    elasticity_weight: elasticity_weight.unwrap_or(1.0),
+                })
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", physical_properties_new)?
+            .build_readonly()
     }
 }
 
