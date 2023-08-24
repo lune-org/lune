@@ -108,6 +108,20 @@ impl LuaExportsTable<'_> for Color3 {
     }
 }
 
+impl<'lua> FromLua<'lua> for Color3 {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        if let LuaValue::UserData(ud) = value {
+            Ok(*ud.borrow::<Color3>()?)
+        } else {
+            Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "userdata",
+                message: None,
+            })
+        }
+    }
+}
+
 impl LuaUserData for Color3 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("R", |_, this| Ok(this.r));
