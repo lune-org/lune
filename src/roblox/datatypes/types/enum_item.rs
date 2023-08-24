@@ -81,7 +81,7 @@ impl<'lua> FromLua<'lua> for EnumItem {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "userdata",
+                to: "EnumItem",
                 message: None,
             })
         }
