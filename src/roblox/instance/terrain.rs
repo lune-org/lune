@@ -74,7 +74,7 @@ fn terrain_get_material_color(_: &Lua, this: &Instance, material: EnumItem) -> L
 
     if &material.parent.desc.name != "Material" {
         return Err(LuaError::RuntimeError(format!(
-            "Expected Material, got {}",
+            "Expected Enum.Material, got Enum.{}",
             &material.parent.desc.name
         )));
     }
@@ -107,7 +107,7 @@ fn terrain_set_material_color(
 
     if &material.parent.desc.name != "Material" {
         return Err(LuaError::RuntimeError(format!(
-            "Expected Material, got {}",
+            "Expected Enum.Material, got Enum.{}",
             &material.parent.desc.name
         )));
     }
