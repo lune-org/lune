@@ -287,20 +287,12 @@ impl From<Color3> for DomColor3 {
 
 impl From<DomColor3uint8> for Color3 {
     fn from(v: DomColor3uint8) -> Self {
-        Self {
-            r: (v.r as f32) / 255f32,
-            g: (v.g as f32) / 255f32,
-            b: (v.b as f32) / 255f32,
-        }
+        Color3::from(DomColor3::from(v))
     }
 }
 
 impl From<Color3> for DomColor3uint8 {
     fn from(v: Color3) -> Self {
-        Self {
-            r: v.r.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-            g: v.g.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-            b: v.b.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-        }
+        DomColor3uint8::from(DomColor3::from(v))
     }
 }
