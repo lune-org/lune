@@ -53,6 +53,34 @@ opt-level = "z"
 strip = true
 lto = true
 
+
+# Profile for building the dev binary, with the following options set:
+#
+# 1. Disables link time optimization to speed up builds
+# 2. Does not strip the binary to reduce size
+# 3. Increases the codegen units to reduce 
+#    time taken for compilation, allowing LLVM to 
+#    process the units in parallel
+# 4. Unwind panic to avoid breaking Lune APIs
+# 5. Disables any optimizations
+# 6. Incremental build to improve compile times
+# 7. Allows for overflow checks explicitly
+# 8. Allows for debug assertions
+# 9. Disables hardcoded runtime search paths for
+#    linked libraries
+#
+[profile.dev]
+lto = "off"
+strip = "none"
+codegen-units = 256
+panic = "unwind"
+opt-level = 0
+incremental = true
+overflow-checks = true
+debug-assertions = true
+debug = true
+rpath = false
+
 # All of the dependencies for Lune.
 #
 # Dependencies are categorized as following:
