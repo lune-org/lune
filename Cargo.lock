@@ -326,8 +326,8 @@ dependencies = [
 
 [[package]]
 name = "chrono_locale"
-version = "0.1.1"
-source = "git+https://github.com/0x5eal/chrono-locale.git?rev=2a7ebcc#2a7ebcc019d133bc17833d66731092dee60dc3b7"
+version = "0.1.2"
+source = "git+https://github.com/0x5eal/chrono-locale.git?tag=v0.1.2#b47f2afe0661a6b15ae788af250ea8afa9e33a4d"
 dependencies = [
  "chrono",
  "lazy_static",
