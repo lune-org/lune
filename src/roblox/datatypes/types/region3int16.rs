@@ -4,6 +4,8 @@ use glam::IVec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Region3int16 as DomRegion3int16;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Vector3int16};
 
 /**
@@ -18,19 +20,21 @@ pub struct Region3int16 {
     pub(crate) max: IVec3,
 }
 
-impl Region3int16 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(
-                |_, (min, max): (LuaUserDataRef<Vector3int16>, LuaUserDataRef<Vector3int16>)| {
-                    Ok(Region3int16 {
-                        min: min.0,
-                        max: max.0,
-                    })
-                },
-            )?,
-        )
+impl LuaExportsTable<'_> for Region3int16 {
+    const EXPORT_NAME: &'static str = "Region3int16";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let region3int16_new =
+            |_, (min, max): (LuaUserDataRef<Vector3int16>, LuaUserDataRef<Vector3int16>)| {
+                Ok(Region3int16 {
+                    min: min.0,
+                    max: max.0,
+                })
+            };
+
+        TableBuilder::new(lua)?
+            .with_function("new", region3int16_new)?
+            .build_readonly()
     }
 }
 

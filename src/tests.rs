@@ -20,7 +20,7 @@ macro_rules! create_tests {
             // The rest of the test logic can continue as normal
             let full_name = format!("tests/{}.luau", $value);
             let script = read_to_string(&full_name).await?;
-            let lune = Lune::new().with_args(
+            let mut lune = Lune::new().with_args(
                 ARGS
                     .clone()
                     .iter()
@@ -67,6 +67,7 @@ create_tests! {
     process_spawn: "process/spawn",
 
     require_async: "require/tests/async",
+    require_async_background: "require/tests/async_background",
     require_async_concurrent: "require/tests/async_concurrent",
     require_async_sequential: "require/tests/async_sequential",
     require_builtins: "require/tests/builtins",
@@ -79,13 +80,13 @@ create_tests! {
     require_siblings: "require/tests/siblings",
 
     global_g_table: "globals/_G",
-    // TODO: Uncomment this test, it is commented out right
-    // now to let CI pass so that we can make a new release
-    // global_coroutine: "globals/coroutine",
+    global_version: "globals/_VERSION",
+    global_coroutine: "globals/coroutine",
+    global_error: "globals/error",
     global_pcall: "globals/pcall",
     global_type: "globals/type",
     global_typeof: "globals/typeof",
-    global_version: "globals/version",
+    global_warn: "globals/warn",
 
     serde_compression_files: "serde/compression/files",
     serde_compression_roundtrip: "serde/compression/roundtrip",

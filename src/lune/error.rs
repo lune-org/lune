@@ -5,7 +5,7 @@ use std::{
 
 use mlua::prelude::*;
 
-use crate::lune::lua::stdio::formatting::pretty_format_luau_error;
+use crate::lune::util::formatting::pretty_format_luau_error;
 
 /**
     An opaque error type for formatted lua errors.
@@ -16,6 +16,8 @@ pub struct LuneError {
     disable_colors: bool,
 }
 
+// TODO: Rename this struct to "RuntimeError" instead for
+// the next breaking release, it's a more fitting name
 impl LuneError {
     /**
         Enables colorization of the error message when formatted using the [`Display`] trait.
@@ -59,6 +61,15 @@ impl From<LuaError> for LuneError {
     fn from(value: LuaError) -> Self {
         Self {
             error: value,
+            disable_colors: false,
+        }
+    }
+}
+
+impl From<&LuaError> for LuneError {
+    fn from(value: &LuaError) -> Self {
+        Self {
+            error: value.clone(),
             disable_colors: false,
         }
     }

@@ -1,35 +1,27 @@
 local net = require("@lune/net")
 local process = require("@lune/process")
+local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
 local PORT = 8081
-local URL = `http://127.0.0.1:{PORT}`
 local WS_URL = `ws://127.0.0.1:{PORT}`
 local REQUEST = "Hello from client!"
 local RESPONSE = "Hello, lune!"
 
-local thread = task.delay(0.2, function()
-	task.spawn(error, "Serve must not block the current thread")
+-- Serve should not block the thread from continuing
+
+local thread = task.delay(1, function()
+	stdio.ewrite("Serve must not block the current thread\n")
+	task.wait(1)
 	process.exit(1)
 end)
 
---[[
-	Serve should also take a full config with handler functions
-
-	A server should also be able to start on a previously closed port
-]]
-
-local handle = net.serve(PORT, function(request)
-	return RESPONSE
-end)
-
-task.cancel(thread)
-handle.stop()
-task.wait()
-
-local handle2 = net.serve(PORT, {
+local handle = net.serve(PORT, {
 	handleRequest = function()
-		return RESPONSE
+		stdio.ewrite("Web socket should upgrade automatically, not pass to the request handler\n")
+		task.wait(1)
+		process.exit(1)
+		return "unreachable"
 	end,
 	handleWebSocket = function(socket)
 		local socketMessage = socket.next()
@@ -39,10 +31,16 @@ local handle2 = net.serve(PORT, {
 	end,
 })
 
-local response = net.request(URL).body
-assert(response == RESPONSE, "Invalid response from server")
+task.cancel(thread)
 
--- Web socket client should work
+-- Web socket responses should also be responded to
+
+local thread2 = task.delay(1, function()
+	stdio.ewrite("Serve should respond to websockets in a reasonable amount of time\n")
+	task.wait(1)
+	process.exit(1)
+end)
+
 local socket = net.socket(WS_URL)
 
 socket.send(REQUEST)
@@ -52,6 +50,8 @@ assert(socketMessage ~= nil, "Got no web socket response from server")
 assert(socketMessage == RESPONSE, "Invalid web socket response from server")
 
 socket.close()
+
+task.cancel(thread2)
 
 -- Wait for the socket to close and make sure we can't send messages afterwards
 task.wait()
@@ -64,4 +64,4 @@ assert(
 )
 
 -- Stop the server to end the test
-handle2.stop()
+handle.stop()

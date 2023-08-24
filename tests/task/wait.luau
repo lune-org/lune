@@ -1,9 +1,11 @@
+local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
 -- Wait should be accurate down to at least 10ms
+-- on Windows, and 6ms on Linux and / or macOS
 
-local EPSILON = 10 / 1_000
+local EPSILON = if process.os == "windows" then 10 / 1_000 else 6 / 1_000
 
 local function test(expected: number)
 	local start = os.clock()
@@ -41,7 +43,10 @@ local function measure(duration: number)
 	end
 end
 
-measure(1 / 100)
+-- About 20ms is the shortest safe sleep time on Windows, but
+-- Linux and macOS can do down to about 10ms or less safely
+measure(if process.os == "windows" then 15 / 1_000 else 5 / 1_000)
+
 measure(1 / 60)
 measure(1 / 30)
 measure(1 / 20)

@@ -3,6 +3,8 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Axes as DomAxes;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, EnumItem};
 
 /**
@@ -17,53 +19,58 @@ pub struct Axes {
     pub(crate) z: bool,
 }
 
-impl Axes {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, args: LuaMultiValue| {
-                let mut x = false;
-                let mut y = false;
-                let mut z = false;
-                let mut check = |e: &EnumItem| {
-                    if e.parent.desc.name == "Axis" {
-                        match &e.name {
-                            name if name == "X" => x = true,
-                            name if name == "Y" => y = true,
-                            name if name == "Z" => z = true,
-                            _ => {}
-                        }
-                    } else if e.parent.desc.name == "NormalId" {
-                        match &e.name {
-                            name if name == "Left" || name == "Right" => x = true,
-                            name if name == "Top" || name == "Bottom" => y = true,
-                            name if name == "Front" || name == "Back" => z = true,
-                            _ => {}
-                        }
+impl LuaExportsTable<'_> for Axes {
+    const EXPORT_NAME: &'static str = "Axes";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let axes_new = |_, args: LuaMultiValue| {
+            let mut x = false;
+            let mut y = false;
+            let mut z = false;
+
+            let mut check = |e: &EnumItem| {
+                if e.parent.desc.name == "Axis" {
+                    match &e.name {
+                        name if name == "X" => x = true,
+                        name if name == "Y" => y = true,
+                        name if name == "Z" => z = true,
+                        _ => {}
                     }
-                };
-                for (index, arg) in args.into_iter().enumerate() {
-                    if let LuaValue::UserData(u) = arg {
-                        if let Ok(e) = u.borrow::<EnumItem>() {
-                            check(&e);
-                        } else {
-                            return Err(LuaError::RuntimeError(format!(
-                                "Expected argument #{} to be an EnumItem, got userdata",
-                                index
-                            )));
-                        }
-                    } else {
-                        return Err(LuaError::RuntimeError(format!(
-                            "Expected argument #{} to be an EnumItem, got {}",
-                            index,
-                            arg.type_name()
-                        )));
+                } else if e.parent.desc.name == "NormalId" {
+                    match &e.name {
+                        name if name == "Left" || name == "Right" => x = true,
+                        name if name == "Top" || name == "Bottom" => y = true,
+                        name if name == "Front" || name == "Back" => z = true,
+                        _ => {}
                     }
                 }
-                Ok(Axes { x, y, z })
-            })?,
-        )?;
-        Ok(())
+            };
+
+            for (index, arg) in args.into_iter().enumerate() {
+                if let LuaValue::UserData(u) = arg {
+                    if let Ok(e) = u.borrow::<EnumItem>() {
+                        check(&e);
+                    } else {
+                        return Err(LuaError::RuntimeError(format!(
+                            "Expected argument #{} to be an EnumItem, got userdata",
+                            index
+                        )));
+                    }
+                } else {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Expected argument #{} to be an EnumItem, got {}",
+                        index,
+                        arg.type_name()
+                    )));
+                }
+            }
+
+            Ok(Axes { x, y, z })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", axes_new)?
+            .build_readonly()
     }
 }
 

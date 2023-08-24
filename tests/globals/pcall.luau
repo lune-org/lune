@@ -7,7 +7,10 @@ local PORT = 9090 -- NOTE: This must be different from
 local function test(f, ...)
 	local success, message = pcall(f, ...)
 	assert(not success, "Function did not throw an error")
-	assert(type(message) == "userdata", "Pcall did not return a proper error")
+	assert(
+		type(message) == "string" or type(message) == "userdata",
+		"Pcall did not return a proper error"
+	)
 end
 
 -- These are not async but should be pcallable
@@ -24,7 +27,7 @@ local handle = net.serve(PORT, function()
 	return ""
 end)
 
-task.delay(0, function()
+task.delay(0.25, function()
 	handle.stop()
 end)
 

@@ -5,6 +5,8 @@ use rbx_dom_weak::types::{
     ColorSequence as DomColorSequence, ColorSequenceKeypoint as DomColorSequenceKeypoint,
 };
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Color3, ColorSequenceKeypoint};
 
 /**
@@ -17,52 +19,56 @@ pub struct ColorSequence {
     pub(crate) keypoints: Vec<ColorSequenceKeypoint>,
 }
 
-impl ColorSequence {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+impl LuaExportsTable<'_> for ColorSequence {
+    const EXPORT_NAME: &'static str = "ColorSequence";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
         type ArgsColor<'lua> = LuaUserDataRef<'lua, Color3>;
         type ArgsColors<'lua> = (LuaUserDataRef<'lua, Color3>, LuaUserDataRef<'lua, Color3>);
         type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, ColorSequenceKeypoint>>;
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
-                    Ok(ColorSequence {
-                        keypoints: vec![
-                            ColorSequenceKeypoint {
-                                time: 0.0,
-                                color: *color,
-                            },
-                            ColorSequenceKeypoint {
-                                time: 1.0,
-                                color: *color,
-                            },
-                        ],
-                    })
-                } else if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
-                    Ok(ColorSequence {
-                        keypoints: vec![
-                            ColorSequenceKeypoint {
-                                time: 0.0,
-                                color: *c0,
-                            },
-                            ColorSequenceKeypoint {
-                                time: 1.0,
-                                color: *c1,
-                            },
-                        ],
-                    })
-                } else if let Ok(keypoints) = ArgsKeypoints::from_lua_multi(args, lua) {
-                    Ok(ColorSequence {
-                        keypoints: keypoints.iter().map(|k| **k).collect(),
-                    })
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )
+
+        let color_sequence_new = |lua, args: LuaMultiValue| {
+            if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
+                Ok(ColorSequence {
+                    keypoints: vec![
+                        ColorSequenceKeypoint {
+                            time: 0.0,
+                            color: *color,
+                        },
+                        ColorSequenceKeypoint {
+                            time: 1.0,
+                            color: *color,
+                        },
+                    ],
+                })
+            } else if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
+                Ok(ColorSequence {
+                    keypoints: vec![
+                        ColorSequenceKeypoint {
+                            time: 0.0,
+                            color: *c0,
+                        },
+                        ColorSequenceKeypoint {
+                            time: 1.0,
+                            color: *c1,
+                        },
+                    ],
+                })
+            } else if let Ok(keypoints) = ArgsKeypoints::from_lua_multi(args, lua) {
+                Ok(ColorSequence {
+                    keypoints: keypoints.iter().map(|k| **k).collect(),
+                })
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", color_sequence_new)?
+            .build_readonly()
     }
 }
 

@@ -5,6 +5,8 @@ use glam::IVec2;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector2int16 as DomVector2int16;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -17,17 +19,20 @@ use super::super::*;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2int16(pub IVec2);
 
-impl Vector2int16 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (x, y): (Option<i16>, Option<i16>)| {
-                Ok(Vector2int16(IVec2 {
-                    x: x.unwrap_or_default() as i32,
-                    y: y.unwrap_or_default() as i32,
-                }))
-            })?,
-        )
+impl LuaExportsTable<'_> for Vector2int16 {
+    const EXPORT_NAME: &'static str = "Vector2int16";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let vector2int16_new = |_, (x, y): (Option<i16>, Option<i16>)| {
+            Ok(Vector2int16(IVec2 {
+                x: x.unwrap_or_default() as i32,
+                y: y.unwrap_or_default() as i32,
+            }))
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", vector2int16_new)?
+            .build_readonly()
     }
 }
 

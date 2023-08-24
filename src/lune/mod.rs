@@ -1,107 +1,82 @@
 use std::process::ExitCode;
 
-use lua::task::{TaskScheduler, TaskSchedulerResumeExt, TaskSchedulerScheduleExt};
-use mlua::prelude::*;
-use tokio::task::LocalSet;
+use mlua::Lua;
 
-pub mod builtins;
-pub mod importer;
-pub mod lua;
-
+mod builtins;
 mod error;
+mod globals;
+mod scheduler;
+
+pub(crate) mod util;
+
+use self::scheduler::{LuaSchedulerExt, Scheduler};
 
 pub use error::LuneError;
 
-#[derive(Clone, Debug, Default)]
+// TODO: Rename this struct to "Runtime" instead for the
+// next breaking release, it's a more fitting name and
+// will probably be more obvious when browsing files
+#[derive(Debug, Clone)]
 pub struct Lune {
+    lua: &'static Lua,
+    scheduler: &'static Scheduler<'static>,
     args: Vec<String>,
 }
 
 impl Lune {
     /**
-        Creates a new Lune script runner.
+        Creates a new Lune runtime, with a new Luau VM and task scheduler.
     */
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self::default()
+        /*
+            FUTURE: Stop leaking these when we have removed the lifetime
+            on the scheduler and can place them in lua app data using arc
+
+            See the scheduler struct for more notes
+        */
+        let lua = Lua::new().into_static();
+        let scheduler = Scheduler::new().into_static();
+
+        lua.set_scheduler(scheduler);
+        globals::inject_all(lua).expect("Failed to inject lua globals");
+
+        Self {
+            lua,
+            scheduler,
+            args: Vec::new(),
+        }
     }
 
     /**
-        Arguments to give in `process.args` for a Lune script.
+        Sets arguments to give in `process.args` for Lune scripts.
     */
     pub fn with_args<V>(mut self, args: V) -> Self
     where
         V: Into<Vec<String>>,
     {
         self.args = args.into();
+        self.lua.set_app_data(self.args.clone());
         self
     }
 
     /**
-        Runs a Lune script.
+        Runs a Lune script inside of the current runtime.
 
-        This will create a new sandboxed Luau environment with the configured
-        globals and arguments, running inside of a [`tokio::task::LocalSet`].
-
-        Some Lune globals may spawn separate tokio tasks on other threads, but the Luau
-        environment itself is guaranteed to run on a single thread in the local set.
-
-        Note that this will create a static Lua instance and task scheduler that will
-        both live for the remainer of the program, and that this leaks memory using
-        [`Box::leak`] that will then get deallocated when the program exits.
+        This will preserve any modifications to global values / context.
     */
     pub async fn run(
-        &self,
+        &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, LuneError> {
-        self.run_inner(script_name, script_contents)
-            .await
-            .map_err(LuneError::from)
-    }
-
-    async fn run_inner(
-        &self,
-        script_name: impl AsRef<str>,
-        script_contents: impl AsRef<[u8]>,
-    ) -> Result<ExitCode, LuaError> {
-        // Create our special lune-flavored Lua object with extra registry values
-        let lua = lua::create_lune_lua()?.into_static();
-        // Create our task scheduler and all globals
-        // NOTE: Some globals require the task scheduler to exist on startup
-        let sched = TaskScheduler::new(lua)?.into_static();
-        lua.set_app_data(sched);
-        importer::create(lua, self.args.clone())?;
-        // Create the main thread and schedule it
-        let main_chunk = lua
+        let main = self
+            .lua
             .load(script_contents.as_ref())
-            .set_name(script_name.as_ref())
-            .into_function()?;
-        let main_thread = lua.create_thread(main_chunk)?;
-        let main_thread_args = LuaValue::Nil.into_lua_multi(lua)?;
-        sched.schedule_blocking(main_thread, main_thread_args)?;
-        // Keep running the scheduler until there are either no tasks
-        // left to run, or until a task requests to exit the process
-        let exit_code = LocalSet::new()
-            .run_until(async move {
-                let mut got_error = false;
-                loop {
-                    let result = sched.resume_queue().await;
-                    if let Some(err) = result.get_lua_error() {
-                        eprintln!("{}", LuneError::from(err));
-                        got_error = true;
-                    }
-                    if result.is_done() {
-                        if let Some(exit_code) = result.get_exit_code() {
-                            break exit_code;
-                        } else if got_error {
-                            break ExitCode::FAILURE;
-                        } else {
-                            break ExitCode::SUCCESS;
-                        }
-                    }
-                }
-            })
-            .await;
-        Ok(exit_code)
+            .set_name(script_name.as_ref());
+
+        self.scheduler.push_back(self.lua, main, ())?;
+
+        Ok(self.scheduler.run_to_completion(self.lua).await)
     }
 }

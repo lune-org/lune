@@ -3,6 +3,8 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::NumberSequenceKeypoint as DomNumberSequenceKeypoint;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -17,19 +19,21 @@ pub struct NumberSequenceKeypoint {
     pub(crate) envelope: f32,
 }
 
-impl NumberSequenceKeypoint {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (time, value, envelope): (f32, f32, Option<f32>)| {
-                Ok(NumberSequenceKeypoint {
-                    time,
-                    value,
-                    envelope: envelope.unwrap_or_default(),
-                })
-            })?,
-        )?;
-        Ok(())
+impl LuaExportsTable<'_> for NumberSequenceKeypoint {
+    const EXPORT_NAME: &'static str = "NumberSequenceKeypoint";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let number_sequence_keypoint_new = |_, (time, value, envelope): (f32, f32, Option<f32>)| {
+            Ok(NumberSequenceKeypoint {
+                time,
+                value,
+                envelope: envelope.unwrap_or_default(),
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", number_sequence_keypoint_new)?
+            .build_readonly()
     }
 }
 

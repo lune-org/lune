@@ -4,6 +4,8 @@ use glam::{Mat4, Vec3};
 use mlua::prelude::*;
 use rbx_dom_weak::types::Region3 as DomRegion3;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, CFrame, Vector3};
 
 /**
@@ -18,19 +20,20 @@ pub struct Region3 {
     pub(crate) max: Vec3,
 }
 
-impl Region3 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(
-                |_, (min, max): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
-                    Ok(Region3 {
-                        min: min.0,
-                        max: max.0,
-                    })
-                },
-            )?,
-        )
+impl LuaExportsTable<'_> for Region3 {
+    const EXPORT_NAME: &'static str = "Region3";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let region3_new = |_, (min, max): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+            Ok(Region3 {
+                min: min.0,
+                max: max.0,
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", region3_new)?
+            .build_readonly()
     }
 }
 

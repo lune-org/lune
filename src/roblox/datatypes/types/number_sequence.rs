@@ -5,6 +5,8 @@ use rbx_dom_weak::types::{
     NumberSequence as DomNumberSequence, NumberSequenceKeypoint as DomNumberSequenceKeypoint,
 };
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, NumberSequenceKeypoint};
 
 /**
@@ -17,56 +19,60 @@ pub struct NumberSequence {
     pub(crate) keypoints: Vec<NumberSequenceKeypoint>,
 }
 
-impl NumberSequence {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+impl LuaExportsTable<'_> for NumberSequence {
+    const EXPORT_NAME: &'static str = "NumberSequence";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
         type ArgsColor = f32;
         type ArgsColors = (f32, f32);
         type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, NumberSequenceKeypoint>>;
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if let Ok(value) = ArgsColor::from_lua_multi(args.clone(), lua) {
-                    Ok(NumberSequence {
-                        keypoints: vec![
-                            NumberSequenceKeypoint {
-                                time: 0.0,
-                                value,
-                                envelope: 0.0,
-                            },
-                            NumberSequenceKeypoint {
-                                time: 1.0,
-                                value,
-                                envelope: 0.0,
-                            },
-                        ],
-                    })
-                } else if let Ok((v0, v1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
-                    Ok(NumberSequence {
-                        keypoints: vec![
-                            NumberSequenceKeypoint {
-                                time: 0.0,
-                                value: v0,
-                                envelope: 0.0,
-                            },
-                            NumberSequenceKeypoint {
-                                time: 1.0,
-                                value: v1,
-                                envelope: 0.0,
-                            },
-                        ],
-                    })
-                } else if let Ok(keypoints) = ArgsKeypoints::from_lua_multi(args, lua) {
-                    Ok(NumberSequence {
-                        keypoints: keypoints.iter().map(|k| **k).collect(),
-                    })
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )
+
+        let number_sequence_new = |lua, args: LuaMultiValue| {
+            if let Ok(value) = ArgsColor::from_lua_multi(args.clone(), lua) {
+                Ok(NumberSequence {
+                    keypoints: vec![
+                        NumberSequenceKeypoint {
+                            time: 0.0,
+                            value,
+                            envelope: 0.0,
+                        },
+                        NumberSequenceKeypoint {
+                            time: 1.0,
+                            value,
+                            envelope: 0.0,
+                        },
+                    ],
+                })
+            } else if let Ok((v0, v1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
+                Ok(NumberSequence {
+                    keypoints: vec![
+                        NumberSequenceKeypoint {
+                            time: 0.0,
+                            value: v0,
+                            envelope: 0.0,
+                        },
+                        NumberSequenceKeypoint {
+                            time: 1.0,
+                            value: v1,
+                            envelope: 0.0,
+                        },
+                    ],
+                })
+            } else if let Ok(keypoints) = ArgsKeypoints::from_lua_multi(args, lua) {
+                Ok(NumberSequence {
+                    keypoints: keypoints.iter().map(|k| **k).collect(),
+                })
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", number_sequence_new)?
+            .build_readonly()
     }
 }
 

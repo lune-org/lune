@@ -5,6 +5,8 @@ use glam::Vec2;
 use mlua::prelude::*;
 use rbx_dom_weak::types::UDim2 as DomUDim2;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, UDim};
 
 /**
@@ -18,52 +20,53 @@ pub struct UDim2 {
     pub(crate) y: UDim,
 }
 
-impl UDim2 {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "fromScale",
-            lua.create_function(|_, (x, y): (Option<f32>, Option<f32>)| {
-                Ok(UDim2 {
-                    x: UDim::new(x.unwrap_or_default(), 0),
-                    y: UDim::new(y.unwrap_or_default(), 0),
-                })
-            })?,
-        )?;
-        datatype_table.set(
-            "fromOffset",
-            lua.create_function(|_, (x, y): (Option<i32>, Option<i32>)| {
-                Ok(UDim2 {
-                    x: UDim::new(0f32, x.unwrap_or_default()),
-                    y: UDim::new(0f32, y.unwrap_or_default()),
-                })
-            })?,
-        )?;
+impl LuaExportsTable<'_> for UDim2 {
+    const EXPORT_NAME: &'static str = "UDim2";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let udim2_from_offset = |_, (x, y): (Option<i32>, Option<i32>)| {
+            Ok(UDim2 {
+                x: UDim::new(0f32, x.unwrap_or_default()),
+                y: UDim::new(0f32, y.unwrap_or_default()),
+            })
+        };
+
+        let udim2_from_scale = |_, (x, y): (Option<f32>, Option<f32>)| {
+            Ok(UDim2 {
+                x: UDim::new(x.unwrap_or_default(), 0),
+                y: UDim::new(y.unwrap_or_default(), 0),
+            })
+        };
+
         type ArgsUDims<'lua> = (
             Option<LuaUserDataRef<'lua, UDim>>,
             Option<LuaUserDataRef<'lua, UDim>>,
         );
         type ArgsNums = (Option<f32>, Option<i32>, Option<f32>, Option<i32>);
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if let Ok((x, y)) = ArgsUDims::from_lua_multi(args.clone(), lua) {
-                    Ok(UDim2 {
-                        x: x.map(|x| *x).unwrap_or_default(),
-                        y: y.map(|y| *y).unwrap_or_default(),
-                    })
-                } else if let Ok((sx, ox, sy, oy)) = ArgsNums::from_lua_multi(args, lua) {
-                    Ok(UDim2 {
-                        x: UDim::new(sx.unwrap_or_default(), ox.unwrap_or_default()),
-                        y: UDim::new(sy.unwrap_or_default(), oy.unwrap_or_default()),
-                    })
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )
+        let udim2_new = |lua, args: LuaMultiValue| {
+            if let Ok((x, y)) = ArgsUDims::from_lua_multi(args.clone(), lua) {
+                Ok(UDim2 {
+                    x: x.map(|x| *x).unwrap_or_default(),
+                    y: y.map(|y| *y).unwrap_or_default(),
+                })
+            } else if let Ok((sx, ox, sy, oy)) = ArgsNums::from_lua_multi(args, lua) {
+                Ok(UDim2 {
+                    x: UDim::new(sx.unwrap_or_default(), ox.unwrap_or_default()),
+                    y: UDim::new(sy.unwrap_or_default(), oy.unwrap_or_default()),
+                })
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("fromOffset", udim2_from_offset)?
+            .with_function("fromScale", udim2_from_scale)?
+            .with_function("new", udim2_new)?
+            .build_readonly()
     }
 }
 

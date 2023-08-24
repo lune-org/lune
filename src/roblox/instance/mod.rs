@@ -12,7 +12,11 @@ use rbx_dom_weak::{
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, WeakDom,
 };
 
-use crate::roblox::shared::instance::{class_exists, class_is_a};
+use crate::{
+    lune::util::TableBuilder,
+    roblox::exports::LuaExportsTable,
+    roblox::shared::instance::{class_exists, class_is_a},
+};
 
 pub(crate) mod base;
 pub(crate) mod data_model;
@@ -686,21 +690,24 @@ impl Instance {
     }
 }
 
-impl Instance {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, class_name: String| {
-                if class_exists(&class_name) {
-                    Instance::new_orphaned(class_name).into_lua(lua)
-                } else {
-                    Err(LuaError::RuntimeError(format!(
-                        "Failed to create Instance - '{}' is not a valid class name",
-                        class_name
-                    )))
-                }
-            })?,
-        )
+impl LuaExportsTable<'_> for Instance {
+    const EXPORT_NAME: &'static str = "Instance";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let instance_new = |lua, class_name: String| {
+            if class_exists(&class_name) {
+                Instance::new_orphaned(class_name).into_lua(lua)
+            } else {
+                Err(LuaError::RuntimeError(format!(
+                    "Failed to create Instance - '{}' is not a valid class name",
+                    class_name
+                )))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", instance_new)?
+            .build_readonly()
     }
 }
 

@@ -4,6 +4,8 @@ use std::ops;
 use mlua::prelude::*;
 use rbx_dom_weak::types::UDim as DomUDim;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::super::*;
 
 /**
@@ -21,17 +23,22 @@ impl UDim {
     pub(super) fn new(scale: f32, offset: i32) -> Self {
         Self { scale, offset }
     }
+}
 
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, (scale, offset): (Option<f32>, Option<i32>)| {
-                Ok(UDim {
-                    scale: scale.unwrap_or_default(),
-                    offset: offset.unwrap_or_default(),
-                })
-            })?,
-        )
+impl LuaExportsTable<'_> for UDim {
+    const EXPORT_NAME: &'static str = "UDim";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let udim_new = |_, (scale, offset): (Option<f32>, Option<i32>)| {
+            Ok(UDim {
+                scale: scale.unwrap_or_default(),
+                offset: offset.unwrap_or_default(),
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", udim_new)?
+            .build_readonly()
     }
 }
 

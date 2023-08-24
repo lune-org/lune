@@ -4,6 +4,8 @@ use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Ray as DomRay;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Vector3};
 
 /**
@@ -26,19 +28,23 @@ impl Ray {
         let dot_product = lhs.dot(norm).max(0.0);
         self.origin + norm * dot_product
     }
+}
 
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(
-                |_, (origin, direction): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
-                    Ok(Ray {
-                        origin: origin.0,
-                        direction: direction.0,
-                    })
-                },
-            )?,
-        )
+impl LuaExportsTable<'_> for Ray {
+    const EXPORT_NAME: &'static str = "Ray";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let ray_new =
+            |_, (origin, direction): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+                Ok(Ray {
+                    origin: origin.0,
+                    direction: direction.0,
+                })
+            };
+
+        TableBuilder::new(lua)?
+            .with_function("new", ray_new)?
+            .build_readonly()
     }
 }
 

@@ -3,6 +3,8 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Faces as DomFaces;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, EnumItem};
 
 /**
@@ -20,59 +22,64 @@ pub struct Faces {
     pub(crate) front: bool,
 }
 
-impl Faces {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
-        datatype_table.set(
-            "new",
-            lua.create_function(|_, args: LuaMultiValue| {
-                let mut right = false;
-                let mut top = false;
-                let mut back = false;
-                let mut left = false;
-                let mut bottom = false;
-                let mut front = false;
-                let mut check = |e: &EnumItem| {
-                    if e.parent.desc.name == "NormalId" {
-                        match &e.name {
-                            name if name == "Right" => right = true,
-                            name if name == "Top" => top = true,
-                            name if name == "Back" => back = true,
-                            name if name == "Left" => left = true,
-                            name if name == "Bottom" => bottom = true,
-                            name if name == "Front" => front = true,
-                            _ => {}
-                        }
-                    }
-                };
-                for (index, arg) in args.into_iter().enumerate() {
-                    if let LuaValue::UserData(u) = arg {
-                        if let Ok(e) = u.borrow::<EnumItem>() {
-                            check(&e);
-                        } else {
-                            return Err(LuaError::RuntimeError(format!(
-                                "Expected argument #{} to be an EnumItem, got userdata",
-                                index
-                            )));
-                        }
-                    } else {
-                        return Err(LuaError::RuntimeError(format!(
-                            "Expected argument #{} to be an EnumItem, got {}",
-                            index,
-                            arg.type_name()
-                        )));
+impl LuaExportsTable<'_> for Faces {
+    const EXPORT_NAME: &'static str = "Faces";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        let faces_new = |_, args: LuaMultiValue| {
+            let mut right = false;
+            let mut top = false;
+            let mut back = false;
+            let mut left = false;
+            let mut bottom = false;
+            let mut front = false;
+
+            let mut check = |e: &EnumItem| {
+                if e.parent.desc.name == "NormalId" {
+                    match &e.name {
+                        name if name == "Right" => right = true,
+                        name if name == "Top" => top = true,
+                        name if name == "Back" => back = true,
+                        name if name == "Left" => left = true,
+                        name if name == "Bottom" => bottom = true,
+                        name if name == "Front" => front = true,
+                        _ => {}
                     }
                 }
-                Ok(Faces {
-                    right,
-                    top,
-                    back,
-                    left,
-                    bottom,
-                    front,
-                })
-            })?,
-        )?;
-        Ok(())
+            };
+
+            for (index, arg) in args.into_iter().enumerate() {
+                if let LuaValue::UserData(u) = arg {
+                    if let Ok(e) = u.borrow::<EnumItem>() {
+                        check(&e);
+                    } else {
+                        return Err(LuaError::RuntimeError(format!(
+                            "Expected argument #{} to be an EnumItem, got userdata",
+                            index
+                        )));
+                    }
+                } else {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Expected argument #{} to be an EnumItem, got {}",
+                        index,
+                        arg.type_name()
+                    )));
+                }
+            }
+
+            Ok(Faces {
+                right,
+                top,
+                back,
+                left,
+                bottom,
+                front,
+            })
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", faces_new)?
+            .build_readonly()
     }
 }
 

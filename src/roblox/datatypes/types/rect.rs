@@ -5,6 +5,8 @@ use glam::Vec2;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Rect as DomRect;
 
+use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+
 use super::{super::*, Vector2};
 
 /**
@@ -28,33 +30,37 @@ impl Rect {
     }
 }
 
-impl Rect {
-    pub(crate) fn make_table(lua: &Lua, datatype_table: &LuaTable) -> LuaResult<()> {
+impl LuaExportsTable<'_> for Rect {
+    const EXPORT_NAME: &'static str = "Rect";
+
+    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
         type ArgsVector2s<'lua> = (
             Option<LuaUserDataRef<'lua, Vector2>>,
             Option<LuaUserDataRef<'lua, Vector2>>,
         );
         type ArgsNums = (Option<f32>, Option<f32>, Option<f32>, Option<f32>);
-        datatype_table.set(
-            "new",
-            lua.create_function(|lua, args: LuaMultiValue| {
-                if let Ok((min, max)) = ArgsVector2s::from_lua_multi(args.clone(), lua) {
-                    Ok(Rect::new(
-                        min.map(|m| *m).unwrap_or_default().0,
-                        max.map(|m| *m).unwrap_or_default().0,
-                    ))
-                } else if let Ok((x0, y0, x1, y1)) = ArgsNums::from_lua_multi(args, lua) {
-                    let min = Vec2::new(x0.unwrap_or_default(), y0.unwrap_or_default());
-                    let max = Vec2::new(x1.unwrap_or_default(), y1.unwrap_or_default());
-                    Ok(Rect::new(min, max))
-                } else {
-                    // FUTURE: Better error message here using given arg types
-                    Err(LuaError::RuntimeError(
-                        "Invalid arguments to constructor".to_string(),
-                    ))
-                }
-            })?,
-        )
+
+        let rect_new = |lua, args: LuaMultiValue| {
+            if let Ok((min, max)) = ArgsVector2s::from_lua_multi(args.clone(), lua) {
+                Ok(Rect::new(
+                    min.map(|m| *m).unwrap_or_default().0,
+                    max.map(|m| *m).unwrap_or_default().0,
+                ))
+            } else if let Ok((x0, y0, x1, y1)) = ArgsNums::from_lua_multi(args, lua) {
+                let min = Vec2::new(x0.unwrap_or_default(), y0.unwrap_or_default());
+                let max = Vec2::new(x1.unwrap_or_default(), y1.unwrap_or_default());
+                Ok(Rect::new(min, max))
+            } else {
+                // FUTURE: Better error message here using given arg types
+                Err(LuaError::RuntimeError(
+                    "Invalid arguments to constructor".to_string(),
+                ))
+            }
+        };
+
+        TableBuilder::new(lua)?
+            .with_function("new", rect_new)?
+            .build_readonly()
     }
 }
 

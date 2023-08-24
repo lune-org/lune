@@ -8,9 +8,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.7.7` - August 23rd, 2023
 
 ### Added
+
+- Added a [REPL](https://en.wikipedia.org/wiki/Read–eval–print_loop) to Lune. ([#83])
+
+  This allows you to run scripts within Lune without writing files!
+
+  Example usage, inside your favorite terminal:
+
+  ```bash
+  # 1. Run the Lune executable, without any arguments
+  lune
+
+  # 2. You will be shown the current Lune version and a blank prompt arrow:
+  Lune v0.7.7
+  >
+
+  # 3. Start typing, and hit enter when you want to run your script!
+  #    Your script will run until completion and output things along the way.
+  > print(2 + 3)
+  5
+  > print("Hello, lune changelog!")
+  Hello, lune changelog!
+
+  # 4. You can also set variables that will get preserved between runs.
+  #    Note that local variables do not get preserved here.
+  > myVariable = 123
+  > print(myVariable)
+  123
+
+  # 5. Press either of these key combinations to exit the REPL:
+  #    - Ctrl + D
+  #    - Ctrl + C
+  ```
 
 - Added a new `luau` built-in library for manually compiling and loading Luau source code. ([#82])
 
@@ -31,14 +63,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   callableFn2()
   ```
 
-- Implemented support for a variable number of arguments for `CFrame` methods in the `roblox` built-in library. ([#85])
+### Changed
+
+- Update to Luau version `0.591`
+- Lune's internal task scheduler and `require` functionality has been completely rewritten. <br/>
+  The new scheduler is much more stable, conforms to a larger test suite, and has a few additional benefits:
+
+  - Built-in libraries are now lazily loaded, meaning nothing gets allocated until the built-in library gets loaded using `require("@lune/builtin-name")`. This also improves startup times slightly.
+  - Spawned processes using `process.spawn` now run on different thread(s), freeing up resources for the main thread where luau runs.
+  - Serving requests using `net.serve` now processes requests on background threads, also freeing up resources. In the future, this will also allow us to offload heavy tasks such as compression/decompression to background threads.
+  - Groundwork for custom / user-defined require aliases has been implemented, as well as absolute / cwd-relative requires. These will both be exposed as options and be made available to use some time in the future.
+
+- When using the `serde` built-in library, keys are now sorted during serialization. This means that the output of `encode` is now completely deterministic, and wont cause issues when committing generated files to git etc.
 
 ### Fixed
 
 - Fixed not being able to pass arguments to the thread using `coroutine.resume`. ([#86])
+- Fixed a large number of long-standing issues, from the task scheduler rewrite:
+
+  - Fixed `require` hanging indefinitely when the module being require-d uses an async function in its main body.
+  - Fixed background tasks (such as `net.serve`) not keeping Lune alive even if there are no lua threads to run.
+  - Fixed spurious panics and error messages such as `Tried to resume next queued future but none are queued`.
+  - Fixed not being able to catch non-string errors properly, errors were accidentally being wrapped in an opaque `userdata` type.
 
 [#82]: https://github.com/filiptibell/lune/pull/82
-[#85]: https://github.com/filiptibell/lune/pull/85
+[#83]: https://github.com/filiptibell/lune/pull/83
 [#86]: https://github.com/filiptibell/lune/pull/86
 
 ## `0.7.6` - August 9th, 2023
