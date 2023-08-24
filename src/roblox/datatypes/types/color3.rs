@@ -115,7 +115,7 @@ impl<'lua> FromLua<'lua> for Color3 {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "EnumItem",
+                to: "Color3",
                 message: None,
             })
         }
