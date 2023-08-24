@@ -20,6 +20,7 @@ use crate::{
 
 pub(crate) mod base;
 pub(crate) mod data_model;
+pub(crate) mod terrain;
 pub(crate) mod workspace;
 
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
@@ -729,6 +730,7 @@ impl LuaUserData for Instance {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         base::add_methods(methods);
         data_model::add_methods(methods);
+        terrain::add_methods(methods);
     }
 }
 

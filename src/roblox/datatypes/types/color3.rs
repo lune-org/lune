@@ -108,6 +108,20 @@ impl LuaExportsTable<'_> for Color3 {
     }
 }
 
+impl<'lua> FromLua<'lua> for Color3 {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        if let LuaValue::UserData(ud) = value {
+            Ok(*ud.borrow::<Color3>()?)
+        } else {
+            Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "Color3",
+                message: None,
+            })
+        }
+    }
+}
+
 impl LuaUserData for Color3 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("R", |_, this| Ok(this.r));
@@ -287,20 +301,12 @@ impl From<Color3> for DomColor3 {
 
 impl From<DomColor3uint8> for Color3 {
     fn from(v: DomColor3uint8) -> Self {
-        Self {
-            r: (v.r as f32) / 255f32,
-            g: (v.g as f32) / 255f32,
-            b: (v.b as f32) / 255f32,
-        }
+        Color3::from(DomColor3::from(v))
     }
 }
 
 impl From<Color3> for DomColor3uint8 {
     fn from(v: Color3) -> Self {
-        Self {
-            r: v.r.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-            g: v.g.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-            b: v.b.clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-        }
+        DomColor3uint8::from(DomColor3::from(v))
     }
 }
