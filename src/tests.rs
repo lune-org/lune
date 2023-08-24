@@ -146,6 +146,7 @@ create_tests! {
 
     roblox_instance_classes_data_model: "roblox/instance/classes/DataModel",
     roblox_instance_classes_workspace: "roblox/instance/classes/Workspace",
+    roblox_instance_classes_terrain: "roblox/instance/classes/Terrain",
 
     roblox_instance_methods_clear_all_children: "roblox/instance/methods/ClearAllChildren",
     roblox_instance_methods_clone: "roblox/instance/methods/Clone",
