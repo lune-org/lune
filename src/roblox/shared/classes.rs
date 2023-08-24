@@ -71,7 +71,6 @@ pub(crate) fn add_class_restricted_method<'lua, M: LuaUserDataMethods<'lua, Inst
     });
 }
 
-#[allow(dead_code)]
 pub(crate) fn add_class_restricted_method_mut<
     'lua,
     M: LuaUserDataMethods<'lua, Instance>,
