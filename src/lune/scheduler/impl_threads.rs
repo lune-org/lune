@@ -14,8 +14,8 @@ impl<'fut> Scheduler<'fut> {
     pub(super) fn has_thread(&self) -> bool {
         !self
             .threads
-            .try_borrow()
-            .expect("Failed to borrow threads vec")
+            .try_lock()
+            .expect("Failed to lock threads vec")
             .is_empty()
     }
 
@@ -27,9 +27,9 @@ impl<'fut> Scheduler<'fut> {
     pub(super) fn pop_thread(&self) -> LuaResult<Option<SchedulerThread>> {
         match self
             .threads
-            .try_borrow_mut()
+            .try_lock()
             .into_lua_err()
-            .context("Failed to borrow threads vec")?
+            .context("Failed to lock threads vec")?
             .pop_front()
         {
             Some(thread) => Ok(Some(thread)),
@@ -54,9 +54,9 @@ impl<'fut> Scheduler<'fut> {
 
         self.state.set_thread_error(thread_id, err);
         self.threads
-            .try_borrow_mut()
+            .try_lock()
             .into_lua_err()
-            .context("Failed to borrow threads vec")?
+            .context("Failed to lock threads vec")?
             .push_front(thread);
 
         // NOTE: We might be resuming futures, need to signal that a
@@ -83,16 +83,18 @@ impl<'fut> Scheduler<'fut> {
         let thread_id = thread.id();
 
         self.threads
-            .try_borrow_mut()
+            .try_lock()
             .into_lua_err()
-            .context("Failed to borrow threads vec")?
+            .context("Failed to lock threads vec")?
             .push_front(thread);
 
         // NOTE: We might be resuming the same thread several times and
         // pushing it to the scheduler several times before it is done,
         // and we should only ever create one result sender per thread
         self.thread_senders
-            .borrow_mut()
+            .try_lock()
+            .into_lua_err()
+            .context("Failed to lock thread senders vec")?
             .entry(thread_id)
             .or_insert_with(|| SchedulerThreadSender::new(1));
 
@@ -120,16 +122,18 @@ impl<'fut> Scheduler<'fut> {
         let thread_id = thread.id();
 
         self.threads
-            .try_borrow_mut()
+            .try_lock()
             .into_lua_err()
-            .context("Failed to borrow threads vec")?
+            .context("Failed to lock threads vec")?
             .push_back(thread);
 
         // NOTE: We might be resuming the same thread several times and
         // pushing it to the scheduler several times before it is done,
         // and we should only ever create one result sender per thread
         self.thread_senders
-            .borrow_mut()
+            .try_lock()
+            .into_lua_err()
+            .context("Failed to lock thread senders vec")?
             .entry(thread_id)
             .or_insert_with(|| SchedulerThreadSender::new(1));
 
@@ -149,7 +153,7 @@ impl<'fut> Scheduler<'fut> {
         thread_id: SchedulerThreadId,
     ) -> LuaResult<LuaMultiValue<'a>> {
         let mut recv = {
-            let senders = self.thread_senders.borrow();
+            let senders = self.thread_senders.lock().await;
             let sender = senders
                 .get(&thread_id)
                 .expect("Tried to wait for thread that is not queued");

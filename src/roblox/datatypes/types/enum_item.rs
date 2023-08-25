@@ -74,6 +74,20 @@ impl LuaUserData for EnumItem {
     }
 }
 
+impl<'lua> FromLua<'lua> for EnumItem {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        if let LuaValue::UserData(ud) = value {
+            Ok(ud.borrow::<EnumItem>()?.to_owned())
+        } else {
+            Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "EnumItem",
+                message: None,
+            })
+        }
+    }
+}
+
 impl fmt::Display for EnumItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}", self.parent, self.name)
