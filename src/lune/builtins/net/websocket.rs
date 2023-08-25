@@ -1,4 +1,4 @@
-use std::{cell::Cell, sync::Arc};
+use std::sync::Arc;
 
 use hyper::upgrade::Upgraded;
 use mlua::prelude::*;
@@ -46,7 +46,7 @@ return freeze(setmetatable({
 
 #[derive(Debug)]
 pub struct NetWebSocket<T> {
-    close_code: Arc<Cell<Option<u16>>>,
+    close_code: Arc<AsyncMutex<Option<u16>>>,
     read_stream: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
     write_stream: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
 }
@@ -69,7 +69,7 @@ where
         let (write, read) = value.split();
 
         Self {
-            close_code: Arc::new(Cell::new(None)),
+            close_code: Arc::new(AsyncMutex::new(None)),
             read_stream: Arc::new(AsyncMutex::new(read)),
             write_stream: Arc::new(AsyncMutex::new(write)),
         }
@@ -137,10 +137,16 @@ fn close_code<'lua, T>(
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
-    Ok(match socket.close_code.get() {
-        Some(code) => LuaValue::Number(code as f64),
-        None => LuaValue::Nil,
-    })
+    Ok(
+        match *socket
+            .close_code
+            .try_lock()
+            .expect("Failed to lock close code")
+        {
+            Some(code) => LuaValue::Number(code as f64),
+            None => LuaValue::Nil,
+        },
+    )
 }
 
 async fn close<'lua, T>(
@@ -204,7 +210,8 @@ where
     let msg = match item {
         Ok(Some(WsMessage::Close(msg))) => {
             if let Some(msg) = &msg {
-                socket.close_code.replace(Some(msg.code.into()));
+                let mut code = socket.close_code.lock().await;
+                *code = Some(msg.code.into());
             }
             Ok(Some(WsMessage::Close(msg)))
         }

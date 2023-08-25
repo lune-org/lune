@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     collections::{HashMap, VecDeque},
     pin::Pin,
     sync::Arc,
@@ -37,8 +36,8 @@ type SchedulerFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
 #[derive(Debug, Clone)]
 pub(crate) struct Scheduler<'fut> {
     state: Arc<SchedulerState>,
-    threads: Arc<RefCell<VecDeque<SchedulerThread>>>,
-    thread_senders: Arc<RefCell<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
+    threads: Arc<AsyncMutex<VecDeque<SchedulerThread>>>,
+    thread_senders: Arc<AsyncMutex<HashMap<SchedulerThreadId, SchedulerThreadSender>>>,
     /*
         FUTURE: Get rid of these, let the tokio runtime handle running
         and resumption of futures completely, just use our scheduler
@@ -64,11 +63,12 @@ impl<'fut> Scheduler<'fut> {
     /**
         Creates a new scheduler.
     */
+    #[allow(clippy::arc_with_non_send_sync)] // FIXME: Clippy lints our tokio mutexes that are definitely Send + Sync
     pub fn new() -> Self {
         Self {
             state: Arc::new(SchedulerState::new()),
-            threads: Arc::new(RefCell::new(VecDeque::new())),
-            thread_senders: Arc::new(RefCell::new(HashMap::new())),
+            threads: Arc::new(AsyncMutex::new(VecDeque::new())),
+            thread_senders: Arc::new(AsyncMutex::new(HashMap::new())),
             futures_lua: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
             futures_background: Arc::new(AsyncMutex::new(FuturesUnordered::new())),
         }

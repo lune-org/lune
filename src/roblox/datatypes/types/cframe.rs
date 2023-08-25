@@ -2,7 +2,7 @@ use core::fmt;
 use std::ops;
 
 use glam::{EulerRot, Mat4, Quat, Vec3};
-use mlua::prelude::*;
+use mlua::{prelude::*, Variadic};
 use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
 use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
@@ -205,38 +205,46 @@ impl LuaUserData for CFrame {
                 translation,
             )))
         });
-        methods.add_method("ToWorldSpace", |_, this, rhs: LuaUserDataRef<CFrame>| {
-            Ok(*this * *rhs)
-        });
-        methods.add_method("ToObjectSpace", |_, this, rhs: LuaUserDataRef<CFrame>| {
-            let inverse = this.inverse();
-            Ok(inverse * *rhs)
-        });
+        methods.add_method(
+            "ToWorldSpace",
+            |_, this, rhs: Variadic<LuaUserDataRef<CFrame>>| {
+                Ok(Variadic::from_iter(rhs.into_iter().map(|cf| *this * *cf)))
+            },
+        );
+        methods.add_method(
+            "ToObjectSpace",
+            |_, this, rhs: Variadic<LuaUserDataRef<CFrame>>| {
+                let inverse = this.inverse();
+                Ok(Variadic::from_iter(rhs.into_iter().map(|cf| inverse * *cf)))
+            },
+        );
         methods.add_method(
             "PointToWorldSpace",
-            |_, this, rhs: LuaUserDataRef<Vector3>| Ok(*this * *rhs),
+            |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
+                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| *this * *v3)))
+            },
         );
         methods.add_method(
             "PointToObjectSpace",
-            |_, this, rhs: LuaUserDataRef<Vector3>| {
+            |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
                 let inverse = this.inverse();
-                Ok(inverse * *rhs)
+                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| inverse * *v3)))
             },
         );
         methods.add_method(
             "VectorToWorldSpace",
-            |_, this, rhs: LuaUserDataRef<Vector3>| {
+            |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
                 let result = *this - Vector3(this.position());
-                Ok(result * *rhs)
+                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| result * *v3)))
             },
         );
         methods.add_method(
             "VectorToObjectSpace",
-            |_, this, rhs: LuaUserDataRef<Vector3>| {
+            |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
                 let inverse = this.inverse();
                 let result = inverse - Vector3(inverse.position());
 
-                Ok(result * *rhs)
+                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| result * *v3)))
             },
         );
         #[rustfmt::skip]

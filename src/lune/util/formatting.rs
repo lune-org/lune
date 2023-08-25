@@ -118,8 +118,8 @@ pub fn pretty_format_value(
             COLOR_GREEN.apply_to(
                 s.to_string_lossy()
                     .replace('"', r#"\""#)
-                    .replace('\r', r#"\r"#)
-                    .replace('\n', r#"\n"#)
+                    .replace('\r', r"\r")
+                    .replace('\n', r"\n")
             )
         )?,
         LuaValue::Table(ref tab) => {
