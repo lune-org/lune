@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use mlua::prelude::*;
 
+mod datetime;
 mod fs;
 mod luau;
 mod net;
@@ -15,6 +16,7 @@ mod roblox;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum LuneBuiltin {
+    DateTime,
     Fs,
     Luau,
     Net,
@@ -32,6 +34,7 @@ where
 {
     pub fn name(&self) -> &'static str {
         match self {
+            Self::DateTime => "datetime",
             Self::Fs => "fs",
             Self::Luau => "luau",
             Self::Net => "net",
@@ -46,6 +49,7 @@ where
 
     pub fn create(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
         let res = match self {
+            Self::DateTime => datetime::create(lua),
             Self::Fs => fs::create(lua),
             Self::Luau => luau::create(lua),
             Self::Net => net::create(lua),
@@ -70,6 +74,7 @@ impl FromStr for LuneBuiltin {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_ascii_lowercase().as_str() {
+            "datetime" => Ok(Self::DateTime),
             "fs" => Ok(Self::Fs),
             "luau" => Ok(Self::Luau),
             "net" => Ok(Self::Net),

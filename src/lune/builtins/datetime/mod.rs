@@ -1,9 +1,43 @@
+use crate::lune::builtins::LuaUserData;
+use crate::lune::util::TableBuilder;
 use chrono::prelude::*;
 use chrono::DateTime as ChronoDateTime;
 use chrono_locale::LocaleDate;
+use mlua::prelude::*;
 use once_cell::sync::Lazy;
 
 // TODO: Proper error handling and stuff
+// TODO: fromUniversalTime, fromLocalTime, toDateTimeBuilder, toLocalTime, toUniversalTime
+// FIX: DateTime::from_iso_date is broken
+
+//   pub fn format_time<T>(&self, timezone: Timezone, fmt_str: T, locale: T) -> String
+//    where
+//        T: ToString,
+pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+    TableBuilder::new(lua)?
+        .with_function("now", |_, ()| Ok(DateTime::now()))?
+        .with_function("fromUnixTimestamp", |lua, (timestamp_type, timestamp)| {
+            Ok(DateTime::from_unix_timestamp(
+                TimestampType::from_lua(timestamp_type, lua)?,
+                timestamp,
+            ))
+        })?
+        .with_function("fromIsoDate", |_, iso_date: LuaString| {
+            Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
+        })?
+        .with_function("toIsoDate", |_, this| Ok(DateTime::to_iso_date(&this)))?
+        .with_function(
+            "formatTime",
+            |_, (this, timezone, fmt_str, locale): (DateTime, LuaValue, LuaString, LuaString)| {
+                Ok(this.format_time(
+                    Timezone::from_lua(timezone, lua)?,
+                    fmt_str.to_string_lossy(),
+                    locale.to_string_lossy(),
+                ))
+            },
+        )?
+        .build_readonly()
+}
 
 /// Possible types of timestamps accepted by `DateTime`.
 pub enum TimestampType {
@@ -11,6 +45,32 @@ pub enum TimestampType {
     Millis,
 }
 
+impl<'lua> FromLua<'lua> for TimestampType {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        fn num_to_enum(num: i32) -> LuaResult<TimestampType> {
+            match num {
+                1 => Ok(TimestampType::Seconds),
+                2 => Ok(TimestampType::Millis),
+                _ => Err(LuaError::external("Invalid enum member!")),
+            }
+        }
+
+        match value {
+            LuaValue::Integer(num) => num_to_enum(num),
+            LuaValue::Number(num) => num_to_enum(num as i32),
+            LuaValue::String(str) => match str.to_str()?.to_lowercase().as_str() {
+                "seconds" | "sec" | "secs" => Ok(TimestampType::Seconds),
+                "millis" | "milliseconds" | "milli" => Ok(TimestampType::Millis),
+                &_ => Err(LuaError::external("Invalid enum member!")),
+            },
+            _ => Err(LuaError::external(
+                "Invalid enum type, number or string expected",
+            )),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct DateTime {
     /// The number of **seconds** since January 1st, 1970
     /// at 00:00 UTC (the Unix epoch). Range is
@@ -236,6 +296,55 @@ impl DateTime {
     }
 }
 
+impl LuaUserData for DateTime {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("unixTimestamp", |_, this| Ok(this.unix_timestamp));
+        fields.add_field_method_get("unixTimestampMillis", |_, this| {
+            Ok(this.unix_timestamp_millis)
+        });
+
+        fields.add_field_method_set("unixTimestamp", |_, this, val| {
+            this.unix_timestamp = val;
+
+            Ok(())
+        });
+
+        fields.add_field_method_set("unixTimestampMillis", |_, this, val| {
+            this.unix_timestamp_millis = val;
+
+            Ok(())
+        });
+    }
+
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method("now", |_, _this, ()| Ok(DateTime::now()));
+        methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_iso_date()));
+        methods.add_method(
+            "formatTime",
+            |_, this, (timezone, fmt_str, locale): (LuaValue, LuaString, LuaString)| {
+                Ok(this.format_time(
+                    Timezone::from_lua(timezone, &Lua::new())?,
+                    fmt_str.to_string_lossy(),
+                    locale.to_string_lossy(),
+                ))
+            },
+        );
+    }
+}
+
+impl<'lua> FromLua<'lua> for DateTime {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        match value {
+            LuaValue::Nil => panic!("found nil"),
+            LuaValue::Table(t) => Ok(DateTime::from_unix_timestamp(
+                TimestampType::Seconds,
+                t.get("unixTimestamp")?,
+            )),
+            _ => panic!("invalid type"),
+        }
+    }
+}
+
 pub struct DateTimeBuilder {
     /// The year. In the range 1400 - 9999.
     pub year: i32,
@@ -272,6 +381,31 @@ impl Default for DateTimeBuilder {
 pub enum Timezone {
     Utc,
     Local,
+}
+
+impl<'lua> FromLua<'lua> for Timezone {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        fn num_to_enum(num: i32) -> LuaResult<Timezone> {
+            match num {
+                1 => Ok(Timezone::Utc),
+                2 => Ok(Timezone::Local),
+                _ => Err(LuaError::external("Invalid enum member!")),
+            }
+        }
+
+        match value {
+            LuaValue::Integer(num) => num_to_enum(num),
+            LuaValue::Number(num) => num_to_enum(num as i32),
+            LuaValue::String(str) => match str.to_str()?.to_lowercase().as_str() {
+                "utc" => Ok(Timezone::Utc),
+                "local" => Ok(Timezone::Local),
+                &_ => Err(LuaError::external("Invalid enum member!")),
+            },
+            _ => Err(LuaError::external(
+                "Invalid enum type, number or string expected",
+            )),
+        }
+    }
 }
 
 impl DateTimeBuilder {
@@ -373,3 +507,5 @@ impl DateTimeBuilder {
         }
     }
 }
+
+impl LuaUserData for DateTimeBuilder {}
