@@ -57,7 +57,12 @@ impl<'fut> Scheduler<'fut> {
             if thread.status() != LuaThreadStatus::Resumable {
                 // NOTE: Threads that were spawned to resume
                 // with an error will not have a result sender
-                if let Some(sender) = self.thread_senders.borrow_mut().remove(&thread_id) {
+                if let Some(sender) = self
+                    .thread_senders
+                    .try_lock()
+                    .expect("Failed to get thread senders")
+                    .remove(&thread_id)
+                {
                     if sender.receiver_count() > 0 {
                         let stored = match res {
                             Err(e) => Err(e),

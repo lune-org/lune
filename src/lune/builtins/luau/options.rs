@@ -39,7 +39,7 @@ impl<'lua> FromLua<'lua> for LuauCompileOptions {
 
                 let get_and_check = |name: &'static str| -> LuaResult<Option<u8>> {
                     match t.get(name)? {
-                        Some(n @ (0 | 1 | 2)) => Ok(Some(n)),
+                        Some(n @ (0..=2)) => Ok(Some(n)),
                         Some(n) => Err(LuaError::runtime(format!(
                             "'{name}' must be one of: 0, 1, or 2 - got {n}"
                         ))),
