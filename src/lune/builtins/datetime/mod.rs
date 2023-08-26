@@ -16,11 +16,26 @@ use once_cell::sync::Lazy;
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("now", |_, ()| Ok(DateTime::now()))?
-        .with_function("fromUnixTimestamp", |lua, (timestamp_type, timestamp)| {
-            Ok(DateTime::from_unix_timestamp(
-                TimestampType::from_lua(timestamp_type, lua)?,
-                timestamp,
-            ))
+        .with_function("fromUnixTimestamp", |lua, timestamp: LuaValue| {
+            let timestamp_cloned = timestamp.clone();
+            let timestamp_kind = TimestampType::from_lua(timestamp, lua)?;
+            let timestamp = match timestamp_kind {
+                TimestampType::Seconds => timestamp_cloned.as_i64().unwrap(),
+                TimestampType::Millis => {
+                    // FIXME: Remove the unwrap
+                    // If something breaks, blame this.
+                    // FIX: Decimal values cause panic, "no such local time".
+                    let timestamp = timestamp_cloned.as_f64().unwrap();
+
+                    (((timestamp - timestamp.fract()) * 1000_f64) // converting the whole seconds part to millis
+                        + timestamp.fract() * ((10_u64.pow(timestamp.fract().to_string().split('.').collect::<Vec<&str>>()[1].len() as u32)) as f64)) as i64
+                    // adding the millis to the fract as a whole number
+                    // HACK: 10 * (timestamp.fract().to_string().len() - 2) gives us the number of digits
+                    // after the decimal
+                }
+            };
+
+            Ok(DateTime::from_unix_timestamp(timestamp_kind, timestamp))
         })?
         .with_function("fromIsoDate", |_, iso_date: LuaString| {
             Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
@@ -44,27 +59,18 @@ pub enum TimestampType {
     Seconds,
     Millis,
 }
-
+// get fraction from f32
 impl<'lua> FromLua<'lua> for TimestampType {
     fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        fn num_to_enum(num: i32) -> LuaResult<TimestampType> {
-            match num {
-                1 => Ok(TimestampType::Seconds),
-                2 => Ok(TimestampType::Millis),
-                _ => Err(LuaError::external("Invalid enum member!")),
-            }
-        }
-
         match value {
-            LuaValue::Integer(num) => num_to_enum(num),
-            LuaValue::Number(num) => num_to_enum(num as i32),
-            LuaValue::String(str) => match str.to_str()?.to_lowercase().as_str() {
-                "seconds" | "sec" | "secs" => Ok(TimestampType::Seconds),
-                "millis" | "milliseconds" | "milli" => Ok(TimestampType::Millis),
-                &_ => Err(LuaError::external("Invalid enum member!")),
-            },
+            LuaValue::Integer(_) => Ok(TimestampType::Seconds),
+            LuaValue::Number(num) => Ok(if num.fract() == 0.0 {
+                TimestampType::Seconds
+            } else {
+                TimestampType::Millis
+            }),
             _ => Err(LuaError::external(
-                "Invalid enum type, number or string expected",
+                "Invalid enum type, number or integer expected",
             )),
         }
     }
