@@ -7,12 +7,9 @@ use mlua::prelude::*;
 use once_cell::sync::Lazy;
 
 // TODO: Proper error handling and stuff
-// TODO: fromLocalTime, toDateTimeBuilder, toLocalTime
+// TODO: fromLocalTime, toLocalTime
 // FIX: DateTime::from_iso_date is broken
 
-//   pub fn format_time<T>(&self, timezone: Timezone, fmt_str: T, locale: T) -> String
-//    where
-//        T: ToString,
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("now", |_, ()| Ok(DateTime::now()))?
@@ -42,6 +39,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         })?
         .with_function("toUniversalTime", |_, this: DateTime| {
             Ok(this.to_universal_time())
+        })?
+        .with_function("fromLocalTime", |lua, date_time: LuaValue| {
+            Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
+        })?
+        .with_function("toLocalTime", |_, this: DateTime| {
+            Ok(this.to_local_time())
         })?
         .with_function("fromIsoDate", |_, iso_date: LuaString| {
             Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
@@ -330,7 +333,9 @@ impl LuaUserData for DateTime {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("now", |_, _this, ()| Ok(DateTime::now()));
+
         methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_iso_date()));
+
         methods.add_method(
             "formatTime",
             |_, this, (timezone, fmt_str, locale): (LuaValue, LuaString, LuaString)| {
@@ -341,9 +346,14 @@ impl LuaUserData for DateTime {
                 ))
             },
         );
+
         methods.add_method("toUniversalTime", |_, this: &DateTime, ()| {
             Ok(this.to_universal_time())
-        })
+        });
+
+        methods.add_method("toLocalTime", |_, this: &DateTime, ()| {
+            Ok(this.to_local_time())
+        });
     }
 }
 
@@ -434,7 +444,8 @@ impl DateTimeBuilder {
 
     /// Builder method to set the `Month`.
     pub fn with_month(&mut self, month: Month) -> &mut Self {
-        self.month = month as u32;
+        // THe Month enum casts to u32 starting at zero, so we add one to it
+        self.month = month as u32 + 1;
 
         self
     }
