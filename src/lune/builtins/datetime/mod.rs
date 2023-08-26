@@ -7,7 +7,7 @@ use mlua::prelude::*;
 use once_cell::sync::Lazy;
 
 // TODO: Proper error handling and stuff
-// TODO: fromUniversalTime, fromLocalTime, toDateTimeBuilder, toLocalTime, toUniversalTime
+// TODO: fromLocalTime, toDateTimeBuilder, toLocalTime
 // FIX: DateTime::from_iso_date is broken
 
 //   pub fn format_time<T>(&self, timezone: Timezone, fmt_str: T, locale: T) -> String
@@ -36,6 +36,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
             };
 
             Ok(DateTime::from_unix_timestamp(timestamp_kind, timestamp))
+        })?
+        .with_function("fromUniversalTime", |lua, date_time: LuaValue| {
+            Ok(DateTime::from_universal_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
+        })?
+        .with_function("toUniversalTime", |_, this: DateTime| {
+            Ok(this.to_universal_time())
         })?
         .with_function("fromIsoDate", |_, iso_date: LuaString| {
             Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
@@ -335,6 +341,9 @@ impl LuaUserData for DateTime {
                 ))
             },
         );
+        methods.add_method("toUniversalTime", |_, this: &DateTime, ()| {
+            Ok(this.to_universal_time())
+        })
     }
 }
 
@@ -351,6 +360,7 @@ impl<'lua> FromLua<'lua> for DateTime {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct DateTimeBuilder {
     /// The year. In the range 1400 - 9999.
     pub year: i32,
@@ -465,7 +475,7 @@ impl DateTimeBuilder {
     }
 
     /// Converts the `DateTimeBuilder` to a string with a specified format and locale.
-    fn to_string<T>(&self, timezone: Timezone, format: Option<T>, locale: Option<T>) -> String
+    fn to_string<T>(self, timezone: Timezone, format: Option<T>, locale: Option<T>) -> String
     where
         T: ToString,
     {
@@ -512,6 +522,46 @@ impl DateTimeBuilder {
                 .to_string(),
         }
     }
+
+    fn build(self) -> Self {
+        self
+    }
 }
 
 impl LuaUserData for DateTimeBuilder {}
+
+impl<'lua> FromLua<'lua> for DateTimeBuilder {
+    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+        match value {
+            LuaValue::Table(t) => Ok(Self::default()
+                .with_year(t.get("year")?)
+                // FIXME: Months are offset by two, months start on march for some reason...
+                .with_month(
+                    (match t.get("month")? {
+                        LuaValue::String(str) => Ok(str.to_str()?.parse::<Month>().or(Err(
+                            LuaError::external("could not cast month string to Month"),
+                        ))?),
+                        LuaValue::Nil => {
+                            Err(LuaError::external("cannot find mandatory month argument"))
+                        }
+                        LuaValue::Number(num) => Ok(Month::try_from(num as u8).or(Err(
+                            LuaError::external("could not cast month number to Month"),
+                        ))?),
+                        LuaValue::Integer(int) => Ok(Month::try_from(int as u8).or(Err(
+                            LuaError::external("could not cast month integer to Month"),
+                        ))?),
+                        _ => Err(LuaError::external("unexpected month field type")),
+                    })?,
+                )
+                .with_day(t.get("day")?)
+                .with_hour(t.get("hour")?)
+                .with_minute(t.get("minute")?)
+                .with_second(t.get("second")?)
+                // TODO: millisecond support
+                .build()),
+            _ => Err(LuaError::external(
+                "expected type table for DateTimeBuilder",
+            )),
+        }
+    }
+}
