@@ -1,4 +1,4 @@
-local roblox = require("@lune/roblox")
+local roblox = require("@lune/roblox") :: any
 local Instance = roblox.Instance
 local Color3 = roblox.Color3
 local Enum = roblox.Enum
