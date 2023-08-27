@@ -94,7 +94,7 @@ impl DateTime {
         }
     }
 
-    /// Returns a new `DateTime` using the given units from a UTC time. The
+    /// Returns a new `DateTime` using the given units from a local time. The
     /// values accepted are similar to those found in the time value table
     /// returned by `to_local_time`.
     ///
