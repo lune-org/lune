@@ -11,6 +11,7 @@ use crate::lune::util::TableBuilder;
 
 // TODO: Proper error handling and stuff
 // FIX: DateTime::from_iso_date is broken
+// FIX: fromUnixTimestamp calculation is broken
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
@@ -23,11 +24,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 TimestampType::Millis => {
                     // FIXME: Remove the unwrap
                     // If something breaks, blame this.
-                    // FIX: Decimal values cause panic, "no such local time".
                     let timestamp = timestamp_cloned.as_f64().unwrap();
 
-                    (((timestamp - timestamp.fract()) * 1000_f64) // converting the whole seconds part to millis
-                        + timestamp.fract() * ((10_u64.pow(timestamp.fract().to_string().split('.').collect::<Vec<&str>>()[1].len() as u32)) as f64)) as i64
+                    ((((timestamp - timestamp.fract()) as u64) * 1000_u64) // converting the whole seconds part to millis
+                    // the ..3 gets a &str of the first 3 chars of the digits after the decimals, ignoring
+                    // additional floating point accuracy digits
+                        + (timestamp.fract() * (10_u64.pow(timestamp.fract().to_string().split('.').collect::<Vec<&str>>()[1][..3].len() as u32)) as f64) as u64) as i64
                     // adding the millis to the fract as a whole number
                     // HACK: 10 * (timestamp.fract().to_string().len() - 2) gives us the number of digits
                     // after the decimal
