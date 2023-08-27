@@ -74,11 +74,11 @@ local luau = {}
 	```
 
 	@param source The string that'll be compiled into bytecode
-	@param CompileOptions The luau compiler options used when compiling the source string
+	@param compileOptions The luau compiler options used when compiling the source string
 
 	@return luau bytecode
 ]=]
-function luau.compile(source: string, CompileOptions: CompileOptions?): string
+function luau.compile(source: string, compileOptions: CompileOptions?): string
 	return nil :: any
 end
 
