@@ -174,7 +174,6 @@ impl<'lua> FromLua<'lua> for DateTimeBuilder {
         match value {
             LuaValue::Table(t) => Ok(Self::default()
                 .with_year(t.get("year")?)
-                // FIXME: Months are offset by two, months start on march for some reason...
                 .with_month(
                     (match t.get("month")? {
                         LuaValue::String(str) => Ok(str.to_str()?.parse::<Month>().or(Err(

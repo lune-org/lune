@@ -142,9 +142,11 @@ impl DateTime {
     where
         T: ToString,
     {
-        let time =
-            ChronoDateTime::parse_from_str(iso_date.to_string().as_str(), "%Y-%m-%dT%H:%M:%SZ")
-                .ok()?;
+        let time = ChronoDateTime::parse_from_str(
+            format!("{}{}", iso_date.to_string(), "UTC+0000").as_str(),
+            "%Y-%m-%dT%H:%M:%SZUTC%z",
+        )
+        .ok()?;
 
         Some(Self {
             unix_timestamp: time.timestamp(),

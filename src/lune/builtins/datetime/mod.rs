@@ -10,7 +10,6 @@ use self::{
 use crate::lune::util::TableBuilder;
 
 // TODO: Proper error handling and stuff
-// FIX: DateTime::from_iso_date is broken
 // FIX: fromUnixTimestamp calculation is broken
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -104,8 +103,6 @@ impl LuaUserData for DateTime {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("now", |_, _this, ()| Ok(DateTime::now()));
-
         methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_iso_date()));
 
         methods.add_method(
