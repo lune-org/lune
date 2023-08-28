@@ -148,7 +148,17 @@ impl<'lua> FromLua<'lua> for DateTime {
     }
 }
 
-impl LuaUserData for DateTimeBuilder {}
+impl LuaUserData for DateTimeBuilder {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("year", |_, this| Ok(this.year));
+        fields.add_field_method_get("month", |_, this| Ok(this.month));
+        fields.add_field_method_get("day", |_, this| Ok(this.day));
+        fields.add_field_method_get("hour", |_, this| Ok(this.hour));
+        fields.add_field_method_get("minute", |_, this| Ok(this.minute));
+        fields.add_field_method_get("second", |_, this| Ok(this.second));
+        fields.add_field_method_get("millisecond", |_, this| Ok(this.millisecond));
+    }
+}
 
 impl<'lua> FromLua<'lua> for DateTimeBuilder {
     fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
@@ -176,6 +186,7 @@ impl<'lua> FromLua<'lua> for DateTimeBuilder {
                 .with_hour(t.get("hour")?)
                 .with_minute(t.get("minute")?)
                 .with_second(t.get("second")?)
+                .with_millisecond(t.get("millisecond")?)
                 // TODO: millisecond support
                 .build()),
             _ => Err(LuaError::external(

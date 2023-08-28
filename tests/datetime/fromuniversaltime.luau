@@ -2,7 +2,7 @@ local DateTime = require("@lune/datetime")
 
 assert(
 	DateTime.fromUniversalTime()["unixTimestamp"] == os.time(),
-	"expected DateTime.fromLocalTime() with no args to return DateTime at current moment"
+	"expected DateTime.fromLocalTime() with no args to return DateTime at the current moment"
 )
 
 assert(
@@ -15,7 +15,7 @@ assert(
 		["second"] = 28,
 		["millisecond"] = 0,
 	})["unixTimestamp"] == 1693068988,
-	"expected DateTime.fromLocalTime() to return DateTime with timestamp to return 1693068988s"
+	"expected DateTime.fromUniversalTime() with DateTimeValues arg to return 1693068988s"
 )
 
 assert(
@@ -27,6 +27,6 @@ assert(
 		["minute"] = 56,
 		["second"] = 28,
 		["millisecond"] = 892,
-	})["unixTimestampMillis"] == 1693068988000,
-	"expected DateTime.fromLocalTime() with float millis arg timestamp to return 1693068988000ms"
+	})["unixTimestampMillis"] == 1693068988892,
+	"expected DateTime.fromUniversalTime() with DateTimeValues arg with millis to return 1693068988892ms"
 )

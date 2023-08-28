@@ -15,7 +15,7 @@ assert(
 		["second"] = 28,
 		["millisecond"] = 0,
 	})["unixTimestamp"] == 1693049188,
-	"expected DateTime.fromLocalTime() to return DateTime with timestamp to return 1693049188s"
+	"expected DateTime.fromLocalTime() with DateTimeValues arg to return 1693049188s"
 )
 
 assert(
@@ -27,6 +27,6 @@ assert(
 		["minute"] = 56,
 		["second"] = 28,
 		["millisecond"] = 892,
-	})["unixTimestampMillis"] == 1693049188000,
-	"expected DateTime.fromLocalTime() with float millis arg timestamp to return 1693049188000ms"
+	})["unixTimestampMillis"] == 1693049188892,
+	"expected DateTime.fromLocalTime() with DateTimeValues arg with millis to return 1693049188892ms"
 )
