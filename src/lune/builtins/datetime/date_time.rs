@@ -211,10 +211,10 @@ impl DateTime {
         Self::to_datetime_builder(Utc.timestamp_opt(self.unix_timestamp, 0).unwrap())
     }
 
-    /// Formats a date as a ISO 8601 date-time string. The value returned by this
-    /// function could be passed to `from_local_time` to produce the original `DateTime`
-    /// object.
-    pub fn to_iso_date(&self) -> String {
+    /// Formats a date as a ISO 8601 date-time string, returns None if the DateTime object is invalid.
+    /// The value returned by this function could be passed to `from_local_time` to produce the
+    /// original `DateTime` object.
+    pub fn to_iso_date(&self) -> Result<String, ()> {
         self.to_universal_time()
             .to_string::<&str>(Timezone::Utc, None, None)
     }
@@ -230,7 +230,7 @@ impl DateTime {
     /// and a format string. The format string should contain tokens, which will
     /// replace to certain date/time values described by the `DateTime` object.
     /// For more details, see the [accepted formatter tokens](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
-    pub fn format_time<T>(&self, timezone: Timezone, fmt_str: T, locale: T) -> String
+    pub fn format_time<T>(&self, timezone: Timezone, fmt_str: T, locale: T) -> Result<String, ()>
     where
         T: ToString,
     {

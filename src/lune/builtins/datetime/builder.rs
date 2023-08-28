@@ -1,7 +1,6 @@
 use crate::lune::builtins::datetime::date_time::Timezone;
 use chrono::prelude::*;
 use chrono_locale::LocaleDate;
-use mlua::prelude::*;
 use once_cell::sync::Lazy;
 
 #[derive(Copy, Clone)]
@@ -33,31 +32,6 @@ impl Default for DateTimeBuilder {
             minute: 0,
             second: 0,
             millisecond: 0,
-        }
-    }
-}
-
-impl<'lua> FromLua<'lua> for Timezone {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        fn num_to_enum(num: i32) -> LuaResult<Timezone> {
-            match num {
-                1 => Ok(Timezone::Utc),
-                2 => Ok(Timezone::Local),
-                _ => Err(LuaError::external("Invalid enum member!")),
-            }
-        }
-
-        match value {
-            LuaValue::Integer(num) => num_to_enum(num),
-            LuaValue::Number(num) => num_to_enum(num as i32),
-            LuaValue::String(str) => match str.to_str()?.to_lowercase().as_str() {
-                "utc" => Ok(Timezone::Utc),
-                "local" => Ok(Timezone::Local),
-                &_ => Err(LuaError::external("Invalid enum member!")),
-            },
-            _ => Err(LuaError::external(
-                "Invalid enum type, number or string expected",
-            )),
         }
     }
 }
@@ -114,7 +88,12 @@ impl DateTimeBuilder {
     }
 
     /// Converts the `DateTimeBuilder` to a string with a specified format and locale.
-    pub fn to_string<T>(self, timezone: Timezone, format: Option<T>, locale: Option<T>) -> String
+    pub fn to_string<T>(
+        self,
+        timezone: Timezone,
+        format: Option<T>,
+        locale: Option<T>,
+    ) -> Result<String, ()>
     where
         T: ToString,
     {
@@ -134,7 +113,7 @@ impl DateTimeBuilder {
             }
         });
 
-        match timezone {
+        Ok(match timezone {
             Timezone::Utc => Utc
                 .with_ymd_and_hms(
                     self.year,
@@ -144,7 +123,8 @@ impl DateTimeBuilder {
                     self.minute,
                     self.second,
                 )
-                .unwrap()
+                .single()
+                .ok_or(())?
                 .formatl((*format_lazy).as_str(), (*locale_lazy).as_str())
                 .to_string(),
             Timezone::Local => Local
@@ -156,50 +136,14 @@ impl DateTimeBuilder {
                     self.minute,
                     self.second,
                 )
-                .unwrap()
+                .single()
+                .ok_or(())?
                 .formatl((*format_lazy).as_str(), (*locale_lazy).as_str())
                 .to_string(),
-        }
+        })
     }
 
-    fn build(self) -> Self {
+    pub fn build(self) -> Self {
         self
-    }
-}
-
-impl LuaUserData for DateTimeBuilder {}
-
-impl<'lua> FromLua<'lua> for DateTimeBuilder {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        match value {
-            LuaValue::Table(t) => Ok(Self::default()
-                .with_year(t.get("year")?)
-                .with_month(
-                    (match t.get("month")? {
-                        LuaValue::String(str) => Ok(str.to_str()?.parse::<Month>().or(Err(
-                            LuaError::external("could not cast month string to Month"),
-                        ))?),
-                        LuaValue::Nil => {
-                            Err(LuaError::external("cannot find mandatory month argument"))
-                        }
-                        LuaValue::Number(num) => Ok(Month::try_from(num as u8).or(Err(
-                            LuaError::external("could not cast month number to Month"),
-                        ))?),
-                        LuaValue::Integer(int) => Ok(Month::try_from(int as u8).or(Err(
-                            LuaError::external("could not cast month integer to Month"),
-                        ))?),
-                        _ => Err(LuaError::external("unexpected month field type")),
-                    })?,
-                )
-                .with_day(t.get("day")?)
-                .with_hour(t.get("hour")?)
-                .with_minute(t.get("minute")?)
-                .with_second(t.get("second")?)
-                // TODO: millisecond support
-                .build()),
-            _ => Err(LuaError::external(
-                "expected type table for DateTimeBuilder",
-            )),
-        }
     }
 }
