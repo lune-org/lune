@@ -54,6 +54,18 @@ If type definitions for built-in libraries need improvements:
 
 ---
 
+### Publishing a Release
+
+The Lune release process is semi-automated, and takes care of most things for you. Here's how to create a new release:
+
+1. Make sure the changelog is up to date and contains all of the changes since the last release.
+2. Add the release date in the changelog + set a new version number in `Cargo.toml`.
+3. Commit and push changes from step 2 to GitHub. This will automatically publish the Lune library to [crates.io](https://crates.io) when the version number changes.
+4. Trigger the [release](https://github.com/filiptibell/lune/actions/workflows/release.yaml) workflow on GitHub manually, and wait for it to finish. Find the new pending release in the [Releases](https://github.com/filiptibell/lune/releases) section.
+5. Add in changes from the changelog for the new pending release into the description, hit "accept" on creating a new version tag, and publish 🚀
+
+---
+
 If you have any questions, check out the `#lune` channel in the [Roblox OSS discord](https://discord.gg/H9WqmFAB5Y), where most of our realtime discussion takes place!
 
 Thank you for contributing to Lune! 🌙
