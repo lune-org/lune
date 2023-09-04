@@ -40,9 +40,6 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("fromLocalTime", |lua, date_time: LuaValue| {
             Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
         })?
-        .with_function("toLocalTime", |_, this: DateTime| {
-            Ok(DateTime::to_local_time(&this))
-        })?
         .with_function("fromIsoDate", |_, iso_date: LuaString| {
             Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
         })?
