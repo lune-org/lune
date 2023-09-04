@@ -40,8 +40,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("fromLocalTime", |lua, date_time: LuaValue| {
             Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
         })?
-        .with_function("fromIsoDate", |_, iso_date: LuaString| {
-            Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
+        .with_function("fromIsoDate", |_, iso_date: String| {
+            Ok(DateTime::from_iso_date(iso_date))
         })?
         .build_readonly()
 }
@@ -68,7 +68,6 @@ impl LuaUserData for DateTime {
         fields.add_field_method_get("unixTimestampMillis", |_, this| {
             Ok(this.unix_timestamp_millis)
         });
-
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -80,13 +79,9 @@ impl LuaUserData for DateTime {
 
         methods.add_method(
             "formatTime",
-            |_, this, (timezone, fmt_str, locale): (LuaValue, LuaString, LuaString)| {
+            |_, this, (timezone, fmt_str, locale): (LuaValue, String, String)| {
                 Ok(this
-                    .format_time(
-                        Timezone::from_lua(timezone, &Lua::new())?,
-                        fmt_str.to_string_lossy(),
-                        locale.to_string_lossy(),
-                    )
+                    .format_time(Timezone::from_lua(timezone, &Lua::new())?, fmt_str, locale)
                     .map_err(|()| LuaError::external("failed to parse DateTime object, invalid")))
             },
         );
