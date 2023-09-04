@@ -35,10 +35,10 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
             Ok(DateTime::from_unix_timestamp(timestamp_kind, timestamp))
         })?
         .with_function("fromUniversalTime", |lua, date_time: LuaValue| {
-            Ok(DateTime::from_universal_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
+            Ok(DateTime::from_universal_time(DateTimeBuilder::from_lua(date_time, lua).ok()).or(Err(LuaError::external("invalid DateTimeValues provided to fromUniversalTime"))))
         })?
         .with_function("fromLocalTime", |lua, date_time: LuaValue| {
-            Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
+            Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()).or(Err(LuaError::external("invalid DateTimeValues provided to fromLocalTime"))))
         })?
         .with_function("fromIsoDate", |_, iso_date: String| {
             Ok(DateTime::from_iso_date(iso_date))
@@ -87,11 +87,15 @@ impl LuaUserData for DateTime {
         );
 
         methods.add_method("toUniversalTime", |_, this: &DateTime, ()| {
-            Ok(this.to_universal_time())
+            Ok(this.to_universal_time().or(Err(LuaError::external(
+                "invalid DateTime self argument provided to toUniversalTime",
+            ))))
         });
 
         methods.add_method("toLocalTime", |_, this: &DateTime, ()| {
-            Ok(this.to_local_time())
+            Ok(this.to_local_time().or(Err(LuaError::external(
+                "invalid DateTime self argument provided to toLocalTime",
+            ))))
         });
     }
 }
@@ -99,12 +103,14 @@ impl LuaUserData for DateTime {
 impl<'lua> FromLua<'lua> for DateTime {
     fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
         match value {
-            LuaValue::Nil => panic!("found nil"),
+            LuaValue::Nil => Err(LuaError::external(
+                "expected self of type DateTime, found nil",
+            )),
             LuaValue::Table(t) => Ok(DateTime::from_unix_timestamp(
                 TimestampType::Seconds,
                 t.get("unixTimestamp")?,
             )),
-            _ => panic!("invalid type"),
+            _ => Err(LuaError::external("invalid type for DateTime self arg")),
         }
     }
 }

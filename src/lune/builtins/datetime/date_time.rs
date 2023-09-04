@@ -66,31 +66,30 @@ impl DateTime {
     /// - Time units (hour, minute, second, millisecond) that are outside their normal range are valid. For example, 90 minutes will cause the hour to roll over by 1; -10 seconds will cause the minute value to roll back by 1.
     /// - Non-integer values are rounded down. For example, providing 2.5 hours will be equivalent to providing 2 hours, not 2 hours 30 minutes.
     /// - Omitted values are assumed to be their lowest value in their normal range, except for year which defaults to 1970.
-    pub fn from_universal_time(date_time: Option<DateTimeBuilder>) -> Self {
+    pub fn from_universal_time(date_time: Option<DateTimeBuilder>) -> Result<Self, ()> {
         if let Some(date_time) = date_time {
             let utc_time: ChronoDateTime<Utc> = Utc.from_utc_datetime(&NaiveDateTime::new(
-                NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
-                    .expect("invalid date"),
+                NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day).ok_or(())?,
                 NaiveTime::from_hms_milli_opt(
                     date_time.hour,
                     date_time.minute,
                     date_time.second,
                     date_time.millisecond,
                 )
-                .expect("invalid time"),
+                .ok_or(())?,
             ));
 
-            Self {
+            Ok(Self {
                 unix_timestamp: utc_time.timestamp(),
                 unix_timestamp_millis: utc_time.timestamp_millis(),
-            }
+            })
         } else {
             let utc_time = Utc::now();
 
-            Self {
+            Ok(Self {
                 unix_timestamp: utc_time.timestamp(),
                 unix_timestamp_millis: utc_time.timestamp_millis(),
-            }
+            })
         }
     }
 
@@ -102,33 +101,34 @@ impl DateTime {
     /// - Time units (hour, minute, second, millisecond) that are outside their normal range are valid. For example, 90 minutes will cause the hour to roll over by 1; -10 seconds will cause the minute value to roll back by 1.
     /// - Non-integer values are rounded down. For example, providing 2.5 hours will be equivalent to providing 2 hours, not 2 hours 30 minutes.
     /// - Omitted values are assumed to be their lowest value in their normal range, except for year which defaults to 1970.
-    pub fn from_local_time(date_time: Option<DateTimeBuilder>) -> Self {
+    pub fn from_local_time(date_time: Option<DateTimeBuilder>) -> Result<Self, ()> {
         if let Some(date_time) = date_time {
             let local_time: ChronoDateTime<Local> = Local
                 .from_local_datetime(&NaiveDateTime::new(
                     NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
-                        .expect("invalid date"),
+                        .ok_or(())?,
                     NaiveTime::from_hms_milli_opt(
                         date_time.hour,
                         date_time.minute,
                         date_time.second,
                         date_time.millisecond,
                     )
-                    .expect("invalid time"),
+                    .ok_or(())?,
                 ))
-                .unwrap();
+                .single()
+                .ok_or(())?;
 
-            Self {
+            Ok(Self {
                 unix_timestamp: local_time.timestamp(),
                 unix_timestamp_millis: local_time.timestamp_millis(),
-            }
+            })
         } else {
             let local_time = Local::now();
 
-            Self {
+            Ok(Self {
                 unix_timestamp: local_time.timestamp(),
                 unix_timestamp_millis: local_time.timestamp_millis(),
-            }
+            })
         }
     }
 
@@ -159,7 +159,7 @@ impl DateTime {
     /// `Millisecond`. For more details, see the time value table in this data type's
     /// description. The values within this table could be passed to `from_local_time`
     /// to produce the original `DateTime` object.
-    pub fn to_datetime_builder<T>(date_time: ChronoDateTime<T>) -> DateTimeBuilder
+    pub fn to_datetime_builder<T>(date_time: ChronoDateTime<T>) -> Result<DateTimeBuilder, ()>
     where
         T: TimeZone,
     {
@@ -171,26 +171,26 @@ impl DateTime {
         date_time_constructor
             .with_year(date_time.year())
             .with_month(match date_time.month() {
-                1 => Month::January,
-                2 => Month::February,
-                3 => Month::March,
-                4 => Month::April,
-                5 => Month::May,
-                6 => Month::June,
-                7 => Month::July,
-                8 => Month::August,
-                9 => Month::September,
-                10 => Month::October,
-                11 => Month::November,
-                12 => Month::December,
-                _ => panic!("invalid month ordinal"),
-            })
+                1 => Ok(Month::January),
+                2 => Ok(Month::February),
+                3 => Ok(Month::March),
+                4 => Ok(Month::April),
+                5 => Ok(Month::May),
+                6 => Ok(Month::June),
+                7 => Ok(Month::July),
+                8 => Ok(Month::August),
+                9 => Ok(Month::September),
+                10 => Ok(Month::October),
+                11 => Ok(Month::November),
+                12 => Ok(Month::December),
+                _ => Err(()),
+            }?)
             .with_day(date_time.day())
             .with_hour(date_time.hour())
             .with_minute(date_time.minute())
             .with_second(date_time.second());
 
-        date_time_constructor
+        Ok(date_time_constructor)
     }
 
     /// Converts the value of this `DateTime` object to local time. The returned table
@@ -198,8 +198,13 @@ impl DateTime {
     /// `Millisecond`. For more details, see the time value table in this data type's
     /// description. The values within this table could be passed to `from_local_time`
     /// to produce the original `DateTime` object.
-    pub fn to_local_time(&self) -> DateTimeBuilder {
-        Self::to_datetime_builder(Local.timestamp_opt(self.unix_timestamp, 0).unwrap())
+    pub fn to_local_time(&self) -> Result<DateTimeBuilder, ()> {
+        Ok(Self::to_datetime_builder(
+            Local
+                .timestamp_opt(self.unix_timestamp, 0)
+                .single()
+                .ok_or(())?,
+        )?)
     }
 
     /// Converts the value of this `DateTime` object to Universal Coordinated Time (UTC).
@@ -207,15 +212,19 @@ impl DateTime {
     /// `Minute`, `Second`, `Millisecond`. For more details, see the time value table
     /// in this data type's description. The values within this table could be passed
     /// to `from_universal_time` to produce the original `DateTime` object.
-    pub fn to_universal_time(&self) -> DateTimeBuilder {
-        Self::to_datetime_builder(Utc.timestamp_opt(self.unix_timestamp, 0).unwrap())
+    pub fn to_universal_time(&self) -> Result<DateTimeBuilder, ()> {
+        Ok(Self::to_datetime_builder(
+            Utc.timestamp_opt(self.unix_timestamp, 0)
+                .single()
+                .ok_or(())?,
+        )?)
     }
 
     /// Formats a date as a ISO 8601 date-time string, returns None if the DateTime object is invalid.
     /// The value returned by this function could be passed to `from_local_time` to produce the
     /// original `DateTime` object.
     pub fn to_iso_date(&self) -> Result<String, ()> {
-        self.to_universal_time()
+        self.to_universal_time()?
             .to_string::<&str>(Timezone::Utc, None, None)
     }
 
@@ -234,7 +243,7 @@ impl DateTime {
     where
         T: ToString,
     {
-        self.to_universal_time().to_string(
+        self.to_universal_time()?.to_string(
             timezone,
             Some(fmt_str.to_string()),
             Some(locale.to_string()),
