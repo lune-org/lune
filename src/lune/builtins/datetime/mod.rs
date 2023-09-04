@@ -43,19 +43,6 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("fromIsoDate", |_, iso_date: LuaString| {
             Ok(DateTime::from_iso_date(iso_date.to_string_lossy()))
         })?
-        .with_function(
-            "formatTime",
-            |_, (this, timezone, fmt_str, locale): (DateTime, LuaValue, LuaString, LuaString)| {
-                Ok(DateTime::format_time(
-                    &this,
-                    Timezone::from_lua(timezone, lua)?,
-                    fmt_str.to_string_lossy(),
-                    locale.to_string_lossy(),
-                ).map_err(|()| LuaError::external(
-                    "failed to parse DateTime object, invalid",
-                )))
-            },
-        )?
         .build_readonly()
 }
 
