@@ -88,17 +88,6 @@ impl LuaUserData for DateTime {
             Ok(this.unix_timestamp_millis)
         });
 
-        fields.add_field_method_set("unixTimestamp", |_, this, val| {
-            this.unix_timestamp = val;
-
-            Ok(())
-        });
-
-        fields.add_field_method_set("unixTimestampMillis", |_, this, val| {
-            this.unix_timestamp_millis = val;
-
-            Ok(())
-        });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
