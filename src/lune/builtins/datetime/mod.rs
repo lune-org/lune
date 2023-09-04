@@ -22,13 +22,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 TimestampType::Seconds => timestamp_cloned.as_i64().ok_or(LuaError::external("invalid float integer timestamp supplied"))?,
                 TimestampType::Millis => {
                     let timestamp = timestamp_cloned.as_f64().ok_or(LuaError::external("invalid float timestamp with millis component supplied"))?;
-
                     ((((timestamp - timestamp.fract()) as u64) * 1000_u64) // converting the whole seconds part to millis
                     // the ..3 gets a &str of the first 3 chars of the digits after the decimals, ignoring
                     // additional floating point accuracy digits
                         + (timestamp.fract() * (10_u64.pow(timestamp.fract().to_string().split('.').collect::<Vec<&str>>()[1][..3].len() as u32)) as f64) as u64) as i64
                     // adding the millis to the fract as a whole number
-                    // HACK: 10 * (timestamp.fract().to_string().len() - 2) gives us the number of digits
+                    // HACK: 10 ** (timestamp.fract().to_string().len() - 2) gives us the number of digits
                     // after the decimal
                 }
             };
@@ -187,7 +186,6 @@ impl<'lua> FromLua<'lua> for DateTimeBuilder {
                 .with_minute(t.get("minute")?)
                 .with_second(t.get("second")?)
                 .with_millisecond(t.get("millisecond")?)
-                // TODO: millisecond support
                 .build()),
             _ => Err(LuaError::external(
                 "expected type table for DateTimeBuilder",
@@ -198,25 +196,13 @@ impl<'lua> FromLua<'lua> for DateTimeBuilder {
 
 impl<'lua> FromLua<'lua> for Timezone {
     fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        fn num_to_enum(num: i32) -> LuaResult<Timezone> {
-            match num {
-                1 => Ok(Timezone::Utc),
-                2 => Ok(Timezone::Local),
-                _ => Err(LuaError::external("Invalid enum member!")),
-            }
-        }
-
         match value {
-            LuaValue::Integer(num) => num_to_enum(num),
-            LuaValue::Number(num) => num_to_enum(num as i32),
             LuaValue::String(str) => match str.to_str()?.to_lowercase().as_str() {
                 "utc" => Ok(Timezone::Utc),
                 "local" => Ok(Timezone::Local),
                 &_ => Err(LuaError::external("Invalid enum member!")),
             },
-            _ => Err(LuaError::external(
-                "Invalid enum type, number or string expected",
-            )),
+            _ => Err(LuaError::external("Invalid enum type, string expected")),
         }
     }
 }

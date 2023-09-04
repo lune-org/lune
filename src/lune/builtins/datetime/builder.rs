@@ -97,21 +97,15 @@ impl DateTimeBuilder {
     where
         T: ToString,
     {
-        let format_lazy: Lazy<String, _> = Lazy::new(|| {
-            if let Some(fmt) = format {
-                fmt.to_string()
-            } else {
-                "%Y-%m-%dT%H:%M:%SZ".to_string()
-            }
-        });
+        let format = match format {
+            Some(fmt) => fmt.to_string(),
+            None => "%Y-%m-%dT%H:%M:%SZ".to_string(),
+        };
 
-        let locale_lazy: Lazy<String, _> = Lazy::new(|| {
-            if let Some(locale) = locale {
-                locale.to_string()
-            } else {
-                "en".to_string()
-            }
-        });
+        let locale = match locale {
+            Some(locale) => locale.to_string(),
+            None => "en".to_string(),
+        };
 
         Ok(match timezone {
             Timezone::Utc => Utc
@@ -125,7 +119,7 @@ impl DateTimeBuilder {
                 )
                 .single()
                 .ok_or(())?
-                .formatl((*format_lazy).as_str(), (*locale_lazy).as_str())
+                .formatl((format).as_str(), locale.as_str())
                 .to_string(),
             Timezone::Local => Local
                 .with_ymd_and_hms(
@@ -138,7 +132,7 @@ impl DateTimeBuilder {
                 )
                 .single()
                 .ok_or(())?
-                .formatl((*format_lazy).as_str(), (*locale_lazy).as_str())
+                .formatl((format).as_str(), locale.as_str())
                 .to_string(),
         })
     }
