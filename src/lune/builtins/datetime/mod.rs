@@ -37,9 +37,6 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("fromUniversalTime", |lua, date_time: LuaValue| {
             Ok(DateTime::from_universal_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
         })?
-        .with_function("toUniversalTime", |_, this: DateTime| {
-            Ok(this.to_universal_time())
-        })?
         .with_function("fromLocalTime", |lua, date_time: LuaValue| {
             Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()))
         })?
