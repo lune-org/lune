@@ -76,13 +76,13 @@ export type DateTime = {
 
 	-- Returns a specific moment in time as a DateTime instance
 	DateTime.fromLocalTime({
-		["year"] = 2023,
-		["month"] = "aug",
-		["day"] = 26,
-		["hour"] = 16,
-		["minute"] = 56,
-		["second"] = 28,
-		["millisecond"] = 892,
+		year = 2023,
+		month = "aug",
+		day = 26,
+		hour = 16,
+		minute = 56,
+		second = 28,
+		millisecond = 892,
 	})
 
 	-- Returns the current local time as a DateTime instance
