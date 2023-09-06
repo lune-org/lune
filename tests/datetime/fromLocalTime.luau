@@ -1,4 +1,4 @@
-local DateTime = require("@lune/datetime")
+local DateTime = require("@lune/DateTime")
 assert(
 	DateTime.fromLocalTime()["unixTimestamp"] == os.time(),
 	"expected DateTime.fromLocalTime() with no args to return DateTime at current moment"

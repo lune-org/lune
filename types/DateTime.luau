@@ -47,8 +47,8 @@ export type DateTime = {
 	unixTimestampMillis: number,
 
 	toIsoDate: (self: DateTime) -> string,
-	toLocalTime: (self: DateTime) -> DateTimeValues,
-	toUniversalTime: (self: DateTime) -> DateTimeValues,
+	toLocalTime: (self: DateTime) -> DateTimeValues & { month: number },
+	toUniversalTime: (self: DateTime) -> DateTimeValues & { month: number },
 
 	formatTime: (
 		self: DateTime,
@@ -66,7 +66,7 @@ export type DateTime = {
 	### Example usage
 
 	```lua
-	local DateTime = require("@lune/datetime")
+	local DateTime = require("@lune/DateTime")
 
 	-- Returns the current moment in time as a ISO 8601 string
 	DateTime.now():toIsoDate()

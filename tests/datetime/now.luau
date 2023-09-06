@@ -1,4 +1,4 @@
-local DateTime = require("@lune/datetime")
+local DateTime = require("@lune/DateTime")
 
 local TYPE = "DateTime"
 

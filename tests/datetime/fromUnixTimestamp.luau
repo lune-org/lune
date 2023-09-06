@@ -1,4 +1,4 @@
-local DateTime = require("@lune/datetime")
+local DateTime = require("@lune/DateTime")
 
 -- Bug in rust side implementation for fromUnixTimestamp, calculation for conversion there is wonky,
 -- a difference of few millis causes differences as whole seconds for some reason

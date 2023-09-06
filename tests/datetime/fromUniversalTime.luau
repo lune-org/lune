@@ -1,4 +1,4 @@
-local DateTime = require("@lune/datetime")
+local DateTime = require("@lune/DateTime")
 
 assert(
 	DateTime.fromUniversalTime()["unixTimestamp"] == os.time(),

@@ -1,4 +1,4 @@
-local DateTime = require("@lune/datetime")
+local DateTime = require("@lune/DateTime")
 
 local dateTime = (DateTime.fromIsoDate("2023-08-27T05:54:19Z") :: DateTime.DateTime):toLocalTime()
 

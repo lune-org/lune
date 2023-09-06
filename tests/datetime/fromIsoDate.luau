@@ -1,4 +1,4 @@
-local DateTime = require("@lune/datetime")
+local DateTime = require("@lune/DateTime")
 
 assert(
 	DateTime.fromIsoDate("2023-08-26T16:56:28Z") ~= nil,
