@@ -1,6 +1,6 @@
 use crate::lune::builtins::datetime::date_time::Timezone;
 use chrono::prelude::*;
-use chrono_locale::LocaleDate;
+use chrono_lc::LocaleDate;
 
 #[derive(Copy, Clone, Debug)]
 pub struct DateTimeBuilder {
