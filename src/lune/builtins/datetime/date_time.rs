@@ -9,6 +9,7 @@ pub enum TimestampType {
 }
 
 /// General timezone types accepted by `DateTime` methods.
+#[derive(Eq, PartialEq)]
 pub enum Timezone {
     Utc,
     Local,
@@ -67,30 +68,28 @@ impl DateTime {
     /// - Non-integer values are rounded down. For example, providing 2.5 hours will be equivalent to providing 2 hours, not 2 hours 30 minutes.
     /// - Omitted values are assumed to be their lowest value in their normal range, except for year which defaults to 1970.
     pub fn from_universal_time(date_time: Option<DateTimeBuilder>) -> Result<Self, ()> {
-        if let Some(date_time) = date_time {
-            let utc_time: ChronoDateTime<Utc> = Utc.from_utc_datetime(&NaiveDateTime::new(
-                NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day).ok_or(())?,
-                NaiveTime::from_hms_milli_opt(
-                    date_time.hour,
-                    date_time.minute,
-                    date_time.second,
-                    date_time.millisecond,
-                )
-                .ok_or(())?,
-            ));
+        Ok(match date_time {
+            Some(date_time) => {
+                let utc_time: ChronoDateTime<Utc> = Utc.from_utc_datetime(&NaiveDateTime::new(
+                    NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
+                        .ok_or(())?,
+                    NaiveTime::from_hms_milli_opt(
+                        date_time.hour,
+                        date_time.minute,
+                        date_time.second,
+                        date_time.millisecond,
+                    )
+                    .ok_or(())?,
+                ));
 
-            Ok(Self {
-                unix_timestamp: utc_time.timestamp(),
-                unix_timestamp_millis: utc_time.timestamp_millis(),
-            })
-        } else {
-            let utc_time = Utc::now();
+                Self {
+                    unix_timestamp: utc_time.timestamp(),
+                    unix_timestamp_millis: utc_time.timestamp_millis(),
+                }
+            }
 
-            Ok(Self {
-                unix_timestamp: utc_time.timestamp(),
-                unix_timestamp_millis: utc_time.timestamp_millis(),
-            })
-        }
+            None => Self::now(),
+        })
     }
 
     /// Returns a new `DateTime` using the given units from a local time. The
@@ -102,34 +101,38 @@ impl DateTime {
     /// - Non-integer values are rounded down. For example, providing 2.5 hours will be equivalent to providing 2 hours, not 2 hours 30 minutes.
     /// - Omitted values are assumed to be their lowest value in their normal range, except for year which defaults to 1970.
     pub fn from_local_time(date_time: Option<DateTimeBuilder>) -> Result<Self, ()> {
-        if let Some(date_time) = date_time {
-            let local_time: ChronoDateTime<Local> = Local
-                .from_local_datetime(&NaiveDateTime::new(
-                    NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
+        Ok(match date_time {
+            Some(date_time) => {
+                let local_time: ChronoDateTime<Local> = Local
+                    .from_local_datetime(&NaiveDateTime::new(
+                        NaiveDate::from_ymd_opt(date_time.year, date_time.month, date_time.day)
+                            .ok_or(())?,
+                        NaiveTime::from_hms_milli_opt(
+                            date_time.hour,
+                            date_time.minute,
+                            date_time.second,
+                            date_time.millisecond,
+                        )
                         .ok_or(())?,
-                    NaiveTime::from_hms_milli_opt(
-                        date_time.hour,
-                        date_time.minute,
-                        date_time.second,
-                        date_time.millisecond,
-                    )
-                    .ok_or(())?,
-                ))
-                .single()
-                .ok_or(())?;
+                    ))
+                    .single()
+                    .ok_or(())?;
 
-            Ok(Self {
-                unix_timestamp: local_time.timestamp(),
-                unix_timestamp_millis: local_time.timestamp_millis(),
-            })
-        } else {
-            let local_time = Local::now();
+                Self {
+                    unix_timestamp: local_time.timestamp(),
+                    unix_timestamp_millis: local_time.timestamp_millis(),
+                }
+            }
 
-            Ok(Self {
-                unix_timestamp: local_time.timestamp(),
-                unix_timestamp_millis: local_time.timestamp_millis(),
-            })
-        }
+            None => {
+                let local_time = Local::now();
+
+                Self {
+                    unix_timestamp: local_time.timestamp(),
+                    unix_timestamp_millis: local_time.timestamp_millis(),
+                }
+            }
+        })
     }
 
     /// Returns a `DateTime` from an ISO 8601 date-time string in UTC
@@ -168,6 +171,7 @@ impl DateTime {
         // Any less tedious way to get Enum member based on index?
         // I know there's some crates available with derive macros for this,
         // would it be okay if used some of them?
+
         date_time_constructor
             .with_year(date_time.year())
             .with_month(match date_time.month() {
@@ -199,12 +203,12 @@ impl DateTime {
     /// description. The values within this table could be passed to `from_local_time`
     /// to produce the original `DateTime` object.
     pub fn to_local_time(&self) -> Result<DateTimeBuilder, ()> {
-        Ok(Self::to_datetime_builder(
+        Self::to_datetime_builder(
             Local
                 .timestamp_opt(self.unix_timestamp, 0)
                 .single()
                 .ok_or(())?,
-        )?)
+        )
     }
 
     /// Converts the value of this `DateTime` object to Universal Coordinated Time (UTC).
@@ -213,11 +217,15 @@ impl DateTime {
     /// in this data type's description. The values within this table could be passed
     /// to `from_universal_time` to produce the original `DateTime` object.
     pub fn to_universal_time(&self) -> Result<DateTimeBuilder, ()> {
-        Ok(Self::to_datetime_builder(
+        Self::to_datetime_builder(
             Utc.timestamp_opt(self.unix_timestamp, 0)
                 .single()
                 .ok_or(())?,
-        )?)
+        )
+
+        // dbg!("{:#?}", m?);
+
+        // m
     }
 
     /// Formats a date as a ISO 8601 date-time string, returns None if the DateTime object is invalid.

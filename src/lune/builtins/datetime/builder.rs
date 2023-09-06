@@ -2,7 +2,7 @@ use crate::lune::builtins::datetime::date_time::Timezone;
 use chrono::prelude::*;
 use chrono_locale::LocaleDate;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct DateTimeBuilder {
     /// The year. In the range 1400 - 9999.
     pub year: i32,
@@ -98,7 +98,7 @@ impl DateTimeBuilder {
     {
         let format = match format {
             Some(fmt) => fmt.to_string(),
-            None => "%Y-%m-%dT%H:%M:%SZ".to_string(),
+            None => "%Y-%m-%dT%H:%M:%SZUTC+%z".to_string(),
         };
 
         let locale = match locale {
@@ -106,34 +106,69 @@ impl DateTimeBuilder {
             None => "en".to_string(),
         };
 
+        let time = Utc
+            .with_ymd_and_hms(
+                self.year,
+                self.month,
+                self.day,
+                self.hour,
+                self.minute,
+                self.second,
+            )
+            .single()
+            .ok_or(())?;
+
+        // dbg!(
+        //     "{}",
+        //     match timezone {
+        //         Timezone::Utc => time.to_rfc3339(), //.formatl((format).as_str(), locale.as_str()),
+        //         Timezone::Local => time.with_timezone(&Local).to_rfc3339(), // .formatl((format).as_str(), locale.as_str()),
+        //     }
+        // );
+
         Ok(match timezone {
-            Timezone::Utc => Utc
-                .with_ymd_and_hms(
-                    self.year,
-                    self.month,
-                    self.day,
-                    self.hour,
-                    self.minute,
-                    self.second,
-                )
-                .single()
-                .ok_or(())?
-                .formatl((format).as_str(), locale.as_str())
-                .to_string(),
-            Timezone::Local => Local
-                .with_ymd_and_hms(
-                    self.year,
-                    self.month,
-                    self.day,
-                    self.hour,
-                    self.minute,
-                    self.second,
-                )
-                .single()
-                .ok_or(())?
-                .formatl((format).as_str(), locale.as_str())
-                .to_string(),
-        })
+            Timezone::Utc => time.formatl((format).as_str(), locale.as_str()),
+            Timezone::Local => time
+                .with_timezone(&Local)
+                .formatl((format).as_str(), locale.as_str()),
+        }
+        .to_string())
+
+        // .formatl((format).as_str(), locale.as_str())
+        // .to_string())
+
+        // Ok(match timezone {
+        //     Timezone::Utc => Utc
+        //         .with_ymd_and_hms(
+        //             self.year,
+        //             self.month,
+        //             self.day,
+        //             self.hour,
+        //             self.minute,
+        //             self.second,
+        //         )
+        //         .single()
+        //         .ok_or(())?
+        //         .with_timezone(&match timezone {
+        //             Timezone::Utc => Utc,
+        //             Timezone::Local => Local
+        //         })
+        //         .formatl((format).as_str(), locale.as_str())
+        //         .to_string(),
+        //     Timezone::Local => Local
+        //         .with_ymd_and_hms(
+        //             self.year,
+        //             self.month,
+        //             self.day,
+        //             self.hour,
+        //             self.minute,
+        //             self.second,
+        //         )
+        //         .single()
+        //         .ok_or(())?
+        //         .formatl((format).as_str(), locale.as_str())
+        //         .to_string(),
+        // })
     }
 
     pub fn build(self) -> Self {
