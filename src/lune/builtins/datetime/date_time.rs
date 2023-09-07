@@ -243,7 +243,7 @@ impl DateTime {
 
     // TODO: Implement more locales for chrono-locale.
 
-    /// Generates a string from the `DateTime` value interpreted as **local time**
+    /// Generates a string from the `DateTime` value interpreted as the specified timezone
     /// and a format string. The format string should contain tokens, which will
     /// replace to certain date/time values described by the `DateTime` object.
     /// For more details, see the [accepted formatter tokens](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).

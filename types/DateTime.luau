@@ -45,17 +45,6 @@ export type DateTimeValues = {
 export type DateTime = {
 	unixTimestamp: number,
 	unixTimestampMillis: number,
-
-	toIsoDate: (self: DateTime) -> string,
-	toLocalTime: (self: DateTime) -> DateTimeValues & { month: number },
-	toUniversalTime: (self: DateTime) -> DateTimeValues & { month: number },
-
-	formatTime: (
-		self: DateTime,
-		timezone: Timezone,
-		formatString: string,
-		locale: Locale
-	) -> string,
 }
 
 --[=[
@@ -127,7 +116,7 @@ end
 
 	Returns a new `DateTime` using the given units from a UTC time. The
     values accepted are similar to those found in the time value table
-    returned by `to_universal_time`.
+    returned by `toUniversalTime`.
     
     - Date units (year, month, day) that produce an invalid date will raise an error. For example, January 32nd or February 29th on a non-leap year.
     - Time units (hour, minute, second, millisecond) that are outside their normal range are valid. For example, 90 minutes will cause the hour to roll over by 1; -10 seconds will cause the minute value to roll back by 1.
@@ -146,7 +135,7 @@ end
 
 	Returns a new `DateTime` using the given units from a local time. The
     values accepted are similar to those found in the time value table
-    returned by `to_local_time`.
+    returned by `toLocalTime`.
     
     - Date units (year, month, day) that produce an invalid date will raise an error. For example, January 32nd or February 29th on a non-leap year.
     - Time units (hour, minute, second, millisecond) that are outside their normal range are valid. For example, 90 minutes will cause the hour to roll over by 1; -10 seconds will cause the minute value to roll back by 1.
@@ -164,7 +153,7 @@ end
 	@within DateTime
 
 	Returns a `DateTime` from an ISO 8601 date-time string in UTC
-    time, such as those returned by `to_iso_date`. If the
+    time, such as those returned by `toIsoDate`. If the
     string parsing fails, the function returns `nil`.
     
     An example ISO 8601 date-time string would be `2020-01-02T10:30:45Z`,
@@ -174,6 +163,65 @@ end
 	@return A DateTime instance
 ]=]
 function dateTime.fromIsoDate(iso_date: string): DateTime?
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Formats a date as a ISO 8601 date-time string, returns None if the DateTime 
+	object is invalid. The value returned by this function could be passed to 
+	`fromLocalTime` to produce the original `DateTime` object.
+
+	@return ISO 8601 formatted string
+]=]
+function dateTime:toIsoDate(): string
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Converts the value of this `DateTime` object to local time. The returned table
+    contains the following keys: `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`,
+    `Millisecond`. For more details, see the time value table in this data type's
+    description. The values within this table could be passed to `fromLocalTime`
+    to produce the original `DateTime` object.
+
+	@return A table of DateTime values
+]=]
+function dateTime:toLocalTime(): DateTimeValues & { month: number }
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Converts the value of this `DateTime` object to universal time. The returned table
+    contains the following keys: `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`,
+    `Millisecond`. For more details, see the time value table in this data type's
+    description. The values within this table could be passed to `fromUniversalTime`
+    to produce the original `DateTime` object.
+
+	@return A table of DateTime values
+]=]
+function dateTime:toUniversalTime(): DateTimeValues & { month: number }
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Generates a string from the `DateTime` value interpreted as the specified timezone
+    and a format string. The format string should contain tokens, which will
+    replace to certain date/time values described by the `DateTime` object.
+
+	@param timezone The timezone the formatted time string should follow
+	@param formatString A format string of strfttime items. See [chrono docs](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
+	@param locale The locale the time should be formatted in
+	@return A table of DateTime values
+]=]
+function dateTime:formatTime(timezone: Timezone, formatString: string, locale: Locale): string
 	return nil :: any
 end
 
