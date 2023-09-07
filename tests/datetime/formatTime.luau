@@ -40,13 +40,13 @@ local dateCmd = process.spawn("bash", { "-c", "date +\"%A, %d %B %Y\" --date='@1
 })
 
 if dateCmd.ok then
-	expectedLocalizedString = dateCmd.stdout
+	expectedLocalizedString = dateCmd.stdout:gsub("\n", "")
 else
 	error("Failed to execute date command")
 end
 
 assert(
 	DateTime.fromUnixTimestamp(1693068988):formatTime("local", "%A, %d %B %Y", "fr")
-		== expectedLocalizedString:gsub("\n", ""),
-	"expected format specifier '%A, %d %B %Y' to return 'samedi, 26 août 2023' for locale 'fr' (local)"
+		== expectedLocalizedString,
+	`expected format specifier '%A, %d %B %Y' to return '{expectedLocalizedString}' for locale 'fr' (local)`
 )
