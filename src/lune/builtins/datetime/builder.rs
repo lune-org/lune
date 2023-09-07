@@ -98,7 +98,7 @@ impl DateTimeBuilder {
     {
         let format = match format {
             Some(fmt) => fmt.to_string(),
-            None => "%Y-%m-%dT%H:%M:%SZUTC+%z".to_string(),
+            None => "%Y-%m-%dT%H:%M:%SZ".to_string(),
         };
 
         let locale = match locale {

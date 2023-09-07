@@ -153,7 +153,7 @@ impl<'lua> FromLua<'lua> for DateTimeBuilder {
                 .with_hour(t.get("hour")?)
                 .with_minute(t.get("minute")?)
                 .with_second(t.get("second")?)
-                .with_millisecond(t.get("millisecond")?)
+                .with_millisecond(t.get("millisecond").or(LuaResult::Ok(0))?)
                 .build()),
             _ => Err(LuaError::external(
                 "expected type table for DateTimeBuilder",
