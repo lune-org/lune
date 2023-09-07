@@ -1,4 +1,5 @@
 local DateTime = require("@lune/DateTime")
+local process = require("@lune/Process")
 
 -- UTC Timezone
 assert(
@@ -10,15 +11,10 @@ assert(
 assert(
 	DateTime.fromUnixTimestamp(1693068988):formatTime("utc", "%A, %d %B %Y", "fr")
 		== "samedi, 26 août 2023",
-	"expected format specifier '%A, %d %B %Y' to return 'samedi, 26 août 2023' for locale 'fr'"
+	"expected format specifier '%A, %d %B %Y' to return 'samedi, 26 août 2023' for locale 'fr' (UTC)"
 )
 
 local expectedTimeString = os.date("%Y-%m-%dT%H:%M:%SZ", 1694078954)
-
-print(
-	expectedTimeString,
-	DateTime.fromUnixTimestamp(1694078954):formatTime("local", "%Y-%m-%dT%H:%M:%SZ", "en")
-)
 
 assert(
 	DateTime.fromUnixTimestamp(1694078954):formatTime("local", "%Y-%m-%dT%H:%M:%SZ", "en")
@@ -26,4 +22,31 @@ assert(
 	"invalid ISO 8601 formatting for DateTime.formatTime() (local)"
 )
 
--- TODO: Locale tests, by using os.date()
+-- This test requires 'fr_FR.UTF-8 UTF-8' to be in /etc/locale.gen to pass
+-- Local Timezone
+
+assert(
+	DateTime.fromUnixTimestamp(1694078954):formatTime("local", "%Y-%m-%dT%H:%M:%SZ", "en")
+		== expectedTimeString,
+	"invalid ISO 8601 formatting for DateTime.formatTime() (local)"
+)
+
+local expectedLocalizedString
+
+local dateCmd = process.spawn("bash", { "-c", "date +\"%A, %d %B %Y\" --date='@1693068988'" }, {
+	env = {
+		LC_ALL = "fr_FR.UTF-8 ",
+	},
+})
+
+if dateCmd.ok then
+	expectedLocalizedString = dateCmd.stdout
+else
+	error("Failed to execute date command")
+end
+
+assert(
+	DateTime.fromUnixTimestamp(1693068988):formatTime("local", "%A, %d %B %Y", "fr")
+		== expectedLocalizedString:gsub("\n", ""),
+	"expected format specifier '%A, %d %B %Y' to return 'samedi, 26 août 2023' for locale 'fr' (local)"
+)

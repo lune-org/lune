@@ -42,11 +42,6 @@ export type DateTimeValues = {
 	millisecond: number,
 }
 
-export type DateTime = {
-	unixTimestamp: number,
-	unixTimestampMillis: number,
-}
-
 --[=[
 	@class DateTime
 
@@ -85,7 +80,10 @@ export type DateTime = {
 	DateTime.now():toUniversalTime() 
 	```
 ]=]
-local dateTime = {}
+local dateTime = {
+	unixTimestamp = 0,
+	unixTimestampMillis = 0,
+}
 
 --[=[
 	@within DateTime
@@ -94,7 +92,7 @@ local dateTime = {}
 
     @return A DateTime instance
 ]=]
-function dateTime.now(): DateTime
+function dateTime.now(): typeof(dateTime)
 	return nil :: any
 end
 
@@ -107,7 +105,7 @@ end
 	@param unixTimestamp The number of seconds or milliseconds (or both) since the Unix epoch. The fraction part of a float denotes the milliseconds.
 	@return A DateTime instance
 ]=]
-function dateTime.fromUnixTimestamp(unixTimestamp: number?): DateTime
+function dateTime.fromUnixTimestamp(unixTimestamp: number?): typeof(dateTime)
 	return nil :: any
 end
 
@@ -126,7 +124,7 @@ end
 	@param dateTime Optional values for the dateTime instance, defaults to the current time
 	@return A DateTime instance
 ]=]
-function dateTime.fromUniversalTime(dateTime: DateTimeValues?): DateTime
+function dateTime.fromUniversalTime(dateTime: DateTimeValues?): typeof(dateTime)
 	return nil :: any
 end
 
@@ -145,7 +143,7 @@ end
 	@param dateTime Optional values for the dateTime instance, defaults to the current time
 	@return A DateTime instance
 ]=]
-function dateTime.fromLocalTime(dateTime: DateTimeValues?): DateTime
+function dateTime.fromLocalTime(dateTime: DateTimeValues?): typeof(dateTime)
 	return nil :: any
 end
 
@@ -162,7 +160,7 @@ end
 	@param isoDate An ISO 8601 formatted string
 	@return A DateTime instance
 ]=]
-function dateTime.fromIsoDate(iso_date: string): DateTime?
+function dateTime.fromIsoDate(iso_date: string): typeof(dateTime)?
 	return nil :: any
 end
 
@@ -224,5 +222,7 @@ end
 function dateTime:formatTime(timezone: Timezone, formatString: string, locale: Locale): string
 	return nil :: any
 end
+
+export type DateTime = typeof(dateTime)
 
 return dateTime
