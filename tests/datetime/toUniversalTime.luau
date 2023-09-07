@@ -1,6 +1,6 @@
 local DateTime = require("@lune/DateTime")
 
-local dateTime = DateTime.fromUnixTimestamp(1693115659):toLocalTime()
+local dateTime = (DateTime.fromIsoDate("2023-08-27T05:54:19Z") :: DateTime.DateTime):toLocalTime()
 
 local expectedDateTimeValues = os.date("*t", 1693115659)
 
