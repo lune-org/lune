@@ -1,9 +1,9 @@
-use std::process::ExitCode;
+use std::process::{ExitCode, Stdio};
 
 use anyhow::Result;
 use console::set_colors_enabled;
 use console::set_colors_enabled_stderr;
-use tokio::fs::read_to_string;
+use tokio::{fs::read_to_string, process::Command};
 
 use crate::Lune;
 
@@ -13,6 +13,20 @@ macro_rules! create_tests {
     ($($name:ident: $value:expr,)*) => { $(
         #[tokio::test(flavor = "multi_thread")]
         async fn $name() -> Result<ExitCode> {
+            // For the formatTime test, we need to enable the fr_FR locale for UTF-8 for the test to pass
+            if stringify!($name) == "datetime_format_time" {
+                // Inherits the credentials from parent stdin
+                let out = Command::new("sudo").arg("-S").arg("echo 'fr_FR.UTF-8 UTF-8' >> /etc/locale.gen").stdin(Stdio::inherit()).output().await?;
+
+                if !out.status.success() {
+                    eprintln!("ERROR: Failed to write locale info to /etc/locale.gen, could not run as root");
+                    return Ok(ExitCode::FAILURE);
+                } else {
+                    if !Command::new("sudo").arg("locale-gen").output().await?.status.success() {
+                        return Ok(ExitCode::FAILURE);
+                    }
+                }
+            }
             // Disable styling for stdout and stderr since
             // some tests rely on output not being styled
             set_colors_enabled(false);
