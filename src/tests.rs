@@ -16,10 +16,11 @@ macro_rules! create_tests {
             // For the formatTime test, we need to enable the fr_FR locale for UTF-8 for the test to pass
             if stringify!($name) == "datetime_format_time" {
                 // Inherits the credentials from parent stdin
-                let out = Command::new("sudo").arg("-S").arg("echo 'fr_FR.UTF-8 UTF-8' >> /etc/locale.gen").stdin(Stdio::inherit()).output().await?;
+                let out = Command::new("sudo").arg("-S").arg("bash").arg("-c").arg("echo").arg("'fr_FR.UTF-8 UTF-8' >> /etc/locale.gen\"").stdin(Stdio::inherit()).output().await?;
 
                 if !out.status.success() {
                     eprintln!("ERROR: Failed to write locale info to /etc/locale.gen, could not run as root");
+                    eprintln!("{}", String::from_utf8_lossy(&out.stderr));
                     return Ok(ExitCode::FAILURE);
                 } else {
                     if !Command::new("sudo").arg("locale-gen").output().await?.status.success() {
