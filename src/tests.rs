@@ -1,4 +1,4 @@
-use std::process::Stdio;
+use std::process::ExitCode;
 
 use anyhow::Result;
 use console::set_colors_enabled;
