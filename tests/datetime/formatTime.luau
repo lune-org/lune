@@ -23,6 +23,9 @@ assert(
 )
 
 -- This test requires 'fr_FR.UTF-8 UTF-8' to be in /etc/locale.gen to pass
+-- Locale should be set up by a script, or by the user, or in CI, test runner 
+-- takes no responsibility for this
+
 -- Local Timezone
 
 assert(
