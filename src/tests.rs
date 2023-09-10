@@ -1,13 +1,9 @@
-use std::process::{ExitCode, Stdio};
+use std::process::Stdio;
 
 use anyhow::Result;
 use console::set_colors_enabled;
 use console::set_colors_enabled_stderr;
-use tokio::{
-    fs::{read_to_string, File},
-    io::AsyncWriteExt,
-    process::Command,
-};
+use tokio::fs::read_to_string;
 
 use crate::Lune;
 
@@ -17,35 +13,6 @@ macro_rules! create_tests {
     ($($name:ident: $value:expr,)*) => { $(
         #[tokio::test(flavor = "multi_thread")]
         async fn $name() -> Result<ExitCode> {
-            // For the formatTime test, we need to enable the fr_FR locale for UTF-8 for the test to pass
-            if stringify!($name) == "datetime_format_time" {
-                // Create a new scope, so the file gets closed after it is out of scope
-                {
-                    // Creates a bash script for appending to /etc/locales.gen
-
-                    // Using a bash script simplifies a lot of piping logic that would
-                    // otherwise be required in Rust
-                    let mut append_locale_script = File::options().write(true).create(true).mode(0o110).open("target/datetime_format_time_locales.sh").await?;
-                    append_locale_script.write_all(b"echo fr_FR.UTF-8 UTF-8 | tee -a /etc/locale.gen").await?;
-                };
-
-                // Inherits the credentials from parent stdin
-                let out = Command::new("sudo").arg("-S").arg("bash").arg("-c").arg("target/datetime_format_time_locales.sh").stdin(Stdio::inherit()).output().await?;
-
-                if !out.status.success() {
-                    eprintln!("ERROR: Failed to write locale info to /etc/locale.gen, could not run as root");
-                    eprintln!("{}", String::from_utf8_lossy(&out.stderr));
-                    return Ok(ExitCode::FAILURE);
-                }
-
-                let locale_gen = Command::new("sudo").arg("-S").arg("locale-gen").stdin(Stdio::inherit()).output().await?;
-
-                if !locale_gen.status.success() {
-                    eprintln!("ERROR: Failed to run locale-gen as root");
-                    eprintln!("{}", String::from_utf8_lossy(&out.stderr));
-                    return Ok(ExitCode::FAILURE);
-                }
-            }
             // Disable styling for stdout and stderr since
             // some tests rely on output not being styled
             set_colors_enabled(false);
