@@ -1,6 +1,7 @@
 use crate::lune::builtins::datetime::builder::DateTimeBuilder;
 use chrono::prelude::*;
 use chrono::DateTime as ChronoDateTime;
+use num_traits::FromPrimitive;
 
 /// Possible types of timestamps accepted by `DateTime`.
 pub enum TimestampType {
@@ -168,27 +169,9 @@ impl DateTime {
     {
         let mut date_time_constructor = DateTimeBuilder::default();
 
-        // Any less tedious way to get Enum member based on index?
-        // I know there's some crates available with derive macros for this,
-        // would it be okay if used some of them?
-
         date_time_constructor
             .with_year(date_time.year())
-            .with_month(match date_time.month() {
-                1 => Ok(Month::January),
-                2 => Ok(Month::February),
-                3 => Ok(Month::March),
-                4 => Ok(Month::April),
-                5 => Ok(Month::May),
-                6 => Ok(Month::June),
-                7 => Ok(Month::July),
-                8 => Ok(Month::August),
-                9 => Ok(Month::September),
-                10 => Ok(Month::October),
-                11 => Ok(Month::November),
-                12 => Ok(Month::December),
-                _ => Err(()),
-            }?)
+            .with_month(Month::from_u32(date_time.month()).ok_or(())?)
             .with_day(date_time.day())
             .with_hour(date_time.hour())
             .with_minute(date_time.minute())
