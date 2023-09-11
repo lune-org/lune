@@ -81,7 +81,13 @@ jobs:
           --target ${{ matrix.cargo-target }}
 
       - name: Lint
-        run: cargo clippy
+        run: |
+          cargo clippy \
+          --locked --all-features \
+          --target ${{ matrix.cargo-target }}
 
       - name: Test
-        run: cargo test --lib
+        run: |
+          cargo test \
+          --locked --all-features \
+          --target ${{ matrix.cargo-target }}
