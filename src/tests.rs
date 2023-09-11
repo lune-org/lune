@@ -106,6 +106,16 @@ create_tests! {
     task_delay: "task/delay",
     task_spawn: "task/spawn",
     task_wait: "task/wait",
+
+    datetime_now: "datetime/now",
+    datetime_from_unix_timestamp: "datetime/fromUnixTimestamp",
+    datetime_from_universal_time: "datetime/fromUniversalTime",
+    datetime_to_universal_time: "datetime/toUniversalTime",
+    datetime_from_local_time: "datetime/fromLocalTime",
+    datetime_to_local_time: "datetime/toLocalTime",
+    datetime_from_iso_date: "datetime/fromIsoDate",
+    datetime_to_iso_date: "datetime/toIsoDate",
+    datetime_format_time: "datetime/formatTime",
 }
 
 #[cfg(feature = "roblox")]
