@@ -1122,6 +1122,7 @@ dependencies = [
  "itertools",
  "lz4_flex",
  "mlua",
+ "num-traits",
  "once_cell",
  "os_str_bytes",
  "path-clean",
