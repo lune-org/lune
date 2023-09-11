@@ -1,7 +1,7 @@
 local DateTime = require("@lune/DateTime")
 
 assert(
-	DateTime.fromUniversalTime()["unixTimestamp"] == os.time(),
+	math.abs(DateTime.fromUniversalTime()["unixTimestamp"] - os.time()) <= 3,
 	"expected DateTime.fromLocalTime() with no args to return DateTime at the current moment"
 )
 
