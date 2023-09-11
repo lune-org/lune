@@ -31,6 +31,7 @@ jobs:
   ci:
     needs: ["fmt"]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: Windows x86_64
