@@ -41,10 +41,6 @@ jobs:
             runner-os: ubuntu-latest
             cargo-target: x86_64-unknown-linux-gnu
 
-          - name: Linux aarch64
-            runner-os: ubuntu-latest
-            cargo-target: aarch64-unknown-linux-gnu
-
           - name: macOS x86_64
             runner-os: macos-latest
             cargo-target: x86_64-apple-darwin
@@ -66,13 +62,6 @@ jobs:
         with:
           components: clippy
           targets: ${{ matrix.cargo-target }}
-
-      - name: Install build tooling (aarch64-unknown-linux-gnu)
-        if: matrix.cargo-target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y musl-tools clang llvm
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Build
         run: |
