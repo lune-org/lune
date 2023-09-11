@@ -40,7 +40,7 @@ for _, arg in process.args do
 end
 
 if not toTestLocales then
-	return true
+	return
 end
 
 local expectedLocalizedString
