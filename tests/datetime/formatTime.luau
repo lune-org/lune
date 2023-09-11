@@ -8,12 +8,6 @@ assert(
 	"invalid ISO 8601 formatting for DateTime.formatTime() (UTC)"
 )
 
-assert(
-	DateTime.fromUnixTimestamp(1693068988):formatTime("utc", "%A, %d %B %Y", "fr")
-		== "samedi, 26 août 2023",
-	"expected format specifier '%A, %d %B %Y' to return 'samedi, 26 août 2023' for locale 'fr' (UTC)"
-)
-
 local expectedTimeString = os.date("%Y-%m-%dT%H:%M:%SZ", 1694078954)
 
 assert(
@@ -23,7 +17,7 @@ assert(
 )
 
 -- This test requires 'fr_FR.UTF-8 UTF-8' to be in /etc/locale.gen to pass
--- Locale should be set up by a script, or by the user, or in CI, test runner 
+-- Locale should be set up by a script, or by the user, or in CI, test runner
 -- takes no responsibility for this
 
 -- Local Timezone
@@ -33,6 +27,21 @@ assert(
 		== expectedTimeString,
 	"invalid ISO 8601 formatting for DateTime.formatTime() (local)"
 )
+
+-- To run tests related to locales, one must explicitly
+-- provide the `--test-locales` flag
+local toTestLocales = false
+
+for _, arg in process.args do
+	if arg == "--test-locales" then
+		toTestLocales = true
+		break
+	end
+end
+
+if not toTestLocales then
+	return true
+end
 
 local expectedLocalizedString
 
@@ -52,4 +61,10 @@ assert(
 	DateTime.fromUnixTimestamp(1693068988):formatTime("local", "%A, %d %B %Y", "fr")
 		== expectedLocalizedString,
 	`expected format specifier '%A, %d %B %Y' to return '{expectedLocalizedString}' for locale 'fr' (local)`
+)
+
+assert(
+	DateTime.fromUnixTimestamp(1693068988):formatTime("utc", "%A, %d %B %Y", "fr")
+		== "samedi, 26 août 2023",
+	"expected format specifier '%A, %d %B %Y' to return 'samedi, 26 août 2023' for locale 'fr' (UTC)"
 )
