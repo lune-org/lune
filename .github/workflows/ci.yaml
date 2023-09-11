@@ -67,6 +67,13 @@ jobs:
           components: clippy
           targets: ${{ matrix.cargo-target }}
 
+      - name: Install build tooling (aarch64-unknown-linux-gnu)
+        if: matrix.cargo-target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y musl-tools clang llvm
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
       - name: Build
         run: |
           cargo build \
