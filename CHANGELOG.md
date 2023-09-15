@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added [Terrain:GetMaterialColor](https://create.roblox.com/docs/reference/engine/classes/Terrain#GetMaterialColor) and [Terrain:SetMaterialColor](https://create.roblox.com/docs/reference/engine/classes/Terrain#SetMaterialColor) ([#93])
 - Added support for a variable number of arguments for CFrame methods ([#85])
 
+### Changed
+
+- Update to Luau version `0.594`
+
 [#93]: https://github.com/filiptibell/lune/pull/93
 [#85]: https://github.com/filiptibell/lune/pull/85
 
