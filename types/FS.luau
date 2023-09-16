@@ -99,7 +99,6 @@ local fs = {}
 
 	* `path` does not point to an existing file.
 	* The current process lacks permissions to read the file.
-	* The contents of the file cannot be read as a UTF-8 string.
 	* Some other I/O error occurred.
 
 	@param path The path to the file to read
