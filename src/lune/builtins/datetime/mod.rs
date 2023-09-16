@@ -1,176 +1,251 @@
-use chrono::Month;
+use std::cmp::Ordering;
+
 use mlua::prelude::*;
 
-pub(crate) mod builder;
-pub(crate) mod date_time;
+use chrono::prelude::*;
+use chrono::DateTime as ChronoDateTime;
+use chrono_lc::LocaleDate;
 
-use self::{
-    builder::DateTimeBuilder,
-    date_time::{DateTime, TimestampType, Timezone},
-};
 use crate::lune::util::TableBuilder;
 
-// TODO: Proper error handling and stuff
+mod error;
+mod values;
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+use error::*;
+use values::*;
+
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
-        .with_function("now", |_, ()| Ok(DateTime::now()))?
-        .with_function("fromUnixTimestamp", |lua, timestamp: LuaValue| {
-            let timestamp_cloned = timestamp.clone();
-            let timestamp_kind = TimestampType::from_lua(timestamp, lua)?;
-            let timestamp = match timestamp_kind {
-                TimestampType::Seconds => timestamp_cloned.as_i64().ok_or(LuaError::external("invalid float integer timestamp supplied"))?,
-                TimestampType::Millis => {
-                    let timestamp = timestamp_cloned.as_f64().ok_or(LuaError::external("invalid float timestamp with millis component supplied"))?;
-                    ((((timestamp - timestamp.fract()) as u64) * 1000_u64) // converting the whole seconds part to millis
-                    // the ..3 gets a &str of the first 3 chars of the digits after the decimals, ignoring
-                    // additional floating point accuracy digits
-                        + (timestamp.fract() * (10_u64.pow(timestamp.fract().to_string().split('.').collect::<Vec<&str>>()[1][..3].len() as u32)) as f64) as u64) as i64
-                    // adding the millis to the fract as a whole number
-                    // HACK: 10 ** (timestamp.fract().to_string().len() - 2) gives us the number of digits
-                    // after the decimal
-                }
-            };
-
-            Ok(DateTime::from_unix_timestamp(timestamp_kind, timestamp))
-        })?
-        .with_function("fromUniversalTime", |lua, date_time: LuaValue| {
-            Ok(DateTime::from_universal_time(DateTimeBuilder::from_lua(date_time, lua).ok()).or(Err(LuaError::external("invalid DateTimeValues provided to fromUniversalTime"))))
-        })?
-        .with_function("fromLocalTime", |lua, date_time: LuaValue| {
-            Ok(DateTime::from_local_time(DateTimeBuilder::from_lua(date_time, lua).ok()).or(Err(LuaError::external("invalid DateTimeValues provided to fromLocalTime"))))
-        })?
         .with_function("fromIsoDate", |_, iso_date: String| {
-            Ok(DateTime::from_iso_date(iso_date))
+            Ok(DateTime::from_iso_date(iso_date)?)
         })?
+        .with_function("fromLocalTime", |_, values| {
+            Ok(DateTime::from_local_time(&values)?)
+        })?
+        .with_function("fromUniversalTime", |_, values| {
+            Ok(DateTime::from_universal_time(&values)?)
+        })?
+        .with_function("fromUnixTimestamp", |_, timestamp| {
+            Ok(DateTime::from_unix_timestamp_float(timestamp)?)
+        })?
+        .with_function("now", |_, ()| Ok(DateTime::now()))?
         .build_readonly()
 }
 
-impl<'lua> FromLua<'lua> for TimestampType {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        match value {
-            LuaValue::Integer(_) => Ok(TimestampType::Seconds),
-            LuaValue::Number(num) => Ok(if num.fract() == 0.0 {
-                TimestampType::Seconds
-            } else {
-                TimestampType::Millis
-            }),
-            _ => Err(LuaError::external(
-                "Invalid enum type, number or integer expected",
-            )),
-        }
+const DEFAULT_FORMAT: &str = "%Y-%m-%d %H:%M:%S";
+const DEFAULT_LOCALE: &str = "en";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct DateTime {
+    // NOTE: We store this as the UTC time zone since it is the most commonly
+    // used and getting the generics right for TimeZone is somewhat tricky,
+    // but none of the method implementations below should rely on this tz
+    inner: ChronoDateTime<Utc>,
+}
+
+impl DateTime {
+    /**
+        Creates a new `DateTime` struct representing the current moment in time.
+
+        See [`chrono::DateTime::now`] for additional details.
+    */
+    pub fn now() -> Self {
+        Self { inner: Utc::now() }
+    }
+
+    /**
+        Creates a new `DateTime` struct from the given `unix_timestamp`,
+        which is a float of seconds passed since the UNIX epoch.
+
+        This is somewhat unconventional, but fits our Luau interface and dynamic types quite well.
+        To use this method the same way you would use a more traditional `from_unix_timestamp`
+        that takes a `u64` of seconds or similar type, casting the value is sufficient:
+
+        ```rust
+        DateTime::from_unix_timestamp_float(123456789u64 as f64)
+        ```
+
+        See [`chrono::DateTime::from_timestamp`] for additional details.
+    */
+    pub fn from_unix_timestamp_float(unix_timestamp: f64) -> DateTimeResult<Self> {
+        let whole = unix_timestamp.trunc() as i64;
+        let fract = unix_timestamp.fract();
+        let nanos = (fract * 1_000_000_000f64)
+            .round()
+            .clamp(u32::MIN as f64, u32::MAX as f64) as u32;
+        let inner = ChronoDateTime::<Utc>::from_timestamp(whole, nanos)
+            .ok_or(DateTimeError::OutOfRangeUnspecified)?;
+        Ok(Self { inner })
+    }
+
+    /**
+        Transforms individual date & time values into a new
+        `DateTime` struct, using the universal (UTC) time zone.
+
+        See [`chrono::NaiveDate::from_ymd_opt`] and [`chrono::NaiveTime::from_hms_milli_opt`]
+        for additional details and cases where this constructor may return an error.
+    */
+    pub fn from_universal_time(values: &DateTimeValues) -> DateTimeResult<Self> {
+        let date = NaiveDate::from_ymd_opt(values.year, values.month, values.day)
+            .ok_or(DateTimeError::InvalidDate)?;
+
+        let time = NaiveTime::from_hms_milli_opt(
+            values.hour,
+            values.minute,
+            values.second,
+            values.millisecond,
+        )
+        .ok_or(DateTimeError::InvalidTime)?;
+
+        let inner = Utc.from_utc_datetime(&NaiveDateTime::new(date, time));
+
+        Ok(Self { inner })
+    }
+
+    /**
+        Transforms individual date & time values into a new
+        `DateTime` struct, using the current local time zone.
+
+        See [`chrono::NaiveDate::from_ymd_opt`] and [`chrono::NaiveTime::from_hms_milli_opt`]
+        for additional details and cases where this constructor may return an error.
+    */
+    pub fn from_local_time(values: &DateTimeValues) -> DateTimeResult<Self> {
+        let date = NaiveDate::from_ymd_opt(values.year, values.month, values.day)
+            .ok_or(DateTimeError::InvalidDate)?;
+
+        let time = NaiveTime::from_hms_milli_opt(
+            values.hour,
+            values.minute,
+            values.second,
+            values.millisecond,
+        )
+        .ok_or(DateTimeError::InvalidTime)?;
+
+        let inner = Local
+            .from_local_datetime(&NaiveDateTime::new(date, time))
+            .single()
+            .ok_or(DateTimeError::Ambiguous)?
+            .with_timezone(&Utc);
+
+        Ok(Self { inner })
+    }
+
+    /**
+        Formats the `DateTime` using the universal (UTC) time
+        zone, the given format string, and the given locale.
+
+        `format` and `locale` default to `"%Y-%m-%d %H:%M:%S"` and `"en"` respectively.
+
+        See [`chrono_lc::DateTime::formatl`] for additional details.
+    */
+    pub fn format_string_local(&self, format: Option<&str>, locale: Option<&str>) -> String {
+        self.inner
+            .with_timezone(&Local)
+            .formatl(
+                format.unwrap_or(DEFAULT_FORMAT),
+                locale.unwrap_or(DEFAULT_LOCALE),
+            )
+            .to_string()
+    }
+
+    /**
+        Formats the `DateTime` using the universal (UTC) time
+        zone, the given format string, and the given locale.
+
+        `format` and `locale` default to `"%Y-%m-%d %H:%M:%S"` and `"en"` respectively.
+
+        See [`chrono_lc::DateTime::formatl`] for additional details.
+    */
+    pub fn format_string_universal(&self, format: Option<&str>, locale: Option<&str>) -> String {
+        self.inner
+            .with_timezone(&Utc)
+            .formatl(
+                format.unwrap_or(DEFAULT_FORMAT),
+                locale.unwrap_or(DEFAULT_LOCALE),
+            )
+            .to_string()
+    }
+
+    /**
+        Parses a time string in the ISO 8601 format, such as
+        `1996-12-19T16:39:57-08:00`, into a new `DateTime` struct.
+
+        See [`chrono::DateTime::parse_from_rfc3339`] for additional details.
+    */
+    pub fn from_iso_date(iso_date: impl AsRef<str>) -> DateTimeResult<Self> {
+        let inner = ChronoDateTime::parse_from_rfc3339(iso_date.as_ref())?.with_timezone(&Utc);
+        Ok(Self { inner })
+    }
+
+    /**
+        Extracts individual date & time values from this
+        `DateTime`, using the current local time zone.
+    */
+    pub fn to_local_time(self) -> DateTimeValues {
+        DateTimeValues::from(self.inner.with_timezone(&Local))
+    }
+
+    /**
+        Extracts individual date & time values from this
+        `DateTime`, using the universal (UTC) time zone.
+    */
+    pub fn to_universal_time(self) -> DateTimeValues {
+        DateTimeValues::from(self.inner.with_timezone(&Utc))
+    }
+
+    /**
+        Formats a time string in the ISO 8601 format, such as `1996-12-19T16:39:57-08:00`.
+
+        See [`chrono::DateTime::to_rfc3339`] for additional details.
+    */
+    pub fn to_iso_date(self) -> String {
+        self.inner.to_rfc3339()
     }
 }
 
 impl LuaUserData for DateTime {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("unixTimestamp", |_, this| Ok(this.unix_timestamp));
+        fields.add_field_method_get("unixTimestamp", |_, this| Ok(this.inner.timestamp()));
         fields.add_field_method_get("unixTimestampMillis", |_, this| {
-            Ok(this.unix_timestamp_millis)
+            Ok(this.inner.timestamp_millis())
         });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("toIsoDate", |_, this, ()| {
-            Ok(this
-                .to_iso_date()
-                .map_err(|()| LuaError::external("failed to parse DateTime object, invalid")))
-        });
-
-        methods.add_method(
-            "formatTime",
-            |_, this, (timezone, fmt_str, locale): (LuaValue, String, String)| {
-                Ok(this
-                    .format_time(Timezone::from_lua(timezone, &Lua::new())?, fmt_str, locale)
-                    .map_err(|()| LuaError::external("failed to parse DateTime object, invalid")))
+        // Metamethods to compare DateTime as instants in time
+        methods.add_meta_method(
+            LuaMetaMethod::Eq,
+            |_, this: &Self, other: LuaUserDataRef<Self>| Ok(this.eq(&other)),
+        );
+        methods.add_meta_method(
+            LuaMetaMethod::Lt,
+            |_, this: &Self, other: LuaUserDataRef<Self>| {
+                Ok(matches!(this.cmp(&other), Ordering::Less))
             },
         );
-
-        methods.add_method("toUniversalTime", |_, this: &DateTime, ()| {
-            Ok(this.to_universal_time().or(Err(LuaError::external(
-                "invalid DateTime self argument provided to toUniversalTime",
-            ))))
-        });
-
-        methods.add_method("toLocalTime", |_, this: &DateTime, ()| {
-            Ok(this.to_local_time().or(Err(LuaError::external(
-                "invalid DateTime self argument provided to toLocalTime",
-            ))))
-        });
-    }
-}
-
-impl<'lua> FromLua<'lua> for DateTime {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        match value {
-            LuaValue::Nil => Err(LuaError::external(
-                "expected self of type DateTime, found nil",
-            )),
-            LuaValue::Table(t) => Ok(DateTime::from_unix_timestamp(
-                TimestampType::Seconds,
-                t.get("unixTimestamp")?,
-            )),
-            _ => Err(LuaError::external("invalid type for DateTime self arg")),
-        }
-    }
-}
-
-impl LuaUserData for DateTimeBuilder {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("year", |_, this| Ok(this.year));
-        fields.add_field_method_get("month", |_, this| Ok(this.month));
-        fields.add_field_method_get("day", |_, this| Ok(this.day));
-        fields.add_field_method_get("hour", |_, this| Ok(this.hour));
-        fields.add_field_method_get("minute", |_, this| Ok(this.minute));
-        fields.add_field_method_get("second", |_, this| Ok(this.second));
-        fields.add_field_method_get("millisecond", |_, this| Ok(this.millisecond));
-    }
-}
-
-impl<'lua> FromLua<'lua> for DateTimeBuilder {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        match value {
-            LuaValue::Table(t) => Ok(Self::default()
-                .with_year(t.get("year")?)
-                .with_month(
-                    (match t.get("month")? {
-                        LuaValue::String(str) => Ok(str.to_str()?.parse::<Month>().or(Err(
-                            LuaError::external("could not cast month string to Month"),
-                        ))?),
-                        LuaValue::Nil => {
-                            Err(LuaError::external("cannot find mandatory month argument"))
-                        }
-                        LuaValue::Number(num) => Ok(Month::try_from(num as u8).or(Err(
-                            LuaError::external("could not cast month number to Month"),
-                        ))?),
-                        LuaValue::Integer(int) => Ok(Month::try_from(int as u8).or(Err(
-                            LuaError::external("could not cast month integer to Month"),
-                        ))?),
-                        _ => Err(LuaError::external("unexpected month field type")),
-                    })?,
-                )
-                .with_day(t.get("day")?)
-                .with_hour(t.get("hour")?)
-                .with_minute(t.get("minute")?)
-                .with_second(t.get("second")?)
-                .with_millisecond(t.get("millisecond").or(LuaResult::Ok(0))?)
-                .build()),
-            _ => Err(LuaError::external(
-                "expected type table for DateTimeBuilder",
-            )),
-        }
-    }
-}
-
-impl<'lua> FromLua<'lua> for Timezone {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
-        match value {
-            LuaValue::String(str) => match str.to_str()?.to_lowercase().as_str() {
-                "utc" => Ok(Timezone::Utc),
-                "local" => Ok(Timezone::Local),
-                &_ => Err(LuaError::external("Invalid enum member!")),
+        methods.add_meta_method(
+            LuaMetaMethod::Le,
+            |_, this: &Self, other: LuaUserDataRef<Self>| {
+                Ok(matches!(this.cmp(&other), Ordering::Less | Ordering::Equal))
             },
-            _ => Err(LuaError::external("Invalid enum type, string expected")),
-        }
+        );
+        // Normal methods
+        methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_iso_date()));
+        methods.add_method(
+            "formatUniversalTime",
+            |_, this, (format, locale): (Option<String>, Option<String>)| {
+                Ok(this.format_string_universal(format.as_deref(), locale.as_deref()))
+            },
+        );
+        methods.add_method(
+            "formatLocalTime",
+            |_, this, (format, locale): (Option<String>, Option<String>)| {
+                Ok(this.format_string_local(format.as_deref(), locale.as_deref()))
+            },
+        );
+        methods.add_method("toUniversalTime", |_, this: &Self, ()| {
+            Ok(this.to_universal_time())
+        });
+        methods.add_method("toLocalTime", |_, this: &Self, ()| Ok(this.to_local_time()));
     }
 }

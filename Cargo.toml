@@ -26,6 +26,7 @@ cli = [
     "dep:clap",
     "dep:include_dir",
     "dep:regex",
+    "dep:rustyline",
 ]
 roblox = [
     "dep:glam",
@@ -116,7 +117,6 @@ num-traits = "0.2"
 anyhow = { optional = true, version = "1.0" }
 env_logger = { optional = true, version = "0.10" }
 itertools = { optional = true, version = "0.11" }
-
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
 regex = { optional = true, version = "1.7", default-features = false, features = [

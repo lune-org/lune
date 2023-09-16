@@ -1,30 +1,30 @@
-local DateTime = require("@lune/DateTime")
+local DateTime = require("@lune/datetime")
 
-local dateTime = (DateTime.fromIsoDate("2023-08-27T05:54:19Z") :: DateTime.DateTime):toLocalTime()
+local values = DateTime.fromIsoDate("2023-08-27T05:54:19Z"):toLocalTime()
 
 local expectedDateTimeValues = os.date("*t", 1693115659)
 
 assert(
-	dateTime.year == expectedDateTimeValues.year,
-	`expected {dateTime.year} == {expectedDateTimeValues.year}`
+	values.year == expectedDateTimeValues.year,
+	`expected {values.year} == {expectedDateTimeValues.year}`
 )
 assert(
-	dateTime.month == expectedDateTimeValues.month,
-	`expected {dateTime.month} == {expectedDateTimeValues.month}`
+	values.month == expectedDateTimeValues.month,
+	`expected {values.month} == {expectedDateTimeValues.month}`
 )
 assert(
-	dateTime.day == expectedDateTimeValues.day,
-	`expected {dateTime.day} == {expectedDateTimeValues.day}`
+	values.day == expectedDateTimeValues.day,
+	`expected {values.day} == {expectedDateTimeValues.day}`
 )
 assert(
-	dateTime.hour == expectedDateTimeValues.hour,
-	`expected {dateTime.hour} == {expectedDateTimeValues.hour}`
+	values.hour == expectedDateTimeValues.hour,
+	`expected {values.hour} == {expectedDateTimeValues.hour}`
 )
 assert(
-	dateTime.minute == expectedDateTimeValues.min,
-	`expected {dateTime.minute} == {expectedDateTimeValues.min}`
+	values.minute == expectedDateTimeValues.min,
+	`expected {values.minute} == {expectedDateTimeValues.min}`
 )
 assert(
-	dateTime.second == expectedDateTimeValues.sec,
-	`expected {dateTime.second} == {expectedDateTimeValues.sec}`
+	values.second == expectedDateTimeValues.sec,
+	`expected {values.second} == {expectedDateTimeValues.sec}`
 )

@@ -1,67 +1,184 @@
--- TODO: Add more docs
-
 export type Locale = "en" | "de" | "es" | "fr" | "it" | "ja" | "pl" | "pt-br" | "pt" | "tr"
 
-export type Timezone = "utc" | "local"
-
-export type ShortMonth =
-	"jan"
-	| "feb"
-	| "mar"
-	| "apr"
-	| "may"
-	| "jun"
-	| "jul"
-	| "aug"
-	| "sep"
-	| "oct"
-	| "nov"
-	| "dec"
-
-export type Month =
-	"january"
-	| "february"
-	| "march"
-	| "april"
-	| "may"
-	| "june"
-	| "july"
-	| "august"
-	| "september"
-	| "october"
-	| "november"
-	| "december"
-
 export type DateTimeValues = {
+	--- Year(s), in the range 1400 -> 9999
 	year: number,
-	month: number | ShortMonth | Month,
+	--- Month(s), in the range 1 -> 12
+	month: number,
+	--- Day(s), in the range 1 -> 31
 	day: number,
+	--- Hour(s), in the range 0 -> 23
 	hour: number,
+	--- Minute(s), in the range 0 -> 59
 	minute: number,
+	--- Second(s), in the range 0 -> 60, where 60 is a leap second
 	second: number,
-	millisecond: number,
+	--- Millisecond(s), in the range 0 -> 999
+	millisecond: number?,
 }
+
+local DateTime = {
+	--- Number of seconds passed since the UNIX epoch.
+	unixTimestamp = 0,
+	--- Number of milliseconds passed since the UNIX epoch.
+	unixTimestampMillis = 0,
+}
+
+--[=[
+	@within DateTime
+
+	Formats this `DateTime` as an ISO 8601 date-time string.
+
+	Some examples of ISO 8601 date-time strings:
+
+	- `2020-02-22T18:12:08Z`
+	- `2000-01-31T12:34:56+05:00`
+	- `1970-01-01T00:00:00.055Z`
+
+	@return string -- The ISO 8601 formatted string
+]=]
+function DateTime.toIsoDate(self: DateTime): string
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Extracts local time values from this `DateTime`.
+
+	The returned table contains the following values:
+
+	| Key           | Type     | Range          |
+	|---------------|----------|----------------|
+	| `year`        | `number` | `1400 -> 9999` |
+	| `month`       | `number` | `1 -> 12`      |
+	| `day`         | `number` | `1 -> 31`      |
+	| `hour`        | `number` | `0 -> 23`      |
+	| `minute`      | `number` | `0 -> 59`      |
+	| `second`      | `number` | `0 -> 60`      |
+	| `millisecond` | `number` | `0 -> 999`     |
+
+	@return DateTimeValues -- A table of DateTime values
+]=]
+function DateTime.toLocalTime(self: DateTime): DateTimeValues
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Extracts UTC (universal) time values from this `DateTime`.
+
+	The returned table contains the following values:
+
+	| Key           | Type     | Range          |
+	|---------------|----------|----------------|
+	| `year`        | `number` | `1400 -> 9999` |
+	| `month`       | `number` | `1 -> 12`      |
+	| `day`         | `number` | `1 -> 31`      |
+	| `hour`        | `number` | `0 -> 23`      |
+	| `minute`      | `number` | `0 -> 59`      |
+	| `second`      | `number` | `0 -> 60`      |
+	| `millisecond` | `number` | `0 -> 999`     |
+
+	@return DateTimeValues -- A table of DateTime values
+]=]
+function DateTime.toUniversalTime(self: DateTime): DateTimeValues
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Formats this `DateTime` using the given `formatString` and `locale`, as local time.
+
+	The given `formatString` is parsed using a `strftime`/`strptime`-inspired
+	date and time formatting syntax, allowing tokens such as the following:
+
+	| Token | Example  | Description   |
+	|-------|----------|---------------|
+	| `%Y`  | `1998`   | Year number   |
+	| `%m`  | `04`     | Month number  |
+	| `%d`  | `29`     | Day number    |
+	| `%A`  | `Monday` | Weekday name  |
+	| `%M`  | `59`     | Minute number |
+	| `%S`  | `10`     | Second number |
+
+	For a full reference of all available tokens, see the
+	[chrono documentation](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
+
+	If not provided, `formatString` and `locale` will default
+	to `"%Y-%m-%d %H:%M:%S"` and `"en"` (english) respectively.
+
+	@param formatString -- A string containing formatting tokens
+	@param locale -- The locale the time should be formatted in
+	@return string -- The formatting string
+]=]
+function DateTime.formatLocalTime(self: DateTime, formatString: string?, locale: Locale?): string
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+
+	Formats this `DateTime` using the given `formatString` and `locale`, as UTC (universal) time.
+
+	The given `formatString` is parsed using a `strftime`/`strptime`-inspired
+	date and time formatting syntax, allowing tokens such as the following:
+
+	| Token | Example  | Description   |
+	|-------|----------|---------------|
+	| `%Y`  | `1998`   | Year number   |
+	| `%m`  | `04`     | Month number  |
+	| `%d`  | `29`     | Day number    |
+	| `%A`  | `Monday` | Weekday name  |
+	| `%M`  | `59`     | Minute number |
+	| `%S`  | `10`     | Second number |
+
+	For a full reference of all available tokens, see the
+	[chrono documentation](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
+
+	If not provided, `formatString` and `locale` will default
+	to `"%Y-%m-%d %H:%M:%S"` and `"en"` (english) respectively.
+
+	@param formatString -- A string containing formatting tokens
+	@param locale -- The locale the time should be formatted in
+	@return string -- The formatting string
+]=]
+function DateTime.formatUniversalTime(
+	self: DateTime,
+	formatString: string?,
+	locale: Locale?
+): string
+	return nil :: any
+end
+
+export type DateTime = typeof(DateTime)
 
 --[=[
 	@class DateTime
 
-	Built-in library for date & time manipulation
+	Built-in library for date & time
 
 	### Example usage
 
 	```lua
-	local DateTime = require("@lune/DateTime")
+	local DateTime = require("@lune/datetime")
 
-	-- Returns the current moment in time as a ISO 8601 string
-	DateTime.now():toIsoDate()
+	-- Creates a DateTime for the current exact moment in time
+	local now = DateTime.now()
 
-	-- Returns the current moment in time as per the format template in French
-	DateTime.now():formatTime("utc", "%A, %d %B %Y", "fr")
+	-- Formats the current moment in time as an ISO 8601 string
+	print(now:toIsoDate())
+
+	-- Formats the current moment in time, using the local
+	-- time, the Frech locale, and the specified time string
+	print(now:formatLocalTime("%A, %d %B %Y", "fr"))
 
 	-- Returns a specific moment in time as a DateTime instance
-	DateTime.fromLocalTime({
-		year = 2023,
-		month = "aug",
+	local someDayInTheFuture = DateTime.fromLocalTime({
+		year = 3033,
+		month = 8,
 		day = 26,
 		hour = 16,
 		minute = 56,
@@ -69,160 +186,139 @@ export type DateTimeValues = {
 		millisecond = 892,
 	})
 
-	-- Returns the current local time as a DateTime instance
-	DateTime.fromLocalTime()
+	-- Extracts the current local date & time as separate values (same values as above table)
+	print(now:toLocalTime())
 
-	-- Returns a DateTime instance from a given float, where the whole denotes the 
-	-- seconds and the fraction denotes the milliseconds
+	-- Returns a DateTime instance from a given float, where the whole
+	-- denotes the seconds and the fraction denotes the milliseconds
+	-- Note that the fraction for millis here is completely optional
 	DateTime.fromUnixTimestamp(871978212313.321)
 
-	-- Returns the current time in terms of UTC
-	DateTime.now():toUniversalTime() 
+	-- Extracts the current universal (UTC) date & time as separate values
+	print(now:toUniversalTime())
 	```
 ]=]
-local dateTime = {
-	unixTimestamp = 0,
-	unixTimestampMillis = 0,
-}
+local dateTime = {}
 
 --[=[
 	@within DateTime
 
     Returns a `DateTime` representing the current moment in time.
 
-    @return A DateTime instance
+	@return DateTime -- The new DateTime object
 ]=]
-function dateTime.now(): typeof(dateTime)
+function dateTime.now(): DateTime
 	return nil :: any
 end
 
 --[=[
 	@within DateTime
 
-	Returns a new `DateTime` object from the given Unix timestamp, or
-	the number of **seconds** since January 1st, 1970 at 00:00 (UTC).
+	Creates a new `DateTime` from the given UNIX timestamp.
 
-	@param unixTimestamp The number of seconds or milliseconds (or both) since the Unix epoch. The fraction part of a float denotes the milliseconds.
-	@return A DateTime instance
+	This timestamp may contain both a whole and fractional part -
+	where the fractional part denotes milliseconds / nanoseconds.
+
+	Example usage of fractions:
+
+	- `DateTime.fromUnixTimestamp(123456789.001)` - one millisecond
+	- `DateTime.fromUnixTimestamp(123456789.000000001)` - one nanosecond
+
+	Note that the fractional part has limited precision down to exactly
+	one nanosecond, any fraction that is more precise will get truncated.
+
+	@param unixTimestamp -- Seconds passed since the UNIX epoch
+	@return DateTime -- The new DateTime object
 ]=]
-function dateTime.fromUnixTimestamp(unixTimestamp: number?): typeof(dateTime)
+function dateTime.fromUnixTimestamp(unixTimestamp: number): DateTime
 	return nil :: any
 end
 
 --[=[
 	@within DateTime
 
-	Returns a new `DateTime` using the given units from a UTC time. The
-    values accepted are similar to those found in the time value table
-    returned by `toUniversalTime`.
-    
-    - Date units (year, month, day) that produce an invalid date will raise an error. For example, January 32nd or February 29th on a non-leap year.
-    - Time units (hour, minute, second, millisecond) that are outside their normal range are valid. For example, 90 minutes will cause the hour to roll over by 1; -10 seconds will cause the minute value to roll back by 1.
-    - Non-integer values are rounded down. For example, providing 2.5 hours will be equivalent to providing 2 hours, not 2 hours 30 minutes.
-    - Omitted values are assumed to be their lowest value in their normal range, except for year which defaults to 1970.
+	Creates a new `DateTime` from the given date & time values table, in universal (UTC) time.
 
-	@param dateTime Optional values for the dateTime instance, defaults to the current time
-	@return A DateTime instance
+	The given table must contains the following values:
+
+	| Key      | Type     | Range          |
+	|----------|----------|----------------|
+	| `year`   | `number` | `1400 -> 9999` |
+	| `month`  | `number` | `1 -> 12`      |
+	| `day`    | `number` | `1 -> 31`      |
+	| `hour`   | `number` | `0 -> 23`      |
+	| `minute` | `number` | `0 -> 59`      |
+	| `second` | `number` | `0 -> 60`      |
+
+	An additional `millisecond` value may also be included,
+	and should be within the range `0 -> 999`, but is optional.
+
+	This constructor is fallible and may throw an error in the following situations:
+
+    - Date units (year, month, day) that produce an invalid date will raise an error.
+	  For example, January 32nd or February 29th on a non-leap year.
+    - Non-integer values are rounded down. For example, providing 2.5 hours
+	  is equivalent to providing 2 hours, not 2 hours and 30 minutes.
+
+	@param dateTime -- Table containing date & time values
+	@return DateTime -- The new DateTime object
 ]=]
-function dateTime.fromUniversalTime(dateTime: DateTimeValues?): typeof(dateTime)
+function dateTime.fromUniversalTime(values: DateTimeValues): DateTime
 	return nil :: any
 end
 
 --[=[
 	@within DateTime
 
-	Returns a new `DateTime` using the given units from a local time. The
-    values accepted are similar to those found in the time value table
-    returned by `toLocalTime`.
-    
-    - Date units (year, month, day) that produce an invalid date will raise an error. For example, January 32nd or February 29th on a non-leap year.
-    - Time units (hour, minute, second, millisecond) that are outside their normal range are valid. For example, 90 minutes will cause the hour to roll over by 1; -10 seconds will cause the minute value to roll back by 1.
-    - Non-integer values are rounded down. For example, providing 2.5 hours will be equivalent to providing 2 hours, not 2 hours 30 minutes.
-    - Omitted values are assumed to be their lowest value in their normal range, except for year which defaults to 1970.
+	Creates a new `DateTime` from the given date & time values table, in local time.
 
-	@param dateTime Optional values for the dateTime instance, defaults to the current time
-	@return A DateTime instance
+	The given table must contains the following values:
+
+	| Key      | Type     | Range          |
+	|----------|----------|----------------|
+	| `year`   | `number` | `1400 -> 9999` |
+	| `month`  | `number` | `1 -> 12`      |
+	| `day`    | `number` | `1 -> 31`      |
+	| `hour`   | `number` | `0 -> 23`      |
+	| `minute` | `number` | `0 -> 59`      |
+	| `second` | `number` | `0 -> 60`      |
+
+	An additional `millisecond` value may also be included,
+	and should be within the range `0 -> 999`, but is optional.
+
+	This constructor is fallible and may throw an error in the following situations:
+
+    - Date units (year, month, day) that produce an invalid date will raise an error.
+	  For example, January 32nd or February 29th on a non-leap year.
+    - Non-integer values are rounded down. For example, providing 2.5 hours
+	  is equivalent to providing 2 hours, not 2 hours and 30 minutes.
+
+	@param dateTime -- Table containing date & time values
+	@return DateTime -- The new DateTime object
 ]=]
-function dateTime.fromLocalTime(dateTime: DateTimeValues?): typeof(dateTime)
+function dateTime.fromLocalTime(values: DateTimeValues): DateTime
 	return nil :: any
 end
 
 --[=[
 	@within DateTime
 
-	Returns a `DateTime` from an ISO 8601 date-time string in UTC
-    time, such as those returned by `toIsoDate`. If the
-    string parsing fails, the function returns `nil`.
-    
-    An example ISO 8601 date-time string would be `2020-01-02T10:30:45Z`,
-    which represents January 2nd 2020 at 10:30 AM, 45 seconds.
+	Creates a new `DateTime` from an ISO 8601 date-time string.
 
-	@param isoDate An ISO 8601 formatted string
-	@return A DateTime instance
+	This constructor is fallible and may throw an error if the given
+	string does not strictly follow the ISO 8601 date-time string format.
+
+	Some examples of valid ISO 8601 date-time strings:
+
+	- `2020-02-22T18:12:08Z`
+	- `2000-01-31T12:34:56+05:00`
+	- `1970-01-01T00:00:00.055Z`
+
+	@param isoDate -- An ISO 8601 formatted string
+	@return DateTime -- The new DateTime object
 ]=]
-function dateTime.fromIsoDate(iso_date: string): typeof(dateTime)?
+function dateTime.fromIsoDate(isoDate: string): DateTime
 	return nil :: any
 end
-
---[=[
-	@within DateTime
-
-	Formats a date as a ISO 8601 date-time string, returns None if the DateTime 
-	object is invalid. The value returned by this function could be passed to 
-	`fromLocalTime` to produce the original `DateTime` object.
-
-	@return ISO 8601 formatted string
-]=]
-function dateTime:toIsoDate(): string
-	return nil :: any
-end
-
---[=[
-	@within DateTime
-
-	Converts the value of this `DateTime` object to local time. The returned table
-    contains the following keys: `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`,
-    `Millisecond`. For more details, see the time value table in this data type's
-    description. The values within this table could be passed to `fromLocalTime`
-    to produce the original `DateTime` object.
-
-	@return A table of DateTime values
-]=]
-function dateTime:toLocalTime(): DateTimeValues & { month: number }
-	return nil :: any
-end
-
---[=[
-	@within DateTime
-
-	Converts the value of this `DateTime` object to universal time. The returned table
-    contains the following keys: `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`,
-    `Millisecond`. For more details, see the time value table in this data type's
-    description. The values within this table could be passed to `fromUniversalTime`
-    to produce the original `DateTime` object.
-
-	@return A table of DateTime values
-]=]
-function dateTime:toUniversalTime(): DateTimeValues & { month: number }
-	return nil :: any
-end
-
---[=[
-	@within DateTime
-
-	Generates a string from the `DateTime` value interpreted as the specified timezone
-    and a format string. The format string should contain tokens, which will
-    replace to certain date/time values described by the `DateTime` object.
-
-	@param timezone The timezone the formatted time string should follow
-	@param formatString A format string of strfttime items. See [chrono docs](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
-	@param locale The locale the time should be formatted in
-	@return A table of DateTime values
-]=]
-function dateTime:formatTime(timezone: Timezone, formatString: string, locale: Locale): string
-	return nil :: any
-end
-
-export type DateTime = typeof(dateTime)
 
 return dateTime

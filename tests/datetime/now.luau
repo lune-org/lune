@@ -1,8 +1,7 @@
-local DateTime = require("@lune/DateTime")
+local DateTime = require("@lune/datetime")
 
 local TYPE = "DateTime"
 
-assert(
-	typeof(DateTime.now()) == TYPE,
-	`dateTime.now() should return a {TYPE}, returned {tostring(typeof(DateTime.now()))}`
-)
+local now = DateTime.now()
+
+assert(typeof(now) == TYPE, `dateTime.now() should return a {TYPE}, returned {typeof(now)}`)
