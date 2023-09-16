@@ -44,8 +44,12 @@ pub(crate) struct Scheduler<'fut> {
         state and receiver to know when we have run to completion.
         If we have no senders left, we have run to completion.
 
-        Once we no longer store futures in our scheduler, we can
-        get rid of the lifetime on it, store it in our lua app
+        We should also investigate using smol / async-executor and its
+        LocalExecutor struct which does not impose the 'static lifetime
+        restriction on all of the futures spawned on it, unlike tokio.
+
+        If we no longer store futures directly in our scheduler, we
+        can get rid of the lifetime on it, store it in our lua app
         data as a Weak<Scheduler>, together with a Weak<Lua>.
 
         In our lua async functions we can then get a reference to this,
