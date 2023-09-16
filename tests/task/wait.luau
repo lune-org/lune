@@ -2,10 +2,12 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
--- Wait should be accurate down to at least 10ms
--- on Windows, and 6ms on Linux and / or macOS
+-- NOTE: For now we don't test accuracy of waiting, the only thing
+-- we guarantee is that task.wait waits for _at least_ the amount
+-- of time given. Windows sleep is extremely inaccurate.
+local TEST_ACCURACY = false
 
-local EPSILON = if process.os == "windows" then 10 / 1_000 else 6 / 1_000
+local EPSILON = if process.os == "windows" then 12 / 1_000 else 8 / 1_000
 
 local function test(expected: number)
 	local start = os.clock()
@@ -20,7 +22,19 @@ local function test(expected: number)
 			2
 		)
 	end
-	local elapsed = (os.clock() - start)
+	local elapsed = os.clock() - start
+	if elapsed < expected then
+		error(
+			string.format(
+				"Expected task.wait to yield for at least %.3f seconds, yielded for %.3f seconds",
+				expected,
+				elapsed
+			)
+		)
+	end
+	if not TEST_ACCURACY then
+		return
+	end
 	local difference = math.abs(elapsed - expected)
 	if difference > EPSILON then
 		error(
