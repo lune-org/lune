@@ -5,30 +5,75 @@ on:
   pull_request:
   workflow_dispatch:
 
-jobs:
-  ci:
-    name: CI
-    runs-on: ubuntu-latest
+defaults:
+  run:
+    shell: bash
 
+jobs:
+
+  fmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt
 
-      - name: Rustfmt
+      - name: Check Formatting
         run: cargo fmt -- --check
 
-      - name: Build
-        run: cargo build --locked
+  ci:
+    needs: ["fmt"]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x86_64
+            runner-os: windows-latest
+            cargo-target: x86_64-pc-windows-msvc
 
-      - name: Clippy
-        run: cargo clippy
+          - name: Linux x86_64
+            runner-os: ubuntu-latest
+            cargo-target: x86_64-unknown-linux-gnu
+
+          - name: macOS x86_64
+            runner-os: macos-latest
+            cargo-target: x86_64-apple-darwin
+
+    name: CI - ${{ matrix.name }}
+    runs-on: ${{ matrix.runner-os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: ${{ matrix.cargo-target }}
+
+      - name: Build
+        run: |
+          cargo build \
+          --locked --all-features \
+          --target ${{ matrix.cargo-target }}
+
+      - name: Lint
+        run: |
+          cargo clippy \
+          --locked --all-features \
+          --target ${{ matrix.cargo-target }}
 
       - name: Test
-        run: cargo test --lib
+        run: |
+          cargo test \
+          --locked --all-features \
+          --target ${{ matrix.cargo-target }}

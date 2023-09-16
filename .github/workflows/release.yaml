@@ -6,6 +6,10 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 env:
   CARGO_TARGET_DIR: output
 
@@ -17,7 +21,7 @@ jobs:
       version: ${{ steps.get_version.outputs.value }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get version from manifest
         uses: SebRollen/toml-action@9062fbef52816d61278d24ce53c8070440e1e8dd
@@ -60,14 +64,14 @@ jobs:
     runs-on: ${{ matrix.runner-os }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.cargo-target }}
 
-      - name: Install tooling (aarch64-unknown-linux-gnu)
+      - name: Install build tooling (aarch64-unknown-linux-gnu)
         if: matrix.cargo-target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update -y
@@ -75,14 +79,12 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Build binary
-        shell: bash
         run: |
           cargo build \
           --locked --release --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Create binary archive
-        shell: bash
         run: |
           mkdir -p staging
           if [ "${{ matrix.runner-os }}" = "windows-latest" ]; then
@@ -113,7 +115,6 @@ jobs:
           path: ./binaries
 
       - name: Discover binaries
-        shell: bash
         run: |
           cd ./binaries
           echo ""
