@@ -394,13 +394,13 @@ impl From<DomCFrame> for CFrame {
 
 impl From<CFrame> for DomCFrame {
     fn from(v: CFrame) -> Self {
-        let (rx, ry, rz) = v.orientation();
+        let orientation = v.orientation();
         DomCFrame {
             position: DomVector3::from(Vector3(v.position())),
             orientation: DomMatrix3::new(
-                DomVector3::from(Vector3(rx)),
-                DomVector3::from(Vector3(ry)),
-                DomVector3::from(Vector3(rz)),
+                DomVector3::from(Vector3(orientation.x_axis)),
+                DomVector3::from(Vector3(orientation.y_axis)),
+                DomVector3::from(Vector3(orientation.z_axis)),
             ),
         }
     }
