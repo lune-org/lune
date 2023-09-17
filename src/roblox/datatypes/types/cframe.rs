@@ -377,10 +377,11 @@ impl ops::Sub<Vector3> for CFrame {
 
 impl From<DomCFrame> for CFrame {
     fn from(v: DomCFrame) -> Self {
+        let transposed = v.orientation.transpose();
         CFrame(Mat4::from_cols(
-            Vector3::from(v.orientation.x).0.extend(0.0),
-            Vector3::from(v.orientation.y).0.extend(0.0),
-            Vector3::from(v.orientation.z).0.extend(0.0),
+            Vector3::from(transposed.x).0.extend(0.0),
+            Vector3::from(transposed.y).0.extend(0.0),
+            Vector3::from(transposed.z).0.extend(0.0),
             Vector3::from(v.position).0.extend(1.0),
         ))
     }
@@ -388,13 +389,13 @@ impl From<DomCFrame> for CFrame {
 
 impl From<CFrame> for DomCFrame {
     fn from(v: CFrame) -> Self {
-        let orientation = v.orientation();
+        let transposed = v.orientation().transpose();
         DomCFrame {
             position: DomVector3::from(Vector3(v.position())),
             orientation: DomMatrix3::new(
-                DomVector3::from(Vector3(orientation.x_axis)),
-                DomVector3::from(Vector3(orientation.y_axis)),
-                DomVector3::from(Vector3(orientation.z_axis)),
+                DomVector3::from(Vector3(transposed.x_axis)),
+                DomVector3::from(Vector3(transposed.y_axis)),
+                DomVector3::from(Vector3(transposed.z_axis)),
             ),
         }
     }
@@ -438,9 +439,9 @@ mod cframe_test {
         );
 
         let cframe = CFrame(Mat4::from_cols(
-            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
-            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
-            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 1.0, 1.0).extend(0.0),
+            Vec3::new(2.0, 2.0, 2.0).extend(0.0),
+            Vec3::new(3.0, 3.0, 3.0).extend(0.0),
             Vec3::new(1.0, 2.0, 3.0).extend(1.0),
         ));
 
@@ -459,9 +460,9 @@ mod cframe_test {
         let dom_cframe = DomCFrame::new(
             DomVector3::new(1.0, 2.0, 3.0),
             DomMatrix3::new(
-                DomVector3::new(1.0, 2.0, 3.0),
-                DomVector3::new(1.0, 2.0, 3.0),
-                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 1.0, 1.0),
+                DomVector3::new(2.0, 2.0, 2.0),
+                DomVector3::new(3.0, 3.0, 3.0),
             ),
         );
 
