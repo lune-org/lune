@@ -414,3 +414,53 @@ fn look_at(from: Vec3, to: Vec3, up: Vec3) -> Mat4 {
         from.extend(1.0),
     )
 }
+
+#[cfg(test)]
+mod cframe_test {
+    use glam::{Mat4, Vec3};
+    use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
+
+    use super::CFrame;
+
+    #[test]
+    fn dom_cframe_from_cframe() {
+        let dom_cframe = DomCFrame::new(
+            DomVector3::new(1.0, 2.0, 3.0),
+            DomMatrix3::new(
+                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 2.0, 3.0),
+            ),
+        );
+
+        let cframe = CFrame(Mat4::from_cols(
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(1.0),
+        ));
+
+        assert_eq!(CFrame::from(dom_cframe), cframe)
+    }
+
+    #[test]
+    fn cframe_from_dom_cframe() {
+        let cframe = CFrame(Mat4::from_cols(
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(1.0),
+        ));
+
+        let dom_cframe = DomCFrame::new(
+            DomVector3::new(1.0, 2.0, 3.0),
+            DomMatrix3::new(
+                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 2.0, 3.0),
+            ),
+        );
+
+        assert_eq!(DomCFrame::from(cframe), dom_cframe)
+    }
+}
