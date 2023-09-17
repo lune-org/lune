@@ -258,7 +258,7 @@ end
 	- Date units (year, month, day) that produce an invalid date will raise an error. For example, January 32nd or February 29th on a non-leap year.
 	- Non-integer values are rounded down. For example, providing 2.5 hours is equivalent to providing 2 hours, not 2 hours and 30 minutes.
 
-	@param dateTime -- Table containing date & time values
+	@param values -- Table containing date & time values
 	@return DateTime -- The new DateTime object
 ]=]
 function dateTime.fromUniversalTime(values: DateTimeValues): DateTime
@@ -289,7 +289,7 @@ end
 	- Date units (year, month, day) that produce an invalid date will raise an error. For example, January 32nd or February 29th on a non-leap year.
 	- Non-integer values are rounded down. For example, providing 2.5 hours is equivalent to providing 2 hours, not 2 hours and 30 minutes.
 
-	@param dateTime -- Table containing date & time values
+	@param values -- Table containing date & time values
 	@return DateTime -- The new DateTime object
 ]=]
 function dateTime.fromLocalTime(values: DateTimeValues): DateTime
