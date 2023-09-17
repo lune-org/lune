@@ -270,10 +270,10 @@ impl LuaUserData for CFrame {
             let pos = this.position();
             let transposed = this.orientation().transpose();
             Ok((
-                pos.x, pos.y, pos.z,
-				 transposed.x_axis.x, transposed.x_axis.y,   transposed.x_axis.z,
-				 transposed.y_axis.x, transposed.y_axis.y,   transposed.y_axis.z,
-				 transposed.z_axis.x, transposed.z_axis.y,   transposed.z_axis.z,
+                pos.x,               pos.y,                 pos.z,
+                transposed.x_axis.x, transposed.x_axis.y,   transposed.x_axis.z,
+                transposed.y_axis.x, transposed.y_axis.y,   transposed.y_axis.z,
+                transposed.z_axis.x, transposed.z_axis.y,   transposed.z_axis.z,
             ))
         });
         methods.add_method("ToEulerAnglesXYZ", |_, this, ()| {
