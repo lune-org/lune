@@ -61,7 +61,7 @@ impl DateTime {
         To use this method the same way you would use a more traditional `from_unix_timestamp`
         that takes a `u64` of seconds or similar type, casting the value is sufficient:
 
-        ```rust
+        ```rust ignore
         DateTime::from_unix_timestamp_float(123456789u64 as f64)
         ```
 
