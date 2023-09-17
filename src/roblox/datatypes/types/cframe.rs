@@ -183,15 +183,9 @@ impl LuaUserData for CFrame {
         fields.add_field_method_get("X", |_, this| Ok(this.position().x));
         fields.add_field_method_get("Y", |_, this| Ok(this.position().y));
         fields.add_field_method_get("Z", |_, this| Ok(this.position().z));
-        fields.add_field_method_get("XVector", |_, this| {
-            Ok(Vector3(this.orientation().transpose().x_axis))
-        });
-        fields.add_field_method_get("YVector", |_, this| {
-            Ok(Vector3(this.orientation().transpose().y_axis))
-        });
-        fields.add_field_method_get("ZVector", |_, this| {
-            Ok(Vector3(this.orientation().transpose().z_axis))
-        });
+        fields.add_field_method_get("XVector", |_, this| Ok(Vector3(this.orientation().x_axis)));
+        fields.add_field_method_get("YVector", |_, this| Ok(Vector3(this.orientation().y_axis)));
+        fields.add_field_method_get("ZVector", |_, this| Ok(Vector3(this.orientation().z_axis)));
         fields.add_field_method_get("RightVector", |_, this| {
             Ok(Vector3(this.orientation().x_axis))
         });
