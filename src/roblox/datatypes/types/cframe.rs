@@ -104,41 +104,55 @@ impl LuaExportsTable<'_> for CFrame {
         type ArgsPosXYZQuat = (f32, f32, f32, f32, f32, f32, f32);
         type ArgsMatrix = (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
 
-        let cframe_new = |lua, args: LuaMultiValue| {
-            if args.clone().into_vec().is_empty() {
-                Ok(CFrame(Mat4::IDENTITY))
-            } else if let Ok(pos) = ArgsPos::from_lua_multi(args.clone(), lua) {
-                Ok(CFrame(Mat4::from_translation(pos.0)))
-            } else if let Ok((from, to, up)) = ArgsLook::from_lua_multi(args.clone(), lua) {
-                Ok(CFrame(look_at(
-                    from.0,
-                    to.0,
-                    up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
-                )))
-            } else if let Ok((x, y, z)) = ArgsPosXYZ::from_lua_multi(args.clone(), lua) {
-                Ok(CFrame(Mat4::from_translation(Vec3::new(x, y, z))))
-            } else if let Ok((x, y, z, qx, qy, qz, qw)) =
-                ArgsPosXYZQuat::from_lua_multi(args.clone(), lua)
-            {
-                Ok(CFrame(Mat4::from_rotation_translation(
+        let cframe_new = |lua, args: LuaMultiValue| match args.len() {
+            0 => Ok(CFrame(Mat4::IDENTITY)),
+
+            1 => match ArgsPos::from_lua_multi(args, lua) {
+                Ok(pos) => Ok(CFrame(Mat4::from_translation(pos.0))),
+                Err(err) => Err(err),
+            },
+
+            3 => {
+                if let Ok((from, to, up)) = ArgsLook::from_lua_multi(args.clone(), lua) {
+                    Ok(CFrame(look_at(
+                        from.0,
+                        to.0,
+                        up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
+                    )))
+                } else if let Ok((x, y, z)) = ArgsPosXYZ::from_lua_multi(args, lua) {
+                    Ok(CFrame(Mat4::from_translation(Vec3::new(x, y, z))))
+                } else {
+                    // TODO: Make this error message better
+                    Err(LuaError::RuntimeError(
+                        "Invalid arguments to constructor".to_string(),
+                    ))
+                }
+            }
+
+            7 => match ArgsPosXYZQuat::from_lua_multi(args, lua) {
+                Ok((x, y, z, qx, qy, qz, qw)) => Ok(CFrame(Mat4::from_rotation_translation(
                     Quat::from_array([qx, qy, qz, qw]),
                     Vec3::new(x, y, z),
-                )))
-            } else if let Ok((x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)) =
-                ArgsMatrix::from_lua_multi(args, lua)
-            {
-                Ok(CFrame(Mat4::from_cols_array_2d(&[
-                    [r00, r01, r02, 0.0],
-                    [r10, r11, r12, 0.0],
-                    [r20, r21, r22, 0.0],
-                    [x, y, z, 1.0],
-                ])))
-            } else {
-                // FUTURE: Better error message here using given arg types
-                Err(LuaError::RuntimeError(
-                    "Invalid arguments to constructor".to_string(),
-                ))
-            }
+                ))),
+                Err(err) => Err(err),
+            },
+
+            12 => match ArgsMatrix::from_lua_multi(args, lua) {
+                Ok((x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)) => {
+                    Ok(CFrame(Mat4::from_cols_array_2d(&[
+                        [r00, r01, r02, 0.0],
+                        [r10, r11, r12, 0.0],
+                        [r20, r21, r22, 0.0],
+                        [x, y, z, 1.0],
+                    ])))
+                }
+                Err(err) => Err(err),
+            },
+
+            _ => Err(LuaError::RuntimeError(format!(
+                "Invalid number of arguments: expected 0, 1, 3, 7, or 12, got {}",
+                args.len()
+            ))),
         };
 
         TableBuilder::new(lua)?
