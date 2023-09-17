@@ -203,7 +203,7 @@ local dateTime = {}
 --[=[
 	@within DateTime
 
-    Returns a `DateTime` representing the current moment in time.
+	Returns a `DateTime` representing the current moment in time.
 
 	@return DateTime -- The new DateTime object
 ]=]
