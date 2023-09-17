@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD041 -->
 
-<img align="right" width="250" src="/assets/tilt-grid_svg.svg" />
+<img align="right" width="250" src="assets/logo/tilt_svg.svg" />
 
 ---
 
