@@ -331,14 +331,14 @@ impl LuaUserData for CFrame {
 impl fmt::Display for CFrame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pos = self.position();
-        let (rx, ry, rz) = self.orientation();
+        let transposed = self.orientation().transpose();
         write!(
             f,
             "{}, {}, {}, {}",
             Vector3(pos),
-            Vector3(rx),
-            Vector3(ry),
-            Vector3(rz)
+            Vector3(transposed.x_axis),
+            Vector3(transposed.y_axis),
+            Vector3(transposed.z_axis)
         )
     }
 }
