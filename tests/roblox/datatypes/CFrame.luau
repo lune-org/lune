@@ -72,6 +72,8 @@ assertEq(
 	CFrame.new(1, 2, 3)
 )
 
+assertEq(CFrame.new(1, 2, 3, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(1, 2, 3))
+
 -- Constants
 
 assertEq(CFrame.identity, CFrame.new())
