@@ -140,9 +140,9 @@ impl LuaExportsTable<'_> for CFrame {
             12 => match ArgsMatrix::from_lua_multi(args, lua) {
                 Ok((x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)) => {
                     Ok(CFrame(Mat4::from_cols_array_2d(&[
-                        [r00, r01, r02, 0.0],
-                        [r10, r11, r12, 0.0],
-                        [r20, r21, r22, 0.0],
+                        [r00, r10, r20, 0.0],
+                        [r01, r11, r21, 0.0],
+                        [r02, r12, r22, 0.0],
                         [x, y, z, 1.0],
                     ])))
                 }
