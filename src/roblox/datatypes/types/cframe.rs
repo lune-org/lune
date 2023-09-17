@@ -264,12 +264,12 @@ impl LuaUserData for CFrame {
         #[rustfmt::skip]
         methods.add_method("GetComponents", |_, this, ()| {
             let pos = this.position();
-            let (rx, ry, rz) = this.orientation();
+            let transposed = this.orientation().transpose();
             Ok((
-                pos.x, pos.y, -pos.z,
-				 rx.x,  rx.y,   rx.z,
-				 ry.x,  ry.y,   ry.z,
-				 rz.x,  rz.y,   rz.z,
+                pos.x, pos.y, pos.z,
+				 transposed.x_axis.x, transposed.x_axis.y,   transposed.x_axis.z,
+				 transposed.y_axis.x, transposed.y_axis.y,   transposed.y_axis.z,
+				 transposed.z_axis.x, transposed.z_axis.y,   transposed.z_axis.z,
             ))
         });
         methods.add_method("ToEulerAnglesXYZ", |_, this, ()| {
