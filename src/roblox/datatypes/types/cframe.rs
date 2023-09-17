@@ -1,7 +1,7 @@
 use core::fmt;
 use std::ops;
 
-use glam::{EulerRot, Mat4, Quat, Vec3};
+use glam::{EulerRot, Mat3, Mat4, Quat, Vec3};
 use mlua::{prelude::*, Variadic};
 use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
@@ -26,8 +26,8 @@ impl CFrame {
         self.0.w_axis.truncate()
     }
 
-    fn orientation(&self) -> (Vec3, Vec3, Vec3) {
-        (
+    fn orientation(&self) -> Mat3 {
+        Mat3::from_cols(
             self.0.x_axis.truncate(),
             self.0.y_axis.truncate(),
             self.0.z_axis.truncate(),
