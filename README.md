@@ -1,8 +1,11 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD041 -->
 
+<img align="right" width="250" src="/assets/tilt-grid_svg.svg" />
+
+---
+
 <div align="center">
-	<h1> Lune 🌙 </h1>
 	<div>
 		<a href="https://crates.io/crates/lune">
 			<img src="https://img.shields.io/crates/v/lune.svg?label=Version" alt="Current Lune library version" />
