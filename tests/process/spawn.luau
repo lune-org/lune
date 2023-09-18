@@ -138,3 +138,16 @@ assert(
 	echoResult.stdout == (echoMessage .. "\n"), -- Note that echo adds a newline
 	"Inheriting stdio did not return proper output"
 )
+
+-- Passing stdin strings should work
+
+local stdinChild = process.spawn("xargs", {
+	"echo",
+}, {
+	stdin = echoMessage,
+})
+
+assert(
+	stdinChild.stdout == (echoMessage .. "\n"), -- Note that echo adds a newline
+	"Stdin passing did not return proper output"
+)
