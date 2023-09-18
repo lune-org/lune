@@ -221,14 +221,14 @@ async fn spawn_command(
     if let Some(stdin) = stdin {
         let mut child_stdin = child.stdin.take().unwrap();
 
-        let stdin_writer_thread = task::spawn(async move {
+        let _ = task::spawn(async move {
             let mut tee = AsyncTeeWriter::new(&mut child_stdin);
-            tee.write_all(stdin.as_bytes()).await.unwrap();
-        });
+            tee.write_all(stdin.as_bytes()).await.into_lua_err()?;
 
-        stdin_writer_thread
-            .await
-            .expect("Tee writer for stdin errored");
+            Ok::<(), LuaError>(())
+        })
+        .await
+        .expect("Tee writer for stdin errored");
     }
 
     if inherit_stdio {
