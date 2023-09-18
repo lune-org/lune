@@ -13,12 +13,14 @@ export type SpawnOptionsStdio = "inherit" | "default"
 	* `env` - Extra environment variables to give to the process
 	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
 	* `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
+	* `stdin` - Optional standard input to pass to spawned child process
 ]=]
 export type SpawnOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
 	shell: (boolean | string)?,
 	stdio: SpawnOptionsStdio?,
+	stdin: string?,
 }
 
 --[=[
