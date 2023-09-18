@@ -9,7 +9,7 @@ use crate::lune::{
 pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
     lua.create_async_function(|_, args: LuaMultiValue| async move {
         let formatted = format!(
-            "{}\n{}",
+            "{}\n{}\n",
             format_label("warn"),
             pretty_format_multi_value(&args)?
         );

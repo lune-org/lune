@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed missing trailing newline when using the `warn` global
 - Fixed constructor for `CFrame` in the `roblox` built-in library not parsing the 12-arg overload correctly. ([#102])
 - Fixed various functions for `CFrame` in the `roblox` built-in library being incorrect, specifically row-column ordering and some flipped signs. ([#103])
 
