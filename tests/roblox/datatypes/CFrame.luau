@@ -72,6 +72,8 @@ assertEq(
 	CFrame.new(1, 2, 3)
 )
 
+assertEq(CFrame.new(1, 2, 3, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(1, 2, 3))
+
 -- Constants
 
 assertEq(CFrame.identity, CFrame.new())
@@ -121,6 +123,18 @@ assertEq(CFrame.fromOrientation(0, -math.rad(90), 0), CFrame.lookAt(Vector3.zero
 assertEq(
 	CFrame.new(0, 0, -5) * CFrame.fromOrientation(0, math.rad(90), 0),
 	CFrame.lookAt(Vector3.new(0, 0, -5), Vector3.new(0, 0, -5) - Vector3.xAxis)
+)
+
+-- Angles
+
+assertEq(
+	CFrame.Angles(math.pi/2, math.pi/4, math.pi/4),
+	CFrame.new(
+		0, 0, 0,
+		0.49999997, -0.49999997, 0.707106769,
+		0.49999994, -0.5, -0.707106769,
+		0.707106769, 0.707106769, 0
+	)
 )
 
 -- TODO: More methods

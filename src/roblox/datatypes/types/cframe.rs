@@ -1,7 +1,7 @@
 use core::fmt;
 use std::ops;
 
-use glam::{EulerRot, Mat4, Quat, Vec3};
+use glam::{EulerRot, Mat3, Mat4, Quat, Vec3};
 use mlua::{prelude::*, Variadic};
 use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
@@ -26,8 +26,8 @@ impl CFrame {
         self.0.w_axis.truncate()
     }
 
-    fn orientation(&self) -> (Vec3, Vec3, Vec3) {
-        (
+    fn orientation(&self) -> Mat3 {
+        Mat3::from_cols(
             self.0.x_axis.truncate(),
             self.0.y_axis.truncate(),
             self.0.z_axis.truncate(),
@@ -140,9 +140,9 @@ impl LuaExportsTable<'_> for CFrame {
             12 => match ArgsMatrix::from_lua_multi(args, lua) {
                 Ok((x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)) => {
                     Ok(CFrame(Mat4::from_cols_array_2d(&[
-                        [r00, r01, r02, 0.0],
-                        [r10, r11, r12, 0.0],
-                        [r20, r21, r22, 0.0],
+                        [r00, r10, r20, 0.0],
+                        [r01, r11, r21, 0.0],
+                        [r02, r12, r22, 0.0],
                         [x, y, z, 1.0],
                     ])))
                 }
@@ -183,12 +183,16 @@ impl LuaUserData for CFrame {
         fields.add_field_method_get("X", |_, this| Ok(this.position().x));
         fields.add_field_method_get("Y", |_, this| Ok(this.position().y));
         fields.add_field_method_get("Z", |_, this| Ok(this.position().z));
-        fields.add_field_method_get("XVector", |_, this| Ok(Vector3(this.orientation().0)));
-        fields.add_field_method_get("YVector", |_, this| Ok(Vector3(this.orientation().1)));
-        fields.add_field_method_get("ZVector", |_, this| Ok(Vector3(this.orientation().2)));
-        fields.add_field_method_get("RightVector", |_, this| Ok(Vector3(this.orientation().0)));
-        fields.add_field_method_get("UpVector", |_, this| Ok(Vector3(this.orientation().1)));
-        fields.add_field_method_get("LookVector", |_, this| Ok(Vector3(-this.orientation().2)));
+        fields.add_field_method_get("XVector", |_, this| Ok(Vector3(this.orientation().x_axis)));
+        fields.add_field_method_get("YVector", |_, this| Ok(Vector3(this.orientation().y_axis)));
+        fields.add_field_method_get("ZVector", |_, this| Ok(Vector3(this.orientation().z_axis)));
+        fields.add_field_method_get("RightVector", |_, this| {
+            Ok(Vector3(this.orientation().x_axis))
+        });
+        fields.add_field_method_get("UpVector", |_, this| Ok(Vector3(this.orientation().y_axis)));
+        fields.add_field_method_get("LookVector", |_, this| {
+            Ok(Vector3(-this.orientation().z_axis))
+        });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -264,12 +268,12 @@ impl LuaUserData for CFrame {
         #[rustfmt::skip]
         methods.add_method("GetComponents", |_, this, ()| {
             let pos = this.position();
-            let (rx, ry, rz) = this.orientation();
+            let transposed = this.orientation().transpose();
             Ok((
-                pos.x, pos.y, -pos.z,
-				 rx.x,  rx.y,   rx.z,
-				 ry.x,  ry.y,   ry.z,
-				 rz.x,  rz.y,   rz.z,
+                pos.x,               pos.y,                 pos.z,
+                transposed.x_axis.x, transposed.x_axis.y,   transposed.x_axis.z,
+                transposed.y_axis.x, transposed.y_axis.y,   transposed.y_axis.z,
+                transposed.z_axis.x, transposed.z_axis.y,   transposed.z_axis.z,
             ))
         });
         methods.add_method("ToEulerAnglesXYZ", |_, this, ()| {
@@ -321,14 +325,14 @@ impl LuaUserData for CFrame {
 impl fmt::Display for CFrame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pos = self.position();
-        let (rx, ry, rz) = self.orientation();
+        let transposed = self.orientation().transpose();
         write!(
             f,
             "{}, {}, {}, {}",
             Vector3(pos),
-            Vector3(rx),
-            Vector3(ry),
-            Vector3(rz)
+            Vector3(transposed.x_axis),
+            Vector3(transposed.y_axis),
+            Vector3(transposed.z_axis)
         )
     }
 }
@@ -373,10 +377,11 @@ impl ops::Sub<Vector3> for CFrame {
 
 impl From<DomCFrame> for CFrame {
     fn from(v: DomCFrame) -> Self {
+        let transposed = v.orientation.transpose();
         CFrame(Mat4::from_cols(
-            Vector3::from(v.orientation.x).0.extend(0.0),
-            Vector3::from(v.orientation.y).0.extend(0.0),
-            Vector3::from(v.orientation.z).0.extend(0.0),
+            Vector3::from(transposed.x).0.extend(0.0),
+            Vector3::from(transposed.y).0.extend(0.0),
+            Vector3::from(transposed.z).0.extend(0.0),
             Vector3::from(v.position).0.extend(1.0),
         ))
     }
@@ -384,13 +389,13 @@ impl From<DomCFrame> for CFrame {
 
 impl From<CFrame> for DomCFrame {
     fn from(v: CFrame) -> Self {
-        let (rx, ry, rz) = v.orientation();
+        let transposed = v.orientation().transpose();
         DomCFrame {
             position: DomVector3::from(Vector3(v.position())),
             orientation: DomMatrix3::new(
-                DomVector3::from(Vector3(rx)),
-                DomVector3::from(Vector3(ry)),
-                DomVector3::from(Vector3(rz)),
+                DomVector3::from(Vector3(transposed.x_axis)),
+                DomVector3::from(Vector3(transposed.y_axis)),
+                DomVector3::from(Vector3(transposed.z_axis)),
             ),
         }
     }
@@ -413,4 +418,54 @@ fn look_at(from: Vec3, to: Vec3, up: Vec3) -> Mat4 {
         Vec3::new(xaxis.z, yaxis.z, dir.z).extend(0.0),
         from.extend(1.0),
     )
+}
+
+#[cfg(test)]
+mod cframe_test {
+    use glam::{Mat4, Vec3};
+    use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
+
+    use super::CFrame;
+
+    #[test]
+    fn dom_cframe_from_cframe() {
+        let dom_cframe = DomCFrame::new(
+            DomVector3::new(1.0, 2.0, 3.0),
+            DomMatrix3::new(
+                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 2.0, 3.0),
+                DomVector3::new(1.0, 2.0, 3.0),
+            ),
+        );
+
+        let cframe = CFrame(Mat4::from_cols(
+            Vec3::new(1.0, 1.0, 1.0).extend(0.0),
+            Vec3::new(2.0, 2.0, 2.0).extend(0.0),
+            Vec3::new(3.0, 3.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(1.0),
+        ));
+
+        assert_eq!(CFrame::from(dom_cframe), cframe)
+    }
+
+    #[test]
+    fn cframe_from_dom_cframe() {
+        let cframe = CFrame(Mat4::from_cols(
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(0.0),
+            Vec3::new(1.0, 2.0, 3.0).extend(1.0),
+        ));
+
+        let dom_cframe = DomCFrame::new(
+            DomVector3::new(1.0, 2.0, 3.0),
+            DomMatrix3::new(
+                DomVector3::new(1.0, 1.0, 1.0),
+                DomVector3::new(2.0, 2.0, 2.0),
+                DomVector3::new(3.0, 3.0, 3.0),
+            ),
+        );
+
+        assert_eq!(DomCFrame::from(cframe), dom_cframe)
+    }
 }
