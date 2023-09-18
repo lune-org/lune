@@ -14,6 +14,7 @@ pub struct ProcessSpawnOptions {
     pub(crate) envs: HashMap<String, String>,
     pub(crate) shell: Option<String>,
     pub(crate) inherit_stdio: bool,
+    pub(crate) stdin: Option<String>,
 }
 
 impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
@@ -128,6 +129,20 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
             value => {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'stdio' - expected 'string', got '{}'",
+                    value.type_name()
+                )))
+            }
+        }
+
+        /*
+            If we have stdin contents, we need to pass those to the child process
+        */
+        match value.get("stdin")? {
+            LuaValue::Nil => this.stdin = None,
+            LuaValue::String(s) => this.stdin = Some(s.to_string_lossy().to_string()),
+            value => {
+                return Err(LuaError::RuntimeError(format!(
+                    "Invalid type for option 'stdin' - expected 'string', got '{}'",
                     value.type_name()
                 )))
             }

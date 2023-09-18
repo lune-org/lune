@@ -7,8 +7,11 @@ use std::{
 use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
+use tokio::{io::AsyncWriteExt, task};
 
-use crate::lune::{scheduler::Scheduler, util::TableBuilder};
+use crate::lune::{
+    builtins::process::tee_writer::AsyncTeeWriter, scheduler::Scheduler, util::TableBuilder,
+};
 
 mod tee_writer;
 
@@ -202,13 +205,31 @@ async fn spawn_command(
     options: ProcessSpawnOptions,
 ) -> LuaResult<(ExitStatus, Vec<u8>, Vec<u8>)> {
     let inherit_stdio = options.inherit_stdio;
+    let stdin = options.stdin.clone();
 
-    let child = options
+    let mut child = options
         .into_command(program, args)
-        .stdin(Stdio::null())
+        .stdin(match stdin.is_some() {
+            true => Stdio::piped(),
+            false => Stdio::null(),
+        })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
+
+    // If the stdin option was provided, we write that to the child
+    if let Some(stdin) = stdin {
+        let mut child_stdin = child.stdin.take().unwrap();
+
+        let stdin_writer_thread = task::spawn(async move {
+            let mut tee = AsyncTeeWriter::new(&mut child_stdin);
+            tee.write_all(stdin.as_bytes()).await.unwrap();
+        });
+
+        stdin_writer_thread
+            .await
+            .expect("Tee writer for stdin errored");
+    }
 
     if inherit_stdio {
         pipe_and_inherit_child_process_stdio(child).await
