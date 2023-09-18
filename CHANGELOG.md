@@ -12,6 +12,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a new `datetime` built-in library for handling date & time values, parsing, formatting, and more ([#94])
+
+  Example usage:
+
+  ```lua
+  local DateTime = require("@lune/datetime")
+
+  -- Creates a DateTime for the current exact moment in time
+  local now = DateTime.now()
+
+  -- Formats the current moment in time as an ISO 8601 string
+  print(now:toIsoDate())
+
+  -- Formats the current moment in time, using the local
+  -- time, the French locale, and the specified time string
+  print(now:formatLocalTime("%A, %d %B %Y", "fr"))
+
+  -- Returns a specific moment in time as a DateTime instance
+  local someDayInTheFuture = DateTime.fromLocalTime({
+  	year = 3033,
+  	month = 8,
+  	day = 26,
+  	hour = 16,
+  	minute = 56,
+  	second = 28,
+  	millisecond = 892,
+  })
+
+  -- Extracts the current local date & time as separate values (same values as above table)
+  print(now:toLocalTime())
+
+  -- Returns a DateTime instance from a given float, where the whole
+  -- denotes the seconds and the fraction denotes the milliseconds
+  -- Note that the fraction for millis here is completely optional
+  DateTime.fromUnixTimestamp(871978212313.321)
+
+  -- Extracts the current universal (UTC) date & time as separate values
+  print(now:toUniversalTime())
+  ```
+
 - Added [Terrain:GetMaterialColor](https://create.roblox.com/docs/reference/engine/classes/Terrain#GetMaterialColor) and [Terrain:SetMaterialColor](https://create.roblox.com/docs/reference/engine/classes/Terrain#SetMaterialColor) ([#93])
 - Added support for a variable number of arguments for CFrame methods ([#85])
 
@@ -19,8 +59,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update to Luau version `0.594`
 
-[#93]: https://github.com/filiptibell/lune/pull/93
+### Fixed
+
+- Fixed constructor for `CFrame` in the `roblox` built-in library not parsing the 12-arg overload correctly. ([#102])
+- Fixed various functions for `CFrame` in the `roblox` built-in library being incorrect, specifically row-column ordering and some flipped signs. ([#103])
+
 [#85]: https://github.com/filiptibell/lune/pull/85
+[#93]: https://github.com/filiptibell/lune/pull/93
+[#94]: https://github.com/filiptibell/lune/pull/94
+[#102]: https://github.com/filiptibell/lune/pull/102
+[#103]: https://github.com/filiptibell/lune/pull/103
 
 ## `0.7.7` - August 23rd, 2023
 
