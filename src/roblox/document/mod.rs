@@ -248,9 +248,19 @@ impl Document {
 
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
 
-        for data_model_child in i.get_children() {
-            data_model_child.clone_into_external_dom(&mut dom);
+        // We want to clone the entire DataModel into a new dom. To correctly preserve Ref
+        // properties, we'll have to first call clone_into_external_dom on the root...
+        let cloned_root = i.clone_into_external_dom(&mut dom);
+
+        // ...then transfer its children to the new root (the unwrap is safe because
+        // clone_into_external_dom always inserts the cloned instance into the destination
+        // dom)...
+        for child in dom.get_by_ref(cloned_root).unwrap().children().to_owned() {
+            dom.transfer_within(child, dom.root_ref())
         }
+
+        // ...and then get rid of the cloned root.
+        dom.destroy(cloned_root);
 
         postprocess_dom_for_place(&mut dom);
 
