@@ -2,30 +2,56 @@ local fs = require("@lune/fs")
 local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
 
-local game = Instance.new("DataModel")
+-- Smoke tests
 
-local workspace = game:GetService("Workspace")
+do
+	local game = Instance.new("DataModel")
 
-local model = Instance.new("Model")
-local part = Instance.new("Part")
+	local workspace = game:GetService("Workspace")
 
-part.Parent = model
-model.Parent = workspace
+	local model = Instance.new("Model")
+	local part = Instance.new("Part")
 
-local placeAsBinary = roblox.serializePlace(game)
-local placeAsXml = roblox.serializePlace(game, true)
+	part.Parent = model
+	model.Parent = workspace
 
-fs.writeFile("bin/temp-place.rbxl", placeAsBinary)
-fs.writeFile("bin/temp-place.rbxlx", placeAsXml)
+	local placeAsBinary = roblox.serializePlace(game)
+	local placeAsXml = roblox.serializePlace(game, true)
 
-local savedFileBinary = fs.readFile("bin/temp-place.rbxl")
-local savedFileXml = fs.readFile("bin/temp-place.rbxlx")
+	fs.writeFile("bin/temp-place.rbxl", placeAsBinary)
+	fs.writeFile("bin/temp-place.rbxlx", placeAsXml)
 
-local savedBinary = roblox.deserializePlace(savedFileBinary)
-local savedXml = roblox.deserializePlace(savedFileXml)
+	local savedFileBinary = fs.readFile("bin/temp-place.rbxl")
+	local savedFileXml = fs.readFile("bin/temp-place.rbxlx")
 
-assert(savedBinary.Name ~= "ROOT")
-assert(savedXml.Name ~= "ROOT")
+	local savedBinary = roblox.deserializePlace(savedFileBinary)
+	local savedXml = roblox.deserializePlace(savedFileXml)
 
-assert(savedBinary.ClassName == "DataModel")
-assert(savedXml.ClassName == "DataModel")
+	assert(savedBinary.Name ~= "ROOT")
+	assert(savedXml.Name ~= "ROOT")
+
+	assert(savedBinary.ClassName == "DataModel")
+	assert(savedXml.ClassName == "DataModel")
+end
+
+-- Ensure Ref properties are preserved across services
+do
+	local game = Instance.new("DataModel")
+	local ReplicatedStorage = Instance.new("ReplicatedStorage")
+	local Workspace = Instance.new("Workspace")
+
+	Workspace.Parent = game
+	ReplicatedStorage.Parent = game
+
+	local part = Instance.new("Part")
+	part.Parent = ReplicatedStorage
+
+	local objectValue = Instance.new("ObjectValue")
+	objectValue.Value = part
+	objectValue.Parent = Workspace
+
+	local serialized = roblox.serializePlace(game)
+	local deserialized = roblox.deserializePlace(serialized)
+
+	assert(deserialized.Workspace.ObjectValue.Value == deserialized.ReplicatedStorage.Part)
+end
