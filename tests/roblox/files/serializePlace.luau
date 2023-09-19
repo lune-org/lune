@@ -3,7 +3,6 @@ local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
 
 -- Smoke tests
-
 do
 	local game = Instance.new("DataModel")
 
