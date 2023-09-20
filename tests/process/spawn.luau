@@ -106,11 +106,13 @@ assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde subs
 	than a single sleep but also less than 1.5 sleeps
 ]]
 
--- We need to account for the time it takes to spawn a process, because of Windows
+-- We need to account for the time it takes to spawn a process for Windows
 local commandExecutionTolarance = 0 do
-	local commandExecutionStart = os.clock()
-	process.spawn("sleep", {"0"}, if isWindows then { shell = true } else nil)
-	commandExecutionTolarance = os.clock() - commandExecutionStart
+	if isWindows then
+		local commandExecutionStart = os.clock()
+		process.spawn("sleep", {"0"}, if isWindows then { shell = true } else nil)
+		commandExecutionTolarance = os.clock() - commandExecutionStart
+	end
 end
 
 local SLEEP_DURATION = 1 / 4
