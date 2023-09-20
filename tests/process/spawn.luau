@@ -109,16 +109,19 @@ assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde subs
 -- We need to account for the time it takes to spawn a process,
 -- due to Windows having a delay in launching processes.
 -- Windows delay is likely caused by Windows Defender.
-local commandExecutionTolarance = 0 do
-	local commandExecutionStart = os.clock()
-	process.spawn("sleep", {"0"}, if isWindows then { shell = true } else nil)
-	commandExecutionTolarance = os.clock() - commandExecutionStart
+local win_commandExecutionTolarance = 0 do
+	if isWindows then
+		local commandExecutionStart = os.clock()
+		process.spawn("sleep", {"0"}, if isWindows then { shell = true } else nil)
+		win_commandExecutionTolarance = os.clock() - commandExecutionStart
+	end
 end
 
 local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
 
-local thread2 = task.delay(commandExecutionTolarance + (SLEEP_DURATION * 1.5), function()
+local yieldTolarance = win_commandExecutionTolarance + (SLEEP_DURATION * 1.5);
+local thread2 = task.delay(yieldTolarance, function()
 	stdio.ewrite("Spawning a sleep process should take a reasonable amount of time\n")
 	task.wait(1)
 	process.exit(1)
@@ -147,13 +150,14 @@ end
 
 task.cancel(thread2)
 
-local sleepElapsed = (os.clock() - sleepStart) - commandExecutionTolarance
+local sleepElapsed = (os.clock() - sleepStart) - win_commandExecutionTolarance
+
 assert(
 	sleepElapsed >= SLEEP_DURATION,
 	"Spawning a process that does blocking sleep did not sleep enough"
 )
 assert(
-	sleepElapsed < SLEEP_DURATION * 1.5,
+	sleepElapsed < yieldTolarance,
 	"Coroutine yielded the main lua thread during process yield"
 )
 
