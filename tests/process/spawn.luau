@@ -12,7 +12,7 @@ end)
 
 local isWindows = process.os == "windows";
 
--- To run windows command, needs to launch cmd.exe
+-- To run windows command, we need to launch cmd.exe and pass the command as an argument.
 local result = process.spawn(
 	if isWindows then "cmd" else "ls",
 	if isWindows then {
@@ -56,7 +56,7 @@ local rootPwd = process.spawn(pwdCommand, pwdArgs, {
 }).stdout
 rootPwd = string.gsub(rootPwd, "^%s+", "")
 rootPwd = string.gsub(rootPwd, "%s+$", "")
--- Windows: C:\, Unix: /
+-- Windows: <Drive Letter>:\, Unix: /
 local expectedRootPwd = if isWindows then string.sub(rootPwd, 1, 1) .. ":\\" else "/"
 if rootPwd ~= expectedRootPwd then
 	error(
@@ -106,7 +106,9 @@ assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde subs
 	than a single sleep but also less than 1.5 sleeps
 ]]
 
--- We need to account for the time it takes to spawn a process, because of Windows
+-- We need to account for the time it takes to spawn a process,
+-- due to Windows having a delay in launching processes.
+-- Windows delay is likely caused by Windows Defender.
 local commandExecutionTolarance = 0 do
 	local commandExecutionStart = os.clock()
 	process.spawn("sleep", {"0"}, if isWindows then { shell = true } else nil)
@@ -126,14 +128,15 @@ local sleepStart = os.clock()
 local sleepCounter = 0
 for i = 1, SLEEP_SAMPLES, 1 do
 	task.spawn(function()
-		-- Windows does not have a sleep command, so we use shell instead.
 		local args = {
+			-- Sleep command on Windows in Seconds has some weird behavior with decimals...
 			tostring(SLEEP_DURATION * (isWindows and 1000 or 1))
 		};
 		if isWindows then
-			-- Sleep command on Windows in Seconds has some weird behavior with decimals.
+			-- ... so we use milliseconds instead.
 			table.insert(args, 1, "-Milliseconds");
 		end
+		-- Windows does not have `sleep` as a process, so we use powershell instead.
 		process.spawn("sleep", args, if isWindows then { shell = true } else nil)
 		sleepCounter += 1
 	end)
@@ -161,10 +164,11 @@ local echoResult = process.spawn("echo", {
 	if isWindows then '"$Env:TEST_VAR"' else '"$TEST_VAR"',
 }, {
 	env = { TEST_VAR = echoMessage },
-	shell = if isWindows then true else "bash", -- Windows needs a default shell, bash does not exist on Windows
+	shell = if isWindows then true else "bash", -- bash does not exist on Windows, using default shell option instead.
 	stdio = "inherit",
 })
 
+-- Windows echo adds a \r before the newline
 local trailingAddition = if isWindows then "\r\n" else "\n"
 assert(
 	echoResult.stdout == (echoMessage .. trailingAddition), -- Note that echo adds a newline
