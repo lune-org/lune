@@ -60,12 +60,6 @@ jobs:
           components: clippy
           targets: ${{ matrix.cargo-target }}
 
-      - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x64
-        if: ${{matrix.runner-os == 'windows-latest'}}
-
       - name: Build
         run: |
           cargo build \
