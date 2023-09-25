@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed list subcommand not listing global scripts without a local `.lune` / `lune` directory present
 - Fixed `net.serve` stopping when the returned `ServeHandle` is garbage collected
 - Fixed missing trailing newline when using the `warn` global
 - Fixed constructor for `CFrame` in the `roblox` built-in library not parsing the 12-arg overload correctly. ([#102])
