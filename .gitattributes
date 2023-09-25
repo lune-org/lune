@@ -7,3 +7,6 @@
 # Ensure all lua files use LF
 *.lua  eol=lf
 *.luau eol=lf
+
+# Ensure all txt files within tests use LF
+tests/*.txt eol=lf
