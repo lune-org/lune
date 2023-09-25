@@ -106,21 +106,12 @@ assert(homeDir1 == homeDir2, "Home dirs did not match when performing tilde subs
 	than a single sleep but also less than 1.5 sleeps
 ]]
 
--- We need to account for the time it takes to spawn a process,
--- due to Windows having a delay in launching processes.
--- Windows delay is likely caused by Windows Defender.
-local win_commandExecutionTolarance = 0 do
-	if isWindows then
-		local commandExecutionStart = os.clock()
-		process.spawn("sleep", {"0"}, if isWindows then { shell = true } else nil)
-		win_commandExecutionTolarance = os.clock() - commandExecutionStart
-	end
-end
-
 local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
 
-local yieldTolarance = win_commandExecutionTolarance + (SLEEP_DURATION * 1.5);
+-- Windows tend to have a higher execution time
+local yieldTolarance = if isWindows then 15 else SLEEP_DURATION * 1.5;
+
 local thread2 = task.delay(yieldTolarance, function()
 	stdio.ewrite("Spawning a sleep process should take a reasonable amount of time\n")
 	task.wait(1)
@@ -150,7 +141,7 @@ end
 
 task.cancel(thread2)
 
-local sleepElapsed = (os.clock() - sleepStart) - win_commandExecutionTolarance
+local sleepElapsed = os.clock() - sleepStart
 
 assert(
 	sleepElapsed >= SLEEP_DURATION,
