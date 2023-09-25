@@ -9,3 +9,14 @@ run-file FILE_NAME:
 # Run tests for the Lune library
 test:
 	cargo test --lib
+
+# Check formatting for all Rust & Luau files
+fmt-check:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	stylua scripts --check
+	stylua types --check
+	stylua tests --check \
+		--glob "tests/**/*.luau" \
+		--glob "!tests/roblox/rbx-test-files/**"
+	cargo fmt --check

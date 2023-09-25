@@ -25,8 +25,11 @@ jobs:
         with:
           components: rustfmt
 
+      - name: Install Just
+        uses: extractions/setup-just@v1
+
       - name: Check Formatting
-        run: cargo fmt -- --check
+        run: just fmt-check
 
   ci:
     needs: ["fmt"]
