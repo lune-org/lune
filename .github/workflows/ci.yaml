@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -33,6 +31,22 @@ jobs:
 
       - name: Check Formatting
         run: just fmt-check
+
+  analyze:
+    name: Analyze and lint Luau files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Just
+        uses: extractions/setup-just@v1
+
+      - name: Install Tooling
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Analyze
+        run: just analyze
 
   ci:
     needs: ["fmt"]
