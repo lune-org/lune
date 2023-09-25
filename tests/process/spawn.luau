@@ -168,7 +168,7 @@ local echoResult = process.spawn("echo", {
 	if isWindows then '"$Env:TEST_VAR"' else '"$TEST_VAR"',
 }, {
 	env = { TEST_VAR = echoMessage },
-	shell = if isWindows then true else "bash", -- bash does not exist on Windows, using default shell option instead.
+	shell = if isWindows then "powershell" else "bash", -- "bash" does not exist on Windows, using "powershell" instead.
 	stdio = "inherit",
 })
 
