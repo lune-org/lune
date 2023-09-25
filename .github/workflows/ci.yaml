@@ -28,6 +28,9 @@ jobs:
       - name: Install Just
         uses: extractions/setup-just@v1
 
+      - name: Install Tooling
+        uses: ok-nick/setup-aftman@v0.4.2
+
       - name: Check Formatting
         run: just fmt-check
 
