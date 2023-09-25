@@ -9,8 +9,6 @@ type Test = {
 	Target: string,
 }
 
-local isWindows = process.os == "windows";
-
 local TESTS: { Test } = {
 	{
 		Format = "brotli",
@@ -38,11 +36,6 @@ local failed = false
 for _, test in TESTS do
 	local source = fs.readFile(test.Source)
 	local target = fs.readFile(test.Target)
-
-	if isWindows then
-		-- Windows: CRLF -> LF
-		source = string.gsub(source, "\r\n", "\n", #source - 2);
-	end
 
 	local success, compressed = pcall(serde.compress, test.Format, source)
 	if not success then

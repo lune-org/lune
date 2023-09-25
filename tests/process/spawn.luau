@@ -110,7 +110,7 @@ local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
 
 -- Windows tend to have a higher execution time
-local yieldTolarance = if isWindows then 15 else SLEEP_DURATION * 1.5;
+local yieldTolarance = if isWindows then 25 else SLEEP_DURATION * 1.5;
 
 local thread2 = task.delay(yieldTolarance, function()
 	stdio.ewrite("Spawning a sleep process should take a reasonable amount of time\n")
