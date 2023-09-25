@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update to Luau version `0.594`
+- CFrame and Vector3 values are now rounded to the nearest 2 ^ 16 decimal place to reduce floating point errors and diff noise. Note that this does not affect intermediate calculations done in lua, and only happens when a property value is set on an Instance.
 
 ### Fixed
 

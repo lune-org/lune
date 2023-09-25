@@ -5,7 +5,10 @@ use glam::Vec3;
 use mlua::prelude::*;
 use rbx_dom_weak::types::Vector3 as DomVector3;
 
-use crate::{lune::util::TableBuilder, roblox::exports::LuaExportsTable};
+use crate::{
+    lune::util::TableBuilder,
+    roblox::{datatypes::util::round_float_decimal, exports::LuaExportsTable},
+};
 
 use super::{super::*, EnumItem};
 
@@ -212,9 +215,9 @@ impl From<DomVector3> for Vector3 {
 impl From<Vector3> for DomVector3 {
     fn from(v: Vector3) -> Self {
         DomVector3 {
-            x: v.0.x,
-            y: v.0.y,
-            z: v.0.z,
+            x: round_float_decimal(v.0.x),
+            y: round_float_decimal(v.0.y),
+            z: round_float_decimal(v.0.z),
         }
     }
 }
