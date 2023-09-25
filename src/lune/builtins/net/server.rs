@@ -12,7 +12,7 @@ use tokio::sync::{mpsc, oneshot, Mutex};
 
 use crate::lune::{
     scheduler::Scheduler,
-    util::{traits::LuaEmitErrorExt, TableBuilder},
+    util::{futures::yield_forever, traits::LuaEmitErrorExt, TableBuilder},
 };
 
 use super::{
@@ -115,7 +115,11 @@ where
             .http1_keepalive(true) // Web sockets must be kept alive
             .serve(hyper_make_service)
             .with_graceful_shutdown(async move {
-                shutdown_rx.recv().await;
+                if shutdown_rx.recv().await.is_none() {
+                    // The channel was closed, meaning the serve handle
+                    // was garbage collected by lua without being used
+                    yield_forever().await;
+                }
             });
         if let Err(e) = result.await {
             eprintln!("Net serve error: {e}")
