@@ -7,11 +7,9 @@ use std::{
 use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
-use tokio::{io::AsyncWriteExt, task};
+use tokio::io::AsyncWriteExt;
 
-use crate::lune::{
-    builtins::process::tee_writer::AsyncTeeWriter, scheduler::Scheduler, util::TableBuilder,
-};
+use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
 mod tee_writer;
 
