@@ -220,15 +220,10 @@ async fn spawn_command(
     // If the stdin option was provided, we write that to the child
     if let Some(stdin) = stdin {
         let mut child_stdin = child.stdin.take().unwrap();
-
-        let _ = task::spawn(async move {
-            let mut tee = AsyncTeeWriter::new(&mut child_stdin);
-            tee.write_all(stdin.as_bytes()).await.into_lua_err()?;
-
-            Ok::<(), LuaError>(())
-        })
-        .await
-        .expect("Tee writer for stdin errored");
+        child_stdin
+            .write_all(stdin.as_bytes())
+            .await
+            .into_lua_err()?;
     }
 
     if inherit_stdio {
