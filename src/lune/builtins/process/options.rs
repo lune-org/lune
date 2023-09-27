@@ -138,7 +138,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
             If we have stdin contents, we need to pass those to the child process
         */
         match value.get("stdin")? {
-            LuaValue::Nil => this.stdin = None,
+            LuaValue::Nil => {},
             LuaValue::String(s) => this.stdin = Some(s.to_string_lossy().to_string()),
             value => {
                 return Err(LuaError::RuntimeError(format!(
