@@ -203,7 +203,7 @@ async fn spawn_command(
     options: ProcessSpawnOptions,
 ) -> LuaResult<(ExitStatus, Vec<u8>, Vec<u8>)> {
     let inherit_stdio = options.inherit_stdio;
-    let stdin = options.stdin.clone();
+    let stdin = options.stdin;
 
     let mut child = options
         .into_command(program, args)
@@ -218,10 +218,7 @@ async fn spawn_command(
     // If the stdin option was provided, we write that to the child
     if let Some(stdin) = stdin {
         let mut child_stdin = child.stdin.take().unwrap();
-        child_stdin
-            .write_all(stdin.as_bytes())
-            .await
-            .into_lua_err()?;
+        child_stdin.write_all(stdin).await.into_lua_err()?;
     }
 
     if inherit_stdio {
