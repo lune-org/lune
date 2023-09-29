@@ -52,7 +52,8 @@ if not success then
 	assert(
 		string.find(message, "Connection reset")
 			or string.find(message, "Connection closed")
-			or string.find(message, "Connection refused"),
+			or string.find(message, "Connection refused")
+			or string.find(message, "No connection could be made"), -- Windows Request Error
 		"Server did not stop responding to requests"
 	)
 else

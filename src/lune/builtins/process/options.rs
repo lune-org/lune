@@ -99,7 +99,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
             LuaValue::Boolean(true) => {
                 this.shell = match env::consts::FAMILY {
                     "unix" => Some("/bin/sh".to_string()),
-                    "windows" => Some("/bin/sh".to_string()),
+                    "windows" => Some("powershell".to_string()),
                     _ => None,
                 };
             }

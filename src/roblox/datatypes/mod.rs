@@ -6,6 +6,8 @@ pub mod extension;
 pub mod result;
 pub mod types;
 
+mod util;
+
 use result::*;
 
 pub use crate::roblox::shared::userdata::*;

@@ -127,15 +127,17 @@ assertEq(
 
 -- Angles
 
+-- stylua: ignore start
 assertEq(
-	CFrame.Angles(math.pi/2, math.pi/4, math.pi/4),
+	CFrame.Angles(math.pi / 2, math.pi / 4, math.pi / 4),
 	CFrame.new(
-		0, 0, 0,
-		0.49999997, -0.49999997, 0.707106769,
-		0.49999994, -0.5, -0.707106769,
+		0,           0,           0,
+		0.49999997, -0.49999997,  0.707106769,
+		0.49999994, -0.5,        -0.707106769,
 		0.707106769, 0.707106769, 0
 	)
 )
+-- stylua: ignore end
 
 -- TODO: More methods
 

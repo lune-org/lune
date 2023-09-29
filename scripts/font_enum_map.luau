@@ -1,4 +1,5 @@
 --!nocheck
+--!nolint UnknownGlobal
 
 -- NOTE: This must be ran in Roblox Studio to get up-to-date font values
 

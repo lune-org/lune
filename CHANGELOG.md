@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a new `datetime` built-in library for handling date & time values, parsing, formatting, and more ([#94])
+- Added a new `datetime` built-in library for handling date & time values, parsing, formatting, and more. ([#94])
 
   Example usage:
 
@@ -57,11 +57,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Update to Luau version `0.594`
+- Update to Luau version `0.596`.
+- `process.spawn` now uses `powershell` instead of `/bin/bash` as the shell on Windows, with `shell = true`.
+- CFrame and Vector3 values are now rounded to the nearest 2 ^ 16 decimal place to reduce floating point errors and diff noise. Note that this does not affect intermediate calculations done in lua, and only happens when a property value is set on an Instance.
 
 ### Fixed
 
-- Fixed missing trailing newline when using the `warn` global
+- Fixed list subcommand not listing global scripts without a local `.lune` / `lune` directory present.
+- Fixed `net.serve` stopping when the returned `ServeHandle` is garbage collected.
+- Fixed missing trailing newline when using the `warn` global.
 - Fixed constructor for `CFrame` in the `roblox` built-in library not parsing the 12-arg overload correctly. ([#102])
 - Fixed various functions for `CFrame` in the `roblox` built-in library being incorrect, specifically row-column ordering and some flipped signs. ([#103])
 
@@ -128,7 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Update to Luau version `0.591`
+- Update to Luau version `0.591`.
 - Lune's internal task scheduler and `require` functionality has been completely rewritten. <br/>
   The new scheduler is much more stable, conforms to a larger test suite, and has a few additional benefits:
 
