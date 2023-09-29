@@ -143,8 +143,8 @@ assert(
 
 local isWindows = process.os == "windows"
 
-local stdinChild = process.spawn((((not isWindows) and "xargs") or "echo"), {
-	((not isWindows) and "echo") or nil,
+local stdinChild = process.spawn((((not isWindows) and "xargs") or "powershell"), {
+	"echo",
 }, {
 	stdin = echoMessage,
 })
