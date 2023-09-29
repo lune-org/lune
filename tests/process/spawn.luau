@@ -141,8 +141,10 @@ assert(
 
 -- Passing stdin strings should work
 
-local stdinChild = process.spawn("xargs", {
-	"echo",
+local isWindows = process.os == "windows"
+
+local stdinChild = process.spawn((((not isWindows) and "xargs") or "echo"), {
+	((not isWindows) and "echo") or nil,
 }, {
 	stdin = echoMessage,
 })
