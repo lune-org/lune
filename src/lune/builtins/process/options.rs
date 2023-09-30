@@ -14,7 +14,7 @@ pub struct ProcessSpawnOptions {
     pub(crate) envs: HashMap<String, String>,
     pub(crate) shell: Option<String>,
     pub(crate) inherit_stdio: bool,
-    pub(crate) stdin: Option<&'static [u8]>,
+    pub(crate) stdin: Option<Vec<u8>>,
 }
 
 impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
@@ -139,7 +139,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
         */
         match value.get("stdin")? {
             LuaValue::Nil => {}
-            LuaValue::String(s) => this.stdin = Some(&*(s.as_bytes().to_vec().leak())),
+            LuaValue::String(s) => this.stdin = Some(s.as_bytes().to_vec()),
             value => {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'stdin' - expected 'string', got '{}'",
