@@ -162,10 +162,7 @@ assert(
 )
 
 -- Passing stdin strings should work
-
-local isWindows = process.os == "windows"
-
-local stdinChild = process.spawn((((not isWindows) and "xargs") or "powershell"), {
+local stdinChild = process.spawn((((not IS_WINDOWS) and "xargs") or "powershell"), {
 	"echo",
 }, {
 	stdin = echoMessage,
