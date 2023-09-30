@@ -169,6 +169,6 @@ local stdinChild = process.spawn((((not IS_WINDOWS) and "xargs") or "powershell"
 })
 
 assert(
-	stdinChild.stdout == (echoMessage .. "\n"), -- Note that echo adds a newline
+	stdinChild.stdout == (((IS_WINDOWS and `{string.char(239)}{string.char(191)}`) or "") .. echoMessage .. "\n"), -- Windows "echo" adds these "escape codes" to strings
 	"Stdin passing did not return proper output"
 )
