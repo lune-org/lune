@@ -163,9 +163,9 @@ assert(
 
 -- Passing stdin strings should work
 local stdinChild = process.spawn((((not IS_WINDOWS) and "xargs") or "powershell"), {
-	"echo",
+        "echo",
 }, {
-	stdin = echoMessage,
+        stdin = (IS_WINDOWS and (echoMessage .. "\n\n")) or echoMessage,
 })
 
 assert(
