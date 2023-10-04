@@ -27,10 +27,12 @@ export type CompileOptions = {
 
 	This is a dictionary that may contain one or more of the following values:
 
-	* `debugName` - The debug name of the closure. Defaults to `string ["..."]`
+	* `debugName` - The debug name of the closure. Defaults to `luau.load(...)`
+	* `environment` - Environment values to set and/or override. Includes default globals unless overwritten.
 ]=]
 export type LoadOptions = {
-	debugName: string,
+	debugName: string?,
+	environment: { [string]: any }?,
 }
 
 --[=[

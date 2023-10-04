@@ -33,7 +33,27 @@ fn load_source<'lua>(
     lua: &'lua Lua,
     (source, options): (LuaString<'lua>, LuauLoadOptions),
 ) -> LuaResult<LuaFunction<'lua>> {
-    lua.load(source.as_bytes())
-        .set_name(options.debug_name)
-        .into_function()
+    let mut chunk = lua.load(source.as_bytes()).set_name(options.debug_name);
+
+    if let Some(environment) = options.environment {
+        let environment_with_globals = lua.create_table()?;
+
+        if let Some(meta) = environment.get_metatable() {
+            environment_with_globals.set_metatable(Some(meta));
+        }
+
+        for pair in lua.globals().pairs() {
+            let (key, value): (LuaValue, LuaValue) = pair?;
+            environment_with_globals.set(key, value)?;
+        }
+
+        for pair in environment.pairs() {
+            let (key, value): (LuaValue, LuaValue) = pair?;
+            environment_with_globals.set(key, value)?;
+        }
+
+        chunk = chunk.set_environment(environment_with_globals);
+    }
+
+    chunk.into_function()
 }

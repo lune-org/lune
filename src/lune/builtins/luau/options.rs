@@ -73,19 +73,21 @@ impl<'lua> FromLua<'lua> for LuauCompileOptions {
     }
 }
 
-pub struct LuauLoadOptions {
+pub struct LuauLoadOptions<'lua> {
     pub(crate) debug_name: String,
+    pub(crate) environment: Option<LuaTable<'lua>>,
 }
 
-impl Default for LuauLoadOptions {
+impl Default for LuauLoadOptions<'_> {
     fn default() -> Self {
         Self {
             debug_name: DEFAULT_DEBUG_NAME.to_string(),
+            environment: None,
         }
     }
 }
 
-impl<'lua> FromLua<'lua> for LuauLoadOptions {
+impl<'lua> FromLua<'lua> for LuauLoadOptions<'lua> {
     fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
         Ok(match value {
             LuaValue::Nil => Self::default(),
@@ -96,10 +98,15 @@ impl<'lua> FromLua<'lua> for LuauLoadOptions {
                     options.debug_name = debug_name;
                 }
 
+                if let Some(environment) = t.get("environment")? {
+                    options.environment = Some(environment);
+                }
+
                 options
             }
             LuaValue::String(s) => Self {
                 debug_name: s.to_string_lossy().to_string(),
+                environment: None,
             },
             _ => {
                 return Err(LuaError::FromLuaConversionError {

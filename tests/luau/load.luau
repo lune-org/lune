@@ -31,3 +31,51 @@ local success = pcall(function()
 end)
 
 assert(success, "expected `luau.load` to be able to process the result of `luau.compile`")
+
+local CUSTOM_SOURCE_WITH_FOO_FN = "return foo()"
+
+-- NOTE: We use newproxy here to make a userdata to ensure
+-- we get the *exact* same value sent back, not some copy
+local fooValue = newproxy(false)
+local fooFn = luau.load(CUSTOM_SOURCE_WITH_FOO_FN, {
+	environment = {
+		foo = function()
+			return fooValue
+		end,
+	},
+})
+
+local fooFnRet = fooFn()
+assert(fooFnRet == fooValue, "expected `luau.load` with custom environment to return proper values")
+
+local CUSTOM_SOURCE_WITH_PRINT_FN = "return print()"
+
+-- NOTE: Same as what we did above, new userdata to guarantee unique-ness
+local overriddenValue = newproxy(false)
+local overriddenFn = luau.load(CUSTOM_SOURCE_WITH_PRINT_FN, {
+	environment = {
+		print = function()
+			return overriddenValue
+		end,
+	},
+})
+
+local overriddenFnRet = overriddenFn()
+assert(
+	overriddenFnRet == overriddenValue,
+	"expected `luau.load` with overridden environment to return proper values"
+)
+
+local CUSTOM_SOURCE_WITH_DEFAULT_FN = "return string.lower(...)"
+
+local overriddenFn2 = luau.load(CUSTOM_SOURCE_WITH_DEFAULT_FN, {
+	environment = {
+		hello = "world",
+	},
+})
+
+local overriddenFn2Ret = overriddenFn2("LOWERCASE")
+assert(
+	overriddenFn2Ret == "lowercase",
+	"expected `luau.load` with overridden environment to contain default globals"
+)
