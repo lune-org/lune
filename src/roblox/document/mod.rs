@@ -1,4 +1,4 @@
-use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom};
+use rbx_dom_weak::{types::Ref as DomRef, InstanceBuilder as DomInstanceBuilder, WeakDom};
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -247,11 +247,13 @@ impl Document {
         }
 
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
+        let children: Vec<DomRef> = i
+            .get_children()
+            .iter()
+            .map(|instance| instance.dom_ref)
+            .collect();
 
-        for data_model_child in i.get_children() {
-            data_model_child.clone_into_external_dom(&mut dom);
-        }
-
+        Instance::clone_multiple_into_external_dom(&children, &mut dom);
         postprocess_dom_for_place(&mut dom);
 
         Ok(Self {
@@ -274,11 +276,9 @@ impl Document {
         }
 
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
+        let instances: Vec<DomRef> = v.iter().map(|instance| instance.dom_ref).collect();
 
-        for instance in v {
-            instance.clone_into_external_dom(&mut dom);
-        }
-
+        Instance::clone_multiple_into_external_dom(&instances, &mut dom);
         postprocess_dom_for_model(&mut dom);
 
         Ok(Self {

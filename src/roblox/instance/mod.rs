@@ -144,6 +144,21 @@ impl Instance {
         cloned
     }
 
+    pub fn clone_multiple_into_external_dom(
+        referents: &[DomRef],
+        external_dom: &mut WeakDom,
+    ) -> Vec<DomRef> {
+        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+
+        let cloned = dom.clone_multiple_into_external(referents, external_dom);
+
+        for referent in cloned.iter() {
+            external_dom.transfer_within(*referent, external_dom.root_ref());
+        }
+
+        cloned
+    }
+
     /**
         Clones the instance and all of its descendants, and orphans it.
 
