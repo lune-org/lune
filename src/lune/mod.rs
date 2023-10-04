@@ -39,6 +39,7 @@ impl Lune {
         let scheduler = Scheduler::new().into_static();
 
         lua.set_scheduler(scheduler);
+        lua.set_app_data(Vec::<String>::new());
         globals::inject_all(lua).expect("Failed to inject lua globals");
 
         Self {

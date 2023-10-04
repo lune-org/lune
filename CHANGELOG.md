@@ -31,13 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   -- Returns a specific moment in time as a DateTime instance
   local someDayInTheFuture = DateTime.fromLocalTime({
-  	year = 3033,
-  	month = 8,
-  	day = 26,
-  	hour = 16,
-  	minute = 56,
-  	second = 28,
-  	millisecond = 892,
+      year = 3033,
+      month = 8,
+      day = 26,
+      hour = 16,
+      minute = 56,
+      second = 28,
+      millisecond = 892,
   })
 
   -- Extracts the current local date & time as separate values (same values as above table)
@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed the `process` built-in library not loading correctly when using Lune in REPL mode.
 - Fixed list subcommand not listing global scripts without a local `.lune` / `lune` directory present.
 - Fixed `net.serve` stopping when the returned `ServeHandle` is garbage collected.
 - Fixed missing trailing newline when using the `warn` global.
