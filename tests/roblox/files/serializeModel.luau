@@ -43,12 +43,12 @@ do
 
 	local folder = Instance.new("Folder")
 
-	local objectValue = Instance.new("ObjectValue")
+	local objectValue = Instance.new("ObjectValue") :: any
 	objectValue.Value = particleEmitter
 	objectValue.Parent = folder
 
 	local serialized = roblox.serializeModel({ part, folder })
-	local deserialized = roblox.deserializeModel(serialized)
+	local deserialized = roblox.deserializeModel(serialized) :: any
 
 	assert(deserialized[2].ObjectValue.Value == deserialized[1].ParticleEmitter)
 end

@@ -45,12 +45,12 @@ do
 	local part = Instance.new("Part")
 	part.Parent = ReplicatedStorage
 
-	local objectValue = Instance.new("ObjectValue")
+	local objectValue = Instance.new("ObjectValue") :: any
 	objectValue.Value = part
 	objectValue.Parent = Workspace
 
 	local serialized = roblox.serializePlace(game)
-	local deserialized = roblox.deserializePlace(serialized)
+	local deserialized = roblox.deserializePlace(serialized) :: any
 
 	assert(deserialized.Workspace.ObjectValue.Value == deserialized.ReplicatedStorage.Part)
 end
