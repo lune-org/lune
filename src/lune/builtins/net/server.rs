@@ -136,22 +136,27 @@ where
                 req = rx_request.recv() => (req, None),
                 sock = rx_websocket.recv() => (None, sock),
             };
+            if req.is_none() && sock.is_none() {
+                break;
+            }
 
             // NOTE: The closure here is not really necessary, we
             // make the closure so that we can use the `?` operator
-            let handle_req_or_sock = || async {
+            // and make a catch-all for errors in spawn_local below
+            let handle_request = config.handle_request.clone();
+            let handle_web_socket = config.handle_web_socket.clone();
+            let response_senders = Arc::clone(&response_senders_lua);
+            let response_fut = async move {
                 match (req, sock) {
-                    (None, None) => Ok::<_, LuaError>(true),
                     (Some(req), _) => {
                         let req_id = req.id;
-                        let req_handler = config.handle_request.clone();
                         let req_table = req.into_lua_table(lua)?;
 
-                        let thread_id = sched.push_back(lua, req_handler, req_table)?;
+                        let thread_id = sched.push_back(lua, handle_request, req_table)?;
                         let thread_res = sched.wait_for_thread(lua, thread_id).await?;
 
                         let response = NetServeResponse::from_lua_multi(thread_res, lua)?;
-                        let response_sender = response_senders_lua
+                        let response_sender = response_senders
                             .lock()
                             .await
                             .remove(&req_id)
@@ -162,13 +167,12 @@ where
                         // handler being called, which is fine and should not emit errors
                         response_sender.send(response).ok();
 
-                        Ok(false)
+                        Ok(())
                     }
                     (_, Some(sock)) => {
                         let sock = sock.await.into_lua_err()?;
 
-                        let sock_handler = config
-                            .handle_web_socket
+                        let sock_handler = handle_web_socket
                             .as_ref()
                             .cloned()
                             .expect("Got web socket but web socket handler is missing");
@@ -180,15 +184,28 @@ where
                         let thread_id = sched.push_back(lua, sock_handler, sock_table)?;
                         let _thread_res = sched.wait_for_thread(lua, thread_id).await?;
 
-                        Ok(false)
+                        Ok(())
                     }
+                    _ => unreachable!(),
                 }
             };
 
-            match handle_req_or_sock().await {
-                Ok(true) => break,
-                Ok(false) => continue,
-                Err(e) => lua.emit_error(e),
+            /*
+                NOTE: It is currently not possible to spawn new background tasks from within
+                another background task with the Lune scheduler since they are locked behind a
+                mutex and we also need that mutex locked to be able to run a background task...
+
+                We need to do some work to make it so our unordered futures queues do
+                not require locking and then we can replace the following bit of code:
+
+                sched.spawn_local(async {
+                    if let Err(e) = response_fut.await {
+                        lua.emit_error(e);
+                    }
+                });
+            */
+            if let Err(e) = response_fut.await {
+                lua.emit_error(e);
             }
         }
     });
