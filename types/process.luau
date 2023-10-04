@@ -149,7 +149,9 @@ process.env = (nil :: any) :: { [string]: string? }
 
 	@param code The exit code to set
 ]=]
-function process.exit(code: number?) end
+function process.exit(code: number?): never
+	return nil :: any
+end
 
 --[=[
 	@within Process

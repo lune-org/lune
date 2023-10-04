@@ -14,9 +14,9 @@
 	* https://github.com/Roblox/luau/blob/bd229816c0a82a8590395416c81c333087f541fd/Compiler/include/luacode.h#L13
 ]=]
 export type CompileOptions = {
-	optimizationLevel: number,
-	coverageLevel: number,
-	debugLevel: number,
+	optimizationLevel: number?,
+	coverageLevel: number?,
+	debugLevel: number?,
 }
 
 --[=[

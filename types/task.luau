@@ -55,13 +55,11 @@ end
 
 	Delays a thread or function to run after `duration` seconds.
 
-	If no `duration` is given, this will wait for the minimum amount of time possible.
-
 	@param functionOrThread The function or thread to delay
 	@return The thread that will be delayed
 ]=]
 function task.delay<T...>(
-	duration: number?,
+	duration: number,
 	functionOrThread: thread | (T...) -> ...any,
 	...: T...
 ): thread
