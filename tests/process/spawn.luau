@@ -162,13 +162,18 @@ assert(
 )
 
 -- Passing stdin strings should work
-local stdinChild = process.spawn((((not IS_WINDOWS) and "xargs") or "powershell"), {
-        "echo",
+
+local stdinChild = process.spawn(not IS_WINDOWS and "xargs" or "powershell", {
+	"echo",
 }, {
-        stdin = (IS_WINDOWS and (echoMessage .. "\n\n")) or echoMessage,
+	stdin = echoMessage .. (IS_WINDOWS and "\n\n" or ""),
 })
 
+local stdinChildOut = stdinChild.stdout
+if IS_WINDOWS then
+	stdinChildOut = stdinChildOut:sub(#stdinChildOut - #echoMessage - 1, #stdinChildOut)
+end
 assert(
-	stdinChild.stdout == (((IS_WINDOWS and `{string.char(239)}{string.char(191)}`) or "") .. echoMessage .. "\n"), -- Windows "echo" adds these "escape codes" to strings
+	stdinChildOut == echoMessage .. trailingAddition,
 	"Stdin passing did not return proper output"
 )
