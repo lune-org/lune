@@ -10,33 +10,6 @@ use super::Instance;
 
 pub const CLASS_NAME: &str = "Terrain";
 
-fn material_from_name(material_name: &str) -> Option<TerrainMaterials> {
-    match material_name {
-        "Grass" => Some(TerrainMaterials::Grass),
-        "Slate" => Some(TerrainMaterials::Slate),
-        "Concrete" => Some(TerrainMaterials::Concrete),
-        "Brick" => Some(TerrainMaterials::Brick),
-        "Sand" => Some(TerrainMaterials::Sand),
-        "WoodPlanks" => Some(TerrainMaterials::WoodPlanks),
-        "Rock" => Some(TerrainMaterials::Rock),
-        "Glacier" => Some(TerrainMaterials::Glacier),
-        "Snow" => Some(TerrainMaterials::Snow),
-        "Sandstone" => Some(TerrainMaterials::Sandstone),
-        "Mud" => Some(TerrainMaterials::Mud),
-        "Basalt" => Some(TerrainMaterials::Basalt),
-        "Ground" => Some(TerrainMaterials::Ground),
-        "CrackedLava" => Some(TerrainMaterials::CrackedLava),
-        "Asphalt" => Some(TerrainMaterials::Asphalt),
-        "Cobblestone" => Some(TerrainMaterials::Cobblestone),
-        "Ice" => Some(TerrainMaterials::Ice),
-        "LeafyGrass" => Some(TerrainMaterials::LeafyGrass),
-        "Salt" => Some(TerrainMaterials::Salt),
-        "Limestone" => Some(TerrainMaterials::Limestone),
-        "Pavement" => Some(TerrainMaterials::Pavement),
-        _ => None,
-    }
-}
-
 pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(methods: &mut M) {
     add_class_restricted_method(
         methods,
@@ -79,14 +52,12 @@ fn terrain_get_material_color(_: &Lua, this: &Instance, material: EnumItem) -> L
         )));
     }
 
-    if let Some(terrain_material) = material_from_name(&material.name) {
-        Ok(material_colors.get_color(terrain_material).into())
-    } else {
-        Err(LuaError::RuntimeError(format!(
-            "{} is not a valid Terrain material",
-            &material.name
-        )))
-    }
+    let terrain_material = material
+        .name
+        .parse::<TerrainMaterials>()
+        .map_err(|err| LuaError::RuntimeError(err.to_string()))?;
+
+    Ok(material_colors.get_color(terrain_material).into())
 }
 
 /**
@@ -112,14 +83,10 @@ fn terrain_set_material_color(
         )));
     }
 
-    let terrain_material = if let Some(terrain_material) = material_from_name(&material.name) {
-        terrain_material
-    } else {
-        return Err(LuaError::RuntimeError(format!(
-            "{} is not a valid Terrain material",
-            &material.name
-        )));
-    };
+    let terrain_material = material
+        .name
+        .parse::<TerrainMaterials>()
+        .map_err(|err| LuaError::RuntimeError(err.to_string()))?;
 
     material_colors.set_color(terrain_material, color.into());
     this.set_property("MaterialColors", Variant::MaterialColors(material_colors));
