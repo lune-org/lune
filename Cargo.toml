@@ -1,12 +1,12 @@
 [package]
 name = "lune"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
-description = "A Luau script runner"
+description = "A standalone Luau runtime"
 readme = "README.md"
-keywords = ["cli", "lua", "luau", "scripts"]
+keywords = ["cli", "lua", "luau", "runtime"]
 categories = ["command-line-interface"]
 
 [[bin]]
