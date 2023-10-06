@@ -48,9 +48,9 @@ async fn read_or_create_vscode_settings_json() -> Result<JsonValue, SetupError> 
             // let the user choose their editor for interactive setup
             match fs::create_dir_all(path_dir).await {
                 Err(_) => Err(SetupError::Write),
-                Ok(_) => match fs::write(path_file, "{}").await {
+                Ok(()) => match fs::write(path_file, "{}").await {
                     Err(_) => Err(SetupError::Write),
-                    Ok(_) => Ok(JsonValue::Object(serde_json::Map::new())),
+                    Ok(()) => Ok(JsonValue::Object(serde_json::Map::new())),
                 },
             }
         }
@@ -67,7 +67,7 @@ async fn write_vscode_settings_json(value: JsonValue) -> Result<(), SetupError> 
         Err(_) => Err(SetupError::Serialize),
         Ok(json) => match fs::write(vscode_path(), json).await {
             Err(_) => Err(SetupError::Write),
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
         },
     }
 }
@@ -112,7 +112,7 @@ pub async fn run_setup() {
     }
     .await;
     let message = match res {
-        Ok(_) => "These settings have been added to your workspace for Visual Studio Code:",
+        Ok(()) => "These settings have been added to your workspace for Visual Studio Code:",
         Err(_) => "To finish setting up your editor, add these settings to your workspace:",
     };
     let version_string = lune_version();

@@ -75,7 +75,12 @@ create_tests! {
     process_cwd: "process/cwd",
     process_env: "process/env",
     process_exit: "process/exit",
-    process_spawn: "process/spawn",
+    process_spawn_async: "process/spawn/async",
+    process_spawn_basic: "process/spawn/basic",
+    process_spawn_cwd: "process/spawn/cwd",
+    process_spawn_shell: "process/spawn/shell",
+    process_spawn_stdin: "process/spawn/stdin",
+    process_spawn_stdio: "process/spawn/stdio",
 
     require_async: "require/tests/async",
     require_async_background: "require/tests/async_background",
