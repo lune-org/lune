@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   print(now:toUniversalTime())
   ```
 
+- Added support for passing `stdin` in `process.spawn` ([#106])
 - Added support for setting a custom environment in load options for `luau.load`, not subject to `getfenv` / `setfenv` deoptimizations
 - Added [Terrain:GetMaterialColor](https://create.roblox.com/docs/reference/engine/classes/Terrain#GetMaterialColor) and [Terrain:SetMaterialColor](https://create.roblox.com/docs/reference/engine/classes/Terrain#SetMaterialColor) ([#93])
 - Added support for a variable number of arguments for CFrame methods ([#85])
@@ -71,12 +72,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing trailing newline when using the `warn` global.
 - Fixed constructor for `CFrame` in the `roblox` built-in library not parsing the 12-arg overload correctly. ([#102])
 - Fixed various functions for `CFrame` in the `roblox` built-in library being incorrect, specifically row-column ordering and some flipped signs. ([#103])
+- Fixed cross-service Instance references disappearing when using the `roblox` built-in library ([#117])
 
 [#85]: https://github.com/filiptibell/lune/pull/85
 [#93]: https://github.com/filiptibell/lune/pull/93
 [#94]: https://github.com/filiptibell/lune/pull/94
 [#102]: https://github.com/filiptibell/lune/pull/102
 [#103]: https://github.com/filiptibell/lune/pull/103
+[#106]: https://github.com/filiptibell/lune/pull/106
+[#117]: https://github.com/filiptibell/lune/pull/117
 
 ## `0.7.7` - August 23rd, 2023
 
