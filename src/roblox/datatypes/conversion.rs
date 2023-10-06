@@ -291,7 +291,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 }
 
                 ty => {
-                    return Err(DomConversionError::ToDomValue {
+                    Err(DomConversionError::ToDomValue {
                         to: ty.variant_name().unwrap_or("???"),
                         from: "userdata",
                         detail: Some("Type not supported".to_string()),
