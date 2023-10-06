@@ -160,3 +160,20 @@ assert(
 	echoResult.stdout == (echoMessage .. trailingAddition),
 	"Inheriting stdio did not return proper output"
 )
+
+-- Passing stdin strings should work
+
+local stdinChild = process.spawn(not IS_WINDOWS and "xargs" or "powershell", {
+	"echo",
+}, {
+	stdin = echoMessage .. (IS_WINDOWS and "\n\n" or ""),
+})
+
+local stdinChildOut = stdinChild.stdout
+if IS_WINDOWS then
+	stdinChildOut = stdinChildOut:sub(#stdinChildOut - #echoMessage - 1, #stdinChildOut)
+end
+assert(
+	stdinChildOut == echoMessage .. trailingAddition,
+	"Stdin passing did not return proper output"
+)
