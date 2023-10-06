@@ -69,7 +69,7 @@ futures-util = "0.3"
 once_cell = "1.17"
 thiserror = "1.0"
 async-trait = "0.1"
-dialoguer = "0.10"
+dialoguer = "0.11"
 dunce = "1.0"
 lz4_flex = "0.11"
 path-clean = "1.0"
@@ -81,7 +81,7 @@ urlencoding = "2.1"
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-mlua = { version = "0.9.0", features = ["luau", "luau-jit", "serialize"] }
+mlua = { version = "0.9.1", features = ["luau", "luau-jit", "serialize"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
 
 ### SERDE

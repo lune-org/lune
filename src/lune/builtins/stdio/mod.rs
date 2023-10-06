@@ -69,24 +69,27 @@ fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
                 .allow_empty(true)
                 .with_prompt(options.text.unwrap_or_default())
                 .with_initial_text(options.default_string.unwrap_or_default())
-                .interact_text()?;
+                .interact_text()
+                .into_lua_err()?;
             Ok(PromptResult::String(input))
         }
         PromptKind::Confirm => {
             let mut prompt = Confirm::with_theme(&theme);
             if let Some(b) = options.default_bool {
-                prompt.default(b);
+                prompt = prompt.default(b);
             };
             let result = prompt
                 .with_prompt(&options.text.expect("Missing text in prompt options"))
-                .interact()?;
+                .interact()
+                .into_lua_err()?;
             Ok(PromptResult::Boolean(result))
         }
         PromptKind::Select => {
             let chosen = Select::with_theme(&theme)
                 .with_prompt(&options.text.unwrap_or_default())
                 .items(&options.options.expect("Missing options in prompt options"))
-                .interact_opt()?;
+                .interact_opt()
+                .into_lua_err()?;
             Ok(match chosen {
                 Some(idx) => PromptResult::Index(idx + 1),
                 None => PromptResult::None,
@@ -96,7 +99,8 @@ fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
             let chosen = MultiSelect::with_theme(&theme)
                 .with_prompt(&options.text.unwrap_or_default())
                 .items(&options.options.expect("Missing options in prompt options"))
-                .interact_opt()?;
+                .interact_opt()
+                .into_lua_err()?;
             Ok(match chosen {
                 None => PromptResult::None,
                 Some(indices) => {
