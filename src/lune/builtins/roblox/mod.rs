@@ -6,7 +6,7 @@ use crate::{
     roblox::{
         self,
         document::{Document, DocumentError, DocumentFormat, DocumentKind},
-        instance::Instance,
+        instance::{registry::InstanceRegistry, Instance},
         reflection::Database as ReflectionDatabase,
     },
 };
@@ -31,6 +31,8 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("serializeModel", serialize_model)?
         .with_function("getAuthCookie", get_auth_cookie)?
         .with_function("getReflectionDatabase", get_reflection_database)?
+        .with_function("implementProperty", implement_property)?
+        .with_function("implementMethod", implement_method)?
         .build_readonly()
 }
 
@@ -104,4 +106,44 @@ fn get_auth_cookie(_: &Lua, raw: Option<bool>) -> LuaResult<Option<String>> {
 
 fn get_reflection_database(_: &Lua, _: ()) -> LuaResult<ReflectionDatabase> {
     Ok(*REFLECTION_DATABASE.get_or_init(ReflectionDatabase::new))
+}
+
+fn implement_property(
+    lua: &Lua,
+    (class_name, property_name, property_getter, property_setter): (
+        String,
+        String,
+        LuaFunction,
+        Option<LuaFunction>,
+    ),
+) -> LuaResult<()> {
+    let property_setter = match property_setter {
+        Some(setter) => setter,
+        None => {
+            let property_name = property_name.clone();
+            lua.create_function(move |_, _: LuaMultiValue| {
+                Err::<(), _>(LuaError::runtime(format!(
+                    "Property '{property_name}' is read-only"
+                )))
+            })?
+        }
+    };
+    // TODO: Wrap getter and setter functions in async compat layers,
+    // the roblox library does not know about the Lune runtime or the
+    // scheduler and users may want to call async functions, some of
+    // which are not obvious that they are async such as print, warn, ...
+    InstanceRegistry::insert_property_getter(lua, &class_name, &property_name, property_getter)
+        .into_lua_err()?;
+    InstanceRegistry::insert_property_setter(lua, &class_name, &property_name, property_setter)
+        .into_lua_err()?;
+    Ok(())
+}
+
+fn implement_method(
+    lua: &Lua,
+    (class_name, method_name, method): (String, String, LuaFunction),
+) -> LuaResult<()> {
+    // TODO: Same as above, wrap the provided method in an async compat layer
+    InstanceRegistry::insert_method(lua, &class_name, &method_name, method).into_lua_err()?;
+    Ok(())
 }

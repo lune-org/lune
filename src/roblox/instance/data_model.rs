@@ -12,8 +12,8 @@ use super::Instance;
 
 pub const CLASS_NAME: &str = "DataModel";
 
-pub fn add_fields<'lua, M: LuaUserDataFields<'lua, Instance>>(m: &mut M) {
-    add_class_restricted_getter(m, CLASS_NAME, "Workspace", data_model_get_workspace);
+pub fn add_fields<'lua, F: LuaUserDataFields<'lua, Instance>>(f: &mut F) {
+    add_class_restricted_getter(f, CLASS_NAME, "Workspace", data_model_get_workspace);
 }
 
 pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {

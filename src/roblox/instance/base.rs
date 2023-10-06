@@ -15,7 +15,7 @@ use crate::roblox::{
     shared::instance::{class_is_a, find_property_info},
 };
 
-use super::{data_model, Instance};
+use super::{data_model, registry::InstanceRegistry, Instance};
 
 pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
     m.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
@@ -267,6 +267,10 @@ fn instance_property_get<'lua>(
         }
     } else if let Some(inst) = this.find_child(|inst| inst.name == prop_name) {
         Ok(LuaValue::UserData(lua.create_userdata(inst)?))
+    } else if let Some(getter) = InstanceRegistry::find_property_getter(lua, this, &prop_name) {
+        getter.call(this.clone())
+    } else if let Some(method) = InstanceRegistry::find_method(lua, this, &prop_name) {
+        Ok(LuaValue::Function(method))
     } else {
         Err(LuaError::RuntimeError(format!(
             "{} is not a valid member of {}",
@@ -317,40 +321,39 @@ fn instance_property_set<'lua>(
         _ => {}
     }
 
-    let info = match find_property_info(&this.class_name, &prop_name) {
-        Some(b) => b,
-        None => {
-            return Err(LuaError::RuntimeError(format!(
-                "{} is not a valid member of {}",
-                prop_name, this
+    if let Some(info) = find_property_info(&this.class_name, &prop_name) {
+        if let Some(enum_name) = info.enum_name {
+            match LuaUserDataRef::<EnumItem>::from_lua(prop_value, lua) {
+                Ok(given_enum) if given_enum.parent.desc.name == enum_name => {
+                    this.set_property(prop_name, DomValue::Enum((*given_enum).clone().into()));
+                    Ok(())
+                }
+                Ok(given_enum) => Err(LuaError::RuntimeError(format!(
+                    "Failed to set property '{}' - expected Enum.{}, got Enum.{}",
+                    prop_name, enum_name, given_enum.parent.desc.name
+                ))),
+                Err(e) => Err(e),
+            }
+        } else if let Some(dom_type) = info.value_type {
+            match prop_value.lua_to_dom_value(lua, Some(dom_type)) {
+                Ok(dom_value) => {
+                    this.set_property(prop_name, dom_value);
+                    Ok(())
+                }
+                Err(e) => Err(e.into()),
+            }
+        } else {
+            Err(LuaError::RuntimeError(format!(
+                "Failed to set property '{}' - malformed property info",
+                prop_name
             )))
         }
-    };
-
-    if let Some(enum_name) = info.enum_name {
-        match LuaUserDataRef::<EnumItem>::from_lua(prop_value, lua) {
-            Ok(given_enum) if given_enum.parent.desc.name == enum_name => {
-                this.set_property(prop_name, DomValue::Enum((*given_enum).clone().into()));
-                Ok(())
-            }
-            Ok(given_enum) => Err(LuaError::RuntimeError(format!(
-                "Failed to set property '{}' - expected Enum.{}, got Enum.{}",
-                prop_name, enum_name, given_enum.parent.desc.name
-            ))),
-            Err(e) => Err(e),
-        }
-    } else if let Some(dom_type) = info.value_type {
-        match prop_value.lua_to_dom_value(lua, Some(dom_type)) {
-            Ok(dom_value) => {
-                this.set_property(prop_name, dom_value);
-                Ok(())
-            }
-            Err(e) => Err(e.into()),
-        }
+    } else if let Some(setter) = InstanceRegistry::find_property_setter(lua, this, &prop_name) {
+        setter.call((this.clone(), prop_value))
     } else {
         Err(LuaError::RuntimeError(format!(
-            "Failed to set property '{}' - malformed property info",
-            prop_name
+            "{} is not a valid member of {}",
+            prop_name, this
         )))
     }
 }

@@ -23,6 +23,8 @@ pub(crate) mod data_model;
 pub(crate) mod terrain;
 pub(crate) mod workspace;
 
+pub mod registry;
+
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
 const PROPERTY_NAME_TAGS: &str = "Tags";
 
@@ -735,6 +737,9 @@ impl LuaExportsTable<'_> for Instance {
     and methods we support here - we should only implement methods that
     are necessary for modifying the dom and / or having ergonomic access
     to the dom, not try to replicate Roblox engine behavior of instances
+
+    If a user wants to replicate Roblox engine behavior, they can use the
+    instance registry, and register properties + methods from the lua side
 */
 impl LuaUserData for Instance {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
