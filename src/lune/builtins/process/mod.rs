@@ -7,6 +7,7 @@ use std::{
 use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
+use tokio::io::AsyncWriteExt;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -199,16 +200,26 @@ async fn process_spawn(
 async fn spawn_command(
     program: String,
     args: Option<Vec<String>>,
-    options: ProcessSpawnOptions,
+    mut options: ProcessSpawnOptions,
 ) -> LuaResult<(ExitStatus, Vec<u8>, Vec<u8>)> {
     let inherit_stdio = options.inherit_stdio;
+    let stdin = options.stdin.take();
 
-    let child = options
+    let mut child = options
         .into_command(program, args)
-        .stdin(Stdio::null())
+        .stdin(match stdin.is_some() {
+            true => Stdio::piped(),
+            false => Stdio::null(),
+        })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
+
+    // If the stdin option was provided, we write that to the child
+    if let Some(stdin) = stdin {
+        let mut child_stdin = child.stdin.take().unwrap();
+        child_stdin.write_all(&stdin).await.into_lua_err()?;
+    }
 
     if inherit_stdio {
         pipe_and_inherit_child_process_stdio(child).await
