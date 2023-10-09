@@ -164,6 +164,10 @@ create_tests! {
     roblox_instance_classes_workspace: "roblox/instance/classes/Workspace",
     roblox_instance_classes_terrain: "roblox/instance/classes/Terrain",
 
+    roblox_instance_custom_async: "roblox/instance/custom/async",
+    roblox_instance_custom_methods: "roblox/instance/custom/methods",
+    roblox_instance_custom_properties: "roblox/instance/custom/properties",
+
     roblox_instance_methods_clear_all_children: "roblox/instance/methods/ClearAllChildren",
     roblox_instance_methods_clone: "roblox/instance/methods/Clone",
     roblox_instance_methods_destroy: "roblox/instance/methods/Destroy",

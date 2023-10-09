@@ -8,6 +8,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added `implementProperty` and `implementMethod` to the `roblox` built-in library to fill in missing functionality that Lune does not aim to implement itself.
+
+  Example usage:
+
+  ```lua
+  local roblox = require("@lune/roblox")
+
+  local part = roblox.Instance.new("Part")
+
+  roblox.implementMethod("BasePart", "TestMethod", function(_, ...)
+      print("Tried to call TestMethod with", ...)
+  end)
+
+  part:TestMethod("Hello", "world!")
+  ```
+
 ## `0.7.8` - October 5th, 2023
 
 ### Added
