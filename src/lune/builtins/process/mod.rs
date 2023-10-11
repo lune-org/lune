@@ -1,7 +1,7 @@
 use std::{
     env::{self, consts},
     path,
-    process::{ExitStatus, Stdio},
+    process::Stdio,
 };
 
 use dunce::canonicalize;
@@ -13,11 +13,11 @@ use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
 mod tee_writer;
 
-mod pipe_inherit;
-use pipe_inherit::pipe_and_inherit_child_process_stdio;
-
 mod options;
 use options::ProcessSpawnOptions;
+
+mod wait_for_child;
+use wait_for_child::{wait_for_child, WaitForChildResult};
 
 const PROCESS_EXIT_IMPL_LUA: &str = r#"
 exit(...)
@@ -169,21 +169,26 @@ async fn process_spawn(
         runtime place it on a different thread if possible / necessary
 
         Note that we have to use our scheduler here, we can't
-        use anything like tokio::task::spawn because our lua
-        scheduler will not drive those futures to completion
+        be using tokio::task::spawn directly because our lua
+        scheduler would not drive those futures to completion
     */
     let sched = lua
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
 
-    let (status, stdout, stderr) = sched
+    let res = sched
         .spawn(spawn_command(program, args, options))
         .await
         .expect("Failed to receive result of spawned process")?;
 
-    // NOTE: If an exit code was not given by the child process,
-    // we default to 1 if it yielded any error output, otherwise 0
-    let code = status.code().unwrap_or(match stderr.is_empty() {
+    /*
+        NOTE: If an exit code was not given by the child process,
+        we default to 1 if it yielded any error output, otherwise 0
+
+        An exit code may be missing if the process was terminated by
+        some external signal, which is the only time we use this default
+    */
+    let code = res.status.code().unwrap_or(match res.stderr.is_empty() {
         true => 0,
         false => 1,
     });
@@ -192,8 +197,8 @@ async fn process_spawn(
     TableBuilder::new(lua)?
         .with_value("ok", code == 0)?
         .with_value("code", code)?
-        .with_value("stdout", lua.create_string(&stdout)?)?
-        .with_value("stderr", lua.create_string(&stderr)?)?
+        .with_value("stdout", lua.create_string(&res.stdout)?)?
+        .with_value("stderr", lua.create_string(&res.stderr)?)?
         .build_readonly()
 }
 
@@ -201,9 +206,10 @@ async fn spawn_command(
     program: String,
     args: Option<Vec<String>>,
     mut options: ProcessSpawnOptions,
-) -> LuaResult<(ExitStatus, Vec<u8>, Vec<u8>)> {
-    let inherit_stdio = options.inherit_stdio;
-    let stdin = options.stdin.take();
+) -> LuaResult<WaitForChildResult> {
+    let stdout = options.stdio.stdout;
+    let stderr = options.stdio.stderr;
+    let stdin = options.stdio.stdin.take();
 
     let mut child = options
         .into_command(program, args)
@@ -211,20 +217,14 @@ async fn spawn_command(
             true => Stdio::piped(),
             false => Stdio::null(),
         })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(stdout.as_stdio())
+        .stderr(stderr.as_stdio())
         .spawn()?;
 
-    // If the stdin option was provided, we write that to the child
     if let Some(stdin) = stdin {
         let mut child_stdin = child.stdin.take().unwrap();
         child_stdin.write_all(&stdin).await.into_lua_err()?;
     }
 
-    if inherit_stdio {
-        pipe_and_inherit_child_process_stdio(child).await
-    } else {
-        let output = child.wait_with_output().await?;
-        Ok((output.status, output.stdout, output.stderr))
-    }
+    wait_for_child(child, stdout, stderr).await
 }
