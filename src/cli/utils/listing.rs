@@ -38,12 +38,8 @@ pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)
                         bail!("Failed to cast path to string slice.")
                     };
 
-                    let init_file_path = match (
-                        discover_script_path(dir_path, in_home_dir),
-                        discover_script_path(dir_path, in_home_dir),
-                    ) {
-                        (Ok(lune_init), _) => lune_init,
-                        (_, Ok(dotlune_init)) => dotlune_init,
+                    let init_file_path = match discover_script_path(dir_path, in_home_dir) {
+                        Ok(init_file) => init_file,
                         _ => continue,
                     };
 
