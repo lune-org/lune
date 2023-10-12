@@ -149,56 +149,9 @@ pub fn discover_script_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
             // directories + the home directory for the current user
             let res = discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), false)
                 .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), false))
-                .or_else(|_| {
-                    discover_script_path(
-                        format!("lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.lua"),
-                        false,
-                    )
-                })
-                .or_else(|_| {
-                    discover_script_path(
-                        format!(".lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.lua"),
-                        false,
-                    )
-                })
-                .or_else(|_| {
-                    discover_script_path(
-                        format!("lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.luau"),
-                        false,
-                    )
-                })
-                .or_else(|_| {
-                    discover_script_path(
-                        format!(".lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.luau"),
-                        false,
-                    )
-                })
                 .or_else(|_| discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), true))
-                .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), true))
-                .or_else(|_| {
-                    discover_script_path(
-                        format!("lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.lua"),
-                        true,
-                    )
-                })
-                .or_else(|_| {
-                    discover_script_path(
-                        format!(".lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.lua"),
-                        true,
-                    )
-                })
-                .or_else(|_| {
-                    discover_script_path(
-                        format!("lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.luau"),
-                        true,
-                    )
-                })
-                .or_else(|_| {
-                    discover_script_path(
-                        format!(".lune{MAIN_SEPARATOR}{path}{MAIN_SEPARATOR}init.luau"),
-                        true,
-                    )
-                });
+                .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), true));
+
             match res {
                 // NOTE: The first error message is generally more
                 // descriptive than the ones for the lune subfolders
