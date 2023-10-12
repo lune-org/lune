@@ -98,6 +98,11 @@ serde_json = { version = "1.0", features = ["preserve_order"] }
 serde_yaml = "0.9"
 toml = { version = "0.8", features = ["preserve_order"] }
 
+ring = "0.17.3"
+base64 = "0.21.4"
+hex = "0.4.3"
+md-5 = "0.10.6"
+
 ### NET
 
 hyper = { version = "0.14", features = ["full"] }

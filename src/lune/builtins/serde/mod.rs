@@ -1,6 +1,7 @@
 use mlua::prelude::*;
 
 pub(super) mod compress_decompress;
+pub(super) mod crypto;
 pub(super) mod encode_decode;
 
 use compress_decompress::{compress, decompress, CompressDecompressFormat};
