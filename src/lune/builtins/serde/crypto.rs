@@ -2,6 +2,8 @@ use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
 use ring::digest::{self, digest, Digest};
 
+// TODO: Proper error handling, remove unwraps
+
 #[derive(Debug, Clone, Copy)]
 pub struct Crypto;
 #[derive(Debug, Clone)]
@@ -17,6 +19,7 @@ where
 
 #[derive(Clone, Debug)]
 pub enum CryptoAlgo {
+    Sha1,
     Sha256,
     Sha512,
     // We shouldn't be able to Pass Hmac(Hmac), would there be a way to limit this?
@@ -25,6 +28,19 @@ pub enum CryptoAlgo {
 }
 
 impl Crypto {
+    pub fn sha1<T>(content: Option<T>) -> CryptoResult<String, Digest>
+    where
+        T: ToString,
+    {
+        let content = content.map(|data| data.to_string());
+
+        CryptoResult {
+            algo: CryptoAlgo::Sha1,
+            content,
+            computed: None,
+        }
+    }
+
     pub fn sha256<T>(content: Option<T>) -> CryptoResult<String, Digest>
     where
         T: ToString,
@@ -69,10 +85,6 @@ trait FromCryptoAlgo {
     fn from_crypto_algo(value: CryptoAlgo) -> &'static Self;
 }
 
-trait FromCryptoAlgoOwned {
-    fn from_crypto_algo(value: CryptoAlgo) -> Self;
-}
-
 impl FromCryptoAlgo for ring::digest::Algorithm {
     fn from_crypto_algo(value: CryptoAlgo) -> &'static Self {
         match &value {
@@ -83,14 +95,16 @@ impl FromCryptoAlgo for ring::digest::Algorithm {
     }
 }
 
-impl FromCryptoAlgoOwned for ring::hmac::Algorithm {
-    fn from_crypto_algo(value: CryptoAlgo) -> Self {
+impl From<CryptoAlgo> for ring::hmac::Algorithm {
+    fn from(value: CryptoAlgo) -> Self {
         let val: ring::hmac::Algorithm = match value {
             CryptoAlgo::Hmac(algo) => match *algo {
                 CryptoAlgo::Sha256 => ring::hmac::HMAC_SHA256,
                 CryptoAlgo::Sha512 => ring::hmac::HMAC_SHA512,
                 CryptoAlgo::Hmac(_) => panic!("Hmac(Hmac) is not allowed!"),
-                CryptoAlgo::Md5 => ring::hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
+                // FIXME: We're match MD5 to SHA1 here, should fix
+                CryptoAlgo::Sha1 => ring::hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
+                CryptoAlgo::Md5 => todo!(),
             },
             _ => panic!("invalid type"),
         };
@@ -123,11 +137,11 @@ impl CryptoResult<String, ring::hmac::Tag> {
         match self.algo {
             CryptoAlgo::Hmac(_) => {
                 let rng = ring::rand::SystemRandom::new();
-                let key = ring::hmac::Key::generate(
-                    ring::hmac::Algorithm::from_crypto_algo(self.algo.clone()),
-                    &rng,
-                )
-                .expect("failed to generate random key");
+                let key =
+                    ring::hmac::Key::generate(ring::hmac::Algorithm::from(self.algo.clone()), &rng)
+                        .expect("failed to generate random key");
+
+                // we should probably return the key to the user too
 
                 self.computed = Some(ring::hmac::sign(&key, content.as_bytes()));
             }
@@ -174,6 +188,7 @@ impl CryptoResult<String, Digest> {
             }
             CryptoAlgo::Hmac(_) => unreachable!(),
             CryptoAlgo::Md5 => todo!(),
+            CryptoAlgo::Sha1 => todo!(),
         };
 
         (*self).to_owned()
