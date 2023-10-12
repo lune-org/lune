@@ -28,10 +28,7 @@ pub enum CryptoAlgo {
 }
 
 impl Crypto {
-    pub fn sha1<T>(content: Option<T>) -> CryptoResult<String, RingDigest>
-    where
-        T: ToString,
-    {
+    pub fn sha1<T: ToString>(content: Option<T>) -> CryptoResult<String, RingDigest> {
         let content = content.map(|data| data.to_string());
 
         CryptoResult {
@@ -41,10 +38,7 @@ impl Crypto {
         }
     }
 
-    pub fn sha256<T>(content: Option<T>) -> CryptoResult<String, RingDigest>
-    where
-        T: ToString,
-    {
+    pub fn sha256<T: ToString>(content: Option<T>) -> CryptoResult<String, RingDigest> {
         let content = content.map(|data| data.to_string());
 
         CryptoResult {
@@ -54,10 +48,7 @@ impl Crypto {
         }
     }
 
-    pub fn sha512<T>(content: Option<T>) -> CryptoResult<String, RingDigest>
-    where
-        T: ToString,
-    {
+    pub fn sha512<T: ToString>(content: Option<T>) -> CryptoResult<String, RingDigest> {
         let content = content.map(|data| data.to_string());
 
         CryptoResult {
@@ -67,10 +58,10 @@ impl Crypto {
         }
     }
 
-    pub fn hmac<T>(content: Option<T>, algo: CryptoAlgo) -> CryptoResult<String, ring::hmac::Tag>
-    where
-        T: ToString,
-    {
+    pub fn hmac<T: ToString>(
+        content: Option<T>,
+        algo: CryptoAlgo,
+    ) -> CryptoResult<String, ring::hmac::Tag> {
         let content = content.map(|data| data.to_string());
 
         CryptoResult {
