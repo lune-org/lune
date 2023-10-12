@@ -8,13 +8,18 @@ use directories::UserDirs;
 use mlua::prelude::*;
 use tokio::process::Command;
 
+mod kind;
+mod stdio;
+
+pub(super) use kind::*;
+pub(super) use stdio::*;
+
 #[derive(Debug, Clone, Default)]
-pub struct ProcessSpawnOptions {
-    pub(crate) cwd: Option<PathBuf>,
-    pub(crate) envs: HashMap<String, String>,
-    pub(crate) shell: Option<String>,
-    pub(crate) inherit_stdio: bool,
-    pub(crate) stdin: Option<Vec<u8>>,
+pub(super) struct ProcessSpawnOptions {
+    pub cwd: Option<PathBuf>,
+    pub envs: HashMap<String, String>,
+    pub shell: Option<String>,
+    pub stdio: ProcessSpawnOptionsStdio,
 }
 
 impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
@@ -112,34 +117,14 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
         }
 
         /*
-            If we got options for stdio handling, make sure its one of the constant values
+            If we got options for stdio handling, parse those as well - note that
+            we accept a separate "stdin" value here for compatibility with older
+            scripts, but the user should preferrably pass it in the stdio table
         */
-        match value.get("stdio")? {
-            LuaValue::Nil => {}
-            LuaValue::String(s) => match s.to_str()? {
-                "inherit" => this.inherit_stdio = true,
-                "default" => this.inherit_stdio = false,
-                _ => {
-                    return Err(LuaError::RuntimeError(format!(
-                    "Invalid value for option 'stdio' - expected 'inherit' or 'default', got '{}'",
-                    s.to_string_lossy()
-                )))
-                }
-            },
-            value => {
-                return Err(LuaError::RuntimeError(format!(
-                    "Invalid type for option 'stdio' - expected 'string', got '{}'",
-                    value.type_name()
-                )))
-            }
-        }
-
-        /*
-            If we have stdin contents, we need to pass those to the child process
-        */
+        this.stdio = value.get("stdio")?;
         match value.get("stdin")? {
             LuaValue::Nil => {}
-            LuaValue::String(s) => this.stdin = Some(s.as_bytes().to_vec()),
+            LuaValue::String(s) => this.stdio.stdin = Some(s.as_bytes().to_vec()),
             value => {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'stdin' - expected 'string', got '{}'",
