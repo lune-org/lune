@@ -1,6 +1,6 @@
 use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
-use ring::digest::{self, digest, Digest};
+use ring::digest::{self, digest, Digest as RingDigest};
 
 // TODO: Proper error handling, remove unwraps
 
@@ -28,7 +28,7 @@ pub enum CryptoAlgo {
 }
 
 impl Crypto {
-    pub fn sha1<T>(content: Option<T>) -> CryptoResult<String, Digest>
+    pub fn sha1<T>(content: Option<T>) -> CryptoResult<String, RingDigest>
     where
         T: ToString,
     {
@@ -41,7 +41,7 @@ impl Crypto {
         }
     }
 
-    pub fn sha256<T>(content: Option<T>) -> CryptoResult<String, Digest>
+    pub fn sha256<T>(content: Option<T>) -> CryptoResult<String, RingDigest>
     where
         T: ToString,
     {
@@ -54,7 +54,7 @@ impl Crypto {
         }
     }
 
-    pub fn sha512<T>(content: Option<T>) -> CryptoResult<String, Digest>
+    pub fn sha512<T>(content: Option<T>) -> CryptoResult<String, RingDigest>
     where
         T: ToString,
     {
@@ -90,6 +90,7 @@ impl FromCryptoAlgo for ring::digest::Algorithm {
         match &value {
             CryptoAlgo::Sha256 => &digest::SHA256,
             CryptoAlgo::Sha512 => &digest::SHA512,
+            CryptoAlgo::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
             _ => panic!(),
         }
     }
@@ -121,6 +122,40 @@ pub enum EncodingKind {
 
 // Note that compute and digest declared here are identical to those of the below implementation
 // Quite a bit of boilerplate, is there any way to avoid this without using derive macros?
+impl CryptoResult<String, Vec<u8>> {
+    pub fn update(&mut self, content: String) -> Self {
+        self.content = Some(content);
+
+        (*self).to_owned()
+    }
+
+    pub fn compute(&mut self) -> Self {
+        let content = match &self.content {
+            Some(inner) => inner.to_owned(),
+            None => "".to_string(),
+        };
+
+        match self.algo {
+            CryptoAlgo::Md5 => self.computed = Some(md5::compute(content).to_vec()),
+            _ => panic!("Invalid implementation"),
+        };
+
+        (*self).to_owned()
+    }
+
+    pub fn digest(&self, encoding: EncodingKind) -> Result<String> {
+        let computed = self.computed.clone().ok_or(anyhow::Error::msg(
+            "compute the hash first before trying to obtain a digest",
+        ))?;
+
+        match encoding {
+            EncodingKind::Utf8 => String::from_utf8(computed.to_vec()).map_err(anyhow::Error::from),
+            EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
+            EncodingKind::Hex => Ok(hex::encode(computed.to_vec())),
+        }
+    }
+}
+
 impl CryptoResult<String, ring::hmac::Tag> {
     pub fn update(&mut self, content: String) -> Self {
         self.content = Some(content);
@@ -166,7 +201,7 @@ impl CryptoResult<String, ring::hmac::Tag> {
     }
 }
 
-impl CryptoResult<String, Digest> {
+impl CryptoResult<String, RingDigest> {
     pub fn update(&mut self, content: String) -> Self {
         self.content = Some(content);
 
@@ -180,15 +215,13 @@ impl CryptoResult<String, Digest> {
         };
 
         match self.algo {
-            CryptoAlgo::Sha256 | CryptoAlgo::Sha512 => {
+            CryptoAlgo::Sha256 | CryptoAlgo::Sha512 | CryptoAlgo::Sha1 => {
                 self.computed = Some(digest(
                     ring::digest::Algorithm::from_crypto_algo(self.algo.clone()),
                     content.as_bytes(),
                 ))
             }
-            CryptoAlgo::Hmac(_) => unreachable!(),
-            CryptoAlgo::Md5 => todo!(),
-            CryptoAlgo::Sha1 => todo!(),
+            _ => unreachable!(),
         };
 
         (*self).to_owned()

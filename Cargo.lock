@@ -1136,7 +1136,7 @@ dependencies = [
  "include_dir",
  "itertools",
  "lz4_flex",
- "md-5",
+ "md5",
  "mlua",
  "num-traits",
  "once_cell",
@@ -1205,14 +1205,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "md-5"
-version = "0.10.6"
+name = "md5"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
-dependencies = [
- "cfg-if",
- "digest",
-]
+checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
 
 [[package]]
 name = "memchr"
