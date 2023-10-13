@@ -1,3 +1,6 @@
+use crate::lune::builtins::{
+    FromLua, Lua, LuaError, LuaResult, LuaUserData, LuaUserDataMethods, LuaValue,
+};
 use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
 use ring::digest::{self, digest, Digest as RingDigest};
@@ -105,14 +108,69 @@ impl From<CryptoAlgo> for ring::hmac::Algorithm {
     }
 }
 
+#[derive(PartialOrd, PartialEq, Ord, Eq)]
 pub enum EncodingKind {
     Utf8,
     Base64,
     Hex,
 }
 
+impl From<usize> for EncodingKind {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Self::Utf8,
+            1 => Self::Base64,
+            2 => Self::Hex,
+            _ => panic!("invalid value"),
+        }
+    }
+}
+
+impl From<i32> for EncodingKind {
+    fn from(value: i32) -> Self {
+        Self::from(value as usize)
+    }
+}
+
+impl From<f64> for EncodingKind {
+    fn from(value: f64) -> Self {
+        Self::from(value as usize)
+    }
+}
+
+impl From<String> for EncodingKind {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "utf8" => Self::Utf8,
+            "base64" => Self::Base64,
+            "hex" => Self::Hex,
+            &_ => panic!("invalid value"),
+        }
+    }
+}
+
+impl FromLua<'_> for EncodingKind {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
+        match value {
+            LuaValue::Integer(int) => Ok(EncodingKind::from(int)),
+            LuaValue::Number(num) => Ok(EncodingKind::from(num)),
+            LuaValue::String(str) => Ok(EncodingKind::from(str.to_string_lossy().to_string())),
+
+            _ => Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "EncodingKind",
+                message: Some("value must be a an Integer, Number or String".to_string()),
+            }),
+        }
+    }
+}
+
 // Note that compute and digest declared here are identical to those of the below implementation
 // Quite a bit of boilerplate, is there any way to avoid this without using derive macros?
+// impl<T: AsRef<[u8]>, C: AsRef<[u8]>> CryptoResult<T, C> {
+//     fn update(&mut self, content: String) -> Self {}
+// }
+
 impl CryptoResult<String, Vec<u8>> {
     pub fn update(&mut self, content: String) -> Self {
         self.content = Some(content);
@@ -154,7 +212,7 @@ impl CryptoResult<String, ring::hmac::Tag> {
         (*self).to_owned()
     }
 
-    pub fn compute(&mut self) -> Self {
+    fn compute(&mut self) -> Self {
         let content = match &self.content {
             Some(inner) => inner.to_owned(),
             None => "".to_string(),
@@ -233,18 +291,80 @@ impl CryptoResult<String, RingDigest> {
     }
 }
 
-pub fn test() {
-    println!(
-        "{}",
-        Crypto::sha256::<&str>(None /* or Some("some string!") */)
-            .update("some string!".to_string())
-            .compute()
-            .digest(EncodingKind::Hex)
-            .unwrap()
-    );
+trait HasComputedValue {
+    fn update(&mut self, value: String) -> Self;
+    fn compute(&mut self) -> Self;
+    fn digest(&self, encoding: EncodingKind) -> Result<String>;
+}
+impl HasComputedValue for CryptoResult<String, Vec<u8>> {
+    fn update(&mut self, content: String) -> Self {
+        self.update(content)
+    }
 
-    Crypto::hmac(Some("test"), CryptoAlgo::Sha256)
-        .compute()
-        .digest(EncodingKind::Base64)
-        .unwrap();
+    fn compute(&mut self) -> Self {
+        self.compute()
+    }
+
+    fn digest(&self, encoding: EncodingKind) -> Result<String> {
+        self.digest(encoding)
+    }
+}
+impl HasComputedValue for CryptoResult<String, RingDigest> {
+    fn update(&mut self, content: String) -> Self {
+        self.update(content)
+    }
+
+    fn compute(&mut self) -> Self {
+        self.compute()
+    }
+
+    fn digest(&self, encoding: EncodingKind) -> Result<String> {
+        self.digest(encoding)
+    }
+}
+impl HasComputedValue for CryptoResult<String, ring::hmac::Tag> {
+    fn update(&mut self, content: String) -> Self {
+        self.update(content)
+    }
+
+    fn compute(&mut self) -> Self {
+        self.compute()
+    }
+
+    fn digest(&self, encoding: EncodingKind) -> Result<String> {
+        self.digest(encoding)
+    }
+}
+
+fn register_methods<
+    'lua,
+    C: LuaUserData + HasComputedValue + 'static,
+    M: LuaUserDataMethods<'lua, C>,
+>(
+    methods: &mut M,
+) {
+    methods.add_method_mut("update", |_, this, value| Ok(this.update(value)));
+    methods.add_method_mut("compute", |_, this, ()| Ok(this.compute()));
+    methods.add_method("digest", |_, this, encoding| {
+        this.digest(encoding)
+            .map_err(|_| mlua::Error::external("whoopsie!"))
+    });
+}
+
+impl LuaUserData for CryptoResult<String, Vec<u8>> {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        register_methods(methods);
+    }
+}
+
+impl LuaUserData for CryptoResult<String, RingDigest> {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        register_methods(methods);
+    }
+}
+
+impl LuaUserData for CryptoResult<String, ring::hmac::Tag> {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        register_methods(methods);
+    }
 }

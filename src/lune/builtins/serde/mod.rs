@@ -5,6 +5,7 @@ pub(super) mod crypto;
 pub(super) mod encode_decode;
 
 use compress_decompress::{compress, decompress, CompressDecompressFormat};
+use crypto::Crypto;
 use encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
 use crate::lune::util::TableBuilder;
@@ -15,6 +16,14 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("decode", serde_decode)?
         .with_async_function("compress", serde_compress)?
         .with_async_function("decompress", serde_decompress)?
+        .with_table(
+            "crypto",
+            TableBuilder::new(lua)?
+                .with_function("sha1", |_, content: Option<String>| {
+                    Ok(Crypto::sha1(content))
+                })?
+                .build()?,
+        )?
         .build_readonly()
 }
 
