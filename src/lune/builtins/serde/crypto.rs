@@ -12,20 +12,19 @@ use std::sync::Mutex;
 
 // TODO: Proper error handling, remove unwraps
 
-// #[derive(Debug, Clone, Copy)]
-// pub struct Crypto;
+// Code compiles but trait object returns an incorrect hash! Love my life :3
 #[derive(Clone)]
 pub struct Crypto {
-    algo: Arc<Mutex<CryptoAlgo<(dyn digest::DynDigest + 'static)>>>,
+    algo: Arc<Mutex<CryptoAlgo>>,
 }
 
 #[derive(Clone)]
-pub enum CryptoAlgo<T: ?Sized> {
-    Sha1(Box<T>),
-    Sha256(Box<T>),
-    Sha512(Box<T>),
-    Blake2(Box<T>),
-    Md5(Box<T>),
+pub enum CryptoAlgo {
+    Sha1(Box<sha1::Sha1>),
+    Sha256(Box<sha2::Sha256>),
+    Sha512(Box<sha2::Sha512>),
+    // Blake2(Box<T>),
+    // Md5(Box<T>),
 }
 
 #[derive(PartialOrd, PartialEq, Ord, Eq)]
@@ -73,48 +72,53 @@ impl FromLua<'_> for EncodingKind {
     }
 }
 
-impl CryptoAlgo<dyn DynDigest> {
-    pub fn get_hasher(self) -> &'static dyn DynDigest {
+impl CryptoAlgo {
+    pub fn get_hasher(&self) -> &dyn DynDigest {
         // TODO: Replace boilerplate using a macro
 
         match self {
-            CryptoAlgo::Sha1(hasher) => &*hasher,
-            CryptoAlgo::Sha256(hasher) => &*hasher,
-            CryptoAlgo::Sha512(hasher) => &*hasher,
-            CryptoAlgo::Blake2(hasher) => &*hasher,
-            CryptoAlgo::Md5(hasher) => &*hasher,
+            CryptoAlgo::Sha1(hasher) => &**hasher,
+            CryptoAlgo::Sha256(hasher) => &**hasher,
+            CryptoAlgo::Sha512(hasher) => &**hasher,
         }
     }
 }
 
 impl Crypto {
     pub fn sha1<T: ToString>(content: Option<T>) -> Crypto {
-        let content = content.map(|data| data.to_string());
+        let constructed = Self {
+            algo: Arc::new(Mutex::new(CryptoAlgo::Sha1(Box::new(sha1::Sha1::new())))),
+        };
 
-        Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Sha1(DynDigest::box_clone(
-                &sha1::Sha1::new(),
-            )))),
+        match content {
+            Some(inner) => constructed.update(inner.to_string()).clone(),
+            None => constructed,
         }
     }
 
     pub fn sha256<T: ToString>(content: Option<T>) -> Crypto {
-        let content = content.map(|data| data.to_string());
+        let constructed = Self {
+            algo: Arc::new(Mutex::new(CryptoAlgo::Sha256(
+                Box::new(sha2::Sha256::new()),
+            ))),
+        };
 
-        Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Sha256(DynDigest::box_clone(
-                &sha2::Sha256::new(),
-            )))),
+        match content {
+            Some(inner) => constructed.update(inner.to_string()).clone(),
+            None => constructed,
         }
     }
 
     pub fn sha512<T: ToString>(content: Option<T>) -> Crypto {
-        let content = content.map(|data| data.to_string());
+        let constructed = Self {
+            algo: Arc::new(Mutex::new(CryptoAlgo::Sha512(
+                Box::new(sha2::Sha512::new()),
+            ))),
+        };
 
-        Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Sha512(DynDigest::box_clone(
-                &sha2::Sha512::new(),
-            )))),
+        match content {
+            Some(inner) => constructed.update(inner.to_string()).clone(),
+            None => constructed,
         }
     }
 
@@ -128,15 +132,15 @@ impl Crypto {
     }
 
     pub fn digest(&self, encoding: EncodingKind) -> Result<String> {
-        let algo = *self.algo.lock().unwrap();
+        let algo = self.algo.lock().unwrap();
         let hasher = algo.get_hasher();
 
-        let computed = &*hasher.finalize_reset();
+        let computed = &*(*hasher).box_clone().finalize_reset();
 
         match encoding {
             EncodingKind::Utf8 => String::from_utf8(computed.to_vec()).map_err(anyhow::Error::from),
             EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
-            EncodingKind::Hex => Ok(hex::encode::<&[u8]>(computed.as_ref())),
+            EncodingKind::Hex => Ok(hex::encode::<&[u8]>(computed)),
         }
     }
 }
