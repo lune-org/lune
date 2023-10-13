@@ -1,3 +1,5 @@
+#![allow(clippy::match_same_arms)]
+
 use std::{cmp::Ordering, ffi::OsStr, fmt::Write as _, path::PathBuf};
 
 use anyhow::{bail, Result};
@@ -6,7 +8,7 @@ use directories::UserDirs;
 use once_cell::sync::Lazy;
 use tokio::{fs, io};
 
-use super::files::parse_lune_description_from_file;
+use super::files::{discover_script_path, parse_lune_description_from_file};
 
 pub static COLOR_BLUE: Lazy<Style> = Lazy::new(|| Style::new().blue());
 pub static STYLE_DIM: Lazy<Style> = Lazy::new(|| Style::new().dim());
@@ -29,15 +31,43 @@ pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)
                 if meta.is_file() {
                     let contents = fs::read(entry.path()).await?;
                     files.push((entry, meta, contents));
+                } else if meta.is_dir() {
+                    let entry_path_os = entry.path();
+
+                    let Some(dir_path) = entry_path_os.to_str() else {
+                        bail!("Failed to cast path to string slice.")
+                    };
+
+                    let init_file_path = match discover_script_path(dir_path, in_home_dir) {
+                        Ok(init_file) => init_file,
+                        _ => continue,
+                    };
+
+                    let contents = fs::read(init_file_path).await?;
+
+                    files.push((entry, meta, contents));
                 }
             }
             let parsed: Vec<_> = files
                 .iter()
                 .filter(|(entry, _, _)| {
-                    matches!(
+                    let mut is_match = matches!(
                         entry.path().extension().and_then(OsStr::to_str),
                         Some("lua" | "luau")
-                    )
+                    );
+
+                    // If the entry is not a lua or luau file, and is a directory,
+                    // then we check if it contains a init.lua(u), and if it does,
+                    // we include it in our Vec
+                    if !is_match
+                        && entry.path().is_dir()
+                        && (entry.path().join("init.lua").exists()
+                            || entry.path().join("init.luau").exists())
+                    {
+                        is_match = true;
+                    }
+
+                    is_match
                 })
                 .map(|(entry, _, contents)| {
                     let contents_str = String::from_utf8_lossy(contents);
