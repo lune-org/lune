@@ -98,10 +98,12 @@ serde_json = { version = "1.0", features = ["preserve_order"] }
 serde_yaml = "0.9"
 toml = { version = "0.8", features = ["preserve_order"] }
 
-ring = "0.17.3"
 base64 = "0.21.4"
 hex = "0.4.3"
 md5 = "0.7.0"
+sha1 = "0.10.6"
+sha2 = "0.10.8"
+digest = { version = "0.10.7", default-features = true }
 
 ### NET
 
