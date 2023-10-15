@@ -9,7 +9,7 @@ use mlua::prelude::*;
 // TODO: Proper error handling, remove unwraps
 
 macro_rules! impl_hash_algo {
-    ($($algo:ident => $Type:ty),*) => {
+    ($($algo:ident: $Type:ty),*) => {
         #[derive(Clone)]
         pub enum CryptoAlgo {
             $(
@@ -63,12 +63,12 @@ macro_rules! impl_hash_algo {
 // Macro call creates the CryptoAlgo enum and implementations for it
 // It also adds a method corresponding to the enum in the `Crypto` struct
 impl_hash_algo! {
-    Sha1 => sha1::Sha1,
-    Sha256 => sha2::Sha256,
-    Sha512 => sha2::Sha512,
-    Md5 => md5::Md5,
-    Blake2s256 => blake2::Blake2s256,
-    Blake2b512 => blake2::Blake2b512
+    Sha1: sha1::Sha1,
+    Sha256: sha2::Sha256,
+    Sha512: sha2::Sha512,
+    Md5: md5::Md5,
+    Blake2s256: blake2::Blake2s256,
+    Blake2b512: blake2::Blake2b512
 }
 
 #[derive(Clone)]
