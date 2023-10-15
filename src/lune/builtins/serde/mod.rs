@@ -35,6 +35,17 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 .with_function("blake2b512", |_, content: Option<String>| {
                     Ok(Crypto::blake2b512(content))
                 })?
+                .with_function("sha3", |_, (variant, content): (String, Option<String>)| {
+                    match variant.to_string().as_str() {
+                        "256" => Ok(Crypto::sha3_256(content)),
+                        "512" => Ok(Crypto::sha3_512(content)),
+
+                        &_ => Err(LuaError::runtime(format!(
+                            "Expected sha3 variant to be 256-bit or 512-bit, got {}",
+                            variant
+                        ))),
+                    }
+                })?
                 .build()?,
         )?
         .build_readonly()

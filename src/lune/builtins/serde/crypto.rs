@@ -44,7 +44,7 @@ macro_rules! impl_hash_algo {
         impl Crypto {
             $(
                 paste::item! {
-                    pub fn [<$algo:lower>]<T: ToString>(content: Option<T>) -> Self {
+                    pub fn [<$algo:snake:lower>]<T: ToString>(content: Option<T>) -> Self {
                         let constructed = Self {
                             algo: Arc::new(Mutex::new(CryptoAlgo::$algo(Box::new($Type::new())))),
                         };
@@ -68,7 +68,9 @@ impl_hash_algo! {
     Sha512: sha2::Sha512,
     Md5: md5::Md5,
     Blake2s256: blake2::Blake2s256,
-    Blake2b512: blake2::Blake2b512
+    Blake2b512: blake2::Blake2b512,
+    Sha3_256: sha3::Sha3_256,
+    Sha3_512: sha3::Sha3_512
 }
 
 #[derive(Clone)]
