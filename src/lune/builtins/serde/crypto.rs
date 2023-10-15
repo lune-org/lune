@@ -5,14 +5,11 @@ use crate::lune::builtins::{
 };
 use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
-use digest::DynDigest;
 use sha1::Digest as _;
-// use ring::digest::{self, digest, Digest as RingDigest};
 use std::sync::Mutex;
 
 // TODO: Proper error handling, remove unwraps
 
-// Code compiles but trait object returns an incorrect hash! Love my life :3
 #[derive(Clone)]
 pub struct Crypto {
     algo: Arc<Mutex<CryptoAlgo>>,
@@ -73,13 +70,39 @@ impl FromLua<'_> for EncodingKind {
 }
 
 impl CryptoAlgo {
-    pub fn get_hasher(&self) -> &dyn DynDigest {
+    pub fn update(&self, content: impl AsRef<[u8]>) {
         // TODO: Replace boilerplate using a macro
 
         match self {
-            CryptoAlgo::Sha1(hasher) => &**hasher,
-            CryptoAlgo::Sha256(hasher) => &**hasher,
-            CryptoAlgo::Sha512(hasher) => &**hasher,
+            CryptoAlgo::Sha1(hasher) => sha1::Digest::update(&mut (**hasher).clone(), content),
+            CryptoAlgo::Sha256(hasher) => sha2::Digest::update(&mut (**hasher).clone(), content),
+            CryptoAlgo::Sha512(hasher) => sha2::Digest::update(&mut (**hasher).clone(), content),
+        };
+    }
+
+    pub fn digest(&self, encoding: EncodingKind) -> Result<String> {
+        let computed: Vec<u8> = match self {
+            CryptoAlgo::Sha1(hasher) => {
+                let hash = sha1::Digest::finalize((**hasher).clone());
+
+                hash.to_vec()
+            }
+            CryptoAlgo::Sha256(hasher) => {
+                let hash = sha2::Digest::finalize((**hasher).clone());
+
+                hash.to_vec()
+            }
+            CryptoAlgo::Sha512(hasher) => {
+                let hash = sha2::Digest::finalize((**hasher).clone());
+
+                hash.to_vec()
+            }
+        };
+
+        match encoding {
+            EncodingKind::Utf8 => String::from_utf8(computed).map_err(anyhow::Error::from),
+            EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
+            EncodingKind::Hex => Ok(hex::encode::<&[u8]>(&computed)),
         }
     }
 }
@@ -123,25 +146,13 @@ impl Crypto {
     }
 
     pub fn update(&self, content: impl AsRef<[u8]>) -> &Crypto {
-        let mut binding = (*self.algo.lock().unwrap()).get_hasher().box_clone();
-        let hasher = binding.as_mut();
-
-        hasher.update(content.as_ref());
+        (*self.algo.lock().unwrap()).update(content);
 
         self
     }
 
     pub fn digest(&self, encoding: EncodingKind) -> Result<String> {
-        let algo = self.algo.lock().unwrap();
-        let hasher = algo.get_hasher();
-
-        let computed = &*(*hasher).box_clone().finalize_reset();
-
-        match encoding {
-            EncodingKind::Utf8 => String::from_utf8(computed.to_vec()).map_err(anyhow::Error::from),
-            EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
-            EncodingKind::Hex => Ok(hex::encode::<&[u8]>(computed)),
-        }
+        (*self.algo.lock().unwrap()).digest(encoding)
     }
 }
 
