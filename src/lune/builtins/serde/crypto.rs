@@ -40,15 +40,35 @@ macro_rules! impl_hash_algo {
                 }
             }
         }
+
+        impl Crypto {
+            $(
+                paste::item! {
+                    pub fn [<$algo:lower>]<T: ToString>(content: Option<T>) -> Self {
+                        let constructed = Self {
+                            algo: Arc::new(Mutex::new(CryptoAlgo::$algo(Box::new($Type::new())))),
+                        };
+
+                        match content {
+                            Some(inner) => constructed.update(inner.to_string()).clone(),
+                            None => constructed,
+                        }
+                    }
+                }
+            )*
+        }
     }
 }
 
-// enum CryptoAlgo
+// Macro call creates the CryptoAlgo enum and implementations for it
+// It also adds a method corresponding to the enum in the `Crypto` struct
 impl_hash_algo! {
     Sha1 => sha1::Sha1,
     Sha256 => sha2::Sha256,
     Sha512 => sha2::Sha512,
-    Md5 => md5::Md5
+    Md5 => md5::Md5,
+    Blake2s256 => blake2::Blake2s256,
+    Blake2b512 => blake2::Blake2b512
 }
 
 #[derive(Clone)]
@@ -101,62 +121,19 @@ impl FromLua<'_> for EncodingKind {
     }
 }
 
-impl Crypto {
-    pub fn sha1<T: ToString>(content: Option<T>) -> Crypto {
-        let constructed = Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Sha1(Box::new(sha1::Sha1::new())))),
-        };
+trait CryptoResult {
+    fn update(&self, content: impl AsRef<[u8]>) -> &Self;
+    fn digest(&self, encoding: EncodingKind) -> Result<String>;
+}
 
-        match content {
-            Some(inner) => constructed.update(inner.to_string()).clone(),
-            None => constructed,
-        }
-    }
-
-    pub fn sha256<T: ToString>(content: Option<T>) -> Crypto {
-        let constructed = Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Sha256(
-                Box::new(sha2::Sha256::new()),
-            ))),
-        };
-
-        match content {
-            Some(inner) => constructed.update(inner.to_string()).clone(),
-            None => constructed,
-        }
-    }
-
-    pub fn sha512<T: ToString>(content: Option<T>) -> Crypto {
-        let constructed = Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Sha512(
-                Box::new(sha2::Sha512::new()),
-            ))),
-        };
-
-        match content {
-            Some(inner) => constructed.update(inner.to_string()).clone(),
-            None => constructed,
-        }
-    }
-
-    pub fn md5<T: ToString>(content: Option<T>) -> Crypto {
-        let constructed = Self {
-            algo: Arc::new(Mutex::new(CryptoAlgo::Md5(Box::new(md5::Md5::new())))),
-        };
-
-        match content {
-            Some(inner) => constructed.update(inner.to_string()).clone(),
-            None => constructed,
-        }
-    }
-
-    pub fn update(&self, content: impl AsRef<[u8]>) -> &Crypto {
+impl CryptoResult for Crypto {
+    fn update(&self, content: impl AsRef<[u8]>) -> &Crypto {
         (self.algo.lock().unwrap()).update(content);
 
         self
     }
 
-    pub fn digest(&self, encoding: EncodingKind) -> Result<String> {
+    fn digest(&self, encoding: EncodingKind) -> Result<String> {
         (*self.algo.lock().unwrap()).digest(encoding)
     }
 }
