@@ -66,15 +66,6 @@ impl<'lua> TableBuilder<'lua> {
         self.with_value(key, LuaValue::Function(f))
     }
 
-    pub fn with_table<K>(self, key: K, table: LuaTable<'lua>) -> LuaResult<Self>
-    where
-        K: IntoLua<'lua>,
-    {
-        self.tab.raw_set(key, table)?;
-
-        Ok(self)
-    }
-
     pub fn with_metatable(self, table: LuaTable) -> LuaResult<Self> {
         self.tab.set_metatable(Some(table));
         Ok(self)
