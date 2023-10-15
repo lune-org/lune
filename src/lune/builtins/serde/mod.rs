@@ -22,6 +22,12 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 .with_function("sha1", |_, content: Option<String>| {
                     Ok(Crypto::sha1(content))
                 })?
+                .with_function("sha256", |_, content: Option<String>| {
+                    Ok(Crypto::sha256(content))
+                })?
+                .with_function("sha512", |_, content: Option<String>| {
+                    Ok(Crypto::sha512(content))
+                })?
                 .build()?,
         )?
         .build_readonly()

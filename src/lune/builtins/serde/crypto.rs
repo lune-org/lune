@@ -70,9 +70,9 @@ impl FromLua<'_> for EncodingKind {
 }
 
 impl CryptoAlgo {
-    pub fn update(&mut self, content: impl AsRef<[u8]>) {
-        // TODO: Replace boilerplate using a macro
+    // TODO: Replace boilerplate using a macro
 
+    pub fn update(&mut self, content: impl AsRef<[u8]>) {
         match self {
             CryptoAlgo::Sha1(hasher) => {
                 let mut new_hasher = (**hasher).clone();
@@ -95,26 +95,33 @@ impl CryptoAlgo {
         };
     }
 
-    pub fn digest(&self, encoding: EncodingKind) -> Result<String> {
+    pub fn digest(&mut self, encoding: EncodingKind) -> Result<String> {
         let computed: Vec<u8> = match self {
             CryptoAlgo::Sha1(hasher) => {
-                let hash = sha1::Digest::finalize((**hasher).clone());
+                let mut new_hasher = (**hasher).clone();
+                let hash = sha1::Digest::finalize_reset(&mut new_hasher);
+
+                *self = CryptoAlgo::Sha1(Box::new(new_hasher));
 
                 hash.to_vec()
             }
             CryptoAlgo::Sha256(hasher) => {
-                let hash = sha2::Digest::finalize((**hasher).clone());
+                let mut new_hasher = (**hasher).clone();
+                let hash = sha2::Digest::finalize_reset(&mut new_hasher);
+
+                *self = CryptoAlgo::Sha256(Box::new(new_hasher));
 
                 hash.to_vec()
             }
             CryptoAlgo::Sha512(hasher) => {
-                let hash = sha2::Digest::finalize((**hasher).clone());
+                let mut new_hasher = (**hasher).clone();
+                let hash = sha2::Digest::finalize_reset(&mut new_hasher);
+
+                *self = CryptoAlgo::Sha512(Box::new(new_hasher));
 
                 hash.to_vec()
             }
         };
-
-        println!("{:#?}", computed);
 
         match encoding {
             EncodingKind::Utf8 => String::from_utf8(computed).map_err(anyhow::Error::from),
@@ -172,25 +179,6 @@ impl Crypto {
         (*self.algo.lock().unwrap()).digest(encoding)
     }
 }
-
-// impl FromLua<'_> for Crypto {
-//     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
-//         if !value.is_table() {
-//             return Err(LuaError::FromLuaConversionError {
-//                 from: value.type_name(),
-//                 to: "Crypto",
-//                 message: Some("value must be a table".to_string()),
-//             });
-//         };
-
-//         let value = value.as_table().unwrap();
-//         let values = Self {
-//             algo: value.get("value")?,
-//         };
-
-//         Ok(values)
-//     }
-// }
 
 impl LuaUserData for &'static Crypto {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
