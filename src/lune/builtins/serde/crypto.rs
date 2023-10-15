@@ -5,7 +5,7 @@ use crate::lune::builtins::{
 };
 use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
-use sha1::Digest as _;
+use digest::Digest as _;
 use std::sync::Mutex;
 
 // TODO: Proper error handling, remove unwraps
@@ -74,53 +74,17 @@ impl CryptoAlgo {
 
     pub fn update(&mut self, content: impl AsRef<[u8]>) {
         match self {
-            CryptoAlgo::Sha1(hasher) => {
-                let mut new_hasher = (**hasher).clone();
-                sha1::Digest::update(&mut new_hasher, content);
-
-                *self = CryptoAlgo::Sha1(Box::new(new_hasher))
-            }
-            CryptoAlgo::Sha256(hasher) => {
-                let mut new_hasher = (**hasher).clone();
-                sha2::Digest::update(&mut new_hasher, content);
-
-                *self = CryptoAlgo::Sha256(Box::new(new_hasher))
-            }
-            CryptoAlgo::Sha512(hasher) => {
-                let mut new_hasher = (**hasher).clone();
-                sha2::Digest::update(&mut new_hasher, content);
-
-                *self = CryptoAlgo::Sha512(Box::new(new_hasher))
-            }
+            CryptoAlgo::Sha1(hasher) => hasher.update(content),
+            CryptoAlgo::Sha256(hasher) => hasher.update(content),
+            CryptoAlgo::Sha512(hasher) => hasher.update(content),
         };
     }
 
     pub fn digest(&mut self, encoding: EncodingKind) -> Result<String> {
         let computed: Vec<u8> = match self {
-            CryptoAlgo::Sha1(hasher) => {
-                let mut new_hasher = (**hasher).clone();
-                let hash = sha1::Digest::finalize_reset(&mut new_hasher);
-
-                *self = CryptoAlgo::Sha1(Box::new(new_hasher));
-
-                hash.to_vec()
-            }
-            CryptoAlgo::Sha256(hasher) => {
-                let mut new_hasher = (**hasher).clone();
-                let hash = sha2::Digest::finalize_reset(&mut new_hasher);
-
-                *self = CryptoAlgo::Sha256(Box::new(new_hasher));
-
-                hash.to_vec()
-            }
-            CryptoAlgo::Sha512(hasher) => {
-                let mut new_hasher = (**hasher).clone();
-                let hash = sha2::Digest::finalize_reset(&mut new_hasher);
-
-                *self = CryptoAlgo::Sha512(Box::new(new_hasher));
-
-                hash.to_vec()
-            }
+            CryptoAlgo::Sha1(hasher) => hasher.clone().finalize().to_vec(),
+            CryptoAlgo::Sha256(hasher) => hasher.clone().finalize().to_vec(),
+            CryptoAlgo::Sha512(hasher) => hasher.clone().finalize().to_vec(),
         };
 
         match encoding {
@@ -170,7 +134,7 @@ impl Crypto {
     }
 
     pub fn update(&self, content: impl AsRef<[u8]>) -> &Crypto {
-        (*self.algo.lock().unwrap()).update(content);
+        (self.algo.lock().unwrap()).update(content);
 
         self
     }
