@@ -142,19 +142,14 @@ impl Crypto {
     }
 }
 
-impl LuaUserData for &'static Crypto {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method(
-            "update",
-            |_, this, content: String| Ok(this.update(content)),
-        );
-    }
-}
-
 impl LuaUserData for Crypto {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("digest", |_, this, encoding| {
             this.digest(encoding).map_err(mlua::Error::runtime)
+        });
+
+        methods.add_method("update", |_, this, content: String| {
+            Ok(this.update(content).clone())
         });
     }
 }
