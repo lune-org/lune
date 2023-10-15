@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use crate::lune::builtins::{
-    FromLua, Lua, LuaError, LuaResult, LuaUserData, LuaUserDataMethods, LuaValue,
-};
 use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
 use digest::Digest as _;
+use mlua::prelude::*;
 use std::sync::Mutex;
 
 // TODO: Proper error handling, remove unwraps
@@ -156,8 +154,7 @@ impl LuaUserData for &'static Crypto {
 impl LuaUserData for Crypto {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("digest", |_, this, encoding| {
-            this.digest(encoding)
-                .map_err(|_| mlua::Error::external("whoopsie!"))
+            this.digest(encoding).map_err(mlua::Error::runtime)
         });
     }
 }
