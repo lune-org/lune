@@ -84,6 +84,7 @@ impl Cli {
         // This will also exit early and not run anything else
         if self.list {
             let sorted_relative = find_lune_scripts(false).await.map(sort_lune_scripts);
+
             let sorted_home_dir = find_lune_scripts(true).await.map(sort_lune_scripts);
             if sorted_relative.is_err() && sorted_home_dir.is_err() {
                 eprintln!("{}", sorted_relative.unwrap_err());

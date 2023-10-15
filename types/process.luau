@@ -1,7 +1,12 @@
 export type OS = "linux" | "macos" | "windows"
 export type Arch = "x86_64" | "aarch64"
 
-export type SpawnOptionsStdio = "inherit" | "default"
+export type SpawnOptionsStdioKind = "default" | "inherit" | "forward" | "none"
+export type SpawnOptionsStdio = {
+	stdout: SpawnOptionsStdioKind?,
+	stderr: SpawnOptionsStdioKind?,
+	stdin: string?,
+}
 
 --[=[
 	@interface SpawnOptions
@@ -12,15 +17,15 @@ export type SpawnOptionsStdio = "inherit" | "default"
 	* `cwd` - The current working directory for the process
 	* `env` - Extra environment variables to give to the process
 	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
-	* `stdio` - How to treat output and error streams from the child process - set to "inherit" to pass output and error streams to the current process
+	* `stdio` - How to treat output and error streams from the child process - see `SpawnOptionsStdioKind` and `SpawnOptionsStdio` for more info
 	* `stdin` - Optional standard input to pass to spawned child process
 ]=]
 export type SpawnOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
 	shell: (boolean | string)?,
-	stdio: SpawnOptionsStdio?,
-	stdin: string?,
+	stdio: (SpawnOptionsStdioKind | SpawnOptionsStdio)?,
+	stdin: string?, -- TODO: Remove this since it is now available in stdio above, breaking change
 }
 
 --[=[
