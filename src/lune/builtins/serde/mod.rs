@@ -16,7 +16,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_function("decode", serde_decode)?
         .with_async_function("compress", serde_compress)?
         .with_async_function("decompress", serde_decompress)?
-        .with_table(
+        .with_value(
             "crypto",
             TableBuilder::new(lua)?
                 .with_function("sha1", |_, content: Option<String>| {
@@ -28,6 +28,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 .with_function("sha512", |_, content: Option<String>| {
                     Ok(Crypto::sha512(content))
                 })?
+                .with_function("md5", |_, content: Option<String>| Ok(Crypto::md5(content)))?
                 .build()?,
         )?
         .build_readonly()

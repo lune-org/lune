@@ -1,10 +1,10 @@
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use anyhow::Result;
 use base64::{engine::general_purpose as Base64, Engine as _};
 use digest::Digest as _;
 use mlua::prelude::*;
-use std::sync::Mutex;
 
 // TODO: Proper error handling, remove unwraps
 
@@ -47,7 +47,8 @@ macro_rules! impl_hash_algo {
 impl_hash_algo! {
     Sha1 => sha1::Sha1,
     Sha256 => sha2::Sha256,
-    Sha512 => sha2::Sha512
+    Sha512 => sha2::Sha512,
+    Md5 => md5::Md5
 }
 
 #[derive(Clone)]
@@ -130,6 +131,17 @@ impl Crypto {
             algo: Arc::new(Mutex::new(CryptoAlgo::Sha512(
                 Box::new(sha2::Sha512::new()),
             ))),
+        };
+
+        match content {
+            Some(inner) => constructed.update(inner.to_string()).clone(),
+            None => constructed,
+        }
+    }
+
+    pub fn md5<T: ToString>(content: Option<T>) -> Crypto {
+        let constructed = Self {
+            algo: Arc::new(Mutex::new(CryptoAlgo::Md5(Box::new(md5::Md5::new())))),
         };
 
         match content {
