@@ -70,13 +70,28 @@ impl FromLua<'_> for EncodingKind {
 }
 
 impl CryptoAlgo {
-    pub fn update(&self, content: impl AsRef<[u8]>) {
+    pub fn update(&mut self, content: impl AsRef<[u8]>) {
         // TODO: Replace boilerplate using a macro
 
         match self {
-            CryptoAlgo::Sha1(hasher) => sha1::Digest::update(&mut (**hasher).clone(), content),
-            CryptoAlgo::Sha256(hasher) => sha2::Digest::update(&mut (**hasher).clone(), content),
-            CryptoAlgo::Sha512(hasher) => sha2::Digest::update(&mut (**hasher).clone(), content),
+            CryptoAlgo::Sha1(hasher) => {
+                let mut new_hasher = (**hasher).clone();
+                sha1::Digest::update(&mut new_hasher, content);
+
+                *self = CryptoAlgo::Sha1(Box::new(new_hasher))
+            }
+            CryptoAlgo::Sha256(hasher) => {
+                let mut new_hasher = (**hasher).clone();
+                sha2::Digest::update(&mut new_hasher, content);
+
+                *self = CryptoAlgo::Sha256(Box::new(new_hasher))
+            }
+            CryptoAlgo::Sha512(hasher) => {
+                let mut new_hasher = (**hasher).clone();
+                sha2::Digest::update(&mut new_hasher, content);
+
+                *self = CryptoAlgo::Sha512(Box::new(new_hasher))
+            }
         };
     }
 
@@ -99,10 +114,12 @@ impl CryptoAlgo {
             }
         };
 
+        println!("{:#?}", computed);
+
         match encoding {
             EncodingKind::Utf8 => String::from_utf8(computed).map_err(anyhow::Error::from),
             EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
-            EncodingKind::Hex => Ok(hex::encode::<&[u8]>(&computed)),
+            EncodingKind::Hex => Ok(hex::encode(&computed)),
         }
     }
 }
