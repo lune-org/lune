@@ -8,18 +8,51 @@ use std::sync::Mutex;
 
 // TODO: Proper error handling, remove unwraps
 
-#[derive(Clone)]
-pub struct Crypto {
-    algo: Arc<Mutex<CryptoAlgo>>,
+macro_rules! impl_hash_algo {
+    ($($algo:ident => $Type:ty),*) => {
+        #[derive(Clone)]
+        pub enum CryptoAlgo {
+            $(
+                $algo(Box<$Type>),
+            )*
+        }
+
+        impl CryptoAlgo {
+            pub fn update(&mut self, data: impl AsRef<[u8]>) {
+                match self {
+                    $(
+                        Self::$algo(hasher) => hasher.update(data),
+                    )*
+                }
+            }
+
+            pub fn digest(&mut self, encoding: EncodingKind) -> Result<String> {
+                let computed = match self {
+                    $(
+                        Self::$algo(hasher) => hasher.clone().finalize_reset().to_vec(),
+                    )*
+                };
+
+                match encoding {
+                    EncodingKind::Utf8 => String::from_utf8(computed).map_err(anyhow::Error::from),
+                    EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
+                    EncodingKind::Hex => Ok(hex::encode(&computed)),
+                }
+            }
+        }
+    }
+}
+
+// enum CryptoAlgo
+impl_hash_algo! {
+    Sha1 => sha1::Sha1,
+    Sha256 => sha2::Sha256,
+    Sha512 => sha2::Sha512
 }
 
 #[derive(Clone)]
-pub enum CryptoAlgo {
-    Sha1(Box<sha1::Sha1>),
-    Sha256(Box<sha2::Sha256>),
-    Sha512(Box<sha2::Sha512>),
-    // Blake2(Box<T>),
-    // Md5(Box<T>),
+pub struct Crypto {
+    algo: Arc<Mutex<CryptoAlgo>>,
 }
 
 #[derive(PartialOrd, PartialEq, Ord, Eq)]
@@ -63,32 +96,6 @@ impl FromLua<'_> for EncodingKind {
                 to: "EncodingKind",
                 message: Some("value must be a an Integer, Number or String".to_string()),
             }),
-        }
-    }
-}
-
-impl CryptoAlgo {
-    // TODO: Replace boilerplate using a macro
-
-    pub fn update(&mut self, content: impl AsRef<[u8]>) {
-        match self {
-            CryptoAlgo::Sha1(hasher) => hasher.update(content),
-            CryptoAlgo::Sha256(hasher) => hasher.update(content),
-            CryptoAlgo::Sha512(hasher) => hasher.update(content),
-        };
-    }
-
-    pub fn digest(&mut self, encoding: EncodingKind) -> Result<String> {
-        let computed: Vec<u8> = match self {
-            CryptoAlgo::Sha1(hasher) => hasher.clone().finalize().to_vec(),
-            CryptoAlgo::Sha256(hasher) => hasher.clone().finalize().to_vec(),
-            CryptoAlgo::Sha512(hasher) => hasher.clone().finalize().to_vec(),
-        };
-
-        match encoding {
-            EncodingKind::Utf8 => String::from_utf8(computed).map_err(anyhow::Error::from),
-            EncodingKind::Base64 => Ok(Base64::STANDARD.encode(computed)),
-            EncodingKind::Hex => Ok(hex::encode(&computed)),
         }
     }
 }
