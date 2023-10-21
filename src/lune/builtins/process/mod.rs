@@ -99,7 +99,7 @@ fn process_env_get<'lua>(
         Some(value) => {
             let raw_value = RawOsString::new(value);
             Ok(LuaValue::String(
-                lua.create_string(raw_value.as_raw_bytes())?,
+                lua.create_string(raw_value.to_raw_bytes())?,
             ))
         }
         None => Ok(LuaValue::Nil),
@@ -152,8 +152,8 @@ fn process_env_iter<'lua>(
             let raw_key = RawOsString::new(key);
             let raw_value = RawOsString::new(value);
             Ok((
-                LuaValue::String(lua.create_string(raw_key.as_raw_bytes())?),
-                LuaValue::String(lua.create_string(raw_value.as_raw_bytes())?),
+                LuaValue::String(lua.create_string(raw_key.to_raw_bytes())?),
+                LuaValue::String(lua.create_string(raw_value.to_raw_bytes())?),
             ))
         }
         None => Ok((LuaValue::Nil, LuaValue::Nil)),

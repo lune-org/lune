@@ -74,7 +74,6 @@ dunce = "1.0"
 lz4_flex = "0.11"
 path-clean = "1.0"
 pin-project = "1.0"
-os_str_bytes = "6.4"
 urlencoding = "2.1"
 
 ### RUNTIME
@@ -83,6 +82,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 mlua = { version = "0.9.1", features = ["luau", "luau-jit", "serialize"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
+os_str_bytes = { version = "6.4", features = ["conversions"] }
 
 ### SERDE
 
