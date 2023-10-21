@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.7.8"
+version = "0.7.9"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
