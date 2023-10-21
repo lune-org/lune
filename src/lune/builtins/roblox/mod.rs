@@ -128,10 +128,6 @@ fn implement_property(
             })?
         }
     };
-    // TODO: Wrap getter and setter functions in async compat layers,
-    // the roblox library does not know about the Lune runtime or the
-    // scheduler and users may want to call async functions, some of
-    // which are not obvious that they are async such as print, warn, ...
     InstanceRegistry::insert_property_getter(lua, &class_name, &property_name, property_getter)
         .into_lua_err()?;
     InstanceRegistry::insert_property_setter(lua, &class_name, &property_name, property_setter)
@@ -143,7 +139,6 @@ fn implement_method(
     lua: &Lua,
     (class_name, method_name, method): (String, String, LuaFunction),
 ) -> LuaResult<()> {
-    // TODO: Same as above, wrap the provided method in an async compat layer
     InstanceRegistry::insert_method(lua, &class_name, &method_name, method).into_lua_err()?;
     Ok(())
 }
