@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update to Luau version `0.599`.
 - Stdio options when using `process.spawn` can now be set with more granularity, allowing stderr & stdout to be disabled individually and completely to improve memory usage when they are not being used.
 
 ## `0.7.8` - October 5th, 2023
