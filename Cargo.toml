@@ -132,7 +132,7 @@ rand = { optional = true, version = "0.8" }
 
 rbx_cookie = { optional = true, version = "0.1.3", default-features = false }
 
-rbx_binary = { optional = true, version = "0.7.2" }
+rbx_binary = { optional = true, version = "0.7.3" }
 rbx_dom_weak = { optional = true, version = "2.6.0" }
 rbx_reflection = { optional = true, version = "4.4.0" }
 rbx_reflection_database = { optional = true, version = "0.2.9" }

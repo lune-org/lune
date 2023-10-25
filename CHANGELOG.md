@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added the `GetDebugId` instance method to the `roblox` built-in. This will return the internal id used by the instance, and as the name implies, it should be primarily used for _debugging_ purposes and cases where you need a globally unique identifier for an instance. It is guaranteed to be a 32-digit hexadecimal string.
 
+### Fixed
+
+- Fixed issues with `SecurityCapabilities` on instances in the `roblox` built-in by upgrading rbx-dom.
+
 ## `0.7.9` - October 21st, 2023
 
 ### Added
