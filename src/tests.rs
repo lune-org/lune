@@ -178,6 +178,7 @@ create_tests! {
     roblox_instance_methods_find_first_child_of_class: "roblox/instance/methods/FindFirstChildOfClass",
     roblox_instance_methods_find_first_child_which_is_a: "roblox/instance/methods/FindFirstChildWhichIsA",
     roblox_instance_methods_get_children: "roblox/instance/methods/GetChildren",
+    roblox_instance_methods_get_debug_id: "roblox/instance/methods/GetDebugId",
     roblox_instance_methods_get_descendants: "roblox/instance/methods/GetDescendants",
     roblox_instance_methods_get_full_name: "roblox/instance/methods/GetFullName",
     roblox_instance_methods_is_a: "roblox/instance/methods/IsA",

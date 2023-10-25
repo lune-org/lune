@@ -145,6 +145,7 @@ type InstanceMetatable = {
 	ClearAllChildren: (self: Instance) -> (),
 
 	GetChildren: (self: Instance) -> { Instance },
+	GetDebugId: (self: Instance) -> string,
 	GetDescendants: (self: Instance) -> { Instance },
 	GetFullName: (self: Instance) -> string,
 

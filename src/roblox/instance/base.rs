@@ -49,6 +49,9 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         ensure_not_destroyed(this)?;
         this.get_full_name().into_lua(lua)
     });
+    m.add_method("GetDebugId", |lua, this, ()| {
+        this.dom_ref.to_string().into_lua(lua)
+    });
     m.add_method("FindFirstAncestor", |lua, this, name: String| {
         ensure_not_destroyed(this)?;
         this.find_ancestor(|child| child.name == name).into_lua(lua)
