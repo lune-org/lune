@@ -9,11 +9,14 @@ local IS_WINDOWS = process.os == "windows"
 local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
 
-local thread2 = task.delay(30, function()
-	stdio.ewrite("Spawning a sleep process should take a reasonable amount of time\n")
-	task.wait(1)
-	process.exit(1)
-end)
+local thread2 = task.delay(
+	if IS_WINDOWS then 30 else (SLEEP_DURATION * SLEEP_SAMPLES * 2),
+	function()
+		stdio.ewrite("Spawning a sleep process should take a reasonable amount of time\n")
+		task.wait(1)
+		process.exit(1)
+	end
+)
 
 local sleepStart = os.clock()
 local sleepCounter = 0
