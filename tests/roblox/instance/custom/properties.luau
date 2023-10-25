@@ -36,13 +36,12 @@ local _ = part.PassingPartTest
 
 local counters = {}
 roblox.implementProperty("Instance", "Counter", function(instance)
-	-- FIXME: Instances do not make for unique table keys for some reason ...
-	local value = counters[tostring(instance)] or 0
+	local value = counters[instance:GetDebugId()] or 0
 	value += 1
-	counters[tostring(instance)] = value
+	counters[instance:GetDebugId()] = value
 	return value
 end, function(instance, value)
-	counters[tostring(instance)] = value
+	counters[instance:GetDebugId()] = value
 end)
 
 assert(inst.Counter == 1, "implementProperty callback should return proper values")
