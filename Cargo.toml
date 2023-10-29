@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.7.10"
+version = "0.7.11"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/filiptibell/lune"
@@ -130,7 +130,7 @@ rustyline = { optional = true, version = "12.0" }
 glam = { optional = true, version = "0.24" }
 rand = { optional = true, version = "0.8" }
 
-rbx_cookie = { optional = true, version = "0.1.3", default-features = false }
+rbx_cookie = { optional = true, version = "0.1.4", default-features = false }
 
 rbx_binary = { optional = true, version = "0.7.3" }
 rbx_dom_weak = { optional = true, version = "2.6.0" }
