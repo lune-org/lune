@@ -1,4 +1,4 @@
-use std::{fmt::Write as _, process::ExitCode};
+use std::{env, fmt::Write as _, path::PathBuf, process::ExitCode};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -9,6 +9,7 @@ use tokio::{
     io::{stdin, AsyncReadExt},
 };
 
+pub(crate) mod build;
 pub(crate) mod gen;
 pub(crate) mod repl;
 pub(crate) mod setup;
@@ -19,6 +20,8 @@ use utils::{
     files::{discover_script_path_including_lune_dirs, strip_shebang},
     listing::{find_lune_scripts, sort_lune_scripts, write_lune_scripts_list},
 };
+
+use self::build::build_standalone;
 
 /// A Luau script runner
 #[derive(Parser, Debug, Default, Clone)]
@@ -44,6 +47,8 @@ pub struct Cli {
     /// Generate a Lune documentation file for Luau LSP
     #[clap(long, hide = true)]
     generate_docs_file: bool,
+    #[clap(long, hide = true)]
+    build: bool,
 }
 
 #[allow(dead_code)]
@@ -116,6 +121,7 @@ impl Cli {
 
             return Ok(ExitCode::SUCCESS);
         }
+
         // Generate (save) definition files, if wanted
         let generate_file_requested = self.setup
             || self.generate_luau_types
@@ -143,14 +149,35 @@ impl Cli {
             if generate_file_requested {
                 return Ok(ExitCode::SUCCESS);
             }
-            // If we did not generate any typedefs we know that the user did not
-            // provide any other options, and in that case we should enter the REPL
-            return repl::show_interface().await;
+
+            // Signature which is only present in standalone lune binaries
+            let signature: Vec<u8> = vec![0x12, 0xed, 0x93, 0x14, 0x28];
+
+            // Read the current lune binary to memory
+            let bin = read_to_vec(env::current_exe()?).await?;
+
+            // Check to see if the lune executable includes the signature
+            return match bin
+                .windows(signature.len())
+                .position(|block| block == signature)
+            {
+                // If we find the signature, all bytes after the 5 signature bytes must be bytecode
+                Some(offset) => Ok(Lune::new()
+                    .with_args(self.script_args)
+                    .run("STANDALONE", &bin[offset + signature.len()..bin.len()])
+                    .await?),
+
+                // If we did not generate any typedefs, know we're not a precompiled bin and
+                // we know that the user did not provide any other options, and in that
+                // case we should enter the REPL
+                None => repl::show_interface().await,
+            };
         }
         // Figure out if we should read from stdin or from a file,
         // reading from stdin is marked by passing a single "-"
         // (dash) as the script name to run to the cli
         let script_path = self.script_path.unwrap();
+
         let (script_display_name, script_contents) = if script_path == "-" {
             let mut stdin_contents = Vec::new();
             stdin()
@@ -165,6 +192,26 @@ impl Cli {
             let file_display_name = file_path.with_extension("").display().to_string();
             (file_display_name, file_contents)
         };
+
+        if self.build {
+            let output_path =
+                PathBuf::from(script_path.clone()).with_extension(env::consts::EXE_EXTENSION);
+            println!(
+                "Building {script_path} to {}",
+                output_path.to_string_lossy()
+            );
+
+            return Ok(
+                match build_standalone(output_path, strip_shebang(script_contents.clone())).await {
+                    Ok(()) => ExitCode::SUCCESS,
+                    Err(err) => {
+                        eprintln!("{err}");
+                        ExitCode::FAILURE
+                    }
+                },
+            );
+        }
+
         // Create a new lune object with all globals & run the script
         let result = Lune::new()
             .with_args(self.script_args)
