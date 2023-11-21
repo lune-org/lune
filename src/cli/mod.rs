@@ -151,27 +151,66 @@ impl Cli {
             }
 
             // Signature which is only present in standalone lune binaries
-            let signature: Vec<u8> = vec![0x12, 0xed, 0x93, 0x14, 0x28];
+            let signature: Vec<u8> = vec![0x4f, 0x3e, 0xf8, 0x41, 0xc3, 0x3a, 0x52, 0x16];
 
             // Read the current lune binary to memory
             let bin = read_to_vec(env::current_exe()?).await?;
+            // let mut bin = vec![0; tmp_bin.len() % signature.len()];
+
+            // println!("padding: {:?}", bin);
+
+            // bin.append(&mut tmp_bin);
+
+            let mut bytecode_offset = 0;
+            let mut bytecode_size = 0;
+
+            // println!("{}",);
+
+            for (idx, chunk) in bin.rchunks(signature.len()).enumerate() {
+                if idx == 0 && chunk != signature {
+                    // We don't have a standalone binary
+                    break;
+                }
+
+                if idx == 3 {
+                    bytecode_offset = u64::from_ne_bytes(chunk.try_into()?);
+                }
+
+                if idx == 2 {
+                    bytecode_size = u64::from_ne_bytes(chunk.try_into()?);
+                }
+            }
+
+            if bytecode_offset != 0 && bytecode_size != 0 {
+                Lune::new()
+                    .with_args(self.script_args.clone())
+                    .run(
+                        "STANDALONE",
+                        &bin[usize::try_from(bytecode_offset).unwrap()
+                            ..usize::try_from(bytecode_offset + bytecode_size).unwrap()],
+                    )
+                    .await?;
+            }
+
+            return repl::show_interface().await;
 
             // Check to see if the lune executable includes the signature
-            return match bin
-                .windows(signature.len())
-                .position(|block| block == signature)
-            {
-                // If we find the signature, all bytes after the 5 signature bytes must be bytecode
-                Some(offset) => Ok(Lune::new()
-                    .with_args(self.script_args)
-                    .run("STANDALONE", &bin[offset + signature.len()..bin.len()])
-                    .await?),
+            // return match bin
+            //     .clone()
+            //     .par_windows(signature.len())
+            //     // .rev()
+            //     .position_any(|block| block == signature)
+            // {
+            //     // If we find the signature, all bytes after the 5 signature bytes must be bytecode
+            //     Some(offset) => {
+            //         // let offset = bin.len() - 1 - back_offset;
+            //     }
 
-                // If we did not generate any typedefs, know we're not a precompiled bin and
-                // we know that the user did not provide any other options, and in that
-                // case we should enter the REPL
-                None => repl::show_interface().await,
-            };
+            //     // If we did not generate any typedefs, know we're not a precompiled bin and
+            //     // we know that the user did not provide any other options, and in that
+            //     // case we should enter the REPL
+            //     None => repl::show_interface().await,
+            // };
         }
         // Figure out if we should read from stdin or from a file,
         // reading from stdin is marked by passing a single "-"
