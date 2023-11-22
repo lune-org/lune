@@ -85,9 +85,16 @@ impl Cli {
 
     #[allow(clippy::too_many_lines)]
     pub async fn run(self) -> Result<ExitCode> {
+        // Signature which is only present in standalone lune binaries
+        let signature: Vec<u8> = vec![0x4f, 0x3e, 0xf8, 0x41, 0xc3, 0x3a, 0x52, 0x16];
+        // Read the current lune binary to memory
+        let bin = read_to_vec(env::current_exe()?).await?;
+
+        let is_standalone = bin[bin.len() - signature.len()..bin.len()] == signature;
+
         // List files in `lune` and `.lune` directories, if wanted
         // This will also exit early and not run anything else
-        if self.list {
+        if self.list && !is_standalone {
             let sorted_relative = find_lune_scripts(false).await.map(sort_lune_scripts);
 
             let sorted_home_dir = find_lune_scripts(true).await.map(sort_lune_scripts);
@@ -150,125 +157,128 @@ impl Cli {
                 return Ok(ExitCode::SUCCESS);
             }
 
-            // Signature which is only present in standalone lune binaries
-            let signature: Vec<u8> = vec![0x4f, 0x3e, 0xf8, 0x41, 0xc3, 0x3a, 0x52, 0x16];
+            if is_standalone {
+                let mut bytecode_offset = 0;
+                let mut bytecode_size = 0;
 
-            // Read the current lune binary to memory
-            let bin = read_to_vec(env::current_exe()?).await?;
+                // standalone binary structure (reversed, 8 bytes per field)
+                // [0] => signature
+                // ----------------
+                // -- META Chunk --
+                // [1] => file count
+                // [2] => bytecode size
+                // [3] => bytecode offset
+                // ----------------
+                // -- MISC Chunk --
+                // [4..n] => bytecode (variable size)
+                // ----------------
+                // NOTE: All integers are 8 byte unsigned 64 bit (u64's).
 
-            let mut bytecode_offset = 0;
-            let mut bytecode_size = 0;
-
-            // standalone binary structure (reversed, 8 bytes per field)
-            // [0] => signature
-            // ----------------
-            // -- META Chunk --
-            // [1] => file count
-            // [2] => bytecode size
-            // [3] => bytecode offset
-            // ----------------
-            // -- MISC Chunk --
-            // [4..n] => bytecode (variable size)
-            // ----------------
-            // NOTE: All integers are 8 byte unsigned 64 bit (u64's).
-
-            // The rchunks will have unequally sized sections in the beginning
-            // but that doesn't matter to us because we don't need anything past the
-            // middle chunks where the bytecode is stored
-            for (idx, chunk) in bin.rchunks(signature.len()).enumerate() {
-                if idx == 0 && chunk != signature {
-                    // We don't have a standalone binary
-                    break;
-                }
-
-                if idx == 3 {
-                    bytecode_offset = u64::from_ne_bytes(chunk.try_into()?);
-                }
-
-                if idx == 2 {
-                    bytecode_size = u64::from_ne_bytes(chunk.try_into()?);
-                }
-            }
-
-            // If we were able to retrieve the required metadata, we load
-            // and execute the bytecode
-            if bytecode_offset != 0 && bytecode_size != 0 {
-                // FIXME: Passing arguments does not work like it should, because the first
-                // argument provided is treated as the script path. We should probably also not
-                // allow any runner functionality within standalone binaries
-
-                let result = Lune::new()
-                    .with_args(self.script_args.clone())
-                    .run(
-                        "STANDALONE",
-                        &bin[usize::try_from(bytecode_offset).unwrap()
-                            ..usize::try_from(bytecode_offset + bytecode_size).unwrap()],
-                    )
-                    .await;
-
-                return Ok(match result {
-                    Err(err) => {
-                        eprintln!("{err}");
-                        ExitCode::FAILURE
+                // The rchunks will have unequally sized sections in the beginning
+                // but that doesn't matter to us because we don't need anything past the
+                // middle chunks where the bytecode is stored
+                for (idx, chunk) in bin.rchunks(signature.len()).enumerate() {
+                    if idx == 0 && chunk != signature {
+                        // We don't have a standalone binary
+                        break;
                     }
-                    Ok(code) => code,
-                });
+
+                    if idx == 3 {
+                        bytecode_offset = u64::from_ne_bytes(chunk.try_into()?);
+                    }
+
+                    if idx == 2 {
+                        bytecode_size = u64::from_ne_bytes(chunk.try_into()?);
+                    }
+                }
+
+                // If we were able to retrieve the required metadata, we load
+                // and execute the bytecode
+                if bytecode_offset != 0 && bytecode_size != 0 {
+                    // FIXME: Passing arguments does not work like it should, because the first
+                    // argument provided is treated as the script path. We should probably also not
+                    // allow any runner functionality within standalone binaries
+
+                    let result = Lune::new()
+                        .with_args(self.script_args.clone()) // TODO: args should also include lune reserved ones
+                        .run(
+                            "STANDALONE",
+                            &bin[usize::try_from(bytecode_offset).unwrap()
+                                ..usize::try_from(bytecode_offset + bytecode_size).unwrap()],
+                        )
+                        .await;
+
+                    return Ok(match result {
+                        Err(err) => {
+                            eprintln!("{err}");
+                            ExitCode::FAILURE
+                        }
+                        Ok(code) => code,
+                    });
+                }
             }
 
             // If not in a standalone context and we don't have any arguments
             // display the interactive REPL interface
             return repl::show_interface().await;
         }
-        // Figure out if we should read from stdin or from a file,
-        // reading from stdin is marked by passing a single "-"
-        // (dash) as the script name to run to the cli
-        let script_path = self.script_path.unwrap();
 
-        let (script_display_name, script_contents) = if script_path == "-" {
-            let mut stdin_contents = Vec::new();
-            stdin()
-                .read_to_end(&mut stdin_contents)
-                .await
-                .context("Failed to read script contents from stdin")?;
-            ("stdin".to_string(), stdin_contents)
-        } else {
-            let file_path = discover_script_path_including_lune_dirs(&script_path)?;
-            let file_contents = read_to_vec(&file_path).await?;
-            // NOTE: We skip the extension here to remove it from stack traces
-            let file_display_name = file_path.with_extension("").display().to_string();
-            (file_display_name, file_contents)
-        };
+        if !is_standalone {
+            // Figure out if we should read from stdin or from a file,
+            // reading from stdin is marked by passing a single "-"
+            // (dash) as the script name to run to the cli
+            let script_path = self.script_path.unwrap();
 
-        if self.build {
-            let output_path =
-                PathBuf::from(script_path.clone()).with_extension(env::consts::EXE_EXTENSION);
-            println!(
-                "Building {script_path} to {}",
-                output_path.to_string_lossy()
-            );
+            let (script_display_name, script_contents) = if script_path == "-" {
+                let mut stdin_contents = Vec::new();
+                stdin()
+                    .read_to_end(&mut stdin_contents)
+                    .await
+                    .context("Failed to read script contents from stdin")?;
+                ("stdin".to_string(), stdin_contents)
+            } else {
+                let file_path = discover_script_path_including_lune_dirs(&script_path)?;
+                let file_contents = read_to_vec(&file_path).await?;
+                // NOTE: We skip the extension here to remove it from stack traces
+                let file_display_name = file_path.with_extension("").display().to_string();
+                (file_display_name, file_contents)
+            };
 
-            return Ok(
-                match build_standalone(output_path, strip_shebang(script_contents.clone())).await {
-                    Ok(exitcode) => exitcode,
-                    Err(err) => {
-                        eprintln!("{err}");
-                        ExitCode::FAILURE
-                    }
-                },
-            );
+            if self.build {
+                let output_path =
+                    PathBuf::from(script_path.clone()).with_extension(env::consts::EXE_EXTENSION);
+                println!(
+                    "Building {script_path} to {}",
+                    output_path.to_string_lossy()
+                );
+
+                return Ok(
+                    match build_standalone(output_path, strip_shebang(script_contents.clone()))
+                        .await
+                    {
+                        Ok(exitcode) => exitcode,
+                        Err(err) => {
+                            eprintln!("{err}");
+                            ExitCode::FAILURE
+                        }
+                    },
+                );
+            }
+
+            // Create a new lune object with all globals & run the script
+            let result = Lune::new()
+                .with_args(self.script_args)
+                .run(&script_display_name, strip_shebang(script_contents))
+                .await;
+            return Ok(match result {
+                Err(err) => {
+                    eprintln!("{err}");
+                    ExitCode::FAILURE
+                }
+                Ok(code) => code,
+            });
         }
 
-        // Create a new lune object with all globals & run the script
-        let result = Lune::new()
-            .with_args(self.script_args)
-            .run(&script_display_name, strip_shebang(script_contents))
-            .await;
-        Ok(match result {
-            Err(err) => {
-                eprintln!("{err}");
-                ExitCode::FAILURE
-            }
-            Ok(code) => code,
-        })
+        Ok(ExitCode::SUCCESS)
     }
 }
