@@ -13,9 +13,7 @@ pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
 ) -> Result<()> {
     // First, we read the contents of the lune interpreter as our starting point
     let mut patched_bin = fs::read(env::current_exe()?).await?;
-    let base_bin_offset = u64::try_from(patched_bin.len() - 1)?;
-
-    println!("base offset: {}", base_bin_offset);
+    let base_bin_offset = u64::try_from(patched_bin.len())?;
 
     // The signature which separates indicates the presence of bytecode to execute
     // If a binary contains this signature, that must mean it is a standalone binar
