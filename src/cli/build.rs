@@ -44,18 +44,18 @@ pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
     patched_bin.append(&mut signature.clone());
 
     // Write the compiled binary to file
-    if cfg!(unix) {
-        OpenOptions::new()
-            .write(true)
-            .create(true)
-            .mode(0o770)
-            .open(output_path)
-            .await?
-            .write_all(&patched_bin)
-            .await?;
-    } else if cfg!(windows) {
-        fs::write(output_path, &patched_bin).await?;
-    }
+    #[cfg(not(target_os = "windows"))]
+    OpenOptions::new()
+        .write(true)
+        .create(true)
+        .mode(0o770)
+        .open(&output_path)
+        .await?
+        .write_all(&patched_bin)
+        .await?;
+
+    #[cfg(target_os = "windows")]
+    fs::write(&output_path, &patched_bin).await?;
 
     Ok(ExitCode::SUCCESS)
 }
