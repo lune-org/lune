@@ -1,9 +1,13 @@
-use std::{env, fmt::Write as _, path::PathBuf, process::ExitCode};
+use std::{env, fmt::Write as _, ops::ControlFlow, path::PathBuf, process::ExitCode, sync::Mutex};
 
 use anyhow::{Context, Result};
 use clap::Parser;
 
 use lune::Lune;
+use rayon::{
+    iter::{IndexedParallelIterator, ParallelIterator},
+    slice::ParallelSlice,
+};
 use tokio::{
     fs::read as read_to_vec,
     io::{stdin, AsyncReadExt},
@@ -93,8 +97,8 @@ impl Cli {
         let is_standalone = bin[bin.len() - signature.len()..bin.len()] == signature;
 
         if is_standalone {
-            let mut bytecode_offset = 0;
-            let mut bytecode_size = 0;
+            let bytecode_offset = Mutex::new(0);
+            let bytecode_size = Mutex::new(0);
 
             // standalone binary structure (reversed, 8 bytes per field)
             // [0] => signature
@@ -112,31 +116,45 @@ impl Cli {
             // The rchunks will have unequally sized sections in the beginning
             // but that doesn't matter to us because we don't need anything past the
             // middle chunks where the bytecode is stored
-            for (idx, chunk) in bin.rchunks(signature.len()).enumerate() {
-                if idx == 0 && chunk != signature {
-                    // Binary is guaranteed to be standalone, we've confirmed this before
-                    unreachable!()
-                }
+            bin.par_rchunks(signature.len())
+                .enumerate()
+                .try_for_each(|(idx, chunk)| {
+                    let mut bytecode_offset = bytecode_offset.lock().unwrap();
+                    let mut bytecode_size = bytecode_size.lock().unwrap();
 
-                if idx == 3 {
-                    bytecode_offset = u64::from_ne_bytes(chunk.try_into()?);
-                }
+                    if *bytecode_offset != 0 && *bytecode_size != 0 {
+                        return ControlFlow::Break(());
+                    }
 
-                if idx == 2 {
-                    bytecode_size = u64::from_ne_bytes(chunk.try_into()?);
-                }
-            }
+                    if idx == 0 && chunk != signature {
+                        // Binary is guaranteed to be standalone, we've confirmed this before
+                        unreachable!("expected proper signature for standalone binary")
+                    }
+
+                    if idx == 3 {
+                        *bytecode_offset = u64::from_ne_bytes(chunk.try_into().unwrap());
+                    }
+
+                    if idx == 2 {
+                        *bytecode_size = u64::from_ne_bytes(chunk.try_into().unwrap());
+                    }
+
+                    ControlFlow::Continue(())
+                });
+
+            let bytecode_offset_inner = bytecode_offset.into_inner().unwrap();
+            let bytecode_size_inner = bytecode_size.into_inner().unwrap();
 
             // If we were able to retrieve the required metadata, we load
             // and execute the bytecode
-            if bytecode_offset != 0 && bytecode_size != 0 {
-                // FIXME: Passing arguments does not work like it should, because the first
-                // argument provided is treated as the script path. We should probably also not
-                // allow any runner functionality within standalone binaries
+            // if bytecode_offset_inner != 0 && bytecode_size_inner != 0 {
+            // FIXME: Passing arguments does not work like it should, because the first
+            // argument provided is treated as the script path. We should probably also not
+            // allow any runner functionality within standalone binaries
 
-                let mut reserved_args = Vec::new();
+            let mut reserved_args = Vec::new();
 
-                macro_rules! include_reserved_args {
+            macro_rules! include_reserved_args {
                     ($($arg_bool:expr=> $mapping:literal),*) => {
                         $(
                             if $arg_bool {
@@ -146,43 +164,41 @@ impl Cli {
                     };
                 }
 
-                let mut real_args = Vec::new();
+            let mut real_args = Vec::new();
 
-                if let Some(first_arg) = self.script_path {
-                    println!("{first_arg}");
-
-                    real_args.push(first_arg);
-                }
-
-                include_reserved_args! {
-                    self.setup => "--setup",
-                    self.generate_docs_file => "--generate-docs-file",
-                    self.generate_selene_types => "--generate-selene-types",
-                    self.generate_luau_types => "--generate-luau-types",
-                    self.list => "--list",
-                    self.build => "--build"
-                }
-
-                real_args.append(&mut reserved_args);
-                real_args.append(&mut self.script_args.clone());
-
-                let result = Lune::new()
-                    .with_args(real_args) // TODO: args should also include lune reserved ones
-                    .run(
-                        "STANDALONE",
-                        &bin[usize::try_from(bytecode_offset)?
-                            ..usize::try_from(bytecode_offset + bytecode_size)?],
-                    )
-                    .await;
-
-                return Ok(match result {
-                    Err(err) => {
-                        eprintln!("{err}");
-                        ExitCode::FAILURE
-                    }
-                    Ok(code) => code,
-                });
+            if let Some(first_arg) = self.script_path {
+                real_args.push(first_arg);
             }
+
+            include_reserved_args! {
+                self.setup => "--setup",
+                self.generate_docs_file => "--generate-docs-file",
+                self.generate_selene_types => "--generate-selene-types",
+                self.generate_luau_types => "--generate-luau-types",
+                self.list => "--list",
+                self.build => "--build"
+            }
+
+            real_args.append(&mut reserved_args);
+            real_args.append(&mut self.script_args.clone());
+
+            let result = Lune::new()
+                .with_args(real_args) // TODO: args should also include lune reserved ones
+                .run(
+                    "STANDALONE",
+                    &bin[usize::try_from(bytecode_offset_inner)?
+                        ..usize::try_from(bytecode_offset_inner + bytecode_size_inner)?],
+                )
+                .await;
+
+            return Ok(match result {
+                Err(err) => {
+                    eprintln!("{err}");
+                    ExitCode::FAILURE
+                }
+                Ok(code) => code,
+            });
+            // }
         }
 
         // List files in `lune` and `.lune` directories, if wanted
@@ -284,17 +300,13 @@ impl Cli {
                     output_path.to_string_lossy()
                 );
 
-                return Ok(
-                    match build_standalone(output_path, strip_shebang(script_contents.clone()))
-                        .await
-                    {
-                        Ok(exitcode) => exitcode,
-                        Err(err) => {
-                            eprintln!("{err}");
-                            ExitCode::FAILURE
-                        }
-                    },
-                );
+                return Ok(match build_standalone(output_path, script_contents).await {
+                    Ok(exitcode) => exitcode,
+                    Err(err) => {
+                        eprintln!("{err}");
+                        ExitCode::FAILURE
+                    }
+                });
             }
 
             // Create a new lune object with all globals & run the script
