@@ -92,6 +92,99 @@ impl Cli {
 
         let is_standalone = bin[bin.len() - signature.len()..bin.len()] == signature;
 
+        if is_standalone {
+            let mut bytecode_offset = 0;
+            let mut bytecode_size = 0;
+
+            // standalone binary structure (reversed, 8 bytes per field)
+            // [0] => signature
+            // ----------------
+            // -- META Chunk --
+            // [1] => file count
+            // [2] => bytecode size
+            // [3] => bytecode offset
+            // ----------------
+            // -- MISC Chunk --
+            // [4..n] => bytecode (variable size)
+            // ----------------
+            // NOTE: All integers are 8 byte unsigned 64 bit (u64's).
+
+            // The rchunks will have unequally sized sections in the beginning
+            // but that doesn't matter to us because we don't need anything past the
+            // middle chunks where the bytecode is stored
+            for (idx, chunk) in bin.rchunks(signature.len()).enumerate() {
+                if idx == 0 && chunk != signature {
+                    // Binary is guaranteed to be standalone, we've confirmed this before
+                    unreachable!()
+                }
+
+                if idx == 3 {
+                    bytecode_offset = u64::from_ne_bytes(chunk.try_into()?);
+                }
+
+                if idx == 2 {
+                    bytecode_size = u64::from_ne_bytes(chunk.try_into()?);
+                }
+            }
+
+            // If we were able to retrieve the required metadata, we load
+            // and execute the bytecode
+            if bytecode_offset != 0 && bytecode_size != 0 {
+                // FIXME: Passing arguments does not work like it should, because the first
+                // argument provided is treated as the script path. We should probably also not
+                // allow any runner functionality within standalone binaries
+
+                let mut reserved_args = Vec::new();
+
+                macro_rules! include_reserved_args {
+                    ($($arg_bool:expr=> $mapping:literal),*) => {
+                        $(
+                            if $arg_bool {
+                                reserved_args.push($mapping.to_string())
+                            }
+                        )*
+                    };
+                }
+
+                let mut real_args = Vec::new();
+
+                if let Some(first_arg) = self.script_path {
+                    println!("{first_arg}");
+
+                    real_args.push(first_arg);
+                }
+
+                include_reserved_args! {
+                    self.setup => "--setup",
+                    self.generate_docs_file => "--generate-docs-file",
+                    self.generate_selene_types => "--generate-selene-types",
+                    self.generate_luau_types => "--generate-luau-types",
+                    self.list => "--list",
+                    self.build => "--build"
+                }
+
+                real_args.append(&mut reserved_args);
+                real_args.append(&mut self.script_args.clone());
+
+                let result = Lune::new()
+                    .with_args(real_args) // TODO: args should also include lune reserved ones
+                    .run(
+                        "STANDALONE",
+                        &bin[usize::try_from(bytecode_offset)?
+                            ..usize::try_from(bytecode_offset + bytecode_size)?],
+                    )
+                    .await;
+
+                return Ok(match result {
+                    Err(err) => {
+                        eprintln!("{err}");
+                        ExitCode::FAILURE
+                    }
+                    Ok(code) => code,
+                });
+            }
+        }
+
         // List files in `lune` and `.lune` directories, if wanted
         // This will also exit early and not run anything else
         if self.list && !is_standalone {
@@ -155,67 +248,6 @@ impl Cli {
             // fine, and we should just exit the program normally afterwards
             if generate_file_requested {
                 return Ok(ExitCode::SUCCESS);
-            }
-
-            if is_standalone {
-                let mut bytecode_offset = 0;
-                let mut bytecode_size = 0;
-
-                // standalone binary structure (reversed, 8 bytes per field)
-                // [0] => signature
-                // ----------------
-                // -- META Chunk --
-                // [1] => file count
-                // [2] => bytecode size
-                // [3] => bytecode offset
-                // ----------------
-                // -- MISC Chunk --
-                // [4..n] => bytecode (variable size)
-                // ----------------
-                // NOTE: All integers are 8 byte unsigned 64 bit (u64's).
-
-                // The rchunks will have unequally sized sections in the beginning
-                // but that doesn't matter to us because we don't need anything past the
-                // middle chunks where the bytecode is stored
-                for (idx, chunk) in bin.rchunks(signature.len()).enumerate() {
-                    if idx == 0 && chunk != signature {
-                        // We don't have a standalone binary
-                        break;
-                    }
-
-                    if idx == 3 {
-                        bytecode_offset = u64::from_ne_bytes(chunk.try_into()?);
-                    }
-
-                    if idx == 2 {
-                        bytecode_size = u64::from_ne_bytes(chunk.try_into()?);
-                    }
-                }
-
-                // If we were able to retrieve the required metadata, we load
-                // and execute the bytecode
-                if bytecode_offset != 0 && bytecode_size != 0 {
-                    // FIXME: Passing arguments does not work like it should, because the first
-                    // argument provided is treated as the script path. We should probably also not
-                    // allow any runner functionality within standalone binaries
-
-                    let result = Lune::new()
-                        .with_args(self.script_args.clone()) // TODO: args should also include lune reserved ones
-                        .run(
-                            "STANDALONE",
-                            &bin[usize::try_from(bytecode_offset).unwrap()
-                                ..usize::try_from(bytecode_offset + bytecode_size).unwrap()],
-                        )
-                        .await;
-
-                    return Ok(match result {
-                        Err(err) => {
-                            eprintln!("{err}");
-                            ExitCode::FAILURE
-                        }
-                        Ok(code) => code,
-                    });
-                }
             }
 
             // If not in a standalone context and we don't have any arguments

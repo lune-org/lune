@@ -44,17 +44,17 @@ pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
     patched_bin.append(&mut signature.clone());
 
     // Write the compiled binary to file
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_family = "unix")]
     OpenOptions::new()
         .write(true)
         .create(true)
-        .mode(0o770)
+        .mode(0o770) // read, write and execute permissions for user and group
         .open(&output_path)
         .await?
         .write_all(&patched_bin)
         .await?;
 
-    #[cfg(target_os = "windows")]
+    #[cfg(target_family = "windows")]
     fs::write(&output_path, &patched_bin).await?;
 
     Ok(ExitCode::SUCCESS)
