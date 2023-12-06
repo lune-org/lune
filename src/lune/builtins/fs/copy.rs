@@ -137,8 +137,13 @@ pub async fn copy(
     } else if is_dir {
         let contents = get_contents_at(source.to_path_buf(), options).await?;
 
-        if options.overwrite {
-            fs::remove_dir_all(target).await?;
+        if options.overwrite && target.exists() {
+            let metadata = fs::metadata(target).await?;
+            if metadata.is_file() {
+                fs::remove_file(target).await?;
+            } else if metadata.is_dir() {
+                fs::remove_dir_all(target).await?;
+            }
         }
 
         // FUTURE: Write dirs / files concurrently
