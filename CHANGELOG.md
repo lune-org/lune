@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update to Luau version `0.606`.
 
+### Fixed
+
+- Fixed the `overwrite` option for `fs.move` not correctly removing existing files / directories. ([#133])
+
+[#133]: https://github.com/filiptibell/lune/pull/133
+
 ## `0.7.11` - October 29th, 2023
 
 ### Changed
