@@ -137,12 +137,16 @@ pub async fn copy(
     } else if is_dir {
         let contents = get_contents_at(source.to_path_buf(), options).await?;
 
-        if options.overwrite && target.exists() {
-            let metadata = fs::metadata(target).await?;
-            if metadata.is_file() {
-                fs::remove_file(target).await?;
-            } else if metadata.is_dir() {
+        if options.overwrite {
+            let (is_dir, is_file) = match fs::metadata(&target).await {
+                Ok(meta) => (meta.is_dir(), meta.is_file()),
+                Err(e) if e.kind() == ErrorKind::NotFound => (false, false),
+                Err(e) => return Err(e.into()),
+            };
+            if is_dir {
                 fs::remove_dir_all(target).await?;
+            } else if is_file {
+                fs::remove_file(target).await?;
             }
         }
 
