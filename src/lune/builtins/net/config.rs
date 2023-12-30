@@ -4,6 +4,8 @@ use mlua::prelude::*;
 
 use reqwest::Method;
 
+use super::util::table_to_hash_map;
+
 // Net request config
 
 #[derive(Debug, Clone)]
@@ -45,17 +47,17 @@ impl<'lua> FromLua<'lua> for RequestConfigOptions {
 }
 
 #[derive(Debug, Clone)]
-pub struct RequestConfig<'a> {
+pub struct RequestConfig {
     pub url: String,
     pub method: Method,
-    pub query: HashMap<LuaString<'a>, LuaString<'a>>,
-    pub headers: HashMap<LuaString<'a>, LuaString<'a>>,
+    pub query: HashMap<String, Vec<String>>,
+    pub headers: HashMap<String, Vec<String>>,
     pub body: Option<Vec<u8>>,
     pub options: RequestConfigOptions,
 }
 
-impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
-    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+impl FromLua<'_> for RequestConfig {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         // If we just got a string we assume its a GET request to a given url
         if let LuaValue::String(s) = value {
             return Ok(Self {
@@ -72,9 +74,7 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
             // Extract url
             let url = match tab.raw_get::<_, LuaString>("url") {
                 Ok(config_url) => Ok(config_url.to_string_lossy().to_string()),
-                Err(_) => Err(LuaError::RuntimeError(
-                    "Missing 'url' in request config".to_string(),
-                )),
+                Err(_) => Err(LuaError::runtime("Missing 'url' in request config")),
             }?;
             // Extract method
             let method = match tab.raw_get::<_, LuaString>("method") {
@@ -83,26 +83,12 @@ impl<'lua> FromLua<'lua> for RequestConfig<'lua> {
             };
             // Extract query
             let query = match tab.raw_get::<_, LuaTable>("query") {
-                Ok(config_headers) => {
-                    let mut lua_headers = HashMap::new();
-                    for pair in config_headers.pairs::<LuaString, LuaString>() {
-                        let (key, value) = pair?.to_owned();
-                        lua_headers.insert(key, value);
-                    }
-                    lua_headers
-                }
+                Ok(tab) => table_to_hash_map(tab, "query")?,
                 Err(_) => HashMap::new(),
             };
             // Extract headers
             let headers = match tab.raw_get::<_, LuaTable>("headers") {
-                Ok(config_headers) => {
-                    let mut lua_headers = HashMap::new();
-                    for pair in config_headers.pairs::<LuaString, LuaString>() {
-                        let (key, value) = pair?.to_owned();
-                        lua_headers.insert(key, value);
-                    }
-                    lua_headers
-                }
+                Ok(tab) => table_to_hash_map(tab, "headers")?,
                 Err(_) => HashMap::new(),
             };
             // Extract body
