@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed the `print` and `warn` global functions yielding the thread, preventing them from being used in places such as the callback to `table.sort`.
 - Fixed the `overwrite` option for `fs.move` not correctly removing existing files / directories. ([#133])
 
 [#133]: https://github.com/filiptibell/lune/pull/133
