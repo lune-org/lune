@@ -1,5 +1,9 @@
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
 
+type HttpQueryOrHeaderMap = { [string]: string | { string } }
+export type HttpQueryMap = HttpQueryOrHeaderMap
+export type HttpHeaderMap = HttpQueryOrHeaderMap
+
 --[=[
 	@interface FetchParamsOptions
 	@within Net
@@ -33,8 +37,8 @@ export type FetchParams = {
 	url: string,
 	method: HttpMethod?,
 	body: string?,
-	query: { [string]: string }?,
-	headers: { [string]: string }?,
+	query: HttpQueryMap?,
+	headers: HttpHeaderMap?,
 	options: FetchParamsOptions?,
 }
 
@@ -56,7 +60,7 @@ export type FetchResponse = {
 	ok: boolean,
 	statusCode: number,
 	statusMessage: string,
-	headers: { [string]: string },
+	headers: HttpHeaderMap,
 	body: string,
 }
 

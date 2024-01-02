@@ -8,6 +8,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added support for multiple values for a single query, and multiple values for a single header, in `net.request`. This is a part of the HTTP specification that is not widely used but that may be useful in certain cases. To clarify:
+
+  - Single values remain unchanged and will work exactly the same as before. <br/>
+
+    ```lua
+    -- https://example.com/?foo=bar&baz=qux
+    local net = require("@lune/net")
+    net.request({
+        url = "example.com",
+        query = {
+            foo = "bar",
+            baz = "qux",
+        }
+    })
+    ```
+
+  - Multiple values _on a single query / header_ are represented as an ordered array of strings. <br/>
+
+    ```lua
+    -- https://example.com/?foo=first&foo=second&foo=third&bar=baz
+    local net = require("@lune/net")
+    net.request({
+        url = "example.com",
+        query = {
+            foo = { "first", "second", "third" },
+            bar = "baz",
+        }
+    })
+    ```
+
+### Changed
+
+- Update to Luau version `0.606`.
+
+### Fixed
+
+- Fixed the `print` and `warn` global functions yielding the thread, preventing them from being used in places such as the callback to `table.sort`.
+- Fixed the `overwrite` option for `fs.move` not correctly removing existing files / directories. ([#133])
+
+[#133]: https://github.com/filiptibell/lune/pull/133
+
 ## `0.7.11` - October 29th, 2023
 
 ### Changed

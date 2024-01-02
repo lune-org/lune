@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
 use mlua::prelude::*;
 
-use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH};
+use hyper::header::CONTENT_ENCODING;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
-use self::server::create_server;
+use self::{server::create_server, util::header_map_to_table};
 
 use super::serde::{
     compress_decompress::{decompress, CompressDecompressFormat},
@@ -18,6 +16,7 @@ mod config;
 mod processing;
 mod response;
 mod server;
+mod util;
 mod websocket;
 
 use client::{NetClient, NetClientBuilder};
@@ -61,18 +60,25 @@ fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<Lua
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
-async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig<'lua>) -> LuaResult<LuaTable<'lua>>
+async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig) -> LuaResult<LuaTable<'lua>>
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
     // Create and send the request
     let client = NetClient::from_registry(lua);
     let mut request = client.request(config.method, &config.url);
-    for (query, value) in config.query {
-        request = request.query(&[(query.to_str()?, value.to_str()?)]);
+    for (query, values) in config.query {
+        request = request.query(
+            &values
+                .iter()
+                .map(|v| (query.as_str(), v))
+                .collect::<Vec<_>>(),
+        );
     }
-    for (header, value) in config.headers {
-        request = request.header(header.to_str()?, value.to_str()?);
+    for (header, values) in config.headers {
+        for value in values {
+            request = request.header(header.as_str(), value);
+        }
     }
     let res = request
         .body(config.body.unwrap_or_default())
@@ -82,44 +88,32 @@ where
     // Extract status, headers
     let res_status = res.status().as_u16();
     let res_status_text = res.status().canonical_reason();
-    let mut res_headers = res
-        .headers()
-        .iter()
-        .map(|(name, value)| {
-            (
-                name.as_str().to_string(),
-                value.to_str().unwrap().to_owned(),
-            )
-        })
-        .collect::<HashMap<String, String>>();
+    let res_headers = res.headers().clone();
     // Read response bytes
     let mut res_bytes = res.bytes().await.into_lua_err()?.to_vec();
+    let mut res_decompressed = false;
     // Check for extra options, decompression
     if config.options.decompress {
-        // NOTE: Header names are guaranteed to be lowercase because of the above
-        // transformations of them into the hashmap, so we can compare directly
-        let format = res_headers.iter().find_map(|(name, val)| {
-            if name == CONTENT_ENCODING.as_str() {
-                CompressDecompressFormat::detect_from_header_str(val)
-            } else {
-                None
-            }
-        });
-        if let Some(format) = format {
+        let decompress_format = res_headers
+            .iter()
+            .find(|(name, _)| {
+                name.as_str()
+                    .eq_ignore_ascii_case(CONTENT_ENCODING.as_str())
+            })
+            .and_then(|(_, value)| value.to_str().ok())
+            .and_then(CompressDecompressFormat::detect_from_header_str);
+        if let Some(format) = decompress_format {
             res_bytes = decompress(format, res_bytes).await?;
-            let content_encoding_header_str = CONTENT_ENCODING.as_str();
-            let content_length_header_str = CONTENT_LENGTH.as_str();
-            res_headers.retain(|name, _| {
-                name != content_encoding_header_str && name != content_length_header_str
-            });
+            res_decompressed = true;
         }
     }
     // Construct and return a readonly lua table with results
+    let res_headers_lua = header_map_to_table(lua, res_headers, res_decompressed)?;
     TableBuilder::new(lua)?
         .with_value("ok", (200..300).contains(&res_status))?
         .with_value("statusCode", res_status)?
         .with_value("statusMessage", res_status_text)?
-        .with_value("headers", res_headers)?
+        .with_value("headers", res_headers_lua)?
         .with_value("body", lua.create_string(&res_bytes)?)?
         .build_readonly()
 }
