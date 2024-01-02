@@ -1,3 +1,4 @@
+use console::Style;
 use std::{
     env,
     path::{Path, PathBuf},
@@ -11,10 +12,26 @@ use tokio::{
 use anyhow::Result;
 use mlua::Compiler as LuaCompiler;
 
+/**
+    Compiles and embeds the bytecode of a requested lua file to form a standalone binary,
+    then writes it to an output file, with the required permissions.
+*/
+#[allow(clippy::similar_names)]
 pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
+    script_path: String,
     output_path: T,
     code: impl AsRef<[u8]>,
 ) -> Result<ExitCode> {
+    let log_output_path = output_path.as_ref().display();
+
+    let prefix_style = Style::new().green().bold();
+    let compile_prefix = prefix_style.apply_to("Compile");
+    let bytecode_prefix = prefix_style.apply_to("Bytecode");
+    let write_prefix = prefix_style.apply_to("Write");
+    let compiled_prefix = prefix_style.apply_to("Compiled");
+
+    println!("{compile_prefix} {script_path}");
+
     // First, we read the contents of the lune interpreter as our starting point
     let mut patched_bin = fs::read(env::current_exe()?).await?;
     let base_bin_offset = u64::try_from(patched_bin.len())?;
@@ -30,13 +47,15 @@ pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
         .set_debug_level(0)
         .compile(code);
 
+    println!("  {bytecode_prefix} {script_path}");
+
     patched_bin.append(&mut bytecode.clone());
 
     let mut meta = base_bin_offset.to_ne_bytes().to_vec();
 
     // Include metadata in the META chunk, each field is 8 bytes
     meta.append(&mut (bytecode.len() as u64).to_ne_bytes().to_vec()); // Size of bytecode, used to calculate end offset at runtime
-    meta.append(&mut 1_u64.to_ne_bytes().to_vec()); // Number of files, padded with null bytes
+    meta.append(&mut 1_u64.to_ne_bytes().to_vec()); // Number of files, padded with null bytes - for future use
 
     patched_bin.append(&mut meta);
 
@@ -56,6 +75,10 @@ pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
 
     #[cfg(target_family = "windows")]
     fs::write(&output_path, &patched_bin).await?;
+
+    println!("  {write_prefix} {log_output_path}");
+
+    println!("{compiled_prefix} {log_output_path}");
 
     Ok(ExitCode::SUCCESS)
 }

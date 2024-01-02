@@ -13,9 +13,11 @@ use std::process::ExitCode;
 use clap::Parser;
 
 pub(crate) mod cli;
+pub(crate) mod executor;
 
 use cli::Cli;
 use console::style;
+
 #[cfg(not(target_env = "msvc"))]
 use tikv_jemallocator::Jemalloc;
 
@@ -32,6 +34,15 @@ async fn main() -> ExitCode {
         .with_timer(tracing_subscriber::fmt::time::uptime())
         .with_level(true)
         .init();
+
+    let (is_standalone, signature, bin) = executor::check_env().await;
+
+    if is_standalone {
+        // It's fine to unwrap here since we don't want to continue
+        // if something fails
+        return executor::run_standalone(signature, bin).await.unwrap();
+    }
+
     match Cli::parse().run().await {
         Ok(code) => code,
         Err(err) => {
