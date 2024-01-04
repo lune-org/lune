@@ -24,16 +24,9 @@ pub async fn check_env() -> (bool, Vec<u8>, Vec<u8>) {
     let signature: Vec<u8> = vec![0x4f, 0x3e, 0xf8, 0x41, 0xc3, 0x3a, 0x52, 0x16];
 
     // Read the current lune binary to memory
-    let bin = if let Ok(contents) = read_to_vec(match env::current_exe() {
-        Ok(path) => path,
-        Err(err) => {
-            eprintln!(
-                "WARN: Couldn't get path to currently running lune executable; err: {}",
-                err.kind()
-            );
-            process::exit(1);
-        }
-    })
+    let bin = if let Ok(contents) = read_to_vec(
+        env::current_exe().expect("failed to get path to current running lune executable"),
+    )
     .await
     {
         contents
