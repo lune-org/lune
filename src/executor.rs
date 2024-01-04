@@ -1,10 +1,4 @@
-use std::{
-    collections::VecDeque,
-    env,
-    ops::ControlFlow,
-    process::{self, ExitCode},
-    sync::Mutex,
-};
+use std::{env, ops::ControlFlow, process::ExitCode, sync::Mutex};
 
 use lune::Lune;
 
@@ -94,8 +88,8 @@ pub async fn run_standalone(signature: Vec<u8>, bin: Vec<u8>) -> Result<ExitCode
     // If we were able to retrieve the required metadata, we load
     // and execute the bytecode
 
-    let mut args = env::args().collect::<VecDeque<String>>();
-    args.pop_front();
+    // Skip the first argument which is the path to current executable
+    let args = env::args().skip(1).collect::<Vec<_>>();
 
     let result = Lune::new()
         .with_args(args)
