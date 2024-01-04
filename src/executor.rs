@@ -1,12 +1,8 @@
-use std::{env, ops::ControlFlow, process::ExitCode, sync::Mutex};
+use std::{env, ops::ControlFlow, process::ExitCode};
 
 use lune::Lune;
 
 use anyhow::Result;
-use rayon::{
-    iter::{IndexedParallelIterator, ParallelIterator},
-    slice::ParallelSlice,
-};
 use tokio::fs::read as read_to_vec;
 
 /**
@@ -37,8 +33,8 @@ pub async fn check_env() -> (bool, Vec<u8>, Vec<u8>) {
     Discovers, loads and executes the bytecode contained in a standalone binary.
 */
 pub async fn run_standalone(signature: Vec<u8>, bin: Vec<u8>) -> Result<ExitCode> {
-    let bytecode_offset = Mutex::new(0);
-    let bytecode_size = Mutex::new(0);
+    let mut bytecode_offset = 0;
+    let mut bytecode_size = 0;
 
     // standalone binary structure (reversed, 8 bytes per field)
     // [0] => signature
@@ -56,13 +52,10 @@ pub async fn run_standalone(signature: Vec<u8>, bin: Vec<u8>) -> Result<ExitCode
     // The rchunks will have unequally sized sections in the beginning
     // but that doesn't matter to us because we don't need anything past the
     // middle chunks where the bytecode is stored
-    bin.par_rchunks(signature.len())
+    bin.rchunks(signature.len())
         .enumerate()
         .try_for_each(|(idx, chunk)| {
-            let mut bytecode_offset = bytecode_offset.lock().unwrap();
-            let mut bytecode_size = bytecode_size.lock().unwrap();
-
-            if *bytecode_offset != 0 && *bytecode_size != 0 {
+            if bytecode_offset != 0 && bytecode_size != 0 {
                 return ControlFlow::Break(());
             }
 
@@ -72,18 +65,15 @@ pub async fn run_standalone(signature: Vec<u8>, bin: Vec<u8>) -> Result<ExitCode
             }
 
             if idx == 3 {
-                *bytecode_offset = u64::from_ne_bytes(chunk.try_into().unwrap());
+                bytecode_offset = u64::from_ne_bytes(chunk.try_into().unwrap());
             }
 
             if idx == 2 {
-                *bytecode_size = u64::from_ne_bytes(chunk.try_into().unwrap());
+                bytecode_size = u64::from_ne_bytes(chunk.try_into().unwrap());
             }
 
             ControlFlow::Continue(())
         });
-
-    let bytecode_offset_inner = bytecode_offset.into_inner().unwrap();
-    let bytecode_size_inner = bytecode_size.into_inner().unwrap();
 
     // If we were able to retrieve the required metadata, we load
     // and execute the bytecode
@@ -95,8 +85,8 @@ pub async fn run_standalone(signature: Vec<u8>, bin: Vec<u8>) -> Result<ExitCode
         .with_args(args)
         .run(
             "STANDALONE",
-            &bin[usize::try_from(bytecode_offset_inner)?
-                ..usize::try_from(bytecode_offset_inner + bytecode_size_inner)?],
+            &bin[usize::try_from(bytecode_offset)?
+                ..usize::try_from(bytecode_offset + bytecode_size)?],
         )
         .await;
 

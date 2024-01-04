@@ -83,8 +83,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 mlua = { version = "0.9.1", features = ["luau", "luau-jit", "serialize"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
 os_str_bytes = { version = "6.4", features = ["conversions"] }
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.5"
 
 ### SERDE
 
@@ -126,7 +124,6 @@ regex = { optional = true, version = "1.7", default-features = false, features =
     "unicode-perl",
 ] }
 rustyline = { optional = true, version = "12.0" }
-rayon = "1.8"
 
 ### ROBLOX
 

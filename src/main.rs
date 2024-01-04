@@ -18,13 +18,6 @@ pub(crate) mod executor;
 use cli::Cli;
 use console::style;
 
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
-
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
-
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> ExitCode {
     tracing_subscriber::fmt()
