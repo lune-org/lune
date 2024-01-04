@@ -48,7 +48,7 @@ pub struct Cli {
     #[clap(long, hide = true)]
     generate_docs_file: bool,
     /// Build a Luau file to an OS-Native standalone executable
-    #[clap(long, hide = true)]
+    #[clap(long)]
     build: bool,
 }
 
