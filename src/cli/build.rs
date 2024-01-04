@@ -1,9 +1,5 @@
 use console::Style;
-use std::{
-    env,
-    path::{Path, PathBuf},
-    process::ExitCode,
-};
+use std::{env, path::Path, process::ExitCode};
 use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
@@ -17,7 +13,7 @@ use mlua::Compiler as LuaCompiler;
     then writes it to an output file, with the required permissions.
 */
 #[allow(clippy::similar_names)]
-pub async fn build_standalone<T: AsRef<Path> + Into<PathBuf>>(
+pub async fn build_standalone<T: AsRef<Path>>(
     script_path: String,
     output_path: T,
     code: impl AsRef<[u8]>,
