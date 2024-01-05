@@ -171,7 +171,7 @@ local apiResult = net.request({
 	method = "PATCH",
 	headers = {
 		["Content-Type"] = "application/json",
-	},
+	} :: { [string]: string },
 	body = net.jsonEncode({
 		title = "foo",
 		body = "bar",
