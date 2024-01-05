@@ -64,11 +64,11 @@ pub async fn run_standalone(bin: Vec<u8>) -> Result<ExitCode> {
             }
 
             if idx == 3 {
-                bytecode_offset = u64::from_ne_bytes(chunk.try_into().unwrap());
+                bytecode_offset = u64::from_le_bytes(chunk.try_into().unwrap());
             }
 
             if idx == 2 {
-                bytecode_size = u64::from_ne_bytes(chunk.try_into().unwrap());
+                bytecode_size = u64::from_le_bytes(chunk.try_into().unwrap());
             }
 
             ControlFlow::Continue(())

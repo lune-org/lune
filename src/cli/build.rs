@@ -48,11 +48,11 @@ pub async fn build_standalone<T: AsRef<Path>>(
 
     patched_bin.extend(&bytecode);
 
-    let mut meta = base_bin_offset.to_ne_bytes().to_vec(); // Start with the base bytecode offset
+    let mut meta = base_bin_offset.to_le_bytes().to_vec(); // Start with the base bytecode offset
 
     // Include metadata in the META chunk, each field is 8 bytes
-    meta.extend((bytecode.len() as u64).to_ne_bytes()); // Size of bytecode, used to calculate end offset at runtime
-    meta.extend(1_u64.to_ne_bytes()); // Number of files, padded with null bytes - for future use
+    meta.extend((bytecode.len() as u64).to_le_bytes()); // Size of bytecode, used to calculate end offset at runtime
+    meta.extend(1_u64.to_le_bytes()); // Number of files, padded with null bytes - for future use
 
     patched_bin.extend(meta);
 
