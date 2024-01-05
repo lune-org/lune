@@ -8,6 +8,11 @@ use tokio::{
 use anyhow::Result;
 use mlua::Compiler as LuaCompiler;
 
+// The signature which separates indicates the presence of bytecode to execute
+// If a binary contains this magic signature as the last 8 bytes, that must mean
+//  it is a standalone binary
+pub const MAGIC: &[u8; 8] = b"cr3sc3nt";
+
 /**
     Compiles and embeds the bytecode of a requested lua file to form a standalone binary,
     then writes it to an output file, with the required permissions.
@@ -32,10 +37,6 @@ pub async fn build_standalone<T: AsRef<Path>>(
     let mut patched_bin = fs::read(env::current_exe()?).await?;
     let base_bin_offset = u64::try_from(patched_bin.len())?;
 
-    // The signature which separates indicates the presence of bytecode to execute
-    // If a binary contains this signature, that must mean it is a standalone binary
-    let signature: Vec<u8> = vec![0x4f, 0x3e, 0xf8, 0x41, 0xc3, 0x3a, 0x52, 0x16];
-
     // Compile luau input into bytecode
     let bytecode = LuaCompiler::new()
         .set_optimization_level(2)
@@ -45,18 +46,18 @@ pub async fn build_standalone<T: AsRef<Path>>(
 
     println!("  {bytecode_prefix} {script_path}");
 
-    patched_bin.append(&mut bytecode.clone());
+    patched_bin.extend(&bytecode);
 
-    let mut meta = base_bin_offset.to_ne_bytes().to_vec();
+    let mut meta = base_bin_offset.to_ne_bytes().to_vec(); // Start with the base bytecode offset
 
     // Include metadata in the META chunk, each field is 8 bytes
-    meta.append(&mut (bytecode.len() as u64).to_ne_bytes().to_vec()); // Size of bytecode, used to calculate end offset at runtime
-    meta.append(&mut 1_u64.to_ne_bytes().to_vec()); // Number of files, padded with null bytes - for future use
+    meta.extend((bytecode.len() as u64).to_ne_bytes()); // Size of bytecode, used to calculate end offset at runtime
+    meta.extend(1_u64.to_ne_bytes()); // Number of files, padded with null bytes - for future use
 
-    patched_bin.append(&mut meta);
+    patched_bin.extend(meta);
 
-    // Append the signature to the base binary
-    patched_bin.append(&mut signature.clone());
+    // Append the magic signature to the base binary
+    patched_bin.extend(MAGIC);
 
     // Write the compiled binary to file
     #[cfg(target_family = "unix")]

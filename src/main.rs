@@ -28,12 +28,12 @@ async fn main() -> ExitCode {
         .with_level(true)
         .init();
 
-    let (is_standalone, signature, bin) = executor::check_env().await;
+    let (is_standalone, bin) = executor::check_env().await;
 
     if is_standalone {
         // It's fine to unwrap here since we don't want to continue
         // if something fails
-        return executor::run_standalone(signature, bin).await.unwrap();
+        return executor::run_standalone(bin).await.unwrap();
     }
 
     match Cli::parse().run().await {
