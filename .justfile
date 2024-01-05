@@ -65,9 +65,10 @@ fmt-check:
 analyze:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	luau-lsp analyze .lune scripts tests types \
+	luau-lsp analyze \
 		--settings=".vscode/settings.json" \
-		--ignore="tests/roblox/rbx-test-files/**"
+		--ignore="tests/roblox/rbx-test-files/**" \
+		.lune scripts tests types
 
 # Zips up the built binary into a single zip file
 [no-exit-message]
