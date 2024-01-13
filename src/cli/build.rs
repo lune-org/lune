@@ -1,7 +1,6 @@
 use console::Style;
-use itertools::Itertools;
 use num_traits::{FromBytes, ToBytes};
-use std::{env, path::Path, process::ExitCode};
+use std::{env, ops::ControlFlow, path::Path, process::ExitCode};
 use tokio::{
     fs::{self, OpenOptions},
     io::AsyncWriteExt,
@@ -19,11 +18,11 @@ pub const MAGIC: &[u8; 8] = b"cr3sc3nt";
 #[derive(Debug, Clone)]
 pub struct MetaChunk {
     /// Compiled lua bytecode of the entrypoint script.
-    bytecode: Vec<u8>,
+    pub bytecode: Vec<u8>,
     /// Offset to the the beginning of the bytecode from the start of the lune binary.
-    bytecode_offset: Option<u64>,
+    pub bytecode_offset: Option<u64>,
     /// Number of files present, currently unused. **For future use**.
-    file_count: Option<u64>,
+    pub file_count: Option<u64>,
 }
 
 impl MetaChunk {
@@ -60,6 +59,62 @@ impl MetaChunk {
             &_ => panic!("unexpected endianness"),
         }
     }
+
+    fn from_bytes(bytes: &[u8], int_handler: fn([u8; 8]) -> u64) -> Result<Self> {
+        let mut bytecode_offset = 0;
+        let mut bytecode_size = 0;
+
+        // standalone binary structure (reversed, 8 bytes per field)
+        // [0] => magic signature
+        // ----------------
+        // -- META Chunk --
+        // [1] => file count
+        // [2] => bytecode size
+        // [3] => bytecode offset
+        // ----------------
+        // -- MISC Chunk --
+        // [4..n] => bytecode (variable size)
+        // ----------------
+        // NOTE: All integers are 8 byte, padded, unsigned & 64 bit (u64's).
+
+        // The rchunks will have unequally sized sections in the beginning
+        // but that doesn't matter to us because we don't need anything past the
+        // middle chunks where the bytecode is stored
+        bytes
+            .rchunks(MAGIC.len())
+            .enumerate()
+            .try_for_each(|(idx, chunk)| {
+                if bytecode_offset != 0 && bytecode_size != 0 {
+                    return ControlFlow::Break(());
+                }
+
+                if idx == 0 && chunk != MAGIC {
+                    // Binary is guaranteed to be standalone, we've confirmed this before
+                    unreachable!("expected proper magic signature for standalone binary")
+                }
+
+                if idx == 3 {
+                    bytecode_offset = int_handler(chunk.try_into().unwrap());
+                }
+
+                if idx == 2 {
+                    bytecode_size = int_handler(chunk.try_into().unwrap());
+                }
+
+                ControlFlow::Continue(())
+            });
+
+        println!("size: {}", bytecode_size);
+        println!("offset: {}", bytecode_offset);
+
+        Ok(Self {
+            bytecode: bytes[usize::try_from(bytecode_offset)?
+                ..usize::try_from(bytecode_offset + bytecode_size)?]
+                .to_vec(),
+            bytecode_offset: Some(bytecode_offset),
+            file_count: Some(1),
+        })
+    }
 }
 
 impl Default for MetaChunk {
@@ -94,6 +149,9 @@ impl ToBytes for MetaChunk {
         tmp.extend(self.bytecode.len().to_le_bytes());
         tmp.extend(self.file_count.unwrap().to_le_bytes());
 
+        println!("size: {}", self.bytecode.len());
+        println!("offset: {:?}", self.bytecode_offset);
+
         tmp
     }
 }
@@ -102,11 +160,11 @@ impl FromBytes for MetaChunk {
     type Bytes = Vec<u8>;
 
     fn from_be_bytes(bytes: &Self::Bytes) -> Self {
-        todo!()
+        Self::from_bytes(bytes, u64::from_be_bytes).unwrap()
     }
 
     fn from_le_bytes(bytes: &Self::Bytes) -> Self {
-        todo!()
+        Self::from_bytes(bytes, u64::from_le_bytes).unwrap()
     }
 }
 
