@@ -1,78 +1,64 @@
-use console::Style;
 use std::{env, path::Path, process::ExitCode};
-use tokio::{
-    fs::{self, OpenOptions},
-    io::AsyncWriteExt,
-};
 
 use anyhow::Result;
+use console::style;
 use mlua::Compiler as LuaCompiler;
+use tokio::{fs, io::AsyncWriteExt as _};
 
-use crate::executor::{MetaChunk, MAGIC};
+use crate::executor::MetaChunk;
 
 /**
-    Compiles and embeds the bytecode of a requested lua file to form a standalone binary,
-    then writes it to an output file, with the required permissions.
+    Compiles and embeds the bytecode of a given lua file to form a standalone
+    binary, then writes it to an output file, with the required permissions.
 */
 #[allow(clippy::similar_names)]
-pub async fn build_standalone<T: AsRef<Path>>(
-    script_path: String,
-    output_path: T,
-    code: impl AsRef<[u8]>,
+pub async fn build_standalone(
+    input_path: impl AsRef<Path>,
+    output_path: impl AsRef<Path>,
+    source_code: impl AsRef<[u8]>,
 ) -> Result<ExitCode> {
-    let log_output_path = output_path.as_ref().display();
-
-    let prefix_style = Style::new().green().bold();
-    let compile_prefix = prefix_style.apply_to("Compile");
-    let bytecode_prefix = prefix_style.apply_to("Bytecode");
-    let write_prefix = prefix_style.apply_to("Write");
-    let compiled_prefix = prefix_style.apply_to("Compiled");
-
-    println!("{compile_prefix} {script_path}");
+    let input_path_displayed = input_path.as_ref().display();
+    let output_path_displayed = output_path.as_ref().display();
 
     // First, we read the contents of the lune interpreter as our starting point
+    println!(
+        "Creating standalone binary using {}",
+        style(input_path_displayed).green()
+    );
     let mut patched_bin = fs::read(env::current_exe()?).await?;
-    let base_bin_offset = u64::try_from(patched_bin.len())?;
 
     // Compile luau input into bytecode
     let bytecode = LuaCompiler::new()
         .set_optimization_level(2)
         .set_coverage_level(0)
-        .set_debug_level(0)
-        .compile(code);
+        .set_debug_level(1)
+        .compile(source_code);
 
-    println!("  {bytecode_prefix} {script_path}");
+    // Append the bytecode / metadata to the end
+    let meta = MetaChunk { bytecode };
+    patched_bin.extend_from_slice(&meta.to_bytes());
 
-    patched_bin.extend(&bytecode);
-
-    let meta = MetaChunk::new()
-        .with_bytecode(bytecode)
-        .with_bytecode_offset(base_bin_offset)
-        .with_file_count(1_u64); // Start with the base bytecode offset
-
-    // Include metadata in the META chunk, each field is 8 bytes
-    patched_bin.extend(meta.build("little"));
-
-    // Append the magic signature to the base binary
-    patched_bin.extend(MAGIC);
-
-    // Write the compiled binary to file
-    #[cfg(target_family = "unix")]
-    OpenOptions::new()
-        .write(true)
-        .create(true)
-        .mode(0o770) // read, write and execute permissions for user and group
-        .open(&output_path)
-        .await?
-        .write_all(&patched_bin)
-        .await?;
-
-    #[cfg(target_family = "windows")]
-    fs::write(&output_path, &patched_bin).await?;
-
-    println!("  {write_prefix} {log_output_path}");
-
-    println!("{compiled_prefix} {log_output_path}");
+    // And finally write the patched binary to the output file
+    println!(
+        "Writing standalone binary to {}",
+        style(output_path_displayed).blue()
+    );
+    write_executable_file_to(output_path, patched_bin).await?;
 
     Ok(ExitCode::SUCCESS)
+}
+
+async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]>) -> Result<()> {
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+
+    #[cfg(unix)]
+    {
+        options.mode(0o755); // Read & execute for all, write for owner
+    }
+
+    let mut file = options.open(path).await?;
+    file.write_all(bytes.as_ref()).await?;
+
+    Ok(())
 }

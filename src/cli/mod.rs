@@ -180,8 +180,6 @@ impl Cli {
             let output_path =
                 PathBuf::from(script_path.clone()).with_extension(env::consts::EXE_EXTENSION);
 
-            println!("Building {script_path} to {}...\n", output_path.display());
-
             return Ok(
                 match build_standalone(script_path, output_path, script_contents).await {
                     Ok(exitcode) => exitcode,

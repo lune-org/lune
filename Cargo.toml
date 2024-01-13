@@ -110,7 +110,6 @@ tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
 ### DATETIME
 chrono = "0.4"
 chrono_lc = "0.1"
-num-traits = "0.2"
 
 ### CLI
 
