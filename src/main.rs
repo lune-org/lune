@@ -13,6 +13,7 @@ use std::process::ExitCode;
 use clap::Parser;
 
 pub(crate) mod cli;
+pub(crate) mod executor;
 
 use cli::Cli;
 use console::style;
@@ -26,6 +27,15 @@ async fn main() -> ExitCode {
         .with_timer(tracing_subscriber::fmt::time::uptime())
         .with_level(true)
         .init();
+
+    let (is_standalone, bin) = executor::check_env().await;
+
+    if is_standalone {
+        // It's fine to unwrap here since we don't want to continue
+        // if something fails
+        return executor::run_standalone(bin).await.unwrap();
+    }
+
     match Cli::parse().run().await {
         Ok(code) => code,
         Err(err) => {

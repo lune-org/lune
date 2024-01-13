@@ -1,4 +1,4 @@
-use std::{fmt::Write as _, process::ExitCode};
+use std::{env, fmt::Write as _, path::PathBuf, process::ExitCode};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -9,6 +9,7 @@ use tokio::{
     io::{stdin, AsyncReadExt},
 };
 
+pub(crate) mod build;
 pub(crate) mod gen;
 pub(crate) mod repl;
 pub(crate) mod setup;
@@ -19,6 +20,8 @@ use utils::{
     files::{discover_script_path_including_lune_dirs, strip_shebang},
     listing::{find_lune_scripts, sort_lune_scripts, write_lune_scripts_list},
 };
+
+use self::build::build_standalone;
 
 /// A Luau script runner
 #[derive(Parser, Debug, Default, Clone)]
@@ -44,6 +47,9 @@ pub struct Cli {
     /// Generate a Lune documentation file for Luau LSP
     #[clap(long, hide = true)]
     generate_docs_file: bool,
+    /// Build a Luau file to an OS-Native standalone executable
+    #[clap(long)]
+    build: bool,
 }
 
 #[allow(dead_code)]
@@ -116,6 +122,7 @@ impl Cli {
 
             return Ok(ExitCode::SUCCESS);
         }
+
         // Generate (save) definition files, if wanted
         let generate_file_requested = self.setup
             || self.generate_luau_types
@@ -143,14 +150,17 @@ impl Cli {
             if generate_file_requested {
                 return Ok(ExitCode::SUCCESS);
             }
-            // If we did not generate any typedefs we know that the user did not
-            // provide any other options, and in that case we should enter the REPL
+
+            // If not in a standalone context and we don't have any arguments
+            // display the interactive REPL interface
             return repl::show_interface().await;
         }
+
         // Figure out if we should read from stdin or from a file,
         // reading from stdin is marked by passing a single "-"
         // (dash) as the script name to run to the cli
         let script_path = self.script_path.unwrap();
+
         let (script_display_name, script_contents) = if script_path == "-" {
             let mut stdin_contents = Vec::new();
             stdin()
@@ -165,6 +175,22 @@ impl Cli {
             let file_display_name = file_path.with_extension("").display().to_string();
             (file_display_name, file_contents)
         };
+
+        if self.build {
+            let output_path =
+                PathBuf::from(script_path.clone()).with_extension(env::consts::EXE_EXTENSION);
+
+            return Ok(
+                match build_standalone(script_path, output_path, script_contents).await {
+                    Ok(exitcode) => exitcode,
+                    Err(err) => {
+                        eprintln!("{err}");
+                        ExitCode::FAILURE
+                    }
+                },
+            );
+        }
+
         // Create a new lune object with all globals & run the script
         let result = Lune::new()
             .with_args(self.script_args)
