@@ -88,10 +88,10 @@ where
     {
         builtin::require(&context, &builtin_name).await
     } else if let Some(aliased_path) = path.strip_prefix('@') {
-        let (alias, name) = aliased_path.split_once('/').ok_or(LuaError::runtime(
+        let (alias, path) = aliased_path.split_once('/').ok_or(LuaError::runtime(
             "Require with custom alias must contain '/' delimiter",
         ))?;
-        alias::require(&context, alias, name).await
+        alias::require(&context, &source, alias, path).await
     } else {
         path::require(&context, &source, &path).await
     }

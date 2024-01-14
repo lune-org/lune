@@ -13,7 +13,17 @@ where
     'lua: 'ctx,
 {
     let (abs_path, rel_path) = ctx.resolve_paths(source, path)?;
+    require_abs_rel(ctx, abs_path, rel_path).await
+}
 
+pub(super) async fn require_abs_rel<'lua, 'ctx>(
+    ctx: &'ctx RequireContext<'lua>,
+    abs_path: PathBuf, // Absolute to filesystem
+    rel_path: PathBuf, // Relative to CWD (for displaying)
+) -> LuaResult<LuaMultiValue<'lua>>
+where
+    'lua: 'ctx,
+{
     // 1. Try to require the exact path
     if let Ok(res) = require_inner(ctx, &abs_path, &rel_path).await {
         return Ok(res);
@@ -62,7 +72,7 @@ where
 
     // Nothing left to try, throw an error
     Err(LuaError::runtime(format!(
-        "No file exist at the path '{}'",
+        "No file exists at the path '{}'",
         rel_path.display()
     )))
 }

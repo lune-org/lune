@@ -4,12 +4,14 @@ use std::{
     process::Stdio,
 };
 
-use dunce::canonicalize;
 use mlua::prelude::*;
 use os_str_bytes::RawOsString;
 use tokio::io::AsyncWriteExt;
 
-use crate::lune::{scheduler::Scheduler, util::TableBuilder};
+use crate::lune::{
+    scheduler::Scheduler,
+    util::{paths::CWD, TableBuilder},
+};
 
 mod tee_writer;
 
@@ -26,8 +28,7 @@ yield()
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     let cwd_str = {
-        let cwd = canonicalize(env::current_dir()?)?;
-        let cwd_str = cwd.to_string_lossy().to_string();
+        let cwd_str = CWD.to_string_lossy().to_string();
         if !cwd_str.ends_with(path::MAIN_SEPARATOR) {
             format!("{cwd_str}{}", path::MAIN_SEPARATOR)
         } else {

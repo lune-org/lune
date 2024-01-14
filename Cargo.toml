@@ -73,6 +73,7 @@ dialoguer = "0.11"
 dunce = "1.0"
 lz4_flex = "0.11"
 path-clean = "1.0"
+pathdiff = "0.2"
 pin-project = "1.0"
 urlencoding = "2.1"
 

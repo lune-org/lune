@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    env,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -17,6 +16,7 @@ use tokio::{
 use crate::lune::{
     builtins::LuneBuiltin,
     scheduler::{IntoLuaThread, Scheduler},
+    util::paths::CWD,
 };
 
 /**
@@ -28,8 +28,6 @@ use crate::lune::{
 #[derive(Debug, Clone)]
 pub(super) struct RequireContext<'lua> {
     lua: &'lua Lua,
-    use_cwd_relative_paths: bool,
-    working_directory: PathBuf,
     cache_builtins: Arc<AsyncMutex<HashMap<LuneBuiltin, LuaResult<LuaRegistryKey>>>>,
     cache_results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
     cache_pending: Arc<AsyncMutex<HashMap<PathBuf, Sender<()>>>>,
@@ -44,13 +42,8 @@ impl<'lua> RequireContext<'lua> {
         than one context may lead to undefined require-behavior.
     */
     pub fn new(lua: &'lua Lua) -> Self {
-        // FUTURE: We could load some kind of config or env var
-        // to check if we should be using cwd-relative paths
-        let cwd = env::current_dir().expect("Failed to get current working directory");
         Self {
             lua,
-            use_cwd_relative_paths: false,
-            working_directory: cwd,
             cache_builtins: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_results: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_pending: Arc::new(AsyncMutex::new(HashMap::new())),
@@ -70,20 +63,16 @@ impl<'lua> RequireContext<'lua> {
         source: impl AsRef<str>,
         path: impl AsRef<str>,
     ) -> LuaResult<(PathBuf, PathBuf)> {
-        let path = if self.use_cwd_relative_paths {
-            PathBuf::from(path.as_ref())
-        } else {
-            PathBuf::from(source.as_ref())
-                .parent()
-                .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
-                .join(path.as_ref())
-        };
+        let path = PathBuf::from(source.as_ref())
+            .parent()
+            .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
+            .join(path.as_ref());
 
         let rel_path = path_clean::clean(path);
         let abs_path = if rel_path.is_absolute() {
             rel_path.to_path_buf()
         } else {
-            self.working_directory.join(&rel_path)
+            CWD.join(&rel_path)
         };
 
         Ok((rel_path, abs_path))

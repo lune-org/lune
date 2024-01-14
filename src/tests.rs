@@ -82,6 +82,7 @@ create_tests! {
     process_spawn_stdin: "process/spawn/stdin",
     process_spawn_stdio: "process/spawn/stdio",
 
+    require_aliases: "require/tests/aliases",
     require_async: "require/tests/async",
     require_async_background: "require/tests/async_background",
     require_async_concurrent: "require/tests/async_concurrent",

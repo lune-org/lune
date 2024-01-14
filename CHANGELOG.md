@@ -46,6 +46,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   To compile scripts that use `require` and reference multiple files, a bundler such as [darklua](https://github.com/seaofvoices/darklua) will need to be used first. This limitation will be lifted in the future and Lune will automatically bundle any referenced scripts.
 
+- Added support for path aliases using `.luaurc` config files!
+
+  For full documentation and reference, check out the [official Luau RFC](https://rfcs.luau-lang.org/require-by-string-aliases.html), but here's a quick example:
+
+  ```jsonc
+  // .luaurc
+  {
+    "aliases": {
+      "modules": "./some/long/path/to/modules"
+    }
+  }
+  ```
+
+  ```lua
+  -- ./some/long/path/to/modules/foo.luau
+  return { World = "World!" }
+
+  -- ./anywhere/you/want/my_script.luau
+  local mod = require("@modules/foo")
+  print("Hello, " .. mod.World)
+  ```
+
 - Added support for multiple values for a single query, and multiple values for a single header, in `net.request`. This is a part of the HTTP specification that is not widely used but that may be useful in certain cases. To clarify:
 
   - Single values remain unchanged and will work exactly the same as before. <br/>
