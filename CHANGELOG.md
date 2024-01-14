@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
   ```sh
-  > lune build my_cool_script
+  > lune build my_cool_script.luau
   # Creates `my_cool_script.exe` (Windows) or `my_cool_script` (macOS / Linux)
   ```
 
