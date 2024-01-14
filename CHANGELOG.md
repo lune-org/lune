@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   > "Hello, standalone!"
   ```
 
-  To compile scripts that use `require` and reference multiple files, a bundler such as [darklua](https://github.com/seaofvoices/darklua) will need to be used first. This limitation will be lifted in the future and Lune will automatically bundle any referenced scripts.
+  To compile scripts that use `require` and reference multiple files, a bundler such as [darklua](https://github.com/seaofvoices/darklua) should preferrably be used. You may also distribute files alongside the standalone binary, they will still be able to be `require`-d. This limitation will be lifted in the future and Lune will automatically bundle any referenced scripts.
 
 - Added support for path aliases using `.luaurc` config files!
 
