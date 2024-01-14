@@ -116,18 +116,18 @@ chrono_lc = "0.1"
 
 anyhow = { optional = true, version = "1.0" }
 env_logger = { optional = true, version = "0.10" }
-itertools = { optional = true, version = "0.11" }
+itertools = { optional = true, version = "0.12" }
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
 regex = { optional = true, version = "1.7", default-features = false, features = [
     "std",
     "unicode-perl",
 ] }
-rustyline = { optional = true, version = "12.0" }
+rustyline = { optional = true, version = "13.0" }
 
 ### ROBLOX
 
-glam = { optional = true, version = "0.24" }
+glam = { optional = true, version = "0.25" }
 rand = { optional = true, version = "0.8" }
 
 rbx_cookie = { optional = true, version = "0.1.4", default-features = false }
