@@ -11,7 +11,7 @@
 use std::process::ExitCode;
 
 pub(crate) mod cli;
-pub(crate) mod executor;
+pub(crate) mod standalone;
 
 use cli::Cli;
 use console::style;
@@ -26,12 +26,8 @@ async fn main() -> ExitCode {
         .with_level(true)
         .init();
 
-    let (is_standalone, bin) = executor::check_env().await;
-
-    if is_standalone {
-        // It's fine to unwrap here since we don't want to continue
-        // if something fails
-        return executor::run_standalone(bin).await.unwrap();
+    if let Some(bin) = standalone::check().await {
+        return standalone::run(bin).await.unwrap();
     }
 
     match Cli::new().run().await {

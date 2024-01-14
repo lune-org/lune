@@ -1,5 +1,5 @@
 use std::{
-    env::{self, consts::EXE_EXTENSION},
+    env::consts::EXE_EXTENSION,
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -7,10 +7,9 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use console::style;
-use mlua::Compiler as LuaCompiler;
 use tokio::{fs, io::AsyncWriteExt as _};
 
-use crate::executor::MetaChunk;
+use crate::standalone::metadata::Metadata;
 
 /// Build a standalone executable
 #[derive(Debug, Clone, Parser)]
@@ -43,18 +42,9 @@ impl BuildCommand {
             "Creating standalone binary using {}",
             style(input_path_displayed).green()
         );
-        let mut patched_bin = fs::read(env::current_exe()?).await?;
-
-        // Compile luau input into bytecode
-        let bytecode = LuaCompiler::new()
-            .set_optimization_level(2)
-            .set_coverage_level(0)
-            .set_debug_level(1)
-            .compile(source_code);
-
-        // Append the bytecode / metadata to the end
-        let meta = MetaChunk { bytecode };
-        patched_bin.extend_from_slice(&meta.to_bytes());
+        let patched_bin = Metadata::create_env_patched_bin(source_code.clone())
+            .await
+            .context("failed to create patched binary")?;
 
         // And finally write the patched binary to the output file
         println!(
