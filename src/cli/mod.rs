@@ -1,180 +1,54 @@
-use std::{env, fmt::Write as _, path::PathBuf, process::ExitCode};
+use std::process::ExitCode;
 
-use anyhow::{Context, Result};
-use clap::Parser;
-
-use lune::Lune;
-use tokio::{
-    fs::read as read_to_vec,
-    io::{stdin, AsyncReadExt},
-};
+use anyhow::Result;
+use clap::{Parser, Subcommand};
 
 pub(crate) mod build;
-pub(crate) mod gen;
+pub(crate) mod list;
 pub(crate) mod repl;
+pub(crate) mod run;
 pub(crate) mod setup;
 pub(crate) mod utils;
 
-use setup::run_setup;
-use utils::{
-    files::{discover_script_path_including_lune_dirs, strip_shebang},
-    listing::{find_lune_scripts, sort_lune_scripts, write_lune_scripts_list},
+pub use self::{
+    build::BuildCommand, list::ListCommand, repl::ReplCommand, run::RunCommand, setup::SetupCommand,
 };
 
-use self::build::build_standalone;
-
-/// A Luau script runner
-#[derive(Parser, Debug, Default, Clone)]
-#[command(version, long_about = None)]
-pub struct Cli {
-    /// Script name or full path to the file to run
-    script_path: Option<String>,
-    /// Arguments to pass to the script, stored in process.args
-    script_args: Vec<String>,
-    /// List scripts found inside of a nearby `lune` directory
-    #[clap(long, short = 'l')]
-    list: bool,
-    /// Set up type definitions and settings for development
-    #[clap(long)]
-    setup: bool,
-    /// Build a Luau file to an OS-Native standalone executable
-    #[clap(long)]
-    build: bool,
+#[derive(Debug, Clone, Subcommand)]
+pub enum CliSubcommand {
+    Run(RunCommand),
+    List(ListCommand),
+    Setup(SetupCommand),
+    Build(BuildCommand),
+    Repl(ReplCommand),
 }
 
-#[allow(dead_code)]
+impl Default for CliSubcommand {
+    fn default() -> Self {
+        Self::Repl(ReplCommand::default())
+    }
+}
+
+/// Lune, a standalone Luau runtime
+#[derive(Parser, Debug, Default, Clone)]
+#[command(version, about, long_about = None)]
+pub struct Cli {
+    #[clap(subcommand)]
+    subcommand: Option<CliSubcommand>,
+}
+
 impl Cli {
     pub fn new() -> Self {
-        Self::default()
+        Self::parse()
     }
 
-    pub fn with_path<S>(mut self, path: S) -> Self
-    where
-        S: Into<String>,
-    {
-        self.script_path = Some(path.into());
-        self
-    }
-
-    pub fn with_args<A>(mut self, args: A) -> Self
-    where
-        A: Into<Vec<String>>,
-    {
-        self.script_args = args.into();
-        self
-    }
-
-    pub fn setup(mut self) -> Self {
-        self.setup = true;
-        self
-    }
-
-    pub fn list(mut self) -> Self {
-        self.list = true;
-        self
-    }
-
-    #[allow(clippy::too_many_lines)]
     pub async fn run(self) -> Result<ExitCode> {
-        // List files in `lune` and `.lune` directories, if wanted
-        // This will also exit early and not run anything else
-        if self.list {
-            let sorted_relative = find_lune_scripts(false).await.map(sort_lune_scripts);
-
-            let sorted_home_dir = find_lune_scripts(true).await.map(sort_lune_scripts);
-            if sorted_relative.is_err() && sorted_home_dir.is_err() {
-                eprintln!("{}", sorted_relative.unwrap_err());
-                return Ok(ExitCode::FAILURE);
-            }
-
-            let sorted_relative = sorted_relative.unwrap_or(Vec::new());
-            let sorted_home_dir = sorted_home_dir.unwrap_or(Vec::new());
-
-            let mut buffer = String::new();
-            if !sorted_relative.is_empty() {
-                if sorted_home_dir.is_empty() {
-                    write!(&mut buffer, "Available scripts:")?;
-                } else {
-                    write!(&mut buffer, "Available scripts in current directory:")?;
-                }
-                write_lune_scripts_list(&mut buffer, sorted_relative)?;
-            }
-            if !sorted_home_dir.is_empty() {
-                write!(&mut buffer, "Available global scripts:")?;
-                write_lune_scripts_list(&mut buffer, sorted_home_dir)?;
-            }
-
-            if buffer.is_empty() {
-                println!("No scripts found.");
-            } else {
-                print!("{buffer}");
-            }
-
-            return Ok(ExitCode::SUCCESS);
+        match self.subcommand.unwrap_or_default() {
+            CliSubcommand::Run(cmd) => cmd.run().await,
+            CliSubcommand::List(cmd) => cmd.run().await,
+            CliSubcommand::Setup(cmd) => cmd.run().await,
+            CliSubcommand::Build(cmd) => cmd.run().await,
+            CliSubcommand::Repl(cmd) => cmd.run().await,
         }
-
-        // Generate (save) definition files, if wanted
-        if self.setup {
-            run_setup().await;
-        }
-        if self.script_path.is_none() {
-            // Only generating typedefs without running a script is completely
-            // fine, and we should just exit the program normally afterwards
-            if self.setup {
-                return Ok(ExitCode::SUCCESS);
-            }
-
-            // If not in a standalone context and we don't have any arguments
-            // display the interactive REPL interface
-            return repl::show_interface().await;
-        }
-
-        // Figure out if we should read from stdin or from a file,
-        // reading from stdin is marked by passing a single "-"
-        // (dash) as the script name to run to the cli
-        let script_path = self.script_path.unwrap();
-
-        let (script_display_name, script_contents) = if script_path == "-" {
-            let mut stdin_contents = Vec::new();
-            stdin()
-                .read_to_end(&mut stdin_contents)
-                .await
-                .context("Failed to read script contents from stdin")?;
-            ("stdin".to_string(), stdin_contents)
-        } else {
-            let file_path = discover_script_path_including_lune_dirs(&script_path)?;
-            let file_contents = read_to_vec(&file_path).await?;
-            // NOTE: We skip the extension here to remove it from stack traces
-            let file_display_name = file_path.with_extension("").display().to_string();
-            (file_display_name, file_contents)
-        };
-
-        if self.build {
-            let output_path =
-                PathBuf::from(script_path.clone()).with_extension(env::consts::EXE_EXTENSION);
-
-            return Ok(
-                match build_standalone(script_path, output_path, script_contents).await {
-                    Ok(exitcode) => exitcode,
-                    Err(err) => {
-                        eprintln!("{err}");
-                        ExitCode::FAILURE
-                    }
-                },
-            );
-        }
-
-        // Create a new lune object with all globals & run the script
-        let result = Lune::new()
-            .with_args(self.script_args)
-            .run(&script_display_name, strip_shebang(script_contents))
-            .await;
-        Ok(match result {
-            Err(err) => {
-                eprintln!("{err}");
-                ExitCode::FAILURE
-            }
-            Ok(code) => code,
-        })
     }
 }

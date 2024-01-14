@@ -10,8 +10,6 @@
 
 use std::process::ExitCode;
 
-use clap::Parser;
-
 pub(crate) mod cli;
 pub(crate) mod executor;
 
@@ -36,7 +34,7 @@ async fn main() -> ExitCode {
         return executor::run_standalone(bin).await.unwrap();
     }
 
-    match Cli::parse().run().await {
+    match Cli::new().run().await {
         Ok(code) => code,
         Err(err) => {
             eprintln!(

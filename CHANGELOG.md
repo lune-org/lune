@@ -10,7 +10,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Breaking Changes
+
+- The Lune CLI now uses subcommands instead of flag options: <br/>
+
+  - `lune script_name arg1 arg2 arg3` -> `lune run script_name arg1 arg2 arg3`
+  - `lune --list` -> `lune list`
+  - `lune --setup` -> `lune setup`
+
+  This unfortunately hurts ergonomics for quickly running scripts but is a necessary change to allow us to add more commands, such as the new `build` subcommand.
+
 ### Added
+
+- Added support for compiling single Lune scripts into standalone executables! ([#140])
+
+  Example usage:
+
+  ```lua
+  -- my_cool_script.luau
+  print("Hello, standalone!")
+  ```
+
+  ```sh
+  > lune build my_cool_script
+  # Creates `my_cool_script.exe` (Windows) or `my_cool_script` (macOS / Linux)
+  ```
+
+  ```sh
+  > ./my_cool_script.exe # Windows
+  > ./my_cool_script # macOS / Linux
+  > "Hello, standalone!"
+  ```
+
+  To compile scripts that use `require` and reference multiple files, a bundler such as [darklua](https://github.com/seaofvoices/darklua) will need to be used first. This limitation will be lifted in the future and Lune will automatically bundle any referenced scripts.
 
 - Added support for multiple values for a single query, and multiple values for a single header, in `net.request`. This is a part of the HTTP specification that is not widely used but that may be useful in certain cases. To clarify:
 
@@ -41,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         }
     })
     ```
+
+[#140]: https://github.com/filiptibell/lune/pull/140
 
 ### Changed
 
