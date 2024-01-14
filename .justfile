@@ -24,7 +24,7 @@ build *ARGS:
 run FILE_PATH:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	cargo run --bin {{BIN_NAME}} -- "{{FILE_PATH}}"
+	cargo run --bin {{BIN_NAME}} -- run "{{FILE_PATH}}"
 
 # Run tests for the Lune library
 [no-exit-message]
