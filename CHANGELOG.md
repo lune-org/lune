@@ -98,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     })
     ```
 
-[#140]: https://github.com/filiptibell/lune/pull/140
+[#140]: https://github.com/lune-org/lune/pull/140
 
 ### Changed
 
@@ -109,7 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the `print` and `warn` global functions yielding the thread, preventing them from being used in places such as the callback to `table.sort`.
 - Fixed the `overwrite` option for `fs.move` not correctly removing existing files / directories. ([#133])
 
-[#133]: https://github.com/filiptibell/lune/pull/133
+[#133]: https://github.com/lune-org/lune/pull/133
 
 ## `0.7.11` - October 29th, 2023
 
@@ -222,13 +222,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed various functions for `CFrame` in the `roblox` built-in library being incorrect, specifically row-column ordering and some flipped signs. ([#103])
 - Fixed cross-service Instance references disappearing when using the `roblox` built-in library ([#117])
 
-[#85]: https://github.com/filiptibell/lune/pull/85
-[#93]: https://github.com/filiptibell/lune/pull/93
-[#94]: https://github.com/filiptibell/lune/pull/94
-[#102]: https://github.com/filiptibell/lune/pull/102
-[#103]: https://github.com/filiptibell/lune/pull/103
-[#106]: https://github.com/filiptibell/lune/pull/106
-[#117]: https://github.com/filiptibell/lune/pull/117
+[#85]: https://github.com/lune-org/lune/pull/85
+[#93]: https://github.com/lune-org/lune/pull/93
+[#94]: https://github.com/lune-org/lune/pull/94
+[#102]: https://github.com/lune-org/lune/pull/102
+[#103]: https://github.com/lune-org/lune/pull/103
+[#106]: https://github.com/lune-org/lune/pull/106
+[#117]: https://github.com/lune-org/lune/pull/117
 
 ## `0.7.7` - August 23rd, 2023
 
@@ -308,9 +308,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed spurious panics and error messages such as `Tried to resume next queued future but none are queued`.
   - Fixed not being able to catch non-string errors properly, errors were accidentally being wrapped in an opaque `userdata` type.
 
-[#82]: https://github.com/filiptibell/lune/pull/82
-[#83]: https://github.com/filiptibell/lune/pull/83
-[#86]: https://github.com/filiptibell/lune/pull/86
+[#82]: https://github.com/lune-org/lune/pull/82
+[#83]: https://github.com/lune-org/lune/pull/83
+[#86]: https://github.com/lune-org/lune/pull/86
 
 ## `0.7.6` - August 9th, 2023
 
@@ -405,9 +405,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed not being able to read & write to WebSocket objects at the same time. ([#68])
 - Fixed tab character at the start of a script causing it not to parse correctly. ([#72])
 
-[#62]: https://github.com/filiptibell/lune/pull/62
-[#68]: https://github.com/filiptibell/lune/pull/66
-[#72]: https://github.com/filiptibell/lune/pull/72
+[#62]: https://github.com/lune-org/lune/pull/62
+[#68]: https://github.com/lune-org/lune/pull/66
+[#72]: https://github.com/lune-org/lune/pull/72
 
 ## `0.7.4` - July 7th, 2023
 
@@ -425,7 +425,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - When using `roblox.serializeModel`, Lune will no longer keep internal unique ids. <br/>
   This is consistent with what Roblox does and prevents Lune from always generating a new and unique file. <br/>
-  This previously caused unnecessary diffs when using git or other kinds of source control. ([Relevant issue](https://github.com/filiptibell/lune/issues/61))
+  This previously caused unnecessary diffs when using git or other kinds of source control. ([Relevant issue](https://github.com/lune-org/lune/issues/61))
 
 ## `0.7.2` - June 28th, 2023
 
@@ -450,7 +450,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `closeCode` erroring when being accessed on websockets. ([#57])
 - Fixed issues with `UniqueId` when using the `roblox` builtin by downgrading `rbx-dom`.
 
-[#57]: https://github.com/filiptibell/lune/pull/57
+[#57]: https://github.com/lune-org/lune/pull/57
 
 ## `0.7.0` - June 12th, 2023
 
@@ -519,7 +519,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `stdio.write` and `stdio.ewrite` not being flushed and causing output to be interleaved. ([#47])
 - Fixed `typeof` returning `userdata` for roblox types such as `Instance`, `Vector3`, ...
 
-[#47]: https://github.com/filiptibell/lune/pull/47
+[#47]: https://github.com/lune-org/lune/pull/47
 
 ## `0.6.7` - May 14th, 2023
 

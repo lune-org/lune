@@ -10,14 +10,14 @@
 		<a href="https://crates.io/crates/lune">
 			<img src="https://img.shields.io/crates/v/lune.svg?label=Version" alt="Current Lune library version" />
 		</a>
-		<a href="https://github.com/filiptibell/lune/actions">
-			<img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/ci.yaml" alt="CI status" />
+		<a href="https://github.com/lune-org/lune/actions">
+			<img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/lune-org/lune/ci.yaml" alt="CI status" />
 		</a>
-		<a href="https://github.com/filiptibell/lune/actions">
-			<img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/filiptibell/lune/release.yaml" alt="Release status" />
+		<a href="https://github.com/lune-org/lune/actions">
+			<img src="https://shields.io/endpoint?url=https://badges.readysetplay.io/workflow/lune-org/lune/release.yaml" alt="Release status" />
 		</a>
-		<a href="https://github.com/filiptibell/lune/blob/main/LICENSE.txt">
-			<img src="https://img.shields.io/github/license/filiptibell/lune.svg?label=License&color=informational" alt="Lune license" />
+		<a href="https://github.com/lune-org/lune/blob/main/LICENSE.txt">
+			<img src="https://img.shields.io/github/license/lune-org/lune.svg?label=License&color=informational" alt="Lune license" />
 		</a>
 	</div>
 </div>
