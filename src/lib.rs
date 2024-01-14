@@ -6,4 +6,4 @@ pub mod roblox;
 #[cfg(test)]
 mod tests;
 
-pub use crate::lune::{Lune, LuneError};
+pub use crate::lune::{Runtime, RuntimeError};

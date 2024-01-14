@@ -5,7 +5,7 @@ use console::set_colors_enabled;
 use console::set_colors_enabled_stderr;
 use tokio::fs::read_to_string;
 
-use crate::Lune;
+use crate::Runtime;
 
 const ARGS: &[&str] = &["Foo", "Bar"];
 
@@ -20,7 +20,7 @@ macro_rules! create_tests {
             // The rest of the test logic can continue as normal
             let full_name = format!("tests/{}.luau", $value);
             let script = read_to_string(&full_name).await?;
-            let mut lune = Lune::new().with_args(
+            let mut lune = Runtime::new().with_args(
                 ARGS
                     .clone()
                     .iter()

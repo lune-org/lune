@@ -11,19 +11,16 @@ pub(crate) mod util;
 
 use self::scheduler::{LuaSchedulerExt, Scheduler};
 
-pub use error::LuneError;
+pub use error::RuntimeError;
 
-// TODO: Rename this struct to "Runtime" instead for the
-// next breaking release, it's a more fitting name and
-// will probably be more obvious when browsing files
 #[derive(Debug, Clone)]
-pub struct Lune {
+pub struct Runtime {
     lua: &'static Lua,
     scheduler: &'static Scheduler<'static>,
     args: Vec<String>,
 }
 
-impl Lune {
+impl Runtime {
     /**
         Creates a new Lune runtime, with a new Luau VM and task scheduler.
     */
@@ -70,7 +67,7 @@ impl Lune {
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-    ) -> Result<ExitCode, LuneError> {
+    ) -> Result<ExitCode, RuntimeError> {
         let main = self
             .lua
             .load(script_contents.as_ref())

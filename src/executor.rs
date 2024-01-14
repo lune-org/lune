@@ -1,6 +1,6 @@
 use std::{env, process::ExitCode};
 
-use lune::Lune;
+use lune::Runtime;
 
 use anyhow::{bail, Result};
 use tokio::fs;
@@ -68,7 +68,7 @@ pub async fn run_standalone(patched_bin: impl AsRef<[u8]>) -> Result<ExitCode> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let meta = MetaChunk::from_bytes(patched_bin).expect("must be a standalone binary");
 
-    let result = Lune::new()
+    let result = Runtime::new()
         .with_args(args)
         .run("STANDALONE", meta.bytecode)
         .await;

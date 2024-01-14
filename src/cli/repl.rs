@@ -5,7 +5,7 @@ use clap::Parser;
 use directories::UserDirs;
 use rustyline::{error::ReadlineError, DefaultEditor};
 
-use lune::Lune;
+use lune::Runtime;
 
 const MESSAGE_WELCOME: &str = concat!("Lune v", env!("CARGO_PKG_VERSION"));
 const MESSAGE_INTERRUPT: &str = "Interrupt: ^C again to exit";
@@ -38,7 +38,7 @@ impl ReplCommand {
         let mut prompt_state = PromptState::Regular;
         let mut source_code = String::new();
 
-        let mut lune_instance = Lune::new();
+        let mut lune_instance = Runtime::new();
 
         loop {
             let prompt = match prompt_state {

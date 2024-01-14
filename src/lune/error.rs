@@ -11,14 +11,12 @@ use crate::lune::util::formatting::pretty_format_luau_error;
     An opaque error type for formatted lua errors.
 */
 #[derive(Debug, Clone)]
-pub struct LuneError {
+pub struct RuntimeError {
     error: LuaError,
     disable_colors: bool,
 }
 
-// TODO: Rename this struct to "RuntimeError" instead for
-// the next breaking release, it's a more fitting name
-impl LuneError {
+impl RuntimeError {
     /**
         Enables colorization of the error message when formatted using the [`Display`] trait.
 
@@ -57,7 +55,7 @@ impl LuneError {
     }
 }
 
-impl From<LuaError> for LuneError {
+impl From<LuaError> for RuntimeError {
     fn from(value: LuaError) -> Self {
         Self {
             error: value,
@@ -66,7 +64,7 @@ impl From<LuaError> for LuneError {
     }
 }
 
-impl From<&LuaError> for LuneError {
+impl From<&LuaError> for RuntimeError {
     fn from(value: &LuaError) -> Self {
         Self {
             error: value.clone(),
@@ -75,7 +73,7 @@ impl From<&LuaError> for LuneError {
     }
 }
 
-impl Display for LuneError {
+impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
@@ -85,10 +83,8 @@ impl Display for LuneError {
     }
 }
 
-impl Error for LuneError {
-    // TODO: Comment this out when we are ready to also re-export
-    // `mlua` as part of our public library interface in Lune
-    // fn cause(&self) -> Option<&dyn Error> {
-    //     Some(&self.error)
-    // }
+impl Error for RuntimeError {
+    fn cause(&self) -> Option<&dyn Error> {
+        Some(&self.error)
+    }
 }
