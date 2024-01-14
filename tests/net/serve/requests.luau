@@ -5,6 +5,7 @@ local task = require("@lune/task")
 
 local PORT = 8080
 local URL = `http://127.0.0.1:{PORT}`
+local URL_EXTERNAL = `http://0.0.0.0:{PORT}`
 local RESPONSE = "Hello, lune!"
 
 -- Serve should not block the thread from continuing
@@ -77,3 +78,15 @@ assert(
 		or string.find(message, "shut down"),
 	"The error message for calling stop twice on the net serve handle should be descriptive"
 )
+
+-- Serve should be able to bind to other IP addresses
+handle = net.serve(URL_EXTERNAL, function(request)
+	assert(request.path == "/some/path")
+	assert(request.query.key == "param2")
+	assert(request.query.key2 == "param3")
+	return RESPONSE
+end)
+
+-- And any requests to that IP should succeed
+response = net.request(URL_EXTERNAL .. "/some/path?key=param1&key=param2&key2=param3").body
+assert(response == RESPONSE, "Invalid response from server")
