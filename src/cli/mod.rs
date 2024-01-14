@@ -26,7 +26,6 @@ use self::build::build_standalone;
 /// A Luau script runner
 #[derive(Parser, Debug, Default, Clone)]
 #[command(version, long_about = None)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct Cli {
     /// Script name or full path to the file to run
     script_path: Option<String>,
@@ -38,15 +37,6 @@ pub struct Cli {
     /// Set up type definitions and settings for development
     #[clap(long)]
     setup: bool,
-    /// Generate a Luau type definitions file in the current dir
-    #[clap(long, hide = true)]
-    generate_luau_types: bool,
-    /// Generate a Selene type definitions file in the current dir
-    #[clap(long, hide = true)]
-    generate_selene_types: bool,
-    /// Generate a Lune documentation file for Luau LSP
-    #[clap(long, hide = true)]
-    generate_docs_file: bool,
     /// Build a Luau file to an OS-Native standalone executable
     #[clap(long)]
     build: bool,
@@ -124,30 +114,13 @@ impl Cli {
         }
 
         // Generate (save) definition files, if wanted
-        let generate_file_requested = self.setup
-            || self.generate_luau_types
-            || self.generate_selene_types
-            || self.generate_docs_file;
-        if generate_file_requested {
-            if (self.generate_luau_types || self.generate_selene_types || self.generate_docs_file)
-                && !self.setup
-            {
-                eprintln!(
-                    "\
-					Typedef & docs generation commands have been superseded by the setup command.\
-					Run `lune --setup` in your terminal to configure your editor and type definitions.
-					"
-                );
-                return Ok(ExitCode::FAILURE);
-            }
-            if self.setup {
-                run_setup().await;
-            }
+        if self.setup {
+            run_setup().await;
         }
         if self.script_path.is_none() {
             // Only generating typedefs without running a script is completely
             // fine, and we should just exit the program normally afterwards
-            if generate_file_requested {
+            if self.setup {
                 return Ok(ExitCode::SUCCESS);
             }
 
