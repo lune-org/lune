@@ -8,6 +8,10 @@ local URL = `http://127.0.0.1:{PORT}`
 local URL_EXTERNAL = `http://0.0.0.0:{PORT}`
 local RESPONSE = "Hello, lune!"
 
+-- A server should never be running before testing
+local isRunning = pcall(net.request, URL)
+assert(not isRunning, `A server is already running at {URL}`)
+
 -- Serve should not block the thread from continuing
 
 local thread = task.delay(1, function()
