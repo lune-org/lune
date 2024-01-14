@@ -1,3 +1,5 @@
+--!nolint UnknownType
+
 local TEMP_DIR_PATH = "bin/"
 local TEMP_FILE_PATH = TEMP_DIR_PATH .. "metadata_test"
 
@@ -37,7 +39,8 @@ assert(metaFile.kind == "file", "File metadata kind was invalid")
 	2. Wait for a bit so that timestamps can change
 	3. Write the file, with an extra newline
 	4. Metadata changed timestamp should be different
-	5. Metadata created timestamp should be the same different
+	5. Metadata created timestamp should be the same
+	6. Timestamps should be DateTime structs
 ]]
 
 local metaBefore = fs.metadata(TEMP_FILE_PATH)
@@ -53,6 +56,9 @@ assert(
 	metaAfter.createdAt == metaBefore.createdAt,
 	"File metadata creation timestamp changed from modification"
 )
+
+assert(typeof(metaAfter.modifiedAt) == "DateTime", "File metadata modifiedAt is not a DateTime")
+assert(typeof(metaAfter.createdAt) == "DateTime", "File metadata createdAt is not a DateTime")
 
 --[[
 	1. Permissions should exist

@@ -8,6 +8,8 @@ use std::{
 
 use mlua::prelude::*;
 
+use crate::lune::builtins::datetime::DateTime;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FsMetadataKind {
     None,
@@ -95,9 +97,9 @@ impl<'lua> IntoLua<'lua> for FsPermissions {
 pub struct FsMetadata {
     pub(crate) kind: FsMetadataKind,
     pub(crate) exists: bool,
-    pub(crate) created_at: Option<f64>,
-    pub(crate) modified_at: Option<f64>,
-    pub(crate) accessed_at: Option<f64>,
+    pub(crate) created_at: Option<DateTime>,
+    pub(crate) modified_at: Option<DateTime>,
+    pub(crate) accessed_at: Option<DateTime>,
     pub(crate) permissions: Option<FsPermissions>,
 }
 
@@ -116,7 +118,7 @@ impl FsMetadata {
 
 impl<'lua> IntoLua<'lua> for FsMetadata {
     fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        let tab = lua.create_table_with_capacity(0, 5)?;
+        let tab = lua.create_table_with_capacity(0, 6)?;
         tab.set("kind", self.kind)?;
         tab.set("exists", self.exists)?;
         tab.set("createdAt", self.created_at)?;
@@ -133,7 +135,6 @@ impl From<StdMetadata> for FsMetadata {
         Self {
             kind: value.file_type().into(),
             exists: true,
-            // FUTURE: Turn these into DateTime structs instead when that's implemented
             created_at: system_time_to_timestamp(value.created()),
             modified_at: system_time_to_timestamp(value.modified()),
             accessed_at: system_time_to_timestamp(value.accessed()),
@@ -142,10 +143,10 @@ impl From<StdMetadata> for FsMetadata {
     }
 }
 
-fn system_time_to_timestamp(res: IoResult<SystemTime>) -> Option<f64> {
+fn system_time_to_timestamp(res: IoResult<SystemTime>) -> Option<DateTime> {
     match res {
         Ok(t) => match t.duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(d) => Some(d.as_secs_f64()),
+            Ok(d) => DateTime::from_unix_timestamp_float(d.as_secs_f64()).ok(),
             Err(_) => None,
         },
         Err(_) => None,

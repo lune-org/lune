@@ -1,3 +1,6 @@
+local DateTime = require("./datetime")
+type DateTime = DateTime.DateTime
+
 export type MetadataKind = "file" | "dir" | "symlink"
 
 --[=[
@@ -37,9 +40,9 @@ export type MetadataPermissions = {
 export type Metadata = {
 	kind: MetadataKind,
 	exists: true,
-	createdAt: number,
-	modifiedAt: number,
-	accessedAt: number,
+	createdAt: DateTime,
+	modifiedAt: DateTime,
+	accessedAt: DateTime,
 	permissions: MetadataPermissions,
 } | {
 	kind: nil,

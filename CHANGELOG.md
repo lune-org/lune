@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   This unfortunately hurts ergonomics for quickly running scripts but is a necessary change to allow us to add more commands, such as the new `build` subcommand.
 
+- The `createdAt`, `modifiedAt`, and `accessedAt` properties returned from `fs.metadata` are now `DateTime` values instead of numbers.
+
 - The `Lune` struct has been renamed to `Runtime` in the Lune rust crate.
 
 ### Added
