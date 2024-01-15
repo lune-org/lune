@@ -96,3 +96,15 @@ local response3 = net.request(`{URL_EXTERNAL}:{PORT}`).body
 assert(response3 ~= nil, "Invalid response from server")
 
 handle2.stop()
+
+-- Attempting to serve with a malformed IP address should throw an error
+local success3 = pcall(function()
+	net.serve(8080, {
+		address = "a.b.c.d",
+		handleRequest = function()
+			return RESPONSE
+		end,
+	})
+end)
+
+assert(not success3, "Server was created with malformed address")
