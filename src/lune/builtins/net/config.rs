@@ -60,6 +60,7 @@ impl FromLua<'_> for RequestConfig {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         // If we just got a string we assume its a GET request to a given url
         if let LuaValue::String(s) = value {
+            println!("{:?}", s);
             return Ok(Self {
                 url: s.to_string_lossy().to_string(),
                 method: Method::GET,
@@ -140,9 +141,11 @@ impl FromLua<'_> for RequestConfig {
 
 // Net serve config
 
+#[derive(Debug)]
 pub struct ServeConfig<'a> {
     pub handle_request: LuaFunction<'a>,
     pub handle_web_socket: Option<LuaFunction<'a>>,
+    pub address: Option<LuaString<'a>>,
 }
 
 impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
@@ -152,11 +155,13 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
                 return Ok(ServeConfig {
                     handle_request: f.clone(),
                     handle_web_socket: None,
+                    address: None,
                 })
             }
             LuaValue::Table(t) => {
                 let handle_request: Option<LuaFunction> = t.raw_get("handleRequest")?;
                 let handle_web_socket: Option<LuaFunction> = t.raw_get("handleWebSocket")?;
+                let address: Option<LuaString> = t.raw_get("address")?;
                 if handle_request.is_some() || handle_web_socket.is_some() {
                     return Ok(ServeConfig {
                         handle_request: handle_request.unwrap_or_else(|| {
@@ -174,6 +179,7 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
                                 .expect("Failed to create default http responder function")
                         }),
                         handle_web_socket,
+                        address,
                     });
                 } else {
                     Some("Missing handleRequest and / or handleWebSocket".to_string())

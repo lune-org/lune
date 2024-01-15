@@ -1,10 +1,16 @@
+use std::net::Ipv4Addr;
+
 use mlua::prelude::*;
 
 use hyper::header::CONTENT_ENCODING;
+use regex::Regex;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
-use self::{server::create_server, util::header_map_to_table};
+use self::{
+    server::{bind_to_addr, create_server},
+    util::header_map_to_table,
+};
 
 use super::serde::{
     compress_decompress::{decompress, CompressDecompressFormat},
@@ -21,7 +27,6 @@ mod websocket;
 
 use client::{NetClient, NetClientBuilder};
 use config::{RequestConfig, ServeConfig};
-use server::bind_to_localhost;
 use websocket::NetWebSocket;
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
@@ -64,6 +69,8 @@ async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig) -> LuaResult<L
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
+    println!("net_request config {:?}", config);
+
     // Create and send the request
     let client = NetClient::from_registry(lua);
     let mut request = client.request(config.method, &config.url);
@@ -133,11 +140,28 @@ async fn net_serve<'lua>(
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
+    println!("port {:?}", port);
+
     let sched = lua
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
 
-    let builder = bind_to_localhost(port)?;
+    println!("config {:?}", config);
+
+    let address_pattern = Regex::new(r"(?:.*:\/\/)?([\d\.]+)(?::\d+)?").unwrap();
+
+    let address = match &config.address {
+        Some(addr) => {
+            let caps = address_pattern.captures(addr.to_str()?).unwrap();
+            println!("captures {:?}", &caps);
+            caps[1].parse::<Ipv4Addr>()?
+        }
+        None => Ipv4Addr::new(127, 0, 0, 1),
+    };
+
+    println!("address {:?}", address);
+
+    let builder = bind_to_addr(address, port)?;
 
     create_server(lua, &sched, config, builder)
 }

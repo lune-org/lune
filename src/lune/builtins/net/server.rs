@@ -1,4 +1,9 @@
-use std::{collections::HashMap, convert::Infallible, net::SocketAddr, sync::Arc};
+use std::{
+    collections::HashMap,
+    convert::Infallible,
+    net::{Ipv4Addr, SocketAddr},
+    sync::Arc,
+};
 
 use hyper::{
     server::{conn::AddrIncoming, Builder},
@@ -20,12 +25,15 @@ use super::{
     websocket::NetWebSocket,
 };
 
-pub(super) fn bind_to_localhost(port: u16) -> LuaResult<Builder<AddrIncoming>> {
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+pub(super) fn bind_to_addr(address: Ipv4Addr, port: u16) -> LuaResult<Builder<AddrIncoming>> {
+    let addr = SocketAddr::from((address, port));
+
+    println!("attempting to bind to {:?}", addr);
+
     match Server::try_bind(&addr) {
         Ok(b) => Ok(b),
         Err(e) => Err(LuaError::external(format!(
-            "Failed to bind to localhost on port {port}\n{}",
+            "Failed to bind to {addr}\n{}",
             e.to_string()
                 .replace("error creating server listener: ", "> ")
         ))),
