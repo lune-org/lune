@@ -28,8 +28,6 @@ use super::{
 pub(super) fn bind_to_addr(address: Ipv4Addr, port: u16) -> LuaResult<Builder<AddrIncoming>> {
     let addr = SocketAddr::from((address, port));
 
-    println!("attempting to bind to {:?}", addr);
-
     match Server::try_bind(&addr) {
         Ok(b) => Ok(b),
         Err(e) => Err(LuaError::external(format!(

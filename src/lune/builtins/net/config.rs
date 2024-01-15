@@ -60,7 +60,6 @@ impl FromLua<'_> for RequestConfig {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         // If we just got a string we assume its a GET request to a given url
         if let LuaValue::String(s) = value {
-            println!("{:?}", s);
             return Ok(Self {
                 url: s.to_string_lossy().to_string(),
                 method: Method::GET,

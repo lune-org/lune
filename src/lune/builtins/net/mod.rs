@@ -69,8 +69,6 @@ async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig) -> LuaResult<L
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
-    println!("net_request config {:?}", config);
-
     // Create and send the request
     let client = NetClient::from_registry(lua);
     let mut request = client.request(config.method, &config.url);
@@ -140,26 +138,19 @@ async fn net_serve<'lua>(
 where
     'lua: 'static, // FIXME: Get rid of static lifetime bound here
 {
-    println!("port {:?}", port);
-
     let sched = lua
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
-
-    println!("config {:?}", config);
 
     let address_pattern = Regex::new(r"(?:.*:\/\/)?([\d\.]+)(?::\d+)?").unwrap();
 
     let address = match &config.address {
         Some(addr) => {
             let caps = address_pattern.captures(addr.to_str()?).unwrap();
-            println!("captures {:?}", &caps);
             caps[1].parse::<Ipv4Addr>()?
         }
         None => Ipv4Addr::new(127, 0, 0, 1),
     };
-
-    println!("address {:?}", address);
 
     let builder = bind_to_addr(address, port)?;
 
