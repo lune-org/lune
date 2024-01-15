@@ -29,6 +29,8 @@ use client::{NetClient, NetClientBuilder};
 use config::{RequestConfig, ServeConfig};
 use websocket::NetWebSocket;
 
+const DEFAULT_IP_ADDRESS: Ipv4Addr = Ipv4Addr::new(127, 0, 0, 1);
+
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     NetClientBuilder::new()
         .headers(&[("User-Agent", create_user_agent_header())])?
@@ -142,14 +144,21 @@ where
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
 
-    let address_pattern = Regex::new(r"(?:.*:\/\/)?([\d\.]+)(?::\d+)?").unwrap();
+    let address_pattern = Regex::new(r"(?:.*:\/\/)?(\d+\.\d+\.\d+\.\d+)(?::\d+)?").unwrap();
 
-    let address = match &config.address {
+    let address: Ipv4Addr = match &config.address {
         Some(addr) => {
-            let caps = address_pattern.captures(addr.to_str()?).unwrap();
-            caps[1].parse::<Ipv4Addr>()?
+            let addr_str = addr.to_str()?;
+
+            if let Some(caps) = address_pattern.captures(addr_str) {
+                caps[1].parse::<Ipv4Addr>()?
+            } else {
+                return Err(LuaError::runtime(format!(
+                    "IP address format is incorrect (expected an IP in the form 'http://0.0.0.0' or '0.0.0.0', got '{addr_str}')"
+                )));
+            }
         }
-        None => Ipv4Addr::new(127, 0, 0, 1),
+        None => DEFAULT_IP_ADDRESS,
     };
 
     let builder = bind_to_addr(address, port)?;
