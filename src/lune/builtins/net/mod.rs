@@ -3,7 +3,6 @@ use std::net::Ipv4Addr;
 use mlua::prelude::*;
 
 use hyper::header::CONTENT_ENCODING;
-use regex::Regex;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
@@ -144,19 +143,17 @@ where
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
 
-    let address_pattern = Regex::new(r"(?:.*:\/\/)?(\d+\.\d+\.\d+\.\d+)(?::\d+)?").unwrap();
-
     let address: Ipv4Addr = match &config.address {
         Some(addr) => {
             let addr_str = addr.to_str()?;
 
-            if let Some(caps) = address_pattern.captures(addr_str) {
-                caps[1].parse::<Ipv4Addr>()?
-            } else {
-                return Err(LuaError::runtime(format!(
+            addr_str
+                .trim_start_matches("http://")
+                .trim_start_matches("https://")
+                .parse()
+                .map_err(|_e| LuaError::RuntimeError(format!(
                     "IP address format is incorrect (expected an IP in the form 'http://0.0.0.0' or '0.0.0.0', got '{addr_str}')"
-                )));
-            }
+                )))?
         }
         None => DEFAULT_IP_ADDRESS,
     };
