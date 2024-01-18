@@ -108,3 +108,6 @@ local success3 = pcall(function()
 end)
 
 assert(not success3, "Server was created with malformed address")
+
+-- We have to manually exit so Windows CI doesn't get stuck forever
+process.exit(0)
