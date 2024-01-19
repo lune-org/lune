@@ -1,10 +1,15 @@
+use std::net::Ipv4Addr;
+
 use mlua::prelude::*;
 
 use hyper::header::CONTENT_ENCODING;
 
 use crate::lune::{scheduler::Scheduler, util::TableBuilder};
 
-use self::{server::create_server, util::header_map_to_table};
+use self::{
+    server::{bind_to_addr, create_server},
+    util::header_map_to_table,
+};
 
 use super::serde::{
     compress_decompress::{decompress, CompressDecompressFormat},
@@ -21,8 +26,9 @@ mod websocket;
 
 use client::{NetClient, NetClientBuilder};
 use config::{RequestConfig, ServeConfig};
-use server::bind_to_localhost;
 use websocket::NetWebSocket;
+
+const DEFAULT_IP_ADDRESS: Ipv4Addr = Ipv4Addr::new(127, 0, 0, 1);
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     NetClientBuilder::new()
@@ -137,7 +143,22 @@ where
         .app_data_ref::<&Scheduler>()
         .expect("Lua struct is missing scheduler");
 
-    let builder = bind_to_localhost(port)?;
+    let address: Ipv4Addr = match &config.address {
+        Some(addr) => {
+            let addr_str = addr.to_str()?;
+
+            addr_str
+                .trim_start_matches("http://")
+                .trim_start_matches("https://")
+                .parse()
+                .map_err(|_e| LuaError::RuntimeError(format!(
+                    "IP address format is incorrect (expected an IP in the form 'http://0.0.0.0' or '0.0.0.0', got '{addr_str}')"
+                )))?
+        }
+        None => DEFAULT_IP_ADDRESS,
+    };
+
+    let builder = bind_to_addr(address, port)?;
 
     create_server(lua, &sched, config, builder)
 }

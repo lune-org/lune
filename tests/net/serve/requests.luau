@@ -5,7 +5,12 @@ local task = require("@lune/task")
 
 local PORT = 8080
 local URL = `http://127.0.0.1:{PORT}`
+local URL_EXTERNAL = `http://0.0.0.0`
 local RESPONSE = "Hello, lune!"
+
+-- A server should never be running before testing
+local isRunning = pcall(net.request, URL)
+assert(not isRunning, `a server is already running at {URL}`)
 
 -- Serve should not block the thread from continuing
 
@@ -77,3 +82,32 @@ assert(
 		or string.find(message, "shut down"),
 	"The error message for calling stop twice on the net serve handle should be descriptive"
 )
+
+-- Serve should be able to bind to other IP addresses
+local handle2 = net.serve(PORT, {
+	address = URL_EXTERNAL,
+	handleRequest = function(request)
+		return `Response from {URL_EXTERNAL}:{PORT}`
+	end,
+})
+
+-- And any requests to that IP should succeed
+local response3 = net.request(`{URL_EXTERNAL}:{PORT}`).body
+assert(response3 ~= nil, "Invalid response from server")
+
+handle2.stop()
+
+-- Attempting to serve with a malformed IP address should throw an error
+local success3 = pcall(function()
+	net.serve(8080, {
+		address = "a.b.c.d",
+		handleRequest = function()
+			return RESPONSE
+		end,
+	})
+end)
+
+assert(not success3, "Server was created with malformed address")
+
+-- We have to manually exit so Windows CI doesn't get stuck forever
+process.exit(0)
