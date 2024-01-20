@@ -14,6 +14,19 @@ use copy::copy;
 use metadata::FsMetadata;
 use options::FsWriteOptions;
 
+const BYTES_TO_BUF_IMPL: &str = r#"
+    local tbl = select(1, ...)
+    local buf = buffer.create(#tbl * 4) -- Each u32 is 4 bytes
+
+    for offset, byte in tbl do
+        buffer.writeu32(buf, offset, byte)
+    end
+
+    return buf
+"#;
+
+const BUF_TO_STR_IMPL: &str = "return buffer.tostring(select(1, ...))";
+
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_async_function("readFile", fs_read_file)?
@@ -30,9 +43,24 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaString> {
+fn create_lua_buffer(lua: &Lua, bytes: impl AsRef<[u8]>) -> LuaResult<LuaValue> {
+    let lua_bytes = bytes.as_ref().into_lua(lua)?;
+
+    let buf_constructor = lua.load(BYTES_TO_BUF_IMPL).into_function()?;
+
+    buf_constructor.call::<_, LuaValue>(lua_bytes)
+}
+
+fn buf_to_str(lua: &Lua, buf: LuaValue<'_>) -> LuaResult<String> {
+    let str_constructor = lua.load(BUF_TO_STR_IMPL).into_function()?;
+
+    str_constructor.call(buf)
+}
+
+async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaValue> {
     let bytes = fs::read(&path).await.into_lua_err()?;
-    lua.create_string(bytes)
+
+    create_lua_buffer(lua, bytes)
 }
 
 async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
@@ -64,8 +92,19 @@ async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     Ok(dir_strings_no_prefix)
 }
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, LuaString<'_>)) -> LuaResult<()> {
-    fs::write(&path, &contents.as_bytes()).await.into_lua_err()
+async fn fs_write_file(lua: &Lua, (path, contents): (String, LuaValue<'_>)) -> LuaResult<()> {
+    let contents_str = match contents {
+        LuaValue::String(str) => Ok(str.to_str()?.to_string()),
+        LuaValue::UserData(inner) => Ok(buf_to_str(lua, LuaValue::UserData(inner))?),
+        other => Err(LuaError::runtime(format!(
+            "Expected type string or buffer, got {}",
+            other.type_name()
+        ))),
+    }?;
+
+    fs::write(&path, contents_str.as_bytes())
+        .await
+        .into_lua_err()
 }
 
 async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {
