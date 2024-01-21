@@ -4,6 +4,7 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::prelude::*;
 use tokio::fs;
 
+use crate::lune::util::buffer::{buf_to_str, create_lua_buffer};
 use crate::lune::util::TableBuilder;
 
 mod copy;
@@ -13,19 +14,6 @@ mod options;
 use copy::copy;
 use metadata::FsMetadata;
 use options::FsWriteOptions;
-
-const BYTES_TO_BUF_IMPL: &str = r#"
-    local tbl = select(1, ...)
-    local buf = buffer.create(#tbl * 4) -- Each u32 is 4 bytes
-
-    for offset, byte in tbl do
-        buffer.writeu32(buf, offset, byte)
-    end
-
-    return buf
-"#;
-
-const BUF_TO_STR_IMPL: &str = "return buffer.tostring(select(1, ...))";
 
 pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
@@ -41,20 +29,6 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .with_async_function("move", fs_move)?
         .with_async_function("copy", fs_copy)?
         .build_readonly()
-}
-
-fn create_lua_buffer(lua: &Lua, bytes: impl AsRef<[u8]>) -> LuaResult<LuaValue> {
-    let lua_bytes = bytes.as_ref().into_lua(lua)?;
-
-    let buf_constructor = lua.load(BYTES_TO_BUF_IMPL).into_function()?;
-
-    buf_constructor.call::<_, LuaValue>(lua_bytes)
-}
-
-fn buf_to_str(lua: &Lua, buf: LuaValue<'_>) -> LuaResult<String> {
-    let str_constructor = lua.load(BUF_TO_STR_IMPL).into_function()?;
-
-    str_constructor.call(buf)
 }
 
 async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaValue> {
