@@ -36,7 +36,7 @@ export type FetchParamsOptions = {
 export type FetchParams = {
 	url: string,
 	method: HttpMethod?,
-	body: string?,
+	body: (string | buffer)?,
 	query: HttpQueryMap?,
 	headers: HttpHeaderMap?,
 	options: FetchParamsOptions?,
@@ -61,7 +61,7 @@ export type FetchResponse = {
 	statusCode: number,
 	statusMessage: string,
 	headers: HttpHeaderMap,
-	body: string,
+	body: (string | buffer)?,
 }
 
 --[=[
@@ -83,7 +83,7 @@ export type ServeRequest = {
 	query: { [string]: string? },
 	method: HttpMethod,
 	headers: { [string]: string },
-	body: string,
+	body: (string | buffer)?,
 }
 
 --[=[
@@ -101,7 +101,7 @@ export type ServeRequest = {
 export type ServeResponse = {
 	status: number?,
 	headers: { [string]: string }?,
-	body: string?,
+	body: (string | buffer)?,
 }
 
 type ServeHttpHandler = (request: ServeRequest) -> string | ServeResponse
@@ -158,7 +158,7 @@ export type ServeHandle = {
 export type WebSocket = {
 	closeCode: number?,
 	close: (code: number?) -> (),
-	send: (message: string, asBinaryMessage: boolean?) -> (),
+	send: (message: (string | buffer)?, asBinaryMessage: boolean?) -> (),
 	next: () -> string?,
 }
 
