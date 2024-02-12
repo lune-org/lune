@@ -2,7 +2,12 @@
 
 use mlua::prelude::*;
 
+mod config;
+mod util;
+
 use crate::lune::util::TableBuilder;
+
+use self::config::{RequestConfig, ServeConfig};
 
 use super::serde::encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
@@ -38,15 +43,18 @@ fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<Lua
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
-async fn net_request<'lua>(lua: &'lua Lua, config: ()) -> LuaResult<LuaTable<'lua>> {
+async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig) -> LuaResult<LuaTable<'lua>> {
     unimplemented!()
 }
 
-async fn net_socket<'lua>(lua: &'lua Lua, url: String) -> LuaResult<LuaTable> {
+async fn net_socket<'lua>(lua: &'lua Lua, url: String) -> LuaResult<LuaTable<'lua>> {
     unimplemented!()
 }
 
-async fn net_serve<'lua>(lua: &'lua Lua, (port, config): (u16, ())) -> LuaResult<LuaTable<'lua>> {
+async fn net_serve<'lua>(
+    lua: &'lua Lua,
+    (port, config): (u16, ServeConfig<'lua>),
+) -> LuaResult<LuaTable<'lua>> {
     unimplemented!()
 }
 
