@@ -1,47 +1,40 @@
-use std::process::ExitCode;
+use std::{
+    process::ExitCode,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
 use mlua::Lua;
 
 mod builtins;
 mod error;
 mod globals;
-mod scheduler;
 
 pub(crate) mod util;
 
-use self::scheduler::{LuaSchedulerExt, Scheduler};
-
 pub use error::RuntimeError;
+use mlua_luau_scheduler::Scheduler;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Runtime {
-    lua: &'static Lua,
-    scheduler: &'static Scheduler<'static>,
+    lua: Lua,
     args: Vec<String>,
 }
 
 impl Runtime {
     /**
-        Creates a new Lune runtime, with a new Luau VM and task scheduler.
+        Creates a new Lune runtime, with a new Luau VM.
     */
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        /*
-            FUTURE: Stop leaking these when we have removed the lifetime
-            on the scheduler and can place them in lua app data using arc
+        let lua = Lua::new();
 
-            See the scheduler struct for more notes
-        */
-        let lua = Lua::new().into_static();
-        let scheduler = Scheduler::new().into_static();
-
-        lua.set_scheduler(scheduler);
         lua.set_app_data(Vec::<String>::new());
-        globals::inject_all(lua).expect("Failed to inject lua globals");
 
         Self {
             lua,
-            scheduler,
             args: Vec::new(),
         }
     }
@@ -68,13 +61,35 @@ impl Runtime {
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> Result<ExitCode, RuntimeError> {
+        // Create a new scheduler for this run
+        let sched = Scheduler::new(&self.lua);
+        globals::inject_all(&self.lua)?;
+
+        // Add error callback to format errors nicely + store status
+        let got_any_error = Arc::new(AtomicBool::new(false));
+        let got_any_inner = Arc::clone(&got_any_error);
+        sched.set_error_callback(move |e| {
+            got_any_inner.store(true, Ordering::SeqCst);
+            eprintln!("{}", RuntimeError::from(e));
+        });
+
+        // Load our "main" thread
         let main = self
             .lua
             .load(script_contents.as_ref())
             .set_name(script_name.as_ref());
 
-        self.scheduler.push_back(self.lua, main, ())?;
+        // Run it on our scheduler until it and any other spawned threads complete
+        sched.push_thread_back(main, ())?;
+        sched.run().await;
 
-        Ok(self.scheduler.run_to_completion(self.lua).await)
+        // Return the exit code - default to FAILURE if we got any errors
+        Ok(sched.get_exit_code().unwrap_or({
+            if got_any_error.load(Ordering::SeqCst) {
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
+            }
+        }))
     }
 }

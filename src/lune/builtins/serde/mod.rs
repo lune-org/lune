@@ -8,7 +8,7 @@ use encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
 use crate::lune::util::TableBuilder;
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("encode", serde_encode)?
         .with_function("decode", serde_decode)?

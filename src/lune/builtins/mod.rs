@@ -28,10 +28,7 @@ pub enum LuneBuiltin {
     Roblox,
 }
 
-impl<'lua> LuneBuiltin
-where
-    'lua: 'static, // FIXME: Remove static lifetime bound here when builtin libraries no longer need it
-{
+impl LuneBuiltin {
     pub fn name(&self) -> &'static str {
         match self {
             Self::DateTime => "datetime",
@@ -47,7 +44,7 @@ where
         }
     }
 
-    pub fn create(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
+    pub fn create<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
         let res = match self {
             Self::DateTime => datetime::create(lua),
             Self::Fs => fs::create(lua),

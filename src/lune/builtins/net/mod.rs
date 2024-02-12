@@ -1,40 +1,12 @@
-use std::net::Ipv4Addr;
+#![allow(unused_variables)]
 
 use mlua::prelude::*;
 
-use hyper::header::CONTENT_ENCODING;
+use crate::lune::util::TableBuilder;
 
-use crate::lune::{scheduler::Scheduler, util::TableBuilder};
+use super::serde::encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
-use self::{
-    server::{bind_to_addr, create_server},
-    util::header_map_to_table,
-};
-
-use super::serde::{
-    compress_decompress::{decompress, CompressDecompressFormat},
-    encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat},
-};
-
-mod client;
-mod config;
-mod processing;
-mod response;
-mod server;
-mod util;
-mod websocket;
-
-use client::{NetClient, NetClientBuilder};
-use config::{RequestConfig, ServeConfig};
-use websocket::NetWebSocket;
-
-const DEFAULT_IP_ADDRESS: Ipv4Addr = Ipv4Addr::new(127, 0, 0, 1);
-
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
-    NetClientBuilder::new()
-        .headers(&[("User-Agent", create_user_agent_header())])?
-        .build()?
-        .into_registry(lua);
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
@@ -46,7 +18,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn create_user_agent_header() -> String {
+fn _create_user_agent_header() -> String {
     let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
         .trim_start_matches("https://github.com/")
         .split_once('/')
@@ -66,101 +38,16 @@ fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<Lua
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
-async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig) -> LuaResult<LuaTable<'lua>>
-where
-    'lua: 'static, // FIXME: Get rid of static lifetime bound here
-{
-    // Create and send the request
-    let client = NetClient::from_registry(lua);
-    let mut request = client.request(config.method, &config.url);
-    for (query, values) in config.query {
-        request = request.query(
-            &values
-                .iter()
-                .map(|v| (query.as_str(), v))
-                .collect::<Vec<_>>(),
-        );
-    }
-    for (header, values) in config.headers {
-        for value in values {
-            request = request.header(header.as_str(), value);
-        }
-    }
-    let res = request
-        .body(config.body.unwrap_or_default())
-        .send()
-        .await
-        .into_lua_err()?;
-    // Extract status, headers
-    let res_status = res.status().as_u16();
-    let res_status_text = res.status().canonical_reason();
-    let res_headers = res.headers().clone();
-    // Read response bytes
-    let mut res_bytes = res.bytes().await.into_lua_err()?.to_vec();
-    let mut res_decompressed = false;
-    // Check for extra options, decompression
-    if config.options.decompress {
-        let decompress_format = res_headers
-            .iter()
-            .find(|(name, _)| {
-                name.as_str()
-                    .eq_ignore_ascii_case(CONTENT_ENCODING.as_str())
-            })
-            .and_then(|(_, value)| value.to_str().ok())
-            .and_then(CompressDecompressFormat::detect_from_header_str);
-        if let Some(format) = decompress_format {
-            res_bytes = decompress(format, res_bytes).await?;
-            res_decompressed = true;
-        }
-    }
-    // Construct and return a readonly lua table with results
-    let res_headers_lua = header_map_to_table(lua, res_headers, res_decompressed)?;
-    TableBuilder::new(lua)?
-        .with_value("ok", (200..300).contains(&res_status))?
-        .with_value("statusCode", res_status)?
-        .with_value("statusMessage", res_status_text)?
-        .with_value("headers", res_headers_lua)?
-        .with_value("body", lua.create_string(&res_bytes)?)?
-        .build_readonly()
+async fn net_request<'lua>(lua: &'lua Lua, config: ()) -> LuaResult<LuaTable<'lua>> {
+    unimplemented!()
 }
 
-async fn net_socket<'lua>(lua: &'lua Lua, url: String) -> LuaResult<LuaTable>
-where
-    'lua: 'static, // FIXME: Get rid of static lifetime bound here
-{
-    let (ws, _) = tokio_tungstenite::connect_async(url).await.into_lua_err()?;
-    NetWebSocket::new(ws).into_lua_table(lua)
+async fn net_socket<'lua>(lua: &'lua Lua, url: String) -> LuaResult<LuaTable> {
+    unimplemented!()
 }
 
-async fn net_serve<'lua>(
-    lua: &'lua Lua,
-    (port, config): (u16, ServeConfig<'lua>),
-) -> LuaResult<LuaTable<'lua>>
-where
-    'lua: 'static, // FIXME: Get rid of static lifetime bound here
-{
-    let sched = lua
-        .app_data_ref::<&Scheduler>()
-        .expect("Lua struct is missing scheduler");
-
-    let address: Ipv4Addr = match &config.address {
-        Some(addr) => {
-            let addr_str = addr.to_str()?;
-
-            addr_str
-                .trim_start_matches("http://")
-                .trim_start_matches("https://")
-                .parse()
-                .map_err(|_e| LuaError::RuntimeError(format!(
-                    "IP address format is incorrect (expected an IP in the form 'http://0.0.0.0' or '0.0.0.0', got '{addr_str}')"
-                )))?
-        }
-        None => DEFAULT_IP_ADDRESS,
-    };
-
-    let builder = bind_to_addr(address, port)?;
-
-    create_server(lua, &sched, config, builder)
+async fn net_serve<'lua>(lua: &'lua Lua, (port, config): (u16, ())) -> LuaResult<LuaTable<'lua>> {
+    unimplemented!()
 }
 
 fn net_url_encode<'lua>(

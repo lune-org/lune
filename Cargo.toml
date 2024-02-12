@@ -81,9 +81,16 @@ urlencoding = "2.1"
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-mlua = { version = "0.9.1", features = ["luau", "luau-jit", "serialize"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
 os_str_bytes = { version = "6.4", features = ["conversions"] }
+
+mlua-luau-scheduler = { git = "https://github.com/lune-org/mlua-luau-scheduler", rev = "7c59d0c722215693839b2790a918fcc872e5ab93" }
+mlua = { git = "https://github.com/mlua-rs/mlua.git", rev = "1754226c7440ec6c194d2d678ec083b621d46ceb", features = [
+    "luau",
+    "luau-jit",
+    "async",
+    "serialize",
+] }
 
 ### SERDE
 

@@ -16,7 +16,7 @@ use crate::lune::util::{
 mod prompt;
 use prompt::{PromptKind, PromptOptions, PromptResult};
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'_>> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable<'_>> {
     TableBuilder::new(lua)?
         .with_function("color", stdio_color)?
         .with_function("style", stdio_style)?

@@ -2,120 +2,51 @@ use std::time::Duration;
 
 use mlua::prelude::*;
 
+use mlua_luau_scheduler::Functions;
 use tokio::time::{self, Instant};
 
-use crate::lune::{scheduler::Scheduler, util::TableBuilder};
+use crate::lune::util::TableBuilder;
 
-mod tof;
-use tof::LuaThreadOrFunction;
-
-/*
-    The spawn function needs special treatment,
-    we need to yield right away to allow the
-    spawned task to run until first yield
-
-    1. Schedule this current thread at the front
-    2. Schedule given thread/function at the front,
-       the previous schedule now comes right after
-    3. Give control over to the scheduler, which will
-       resume the above tasks in order when its ready
-*/
-const SPAWN_IMPL_LUA: &str = r#"
-push(currentThread())
-local thread = push(...)
-yield()
-return thread
+const DELAY_IMPL_LUA: &str = r#"
+return defer(function(...)
+    wait(select(1, ...))
+    spawn(select(2, ...))
+end, ...)
 "#;
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable<'_>> {
-    let coroutine_running = lua
-        .globals()
-        .get::<_, LuaTable>("coroutine")?
-        .get::<_, LuaFunction>("running")?;
-    let coroutine_yield = lua
-        .globals()
-        .get::<_, LuaTable>("coroutine")?
-        .get::<_, LuaFunction>("yield")?;
-    let push_front =
-        lua.create_function(|lua, (tof, args): (LuaThreadOrFunction, LuaMultiValue)| {
-            let thread = tof.into_thread(lua)?;
-            let sched = lua
-                .app_data_ref::<&Scheduler>()
-                .expect("Lua struct is missing scheduler");
-            sched.push_front(lua, thread.clone(), args)?;
-            Ok(thread)
-        })?;
-    let task_spawn_env = TableBuilder::new(lua)?
-        .with_value("currentThread", coroutine_running)?
-        .with_value("yield", coroutine_yield)?
-        .with_value("push", push_front)?
+pub fn create(lua: &Lua) -> LuaResult<LuaTable<'_>> {
+    let fns = Functions::new(lua)?;
+
+    // Create wait & delay functions
+    let task_wait = lua.create_async_function(wait)?;
+    let task_delay_env = TableBuilder::new(lua)?
+        .with_value("select", lua.globals().get::<_, LuaFunction>("select")?)?
+        .with_value("spawn", fns.spawn.clone())?
+        .with_value("defer", fns.defer.clone())?
+        .with_value("wait", task_wait.clone())?
         .build_readonly()?;
-    let task_spawn = lua
-        .load(SPAWN_IMPL_LUA)
-        .set_name("task.spawn")
-        .set_environment(task_spawn_env)
+    let task_delay = lua
+        .load(DELAY_IMPL_LUA)
+        .set_name("task.delay")
+        .set_environment(task_delay_env)
         .into_function()?;
 
+    // Overwrite resume & wrap functions on the coroutine global
+    // with ones that are compatible with our scheduler
+    let co = lua.globals().get::<_, LuaTable>("coroutine")?;
+    co.set("resume", fns.resume.clone())?;
+    co.set("wrap", fns.wrap.clone())?;
+
     TableBuilder::new(lua)?
-        .with_function("cancel", task_cancel)?
-        .with_function("defer", task_defer)?
-        .with_function("delay", task_delay)?
-        .with_value("spawn", task_spawn)?
-        .with_async_function("wait", task_wait)?
+        .with_value("cancel", fns.cancel)?
+        .with_value("defer", fns.defer)?
+        .with_value("delay", task_delay)?
+        .with_value("spawn", fns.spawn)?
+        .with_value("wait", task_wait)?
         .build_readonly()
 }
 
-fn task_cancel(lua: &Lua, thread: LuaThread) -> LuaResult<()> {
-    let close = lua
-        .globals()
-        .get::<_, LuaTable>("coroutine")?
-        .get::<_, LuaFunction>("close")?;
-    match close.call(thread) {
-        Err(LuaError::CoroutineInactive) => Ok(()),
-        Err(e) => Err(e),
-        Ok(()) => Ok(()),
-    }
-}
-
-fn task_defer<'lua>(
-    lua: &'lua Lua,
-    (tof, args): (LuaThreadOrFunction<'lua>, LuaMultiValue<'_>),
-) -> LuaResult<LuaThread<'lua>> {
-    let thread = tof.into_thread(lua)?;
-    let sched = lua
-        .app_data_ref::<&Scheduler>()
-        .expect("Lua struct is missing scheduler");
-    sched.push_back(lua, thread.clone(), args)?;
-    Ok(thread)
-}
-
-// FIXME: `self` escapes outside of method because we are borrowing `tof` and
-// `args` when we call `schedule_future_thread` in the lua function body below
-// For now we solve this by using the 'static lifetime bound in the impl
-fn task_delay<'lua>(
-    lua: &'lua Lua,
-    (secs, tof, args): (f64, LuaThreadOrFunction<'lua>, LuaMultiValue<'lua>),
-) -> LuaResult<LuaThread<'lua>>
-where
-    'lua: 'static,
-{
-    let thread = tof.into_thread(lua)?;
-    let sched = lua
-        .app_data_ref::<&Scheduler>()
-        .expect("Lua struct is missing scheduler");
-
-    let thread2 = thread.clone();
-    sched.spawn_thread(lua, thread.clone(), async move {
-        let duration = Duration::from_secs_f64(secs);
-        time::sleep(duration).await;
-        sched.push_back(lua, thread2, args)?;
-        Ok(())
-    })?;
-
-    Ok(thread)
-}
-
-async fn task_wait(_: &Lua, secs: Option<f64>) -> LuaResult<f64> {
+async fn wait(_: &Lua, secs: Option<f64>) -> LuaResult<f64> {
     let duration = Duration::from_secs_f64(secs.unwrap_or_default());
 
     let before = Instant::now();

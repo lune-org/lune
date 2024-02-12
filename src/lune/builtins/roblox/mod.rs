@@ -15,7 +15,7 @@ use tokio::task;
 
 static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     let mut roblox_constants = Vec::new();
 
     let roblox_module = roblox::module(lua)?;
