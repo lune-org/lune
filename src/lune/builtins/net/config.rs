@@ -167,7 +167,7 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
             Ok(ServeConfig {
                 handle_request: f.clone(),
                 handle_web_socket: None,
-                address: DEFAULT_IP_ADDRESS.clone(),
+                address: DEFAULT_IP_ADDRESS,
             })
         } else if let LuaValue::Table(t) = &value {
             // Table means custom options

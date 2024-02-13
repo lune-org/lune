@@ -109,10 +109,14 @@ toml = { version = "0.8", features = ["preserve_order"] }
 ### NET
 
 hyper = { version = "1.1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = { version = "0.1" }
 hyper-tungstenite = { version = "0.13" }
+
 reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
+
 tokio-tungstenite = { version = "0.21", features = ["rustls-tls-webpki-roots"] }
 
 ### DATETIME

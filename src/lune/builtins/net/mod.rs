@@ -5,6 +5,7 @@ use mlua_luau_scheduler::LuaSpawnExt;
 
 mod client;
 mod config;
+mod server;
 mod util;
 mod websocket;
 
@@ -13,6 +14,7 @@ use crate::lune::util::TableBuilder;
 use self::{
     client::{NetClient, NetClientBuilder},
     config::{RequestConfig, ServeConfig},
+    server::serve,
     util::create_user_agent_header,
     websocket::NetWebSocket,
 };
@@ -63,7 +65,7 @@ async fn net_serve<'lua>(
     lua: &'lua Lua,
     (port, config): (u16, ServeConfig<'lua>),
 ) -> LuaResult<LuaTable<'lua>> {
-    unimplemented!()
+    serve(lua, port, config).await
 }
 
 fn net_url_encode<'lua>(
