@@ -26,7 +26,7 @@ impl<'lua> FromLua<'lua> for RequestConfigOptions {
             return Ok(Self::default());
         } else if let LuaValue::Table(tab) = value {
             // Extract flags
-            let decompress = match tab.raw_get::<_, Option<bool>>("decompress") {
+            let decompress = match tab.get::<_, Option<bool>>("decompress") {
                 Ok(decomp) => Ok(decomp.unwrap_or(true)),
                 Err(_) => Err(LuaError::RuntimeError(
                     "Invalid option value for 'decompress' in request config options".to_string(),
@@ -72,27 +72,27 @@ impl FromLua<'_> for RequestConfig {
         // If we got a table we are able to configure the entire request
         if let LuaValue::Table(tab) = value {
             // Extract url
-            let url = match tab.raw_get::<_, LuaString>("url") {
+            let url = match tab.get::<_, LuaString>("url") {
                 Ok(config_url) => Ok(config_url.to_string_lossy().to_string()),
                 Err(_) => Err(LuaError::runtime("Missing 'url' in request config")),
             }?;
             // Extract method
-            let method = match tab.raw_get::<_, LuaString>("method") {
+            let method = match tab.get::<_, LuaString>("method") {
                 Ok(config_method) => config_method.to_string_lossy().trim().to_ascii_uppercase(),
                 Err(_) => "GET".to_string(),
             };
             // Extract query
-            let query = match tab.raw_get::<_, LuaTable>("query") {
+            let query = match tab.get::<_, LuaTable>("query") {
                 Ok(tab) => table_to_hash_map(tab, "query")?,
                 Err(_) => HashMap::new(),
             };
             // Extract headers
-            let headers = match tab.raw_get::<_, LuaTable>("headers") {
+            let headers = match tab.get::<_, LuaTable>("headers") {
                 Ok(tab) => table_to_hash_map(tab, "headers")?,
                 Err(_) => HashMap::new(),
             };
             // Extract body
-            let body = match tab.raw_get::<_, LuaString>("body") {
+            let body = match tab.get::<_, LuaString>("body") {
                 Ok(config_body) => Some(config_body.as_bytes().to_owned()),
                 Err(_) => None,
             };
@@ -112,7 +112,7 @@ impl FromLua<'_> for RequestConfig {
                 ))),
             }?;
             // Parse any extra options given
-            let options = match tab.raw_get::<_, LuaValue>("options") {
+            let options = match tab.get::<_, LuaValue>("options") {
                 Ok(opts) => RequestConfigOptions::from_lua(opts, lua)?,
                 Err(_) => RequestConfigOptions::default(),
             };
@@ -158,9 +158,9 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
                 })
             }
             LuaValue::Table(t) => {
-                let handle_request: Option<LuaFunction> = t.raw_get("handleRequest")?;
-                let handle_web_socket: Option<LuaFunction> = t.raw_get("handleWebSocket")?;
-                let address: Option<LuaString> = t.raw_get("address")?;
+                let handle_request: Option<LuaFunction> = t.get("handleRequest")?;
+                let handle_web_socket: Option<LuaFunction> = t.get("handleWebSocket")?;
+                let address: Option<LuaString> = t.get("address")?;
                 if handle_request.is_some() || handle_web_socket.is_some() {
                     return Ok(ServeConfig {
                         handle_request: handle_request.unwrap_or_else(|| {
