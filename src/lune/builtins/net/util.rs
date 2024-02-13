@@ -1,13 +1,19 @@
 use std::collections::HashMap;
 
-use hyper::{
-    header::{CONTENT_ENCODING, CONTENT_LENGTH},
-    HeaderMap,
-};
+use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH};
+use reqwest::header::HeaderMap;
 
 use mlua::prelude::*;
 
 use crate::lune::util::TableBuilder;
+
+pub fn create_user_agent_header() -> String {
+    let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
+        .trim_start_matches("https://github.com/")
+        .split_once('/')
+        .unwrap();
+    format!("{github_owner}-{github_repo}-cli")
+}
 
 pub fn header_map_to_table(
     lua: &Lua,

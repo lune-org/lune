@@ -1,7 +1,9 @@
 #![allow(unused_variables)]
 
 use mlua::prelude::*;
+use mlua_luau_scheduler::LuaSpawnExt;
 
+mod client;
 mod config;
 mod util;
 mod websocket;
@@ -9,13 +11,19 @@ mod websocket;
 use crate::lune::util::TableBuilder;
 
 use self::{
+    client::{NetClient, NetClientBuilder},
     config::{RequestConfig, ServeConfig},
+    util::create_user_agent_header,
     websocket::NetWebSocket,
 };
 
 use super::serde::encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
 pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
+    NetClientBuilder::new()
+        .headers(&[("User-Agent", create_user_agent_header())])?
+        .build()?
+        .into_registry(lua);
     TableBuilder::new(lua)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
@@ -25,14 +33,6 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("urlEncode", net_url_encode)?
         .with_function("urlDecode", net_url_decode)?
         .build_readonly()
-}
-
-fn _create_user_agent_header() -> String {
-    let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
-        .trim_start_matches("https://github.com/")
-        .split_once('/')
-        .unwrap();
-    format!("{github_owner}-{github_repo}-cli")
 }
 
 fn net_json_encode<'lua>(
@@ -48,7 +48,10 @@ fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<Lua
 }
 
 async fn net_request(lua: &Lua, config: RequestConfig) -> LuaResult<LuaTable> {
-    unimplemented!()
+    let client = NetClient::from_registry(lua);
+    // NOTE: We spawn the request as a background task to free up resources in lua
+    let res = lua.spawn(async move { client.request(config).await });
+    res.await?.into_lua_table(lua)
 }
 
 async fn net_socket(lua: &Lua, url: String) -> LuaResult<LuaTable> {
