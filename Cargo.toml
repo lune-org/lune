@@ -110,6 +110,7 @@ toml = { version = "0.8", features = ["preserve_order"] }
 
 hyper = { version = "1.1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["full"] }
+http = "1.0"
 http-body-util = { version = "0.1" }
 hyper-tungstenite = { version = "0.13" }
 

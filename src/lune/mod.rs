@@ -1,5 +1,6 @@
 use std::{
     process::ExitCode,
+    rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -7,6 +8,7 @@ use std::{
 };
 
 use mlua::Lua;
+use mlua_luau_scheduler::Scheduler;
 
 mod builtins;
 mod error;
@@ -15,11 +17,10 @@ mod globals;
 pub(crate) mod util;
 
 pub use error::RuntimeError;
-use mlua_luau_scheduler::Scheduler;
 
 #[derive(Debug)]
 pub struct Runtime {
-    lua: Lua,
+    lua: Rc<Lua>,
     args: Vec<String>,
 }
 
@@ -29,8 +30,9 @@ impl Runtime {
     */
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        let lua = Lua::new();
+        let lua = Rc::new(Lua::new());
 
+        lua.set_app_data(Rc::downgrade(&lua));
         lua.set_app_data(Vec::<String>::new());
 
         Self {
