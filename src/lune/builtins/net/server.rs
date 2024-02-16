@@ -340,6 +340,8 @@ pub async fn serve<'lua>(
     });
 
     TableBuilder::new(lua)?
+        .with_value("ip", addr.ip().to_string())?
+        .with_value("port", addr.port())?
         .with_function("stop", move |lua, _: ()| match shutdown_tx.send(true) {
             Ok(_) => Ok(()),
             Err(_) => Err(LuaError::runtime("Server already stopped")),
