@@ -1,10 +1,8 @@
 use mlua::prelude::*;
 
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
-use tokio::{
-    io::{self, AsyncWriteExt},
-    task,
-};
+use mlua_luau_scheduler::LuaSpawnExt;
+use tokio::io::{self, AsyncWriteExt};
 
 use crate::lune::util::{
     formatting::{
@@ -55,10 +53,10 @@ async fn stdio_ewrite(_: &Lua, s: LuaString<'_>) -> LuaResult<()> {
     Ok(())
 }
 
-async fn stdio_prompt(_: &Lua, options: PromptOptions) -> LuaResult<PromptResult> {
-    task::spawn_blocking(move || prompt(options))
+async fn stdio_prompt(lua: &Lua, options: PromptOptions) -> LuaResult<PromptResult> {
+    lua.spawn_blocking(move || prompt(options))
         .await
-        .into_lua_err()?
+        .into_lua_err()
 }
 
 fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {

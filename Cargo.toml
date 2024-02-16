@@ -79,6 +79,7 @@ urlencoding = "2.1"
 
 ### RUNTIME
 
+blocking = "1.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }

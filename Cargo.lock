@@ -1350,6 +1350,7 @@ dependencies = [
  "anyhow",
  "async-compression",
  "async-trait",
+ "blocking",
  "chrono",
  "chrono_lc",
  "clap",
