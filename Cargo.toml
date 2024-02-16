@@ -84,7 +84,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
 os_str_bytes = { version = "7.0", features = ["conversions"] }
 
-mlua-luau-scheduler = { git = "https://github.com/lune-org/mlua-luau-scheduler", rev = "0207da50ae0e4ea98e8a42b629dccf1e862131ac" }
+mlua-luau-scheduler = { version = "0.0.1" }
 mlua = { version = "0.9.5", features = [
     "luau",
     "luau-jit",
