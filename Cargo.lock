@@ -1470,7 +1470,8 @@ dependencies = [
 [[package]]
 name = "mlua"
 version = "0.9.5"
-source = "git+https://github.com/mlua-rs/mlua.git?rev=1754226c7440ec6c194d2d678ec083b621d46ceb#1754226c7440ec6c194d2d678ec083b621d46ceb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d3561f79659ff3afad7b25e2bf2ec21507fe601ebecb7f81088669ec4bfd51e"
 dependencies = [
  "bstr",
  "erased-serde",
@@ -1487,7 +1488,7 @@ dependencies = [
 [[package]]
 name = "mlua-luau-scheduler"
 version = "0.0.0"
-source = "git+https://github.com/lune-org/mlua-luau-scheduler?rev=7c59d0c722215693839b2790a918fcc872e5ab93#7c59d0c722215693839b2790a918fcc872e5ab93"
+source = "git+https://github.com/lune-org/mlua-luau-scheduler?rev=0207da50ae0e4ea98e8a42b629dccf1e862131ac#0207da50ae0e4ea98e8a42b629dccf1e862131ac"
 dependencies = [
  "async-executor",
  "blocking",
@@ -1503,7 +1504,8 @@ dependencies = [
 [[package]]
 name = "mlua-sys"
 version = "0.5.1"
-source = "git+https://github.com/mlua-rs/mlua.git?rev=1754226c7440ec6c194d2d678ec083b621d46ceb#1754226c7440ec6c194d2d678ec083b621d46ceb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2847b42764435201d8cbee1f517edb79c4cca4181877b90047587c89e1b7bce4"
 dependencies = [
  "cc",
  "cfg-if",
