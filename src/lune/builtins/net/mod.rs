@@ -63,7 +63,8 @@ fn net_json_encode<'lua>(
 }
 
 fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<LuaValue<'lua>> {
-    EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
+    // NOTE: JSON is valid JSON5, so we use the JSON5 decoder here
+    EncodeDecodeConfig::from(EncodeDecodeFormat::Json5).deserialize_from_string(lua, json)
 }
 
 async fn net_request<'lua>(lua: &'lua Lua, config: RequestConfig) -> LuaResult<LuaTable<'lua>>
