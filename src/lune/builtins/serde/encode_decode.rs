@@ -17,6 +17,7 @@ const LUA_DESERIALIZE_OPTIONS: LuaDeserializeOptions = LuaDeserializeOptions::ne
 #[derive(Debug, Clone, Copy)]
 pub enum EncodeDecodeFormat {
     Json,
+    Json5,
     Yaml,
     Toml,
 }
@@ -26,13 +27,14 @@ impl<'lua> FromLua<'lua> for EncodeDecodeFormat {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
                 "json" => Ok(Self::Json),
+                "json5" => Ok(Self::Json5),
                 "yaml" => Ok(Self::Yaml),
                 "toml" => Ok(Self::Toml),
                 kind => Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
                     to: "EncodeDecodeFormat",
                     message: Some(format!(
-                        "Invalid format '{kind}', valid formats are:  json, yaml, toml"
+                        "Invalid format '{kind}', valid formats are:  json, json5, yaml, toml"
                     )),
                 }),
             }
@@ -59,7 +61,10 @@ impl EncodeDecodeConfig {
         value: LuaValue<'lua>,
     ) -> LuaResult<LuaString<'lua>> {
         let bytes = match self.format {
-            EncodeDecodeFormat::Json => {
+            // Encoding to Json5 is impractical, since it only includes support for
+            // things like trailing commas, comments, etc. which provide convenience
+            // for humans
+            EncodeDecodeFormat::Json | EncodeDecodeFormat::Json5 => {
                 let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
                 if self.pretty {
                     serde_json::to_vec_pretty(&serialized).into_lua_err()?
@@ -95,6 +100,10 @@ impl EncodeDecodeConfig {
         match self.format {
             EncodeDecodeFormat::Json => {
                 let value: JsonValue = serde_json::from_slice(bytes).into_lua_err()?;
+                lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
+            }
+            EncodeDecodeFormat::Json5 => {
+                let value: JsonValue = serde_json5::from_slice(bytes).into_lua_err()?;
                 lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
             }
             EncodeDecodeFormat::Yaml => {
