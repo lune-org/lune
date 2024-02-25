@@ -123,11 +123,13 @@ pub fn pretty_format_value(
             )
         )?,
         LuaValue::Table(ref tab) => {
+            let table_addr = Some(format!("{:p}", tab.to_pointer()));
+
             if depth >= MAX_FORMAT_DEPTH {
                 write!(buffer, "{}", STYLE_DIM.apply_to("{ ... }"))?;
             } else if let Some(s) = call_table_tostring_metamethod(tab) {
                 write!(buffer, "{s}")?;
-            } else if depth >= 1 && parent_table_addr.eq(&Some(format!("{:p}", tab.to_pointer()))) {
+            } else if depth >= 1 && parent_table_addr.eq(&table_addr) {
                 write!(buffer, "{}", STYLE_DIM.apply_to("<self>"))?
             } else {
                 let mut is_empty = false;
@@ -194,7 +196,9 @@ pub fn pretty_format_multi_value(multi: &LuaMultiValue) -> LuaResult<String> {
         if let LuaValue::String(s) = value {
             write!(buffer, "{}", s.to_string_lossy()).into_lua_err()?;
         } else {
-            pretty_format_value(&mut buffer, value, Some(format!("{:p}", value.to_pointer())), 0).into_lua_err()?;
+            let addr = format!("{:p}", value.to_pointer());
+
+            pretty_format_value(&mut buffer, value, Some(addr), 0).into_lua_err()?;
         }
         if counter < multi.len() {
             write!(&mut buffer, " ").into_lua_err()?;
