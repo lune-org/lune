@@ -36,6 +36,9 @@ pub struct BuildCommand {
 
     #[clap(short, long)]
     pub target: Option<String>,
+
+    #[clap(short, long)]
+    pub base: Option<PathBuf>,
 }
 
 impl BuildCommand {
@@ -51,13 +54,23 @@ impl BuildCommand {
             .await
             .context("failed to read input file")?;
 
-        let base_exe_path = if let Some(target_inner) = self.target {
+        let base_exe_path = if self.base.is_some() {
+            output_path.set_extension(
+                self.base
+                    .clone()
+                    .unwrap()
+                    .extension()
+                    .expect("failed to get extension of base binary"),
+            );
+
+            self.base
+        } else if let Some(target_inner) = self.target {
             let target_exe_extension = get_target_exe_extension(target_inner.as_str());
 
             let path =
                 TARGET_BASE_DIR.join(format!("lune-{}.{}", target_inner, target_exe_extension));
 
-            output_path = output_path.with_extension(target_exe_extension);
+            output_path.set_extension(target_exe_extension);
 
             if !TARGET_BASE_DIR.exists() {
                 fs::create_dir_all(TARGET_BASE_DIR.to_path_buf()).await?;
