@@ -49,8 +49,8 @@ impl Metadata {
     /**
         Creates a patched standalone binary from the given script contents.
     */
-    pub async fn create_env_patched_bin(script_contents: impl Into<Vec<u8>>) -> Result<Vec<u8>> {
-        let mut patched_bin = fs::read(CURRENT_EXE.to_path_buf()).await?;
+    pub async fn create_env_patched_bin(base_exe_path: Option<PathBuf>, script_contents: impl Into<Vec<u8>>) -> Result<Vec<u8>> {
+        let mut patched_bin = fs::read(base_exe_path.unwrap_or(CURRENT_EXE.to_path_buf())).await?;
 
         // Compile luau input into bytecode
         let bytecode = LuaCompiler::new()
