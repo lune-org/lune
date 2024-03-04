@@ -65,12 +65,19 @@ impl BuildCommand {
 
             self.base
         } else if let Some(target_inner) = self.target {
-            let target_exe_extension = get_target_exe_extension(target_inner.as_str());
+            let target_exe_extension = match target_inner.as_str() {
+                "windows-x86_64" => "exe",
+                _ => "bin",
+            };
 
             let path =
                 TARGET_BASE_DIR.join(format!("lune-{}.{}", target_inner, target_exe_extension));
 
-            output_path.set_extension(target_exe_extension);
+            output_path.set_extension(if target_exe_extension == "bin" {
+                ""
+            } else {
+                target_exe_extension
+            });
 
             if !TARGET_BASE_DIR.exists() {
                 fs::create_dir_all(TARGET_BASE_DIR.to_path_buf()).await?;
@@ -183,11 +190,4 @@ async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]
     file.write_all(bytes.as_ref()).await?;
 
     Ok(())
-}
-
-fn get_target_exe_extension(target: &str) -> &str {
-    match target {
-        "windows-x86_64" => "exe",
-        _ => "bin",
-    }
 }
