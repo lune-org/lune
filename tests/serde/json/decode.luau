@@ -51,3 +51,14 @@ assert(
 		productCount
 	)
 )
+
+local json5Response = net.request("https://raw.githubusercontent.com/chromium/chromium/feb3c9f670515edf9a88f185301cbd7794ee3e52/third_party/blink/renderer/platform/runtime_enabled_features.json5")
+
+assert(json5Response.ok, "Failed to fetch JSON5 file contents")
+assert(#json5Response.body > 0, "Received an empty response body for JSON5 file")
+
+local decodedJson5 = serde.decode("json5", json5Response.body)
+
+assert(type(decodedJson5.parameters) == "table", "Parameters was not a table")
+assert(#decodedJson5.data == 556, "Data table wasn't expected size") -- Number is hardcoded, since the commit hash is pinned
+
