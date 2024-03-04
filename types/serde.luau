@@ -1,4 +1,4 @@
-export type EncodeDecodeFormat = "json" | "yaml" | "toml"
+export type EncodeDecodeFormat = "json" | "json5" | "yaml" | "toml"
 
 export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
 
@@ -18,6 +18,7 @@ export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
 
 	-- Parse different file formats into lua tables
 	local someJson = serde.decode("json", fs.readFile("myFile.json"))
+	local someJson5 = serde.decode("json5", fs.readFile("myFile.json5"))
 	local someToml = serde.decode("toml", fs.readFile("myFile.toml"))
 	local someYaml = serde.decode("yaml", fs.readFile("myFile.yaml"))
 
@@ -60,11 +61,12 @@ end
 
 	Currently supported formats:
 
-	| Name   | Learn More           |
-	|:-------|:---------------------|
-	| `json` | https://www.json.org |
-	| `yaml` | https://yaml.org     |
-	| `toml` | https://toml.io      |
+	| Name    | Learn More           |
+	|:--------|:---------------------|
+	| `json`  | https://www.json.org |
+	| `json5` | https://json5.org    |
+	| `yaml`  | https://yaml.org     |
+	| `toml`  | https://toml.io      |
 
 	@param format The format to use
 	@param encoded The string to decode
