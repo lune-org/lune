@@ -294,6 +294,19 @@ end
 	@within Net
 	@tag must_use
 
+	Decodes the given JSON5 string into a lua value.
+
+	@param encoded The JSON5 string to decode
+	@return The decoded lua value
+]=]
+function net.json5Decode(encoded: string): any
+	return nil :: any
+end
+
+--[=[
+	@within Net
+	@tag must_use
+
 	Encodes the given string using URL encoding.
 
 	@param s The string to encode
