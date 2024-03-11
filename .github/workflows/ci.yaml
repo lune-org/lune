@@ -66,7 +66,7 @@ jobs:
           - name: macOS x86_64
             runner-os: macos-latest
             cargo-target: x86_64-apple-darwin
-
+    timeout-minutes: 10
     name: CI - ${{ matrix.name }}
     runs-on: ${{ matrix.runner-os }}
     steps:

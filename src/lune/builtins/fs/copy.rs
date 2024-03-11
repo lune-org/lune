@@ -150,6 +150,8 @@ pub async fn copy(
             }
         }
 
+        fs::create_dir_all(target).await?;
+
         // FUTURE: Write dirs / files concurrently
         // to potentially speed these operations up
         for (_, dir) in &contents.dirs {

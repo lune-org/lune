@@ -29,9 +29,9 @@ export type MetadataPermissions = {
 
 	* `kind` - If the target path is a `file`, `dir` or `symlink`
 	* `exists` - If the target path exists
-	* `createdAt` - The timestamp at which the file or directory was created
-	* `modifiedAt` - The timestamp at which the file or directory was last modified
-	* `accessedAt` - The timestamp at which the file or directory was last accessed
+	* `createdAt` - The timestamp represented as a `DateTime` object at which the file or directory was created
+	* `modifiedAt` - The timestamp represented as a `DateTime` object at which the file or directory was last modified
+	* `accessedAt` - The timestamp represented as a `DateTime` object at which the file or directory was last accessed
 	* `permissions` - Current permissions for the file or directory
 
 	Note that timestamps are relative to the unix epoch, and
