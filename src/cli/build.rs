@@ -49,6 +49,9 @@ pub struct BuildCommand {
 // TODO: Currently, the file we are patching is user provided, so we should
 // probably check whether the binary is a valid lune base binary first
 
+// TODO: Handle whether the compiled bytecode may conflict among breaking luau
+// versions
+
 impl BuildCommand {
     pub async fn run(self) -> Result<ExitCode> {
         let mut output_path = self
@@ -119,16 +122,21 @@ async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]
     Ok(())
 }
 
+/// Possible ways in which the discovery and/or download of a base binary's path can error
 #[derive(Debug, Clone, Error, PartialEq)]
 pub enum BasePathDiscoveryError<T> {
+    /// An error in the decompression of the precompiled target
     #[error("decompression error")]
     Decompression(T),
     #[error("precompiled base for target not found for {target}")]
     TargetNotFound { target: String },
+    /// An error in the precompiled target download process
     #[error("failed to download precompiled binary base")]
     DownloadError(T),
+    /// An IO related error
     #[error("a generic error related to an io operation occurred")]
     IoError(T),
+    /// Safe to continue, the user did not request any cross-compilation
     #[error("neither a custom base path or precompiled target name provided")]
     None,
 }
