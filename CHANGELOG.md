@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update to Luau version `0.616`.
+- Major performance improvements when using a large amount of threads / asynchronous Lune APIs. ([#165])
+- Minor performance improvements and less overhead for `net.serve` and `net.socket`. ([#165])
 
 ### Fixed
 
