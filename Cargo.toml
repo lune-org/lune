@@ -85,8 +85,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
 os_str_bytes = { version = "7.0", features = ["conversions"] }
 
-mlua-luau-scheduler = { version = "0.0.1" }
-mlua = { version = "0.9.5", features = [
+mlua-luau-scheduler = { version = "0.0.2" }
+mlua = { version = "0.9.6", features = [
     "luau",
     "luau-jit",
     "async",
