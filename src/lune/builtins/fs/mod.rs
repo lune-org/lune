@@ -4,6 +4,7 @@ use std::path::{PathBuf, MAIN_SEPARATOR};
 use mlua::prelude::*;
 use tokio::fs;
 
+use crate::lune::util::buffer::{buf_to_str, create_lua_buffer};
 use crate::lune::util::TableBuilder;
 
 mod copy;
@@ -30,9 +31,10 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaString> {
+async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaValue> {
     let bytes = fs::read(&path).await.into_lua_err()?;
-    lua.create_string(bytes)
+
+    create_lua_buffer(lua, bytes)
 }
 
 async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
@@ -64,8 +66,19 @@ async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     Ok(dir_strings_no_prefix)
 }
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, LuaString<'_>)) -> LuaResult<()> {
-    fs::write(&path, &contents.as_bytes()).await.into_lua_err()
+async fn fs_write_file(lua: &Lua, (path, contents): (String, LuaValue<'_>)) -> LuaResult<()> {
+    let contents_str = match contents {
+        LuaValue::String(str) => Ok(str.to_str()?.to_string()),
+        LuaValue::UserData(inner) => Ok(buf_to_str(lua, LuaValue::UserData(inner))?),
+        other => Err(LuaError::runtime(format!(
+            "Expected type string or buffer, got {}",
+            other.type_name()
+        ))),
+    }?;
+
+    fs::write(&path, contents_str.as_bytes())
+        .await
+        .into_lua_err()
 }
 
 async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {

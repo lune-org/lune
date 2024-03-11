@@ -4,7 +4,10 @@ use mlua::prelude::*;
 
 use hyper::header::CONTENT_ENCODING;
 
-use crate::lune::{scheduler::Scheduler, util::TableBuilder};
+use crate::lune::{
+    scheduler::Scheduler,
+    util::{buffer::create_lua_buffer, TableBuilder},
+};
 
 use self::{
     server::{bind_to_addr, create_server},
@@ -120,7 +123,7 @@ where
         .with_value("statusCode", res_status)?
         .with_value("statusMessage", res_status_text)?
         .with_value("headers", res_headers_lua)?
-        .with_value("body", lua.create_string(&res_bytes)?)?
+        .with_value("body", create_lua_buffer(lua, &res_bytes)?)?
         .build_readonly()
 }
 

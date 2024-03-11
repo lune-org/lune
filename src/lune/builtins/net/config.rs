@@ -4,6 +4,8 @@ use mlua::prelude::*;
 
 use reqwest::Method;
 
+use crate::lune::util::buffer::buf_to_str;
+
 use super::util::table_to_hash_map;
 
 // Net request config
@@ -92,10 +94,16 @@ impl FromLua<'_> for RequestConfig {
                 Err(_) => HashMap::new(),
             };
             // Extract body
-            let body = match tab.raw_get::<_, LuaString>("body") {
-                Ok(config_body) => Some(config_body.as_bytes().to_owned()),
-                Err(_) => None,
+            let body = match tab.raw_get::<_, LuaValue>("body")? {
+                LuaValue::String(str) => Some(str.as_bytes().to_vec()),
+                LuaValue::UserData(inner) => Some(
+                    buf_to_str(lua, LuaValue::UserData(inner))?
+                        .as_bytes()
+                        .to_vec(),
+                ),
+                _ => None,
             };
+
             // Convert method string into proper enum
             let method = method.trim().to_ascii_uppercase();
             let method = match method.as_ref() {

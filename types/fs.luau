@@ -107,7 +107,7 @@ local fs = {}
 	@param path The path to the file to read
 	@return The contents of the file
 ]=]
-function fs.readFile(path: string): string
+function fs.readFile(path: string): buffer
 	return nil :: any
 end
 
@@ -144,7 +144,7 @@ end
 	@param path The path of the file
 	@param contents The contents of the file
 ]=]
-function fs.writeFile(path: string, contents: string) end
+function fs.writeFile(path: string, contents: buffer | string) end
 
 --[=[
 	@within FS

@@ -1,5 +1,6 @@
 mod table_builder;
 
+pub mod buffer;
 pub mod formatting;
 pub mod futures;
 pub mod luaurc;

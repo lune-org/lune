@@ -22,7 +22,7 @@ use hyper_tungstenite::{
 };
 use tokio_tungstenite::MaybeTlsStream;
 
-use crate::lune::util::TableBuilder;
+use crate::lune::util::{buffer::buf_to_str, TableBuilder};
 
 const WEB_SOCKET_IMPL_LUA: &str = r#"
 return freeze(setmetatable({
@@ -178,20 +178,29 @@ where
 }
 
 async fn send<'lua, T>(
-    _lua: &'lua Lua,
-    (socket, string, as_binary): (
+    lua: &'lua Lua,
+    (socket, data, as_binary): (
         LuaUserDataRef<'lua, NetWebSocket<T>>,
-        LuaString<'lua>,
+        LuaValue<'lua>,
         Option<bool>,
     ),
 ) -> LuaResult<()>
 where
     T: AsyncRead + AsyncWrite + Unpin,
 {
+    let string = match data {
+        LuaValue::String(str) => Ok(str.to_str()?.to_string()),
+        LuaValue::UserData(inner) => buf_to_str(lua, LuaValue::UserData(inner)),
+        other => Err(LuaError::runtime(format!(
+            "Expected data to be of type string or buffer, got {}",
+            other.type_name()
+        ))),
+    }?;
+
     let msg = if matches!(as_binary, Some(true)) {
         WsMessage::Binary(string.as_bytes().to_vec())
     } else {
-        let s = string.to_str().into_lua_err()?;
+        let s = string;
         WsMessage::Text(s.to_string())
     };
     let mut ws = socket.write_stream.lock().await;
