@@ -2,16 +2,15 @@
 	@interface CompileOptions
 	@within Luau
 
-	The Luau compiler options used in generating luau bytecode
+	The options passed to the luau compiler while compiling bytecode.
 
 	This is a dictionary that may contain one or more of the following values:
 
-	* `optimizationLevel` - Sets the compiler option "optimizationLevel". Defaults to `1`
-	* `coverageLevel` - Sets the compiler option "coverageLevel". Defaults to `0`
-	* `debugLevel` - Sets the compiler option "debugLevel". Defaults to `1`
+	* `optimizationLevel` - Sets the compiler option "optimizationLevel". Defaults to `1`.
+	* `coverageLevel` - Sets the compiler option "coverageLevel". Defaults to `0`.
+	* `debugLevel` - Sets the compiler option "debugLevel". Defaults to `1`.
 
-	Documentation regarding what these values represent can be found here;
-	* https://github.com/Roblox/luau/blob/bd229816c0a82a8590395416c81c333087f541fd/Compiler/include/luacode.h#L13
+	Documentation regarding what these values represent can be found [here](https://github.com/Roblox/luau/blob/bd229816c0a82a8590395416c81c333087f541fd/Compiler/include/luacode.h#L13-L39).
 ]=]
 export type CompileOptions = {
 	optimizationLevel: number?,
@@ -23,11 +22,11 @@ export type CompileOptions = {
 	@interface LoadOptions
 	@within Luau
 
-	The Luau load options are used for generating a lua function from either bytecode or sourcecode
+	The options passed while loading a luau chunk from an arbitrary string, or bytecode.
 
 	This is a dictionary that may contain one or more of the following values:
 
-	* `debugName` - The debug name of the closure. Defaults to `luau.load(...)`
+	* `debugName` - The debug name of the closure. Defaults to `luau.load(...)`.
 	* `environment` - Environment values to set and/or override. Includes default globals unless overwritten.
 ]=]
 export type LoadOptions = {
@@ -53,6 +52,9 @@ export type LoadOptions = {
 
 	callableFn()
 	```
+
+	Since luau bytecode is highly compressible, it may also make sense to compress it using the `serde` library
+	while transmitting large amounts of it.
 ]=]
 local luau = {}
 
@@ -68,15 +70,16 @@ local luau = {}
 	```lua
 	local luau = require("@lune/luau")
 
+	-- Compile the source to some highly optimized bytecode
 	local bytecode = luau.compile("print('Hello, World!')", {
-		optimizationLevel: 1,
-		coverageLevel: 0,
-		debugLevel: 1,
+		optimizationLevel = 2,
+		coverageLevel = 0,
+		debugLevel = 1,
 	})
 	```
 
-	@param source The string that'll be compiled into bytecode
-	@param compileOptions The luau compiler options used when compiling the source string
+	@param source The string that will be compiled into bytecode
+	@param compileOptions The options passed to the luau compiler that will output the bytecode
 
 	@return luau bytecode
 ]=]
@@ -104,10 +107,10 @@ end
 	callableFn()
 	```
 
-	@param source Either bytecode or sourcecode
-	@param loadOptions The load options used when creating a callbable function
+	@param source Either luau bytecode or string source code
+	@param loadOptions The options passed to luau for loading the chunk
 
-	@return luau function
+	@return luau chunk
 ]=]
 function luau.load(source: string, loadOptions: LoadOptions?): (...any) -> ...any
 	return nil :: any
