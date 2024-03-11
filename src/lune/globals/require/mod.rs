@@ -1,6 +1,6 @@
 use mlua::prelude::*;
 
-use crate::lune::{scheduler::LuaSchedulerExt, util::TableBuilder};
+use crate::lune::util::TableBuilder;
 
 mod context;
 use context::RequireContext;
@@ -13,8 +13,8 @@ const REQUIRE_IMPL: &str = r#"
 return require(source(), ...)
 "#;
 
-pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
-    lua.set_app_data(RequireContext::new(lua));
+pub fn create(lua: &Lua) -> LuaResult<impl IntoLua<'_>> {
+    lua.set_app_data(RequireContext::new());
 
     /*
         Require implementation needs a few workarounds:
@@ -62,10 +62,7 @@ pub fn create(lua: &'static Lua) -> LuaResult<impl IntoLua<'_>> {
 async fn require<'lua>(
     lua: &'lua Lua,
     (source, path): (LuaString<'lua>, LuaString<'lua>),
-) -> LuaResult<LuaMultiValue<'lua>>
-where
-    'lua: 'static, // FIXME: Remove static lifetime bound here when builtin libraries no longer need it
-{
+) -> LuaResult<LuaMultiValue<'lua>> {
     let source = source
         .to_str()
         .into_lua_err()
@@ -86,13 +83,13 @@ where
         .strip_prefix("@lune/")
         .map(|name| name.to_ascii_lowercase())
     {
-        builtin::require(&context, &builtin_name).await
+        builtin::require(lua, &context, &builtin_name).await
     } else if let Some(aliased_path) = path.strip_prefix('@') {
         let (alias, path) = aliased_path.split_once('/').ok_or(LuaError::runtime(
             "Require with custom alias must contain '/' delimiter",
         ))?;
-        alias::require(&context, &source, alias, path).await
+        alias::require(lua, &context, &source, alias, path).await
     } else {
-        path::require(&context, &source, &path).await
+        path::require(lua, &context, &source, &path).await
     }
 }

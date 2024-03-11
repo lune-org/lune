@@ -9,7 +9,8 @@ use crate::lune::util::{
 use super::context::*;
 
 pub(super) async fn require<'lua, 'ctx>(
-    ctx: &'ctx RequireContext<'lua>,
+    lua: &'lua Lua,
+    ctx: &'ctx RequireContext,
     source: &str,
     alias: &str,
     path: &str,
@@ -71,5 +72,5 @@ where
         LuaError::runtime(format!("failed to find relative path for alias '{alias}'"))
     })?;
 
-    super::path::require_abs_rel(ctx, abs_path, rel_path).await
+    super::path::require_abs_rel(lua, ctx, abs_path, rel_path).await
 }
