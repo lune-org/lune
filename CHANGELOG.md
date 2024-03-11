@@ -8,6 +8,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added the ability to specify an address in `net.serve`. ([#142])
+
+### Changed
+
+- Update to Luau version `0.616`.
+
+### Fixed
+
+- Fixed `fs.copy` not working with empty dirs. ([#155])
+- Fixed stack overflow when printing tables with cyclic references. ([#158])
+- Fixed not being able to yield in `net.serve` handlers without blocking other requests. ([#165])
+- Fixed various scheduler issues / panics. ([#165])
+
+[#142]: https://github.com/lune-org/lune/pull/142
+[#155]: https://github.com/lune-org/lune/pull/155
+[#158]: https://github.com/lune-org/lune/pull/158
+[#165]: https://github.com/lune-org/lune/pull/165
+
 ## `0.8.0` - January 14th, 2024
 
 ### Breaking Changes
