@@ -4,12 +4,17 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Error, Result};
+use async_compression::tokio::bufread::DeflateDecoder;
 use clap::Parser;
 use console::style;
 use directories::BaseDirs;
 use once_cell::sync::Lazy;
-use tokio::{fs, io::AsyncWriteExt as _};
+use thiserror::Error;
+use tokio::{
+    fs,
+    io::{AsyncReadExt, AsyncWriteExt as _},
+};
 
 use crate::standalone::metadata::Metadata;
 
@@ -41,6 +46,9 @@ pub struct BuildCommand {
     pub base: Option<PathBuf>,
 }
 
+// TODO: Currently, the file we are patching is user provided, so we should
+// probably check whether the binary is a valid lune base binary first
+
 impl BuildCommand {
     pub async fn run(self) -> Result<ExitCode> {
         let mut output_path = self
@@ -55,7 +63,24 @@ impl BuildCommand {
             .context("failed to read input file")?;
 
         // Dynamically derive the base executable path based on the CLI arguments provided
-        let base_exe_path = get_base_exe_path(self.base, self.target, &mut output_path).await;
+        let base_exe_path = match get_base_exe_path(self.base, self.target, &mut output_path).await
+        {
+            Ok(path) => Some(path),
+            Err(err) => {
+                let inner_err = err.downcast::<BasePathDiscoveryError<()>>();
+
+                if let Err(other_err) = inner_err {
+                    bail!(
+                        "Encountered an error while handling cross-compilation flags: {}",
+                        other_err
+                    );
+                }
+
+                // If there the downcasted error was ok, it is safe to continue since
+                // neither the --base nor the --target flags were set
+                None
+            }
+        };
 
         // Read the contents of the lune interpreter as our starting point
         println!(
@@ -94,27 +119,39 @@ async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]
     Ok(())
 }
 
+#[derive(Debug, Clone, Error, PartialEq)]
+pub enum BasePathDiscoveryError<T> {
+    #[error("decompression error")]
+    Decompression(T),
+    #[error("precompiled base for target not found for {target}")]
+    TargetNotFound { target: String },
+    #[error("failed to download precompiled binary base")]
+    DownloadError(T),
+    #[error("a generic error related to an io operation occurred")]
+    IoError(T),
+    #[error("neither a custom base path or precompiled target name provided")]
+    None,
+}
+
 async fn get_base_exe_path(
     base: Option<PathBuf>,
     target: Option<String>,
     output_path: &mut PathBuf,
-) -> Option<PathBuf> {
-    if base.is_some() {
+) -> Result<PathBuf> {
+    if let Some(base) = base {
         output_path.set_extension(
-            base.clone()
-                .unwrap()
-                .extension()
+            base.extension()
                 .expect("failed to get extension of base binary"),
         );
 
-        base
+        Ok(base)
     } else if let Some(target_inner) = target {
         let target_exe_extension = match target_inner.as_str() {
             "windows-x86_64" => "exe",
             _ => "bin",
         };
 
-        let path = TARGET_BASE_DIR.join(format!("lune-{}.{}", target_inner, target_exe_extension));
+        let path = TARGET_BASE_DIR.join(format!("lune-{target_inner}.{target_exe_extension}"));
 
         output_path.set_extension(if target_exe_extension == "bin" {
             ""
@@ -125,7 +162,7 @@ async fn get_base_exe_path(
         if !TARGET_BASE_DIR.exists() {
             fs::create_dir_all(TARGET_BASE_DIR.to_path_buf())
                 .await
-                .ok()?;
+                .map_err(BasePathDiscoveryError::IoError)?;
         }
 
         if !path.exists() {
@@ -150,34 +187,44 @@ async fn get_base_exe_path(
             );
 
             // Maybe we should use the custom net client used in `@lune/net`
-            let dl_req = match reqwest::get(release_url).await {
-                Err(_) => {
-                    eprintln!(
-                        "   {} Unable to download base binary found for target `{}`",
-                        style("Download").red().bold(),
-                        target_inner,
-                    );
+            let resp = reqwest::get(release_url).await.map_err(|err| {
+                eprintln!(
+                    "   {} Unable to download base binary found for target `{}`",
+                    style("Download").red().bold(),
+                    target_inner,
+                );
 
-                    return None;
+                BasePathDiscoveryError::DownloadError::<Error>(err.into())
+            })?;
+
+            let resp_status = resp.status();
+
+            if resp_status != 200 && !resp_status.is_redirection() {
+                eprintln!(
+                    "   {} No precompiled base binary found for target `{}`",
+                    style("Download").red().bold(),
+                    target_inner
+                );
+
+                println!("{}: {}", style("HINT").yellow(), style("Perhaps try providing a path to self-compiled target with the `--base` flag").italic());
+
+                return Err(BasePathDiscoveryError::TargetNotFound::<String> {
+                    target: target_inner,
                 }
-                Ok(resp) => {
-                    let resp_status = resp.status();
+                .into());
+            }
 
-                    if resp_status != 200 && !resp_status.is_redirection() {
-                        eprintln!(
-                            "   {} No precompiled base binary found for target `{}`",
-                            style("Download").red().bold(),
-                            target_inner
-                        );
+            let compressed_reader = resp
+                .bytes()
+                .await
+                .map_err(BasePathDiscoveryError::IoError)?;
+            let mut decompressed_bytes = vec![];
 
-                        println!("{}: {}", style("HINT").yellow(), style("Perhaps try providing a path to self-compiled target with the `--base` flag").italic());
-
-                        return None;
-                    }
-
-                    resp
-                }
-            };
+            // This errors, so idk what decoder to use
+            DeflateDecoder::new(compressed_reader.as_ref())
+                .read_to_end(&mut decompressed_bytes)
+                .await
+                .map_err(BasePathDiscoveryError::Decompression)?;
 
             fs::OpenOptions::new()
                 .write(true)
@@ -185,10 +232,10 @@ async fn get_base_exe_path(
                 .truncate(true)
                 .open(&path)
                 .await
-                .ok()?
-                .write_all(&dl_req.bytes().await.ok()?)
+                .map_err(BasePathDiscoveryError::IoError)?
+                .write_all(&decompressed_bytes)
                 .await
-                .ok()?;
+                .map_err(BasePathDiscoveryError::IoError)?;
 
             println!(
                 "  {} {}",
@@ -197,8 +244,8 @@ async fn get_base_exe_path(
             );
         }
 
-        Some(path)
+        Ok(path)
     } else {
-        None
+        Err(BasePathDiscoveryError::<()>::None.into())
     }
 }
