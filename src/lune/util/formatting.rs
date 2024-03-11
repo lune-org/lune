@@ -103,9 +103,9 @@ pub fn style_from_style_str<S: AsRef<str>>(s: S) -> LuaResult<Option<&'static St
 pub fn pretty_format_value(
     buffer: &mut String,
     value: &LuaValue,
+    parent_table_addr: Option<String>,
     depth: usize,
 ) -> std::fmt::Result {
-    // TODO: Handle tables with cyclic references
     match &value {
         LuaValue::Nil => write!(buffer, "nil")?,
         LuaValue::Boolean(true) => write!(buffer, "{}", COLOR_YELLOW.apply_to("true"))?,
@@ -123,10 +123,14 @@ pub fn pretty_format_value(
             )
         )?,
         LuaValue::Table(ref tab) => {
+            let table_addr = Some(format!("{:p}", tab.to_pointer()));
+
             if depth >= MAX_FORMAT_DEPTH {
                 write!(buffer, "{}", STYLE_DIM.apply_to("{ ... }"))?;
             } else if let Some(s) = call_table_tostring_metamethod(tab) {
                 write!(buffer, "{s}")?;
+            } else if depth >= 1 && parent_table_addr.eq(&table_addr) {
+                write!(buffer, "{}", STYLE_DIM.apply_to("<self>"))?
             } else {
                 let mut is_empty = false;
                 let depth_indent = INDENT.repeat(depth);
@@ -144,11 +148,11 @@ pub fn pretty_format_value(
                         )?,
                         _ => {
                             write!(buffer, "\n{depth_indent}{INDENT}[")?;
-                            pretty_format_value(buffer, &key, depth)?;
+                            pretty_format_value(buffer, &key, parent_table_addr.clone(), depth)?;
                             write!(buffer, "] {} ", STYLE_DIM.apply_to("="))?;
                         }
                     }
-                    pretty_format_value(buffer, &value, depth + 1)?;
+                    pretty_format_value(buffer, &value, parent_table_addr.clone(), depth + 1)?;
                     write!(buffer, "{}", STYLE_DIM.apply_to(","))?;
                     is_empty = false;
                 }
@@ -192,7 +196,9 @@ pub fn pretty_format_multi_value(multi: &LuaMultiValue) -> LuaResult<String> {
         if let LuaValue::String(s) = value {
             write!(buffer, "{}", s.to_string_lossy()).into_lua_err()?;
         } else {
-            pretty_format_value(&mut buffer, value, 0).into_lua_err()?;
+            let addr = format!("{:p}", value.to_pointer());
+
+            pretty_format_value(&mut buffer, value, Some(addr), 0).into_lua_err()?;
         }
         if counter < multi.len() {
             write!(&mut buffer, " ").into_lua_err()?;
