@@ -122,7 +122,7 @@ reqwest = { version = "0.11", default-features = false, features = [
 tokio-tungstenite = { version = "0.21", features = ["rustls-tls-webpki-roots"] }
 
 ### DATETIME
-chrono = "0.4"
+chrono = "=0.4.34" # NOTE: 0.4.35 does not compile with chrono_lc
 chrono_lc = "0.1"
 
 ### CLI
@@ -136,7 +136,7 @@ regex = { optional = true, version = "1.7", default-features = false, features =
     "std",
     "unicode-perl",
 ] }
-rustyline = { optional = true, version = "13.0" }
+rustyline = { optional = true, version = "14.0" }
 
 ### ROBLOX
 
