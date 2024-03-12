@@ -66,8 +66,9 @@ impl Service<Request<Incoming>> for Svc {
                     head,
                     body,
                 };
+                let lua_req_table = lua_req.into_lua_table(&lua)?;
 
-                let thread_id = lua.push_thread_back(handler_request, lua_req)?;
+                let thread_id = lua.push_thread_back(handler_request, lua_req_table)?;
                 lua.track_thread(thread_id);
                 lua.wait_for_thread(thread_id).await;
                 let thread_res = lua
