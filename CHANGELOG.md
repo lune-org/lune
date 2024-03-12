@@ -8,6 +8,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.8.2` - March 12th, 2024
+
+### Fixed
+
+- Fixed REPL panicking after the first evaluation / run.
+- Fixed globals reloading on each run in the REPL, causing unnecessary slowdowns.
+- Fixed `net.serve` requests no longer being plain tables in Lune `0.8.1`, breaking usage of things such as `table.clone`.
+
 ## `0.8.1` - March 11th, 2024
 
 ### Added
