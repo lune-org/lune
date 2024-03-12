@@ -35,6 +35,8 @@ impl Runtime {
         lua.set_app_data(Rc::downgrade(&lua));
         lua.set_app_data(Vec::<String>::new());
 
+        globals::inject_all(&lua).expect("Failed to inject globals");
+
         Self {
             lua,
             args: Vec::new(),
@@ -65,7 +67,6 @@ impl Runtime {
     ) -> Result<ExitCode, RuntimeError> {
         // Create a new scheduler for this run
         let sched = Scheduler::new(&self.lua);
-        globals::inject_all(&self.lua)?;
 
         // Add error callback to format errors nicely + store status
         let got_any_error = Arc::new(AtomicBool::new(false));
