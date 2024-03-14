@@ -1,20 +1,22 @@
 use std::{
     env::consts::EXE_EXTENSION,
+    io::Cursor,
     path::{Path, PathBuf},
     process::ExitCode,
 };
 
 use anyhow::{bail, Context, Error, Result};
-use async_compression::tokio::bufread::DeflateDecoder;
+use async_zip::base::read::seek::ZipFileReader;
 use clap::Parser;
 use console::style;
 use directories::BaseDirs;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 use tokio::{
-    fs,
-    io::{AsyncReadExt, AsyncWriteExt as _},
+    fs::{self, File},
+    io::{AsyncReadExt, AsyncWriteExt},
 };
+use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 
 use crate::standalone::metadata::Metadata;
 
@@ -74,7 +76,7 @@ impl BuildCommand {
 
                 if let Err(other_err) = inner_err {
                     bail!(
-                        "Encountered an error while handling cross-compilation flags: {}",
+                        "Encountered an error while handling cross-compilation flags: {:#?}",
                         other_err
                     );
                 }
@@ -101,25 +103,29 @@ impl BuildCommand {
             style("Write").blue().bold(),
             style(output_path.display()).underlined()
         );
-        write_executable_file_to(output_path, patched_bin).await?;
+        write_file_to(output_path, patched_bin, 0o755).await?; // Read & execute for all, write for owner
 
         Ok(ExitCode::SUCCESS)
     }
 }
 
-async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]>) -> Result<()> {
+async fn write_file_to(
+    path: impl AsRef<Path>,
+    bytes: impl AsRef<[u8]>,
+    perms: u32,
+) -> Result<File> {
     let mut options = fs::OpenOptions::new();
-    options.write(true).create(true).truncate(true);
+    options.write(true).read(true).create(true).truncate(true);
 
     #[cfg(unix)]
     {
-        options.mode(0o755); // Read & execute for all, write for owner
+        options.mode(perms);
     }
 
     let mut file = options.open(path).await?;
     file.write_all(bytes.as_ref()).await?;
 
-    Ok(())
+    Ok(file)
 }
 
 /// Possible ways in which the discovery and/or download of a base binary's path can error
@@ -222,26 +228,29 @@ async fn get_base_exe_path(
                 .into());
             }
 
-            let compressed_reader = resp
-                .bytes()
-                .await
-                .map_err(BasePathDiscoveryError::IoError)?;
-            let mut decompressed_bytes = vec![];
+            let compressed_data = Cursor::new(
+                resp.bytes()
+                    .await
+                    .map_err(BasePathDiscoveryError::IoError)?
+                    .to_vec(),
+            );
 
-            // This errors, so idk what decoder to use
-            DeflateDecoder::new(compressed_reader.as_ref())
-                .read_to_end(&mut decompressed_bytes)
+            let mut decoder = ZipFileReader::new(compressed_data.compat())
                 .await
                 .map_err(BasePathDiscoveryError::Decompression)?;
 
-            fs::OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&path)
+            let mut decompressed = vec![];
+
+            decoder
+                .reader_without_entry(0)
                 .await
-                .map_err(BasePathDiscoveryError::IoError)?
-                .write_all(&decompressed_bytes)
+                .map_err(BasePathDiscoveryError::Decompression)?
+                .compat()
+                .read_to_end(&mut decompressed)
+                .await
+                .map_err(BasePathDiscoveryError::Decompression)?;
+
+            write_file_to(&path, decompressed, 0o644)
                 .await
                 .map_err(BasePathDiscoveryError::IoError)?;
 

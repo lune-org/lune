@@ -27,6 +27,8 @@ cli = [
     "dep:include_dir",
     "dep:regex",
     "dep:rustyline",
+    "dep:async_zip",
+    "dep:tokio-util",
 ]
 roblox = [
     "dep:glam",
@@ -137,3 +139,10 @@ rbx_dom_weak = { optional = true, version = "2.6.0" }
 rbx_reflection = { optional = true, version = "4.4.0" }
 rbx_reflection_database = { optional = true, version = "0.2.9" }
 rbx_xml = { optional = true, version = "0.13.2" }
+
+### CROSS COMPILATION
+async_zip = { optional = true, version = "0.0.16", features = [
+    "tokio",
+    "deflate",
+] }
+tokio-util = { optional = true, version = "0.7", features = ["io-util"] }
