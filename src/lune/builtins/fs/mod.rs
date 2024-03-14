@@ -14,7 +14,7 @@ use copy::copy;
 use metadata::FsMetadata;
 use options::FsWriteOptions;
 
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_async_function("readFile", fs_read_file)?
         .with_async_function("readDir", fs_read_dir)?

@@ -5,7 +5,8 @@ use mlua::prelude::*;
 use super::context::*;
 
 pub(super) async fn require<'lua, 'ctx>(
-    ctx: &'ctx RequireContext<'lua>,
+    lua: &'lua Lua,
+    ctx: &'ctx RequireContext,
     source: &str,
     path: &str,
 ) -> LuaResult<LuaMultiValue<'lua>>
@@ -13,11 +14,12 @@ where
     'lua: 'ctx,
 {
     let (abs_path, rel_path) = ctx.resolve_paths(source, path)?;
-    require_abs_rel(ctx, abs_path, rel_path).await
+    require_abs_rel(lua, ctx, abs_path, rel_path).await
 }
 
 pub(super) async fn require_abs_rel<'lua, 'ctx>(
-    ctx: &'ctx RequireContext<'lua>,
+    lua: &'lua Lua,
+    ctx: &'ctx RequireContext,
     abs_path: PathBuf, // Absolute to filesystem
     rel_path: PathBuf, // Relative to CWD (for displaying)
 ) -> LuaResult<LuaMultiValue<'lua>>
@@ -25,7 +27,7 @@ where
     'lua: 'ctx,
 {
     // 1. Try to require the exact path
-    if let Ok(res) = require_inner(ctx, &abs_path, &rel_path).await {
+    if let Ok(res) = require_inner(lua, ctx, &abs_path, &rel_path).await {
         return Ok(res);
     }
 
@@ -34,7 +36,7 @@ where
         append_extension(&abs_path, "luau"),
         append_extension(&rel_path, "luau"),
     );
-    if let Ok(res) = require_inner(ctx, &luau_abs_path, &luau_rel_path).await {
+    if let Ok(res) = require_inner(lua, ctx, &luau_abs_path, &luau_rel_path).await {
         return Ok(res);
     }
 
@@ -43,7 +45,7 @@ where
         append_extension(&abs_path, "lua"),
         append_extension(&rel_path, "lua"),
     );
-    if let Ok(res) = require_inner(ctx, &lua_abs_path, &lua_rel_path).await {
+    if let Ok(res) = require_inner(lua, ctx, &lua_abs_path, &lua_rel_path).await {
         return Ok(res);
     }
 
@@ -57,7 +59,7 @@ where
         append_extension(&abs_init, "luau"),
         append_extension(&rel_init, "luau"),
     );
-    if let Ok(res) = require_inner(ctx, &luau_abs_init, &luau_rel_init).await {
+    if let Ok(res) = require_inner(lua, ctx, &luau_abs_init, &luau_rel_init).await {
         return Ok(res);
     }
 
@@ -66,7 +68,7 @@ where
         append_extension(&abs_init, "lua"),
         append_extension(&rel_init, "lua"),
     );
-    if let Ok(res) = require_inner(ctx, &lua_abs_init, &lua_rel_init).await {
+    if let Ok(res) = require_inner(lua, ctx, &lua_abs_init, &lua_rel_init).await {
         return Ok(res);
     }
 
@@ -78,7 +80,8 @@ where
 }
 
 async fn require_inner<'lua, 'ctx>(
-    ctx: &'ctx RequireContext<'lua>,
+    lua: &'lua Lua,
+    ctx: &'ctx RequireContext,
     abs_path: impl AsRef<Path>,
     rel_path: impl AsRef<Path>,
 ) -> LuaResult<LuaMultiValue<'lua>>
@@ -89,11 +92,11 @@ where
     let rel_path = rel_path.as_ref();
 
     if ctx.is_cached(abs_path)? {
-        ctx.get_from_cache(abs_path)
+        ctx.get_from_cache(lua, abs_path)
     } else if ctx.is_pending(abs_path)? {
-        ctx.wait_for_cache(&abs_path).await
+        ctx.wait_for_cache(lua, &abs_path).await
     } else {
-        ctx.load_with_caching(&abs_path, &rel_path).await
+        ctx.load_with_caching(lua, &abs_path, &rel_path).await
     }
 }
 

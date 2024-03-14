@@ -1,9 +1,7 @@
-use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 use mlua::prelude::*;
-use tokio::{
-    io::{copy, BufReader},
-    task,
-};
+
+use lz4_flex::{compress_prepend_size, decompress_size_prepended};
+use tokio::io::{copy, BufReader};
 
 use async_compression::{
     tokio::bufread::{
@@ -100,9 +98,7 @@ pub async fn compress<'lua>(
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return task::spawn_blocking(move || compress_prepend_size(&source))
-            .await
-            .into_lua_err();
+        return Ok(blocking::unblock(move || compress_prepend_size(&source)).await);
     }
 
     let mut bytes = Vec::new();
@@ -133,9 +129,8 @@ pub async fn decompress<'lua>(
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return task::spawn_blocking(move || decompress_size_prepended(&source))
+        return blocking::unblock(move || decompress_size_prepended(&source))
             .await
-            .into_lua_err()?
             .into_lua_err();
     }
 
