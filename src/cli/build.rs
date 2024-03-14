@@ -41,9 +41,13 @@ pub struct BuildCommand {
     #[clap(short, long)]
     pub output: Option<PathBuf>,
 
+    /// The target to compile for - defaults to the host triple
     #[clap(short, long)]
     pub target: Option<String>,
 
+    /// The path to the base executable to use - defaults to
+    /// the currently running executable, used for cross-compilation
+    /// for targets not directly supported
     #[clap(short, long)]
     pub base: Option<PathBuf>,
 }
@@ -109,6 +113,7 @@ impl BuildCommand {
     }
 }
 
+/// Wrapper function to asynchronously create a file at the given path with the given contents and permissions
 async fn write_file_to(
     path: impl AsRef<Path>,
     bytes: impl AsRef<[u8]>,
@@ -147,6 +152,7 @@ pub enum BasePathDiscoveryError<T> {
     None,
 }
 
+/// Discovers the path to the base executable to use for cross-compilation
 async fn get_base_exe_path(
     base: Option<PathBuf>,
     target: Option<String>,
@@ -173,12 +179,14 @@ async fn get_base_exe_path(
             target_exe_extension
         });
 
+        // Create the target base directory in the lune home if it doesn't already exist
         if !TARGET_BASE_DIR.exists() {
             fs::create_dir_all(TARGET_BASE_DIR.to_path_buf())
                 .await
                 .map_err(BasePathDiscoveryError::IoError)?;
         }
 
+        // If a cached target base executable doesn't exist, attempt to download it
         if !path.exists() {
             println!("Requested target hasn't been downloaded yet, attempting to download");
 
@@ -200,7 +208,8 @@ async fn get_base_exe_path(
                 target_full_display
             );
 
-            // Maybe we should use the custom net client used in `@lune/net`
+            // FIXME: Maybe we should use the custom net client used in `@lune/net`
+            // Request the precompiled target from GitHub releases
             let resp = reqwest::get(release_url).await.map_err(|err| {
                 eprintln!(
                     "   {} Unable to download base binary found for target `{}`",
@@ -228,6 +237,9 @@ async fn get_base_exe_path(
                 .into());
             }
 
+            // Wrap the request response in bytes so that we can decompress it, since `async_zip`
+            // requires the underlying reader to implement `AsyncRead` and `Seek`, which `Bytes`
+            // doesn't implement
             let compressed_data = Cursor::new(
                 resp.bytes()
                     .await
@@ -235,6 +247,7 @@ async fn get_base_exe_path(
                     .to_vec(),
             );
 
+            // Construct a decoder and decompress the ZIP file using deflate
             let mut decoder = ZipFileReader::new(compressed_data.compat())
                 .await
                 .map_err(BasePathDiscoveryError::Decompression)?;
@@ -250,6 +263,7 @@ async fn get_base_exe_path(
                 .await
                 .map_err(BasePathDiscoveryError::Decompression)?;
 
+            // Finally write the decompressed data to the target base directory
             write_file_to(&path, decompressed, 0o644)
                 .await
                 .map_err(BasePathDiscoveryError::IoError)?;
