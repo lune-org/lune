@@ -27,8 +27,15 @@ where
     'lua: 'ctx,
 {
     // 1. Try to require the exact path
-    if let Ok(res) = require_inner(lua, ctx, &abs_path, &rel_path).await {
-        return Ok(res);
+    match require_inner(lua, ctx, &abs_path, &rel_path).await {
+        Ok(res) => return Ok(res),
+        Err(LuaError::SyntaxError {
+            message,
+            incomplete_input: _,
+        }) => {
+            return Err(LuaError::runtime(message));
+        }
+        Err(_) => {}
     }
 
     // 2. Try to require the path with an added "luau" extension
@@ -36,8 +43,15 @@ where
         append_extension(&abs_path, "luau"),
         append_extension(&rel_path, "luau"),
     );
-    if let Ok(res) = require_inner(lua, ctx, &luau_abs_path, &luau_rel_path).await {
-        return Ok(res);
+    match require_inner(lua, ctx, &luau_abs_path, &luau_rel_path).await {
+        Ok(res) => return Ok(res),
+        Err(LuaError::SyntaxError {
+            message,
+            incomplete_input: _,
+        }) => {
+            return Err(LuaError::runtime(message));
+        }
+        Err(_) => {}
     }
 
     // 3. Try to require the path with an added "lua" extension
@@ -45,8 +59,15 @@ where
         append_extension(&abs_path, "lua"),
         append_extension(&rel_path, "lua"),
     );
-    if let Ok(res) = require_inner(lua, ctx, &lua_abs_path, &lua_rel_path).await {
-        return Ok(res);
+    match require_inner(lua, ctx, &lua_abs_path, &lua_rel_path).await {
+        Ok(res) => return Ok(res),
+        Err(LuaError::SyntaxError {
+            message,
+            incomplete_input: _,
+        }) => {
+            return Err(LuaError::runtime(message));
+        }
+        Err(_) => {}
     }
 
     // We didn't find any direct file paths, look
@@ -59,8 +80,15 @@ where
         append_extension(&abs_init, "luau"),
         append_extension(&rel_init, "luau"),
     );
-    if let Ok(res) = require_inner(lua, ctx, &luau_abs_init, &luau_rel_init).await {
-        return Ok(res);
+    match require_inner(lua, ctx, &luau_abs_init, &luau_rel_init).await {
+        Ok(res) => return Ok(res),
+        Err(LuaError::SyntaxError {
+            message,
+            incomplete_input: _,
+        }) => {
+            return Err(LuaError::runtime(message));
+        }
+        Err(_) => {}
     }
 
     // 5. Try to require the init path with an added "lua" extension
@@ -68,8 +96,15 @@ where
         append_extension(&abs_init, "lua"),
         append_extension(&rel_init, "lua"),
     );
-    if let Ok(res) = require_inner(lua, ctx, &lua_abs_init, &lua_rel_init).await {
-        return Ok(res);
+    match require_inner(lua, ctx, &lua_abs_init, &lua_rel_init).await {
+        Ok(res) => return Ok(res),
+        Err(LuaError::SyntaxError {
+            message,
+            incomplete_input: _,
+        }) => {
+            return Err(LuaError::runtime(message));
+        }
+        Err(_) => {}
     }
 
     // Nothing left to try, throw an error
