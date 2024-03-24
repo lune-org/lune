@@ -27,26 +27,41 @@ where
     'lua: 'ctx,
 {
     // 1. Try to require the exact path
-    if let Ok(res) = require_inner(lua, ctx, &abs_path, &rel_path).await {
-        return Ok(res);
+    match require_inner(lua, ctx, &abs_path, &rel_path).await {
+        Ok(res) => return Ok(res),
+        Err(error) => {
+            if let LuaError::SyntaxError {
+                message: _,
+                incomplete_input: _,
+            } = error
+            {
+                return Err(error);
+            }
+        }
     }
 
     // 2. Try to require the path with an added "luau" extension
-    let (luau_abs_path, luau_rel_path) = (
-        append_extension(&abs_path, "luau"),
-        append_extension(&rel_path, "luau"),
-    );
-    if let Ok(res) = require_inner(lua, ctx, &luau_abs_path, &luau_rel_path).await {
-        return Ok(res);
-    }
-
     // 3. Try to require the path with an added "lua" extension
-    let (lua_abs_path, lua_rel_path) = (
-        append_extension(&abs_path, "lua"),
-        append_extension(&rel_path, "lua"),
-    );
-    if let Ok(res) = require_inner(lua, ctx, &lua_abs_path, &lua_rel_path).await {
-        return Ok(res);
+    for extension in ["luau", "lua"] {
+        match require_inner(
+            lua,
+            ctx,
+            &append_extension(&abs_path, extension),
+            &append_extension(&rel_path, extension),
+        )
+        .await
+        {
+            Ok(res) => return Ok(res),
+            Err(error) => {
+                if let LuaError::SyntaxError {
+                    message: _,
+                    incomplete_input: _,
+                } = error
+                {
+                    return Err(error);
+                }
+            }
+        }
     }
 
     // We didn't find any direct file paths, look
@@ -55,21 +70,27 @@ where
     let rel_init = rel_path.join("init");
 
     // 4. Try to require the init path with an added "luau" extension
-    let (luau_abs_init, luau_rel_init) = (
-        append_extension(&abs_init, "luau"),
-        append_extension(&rel_init, "luau"),
-    );
-    if let Ok(res) = require_inner(lua, ctx, &luau_abs_init, &luau_rel_init).await {
-        return Ok(res);
-    }
-
     // 5. Try to require the init path with an added "lua" extension
-    let (lua_abs_init, lua_rel_init) = (
-        append_extension(&abs_init, "lua"),
-        append_extension(&rel_init, "lua"),
-    );
-    if let Ok(res) = require_inner(lua, ctx, &lua_abs_init, &lua_rel_init).await {
-        return Ok(res);
+    for extension in ["luau", "lua"] {
+        match require_inner(
+            lua,
+            ctx,
+            &append_extension(&abs_init, extension),
+            &append_extension(&rel_init, extension),
+        )
+        .await
+        {
+            Ok(res) => return Ok(res),
+            Err(error) => {
+                if let LuaError::SyntaxError {
+                    message: _,
+                    incomplete_input: _,
+                } = error
+                {
+                    return Err(error);
+                }
+            }
+        }
     }
 
     // Nothing left to try, throw an error
