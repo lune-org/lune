@@ -29,13 +29,15 @@ where
     // 1. Try to require the exact path
     match require_inner(lua, ctx, &abs_path, &rel_path).await {
         Ok(res) => return Ok(res),
-        Err(LuaError::SyntaxError {
-            message,
-            incomplete_input: _,
-        }) => {
-            return Err(LuaError::runtime(message));
+        Err(error) => {
+            if let LuaError::SyntaxError {
+                message: _,
+                incomplete_input: _,
+            } = error
+            {
+                return Err(error);
+            }
         }
-        Err(_) => {}
     }
 
     // 2. Try to require the path with an added "luau" extension
@@ -50,13 +52,15 @@ where
         .await
         {
             Ok(res) => return Ok(res),
-            Err(LuaError::SyntaxError {
-                message,
-                incomplete_input: _,
-            }) => {
-                return Err(LuaError::runtime(message));
+            Err(error) => {
+                if let LuaError::SyntaxError {
+                    message: _,
+                    incomplete_input: _,
+                } = error
+                {
+                    return Err(error);
+                }
             }
-            Err(_) => {}
         }
     }
 
@@ -77,13 +81,15 @@ where
         .await
         {
             Ok(res) => return Ok(res),
-            Err(LuaError::SyntaxError {
-                message,
-                incomplete_input: _,
-            }) => {
-                return Err(LuaError::runtime(message));
+            Err(error) => {
+                if let LuaError::SyntaxError {
+                    message: _,
+                    incomplete_input: _,
+                } = error
+                {
+                    return Err(error);
+                }
             }
-            Err(_) => {}
         }
     }
 
