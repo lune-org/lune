@@ -2,7 +2,7 @@
 -- variable
 local state_module = require("./state_module")
 
--- we confirm that without anything happening, the initial value is what we ecpect
+-- we confirm that without anything happening, the initial value is what we expect
 assert(state_module.state == 10)
 
 -- this second file also requires state_module and calls a function that changes the local
