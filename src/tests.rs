@@ -95,6 +95,7 @@ create_tests! {
     require_nested: "require/tests/nested",
     require_parents: "require/tests/parents",
     require_siblings: "require/tests/siblings",
+    require_state: "require/tests/state",
 
     global_g_table: "globals/_G",
     global_version: "globals/_VERSION",
