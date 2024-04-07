@@ -70,7 +70,7 @@ impl RequireContext {
             CWD.join(&rel_path)
         };
 
-        Ok((rel_path, abs_path))
+        Ok((abs_path, rel_path))
     }
 
     /**
