@@ -19,7 +19,6 @@ where
     'lua: 'ctx,
 {
     let alias = alias.to_ascii_lowercase();
-    let path = path.to_ascii_lowercase();
 
     let parent = make_absolute_and_clean(source)
         .parent()
