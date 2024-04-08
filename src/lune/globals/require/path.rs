@@ -1,6 +1,8 @@
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use mlua::prelude::*;
+use mlua::Error::ExternalError;
 
 use super::context::*;
 
@@ -29,13 +31,9 @@ where
     // 1. Try to require the exact path
     match require_inner(lua, ctx, &abs_path, &rel_path).await {
         Ok(res) => return Ok(res),
-        Err(error) => {
-            if let LuaError::SyntaxError {
-                message: _,
-                incomplete_input: _,
-            } = error
-            {
-                return Err(error);
+        Err(err) => {
+            if !is_file_not_found_error(&err) {
+                return Err(err);
             }
         }
     }
@@ -52,13 +50,9 @@ where
         .await
         {
             Ok(res) => return Ok(res),
-            Err(error) => {
-                if let LuaError::SyntaxError {
-                    message: _,
-                    incomplete_input: _,
-                } = error
-                {
-                    return Err(error);
+            Err(err) => {
+                if !is_file_not_found_error(&err) {
+                    return Err(err);
                 }
             }
         }
@@ -81,13 +75,9 @@ where
         .await
         {
             Ok(res) => return Ok(res),
-            Err(error) => {
-                if let LuaError::SyntaxError {
-                    message: _,
-                    incomplete_input: _,
-                } = error
-                {
-                    return Err(error);
+            Err(err) => {
+                if !is_file_not_found_error(&err) {
+                    return Err(err);
                 }
             }
         }
@@ -129,4 +119,16 @@ fn append_extension(path: impl Into<PathBuf>, ext: &'static str) -> PathBuf {
         None => new.set_extension(ext),
     };
     new
+}
+
+fn is_file_not_found_error(err: &LuaError) -> bool {
+    if let ExternalError(err) = err {
+        if let Some(err) = err.as_ref().downcast_ref::<std::io::Error>() {
+            err.kind() == ErrorKind::NotFound
+        } else {
+            false
+        }
+    } else {
+        false
+    }
 }
