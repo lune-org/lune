@@ -91,6 +91,12 @@ local handle2 = net.serve(PORT, {
 	end,
 })
 
+if process.os == "windows" then
+	-- In Windows, client cannot directly connect to `0.0.0.0`.
+	-- `0.0.0.0` is a non-routable meta-address.
+	URL_EXTERNAL = "http://localhost"
+end
+
 -- And any requests to that IP should succeed
 local response3 = net.request(`{URL_EXTERNAL}:{PORT}`).body
 assert(response3 ~= nil, "Invalid response from server")
