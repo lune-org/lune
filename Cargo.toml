@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.8.0"
+version = "0.8.2"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -79,11 +79,19 @@ urlencoding = "2.1"
 
 ### RUNTIME
 
+blocking = "1.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-mlua = { version = "0.9.1", features = ["luau", "luau-jit", "serialize"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
-os_str_bytes = { version = "6.4", features = ["conversions"] }
+os_str_bytes = { version = "7.0", features = ["conversions"] }
+
+mlua-luau-scheduler = { version = "0.0.2" }
+mlua = { version = "0.9.6", features = [
+    "luau",
+    "luau-jit",
+    "async",
+    "serialize",
+] }
 
 ### SERDE
 
@@ -101,21 +109,26 @@ toml = { version = "0.8", features = ["preserve_order"] }
 
 ### NET
 
-hyper = { version = "0.14", features = ["full"] }
-hyper-tungstenite = { version = "0.11" }
+hyper = { version = "1.1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http = "1.0"
+http-body-util = { version = "0.1" }
+hyper-tungstenite = { version = "0.13" }
+
 reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
-tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
+
+tokio-tungstenite = { version = "0.21", features = ["rustls-tls-webpki-roots"] }
 
 ### DATETIME
-chrono = "0.4"
+chrono = "=0.4.34" # NOTE: 0.4.35 does not compile with chrono_lc
 chrono_lc = "0.1"
 
 ### CLI
 
 anyhow = { optional = true, version = "1.0" }
-env_logger = { optional = true, version = "0.10" }
+env_logger = { optional = true, version = "0.11" }
 itertools = { optional = true, version = "0.12" }
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
@@ -123,7 +136,7 @@ regex = { optional = true, version = "1.7", default-features = false, features =
     "std",
     "unicode-perl",
 ] }
-rustyline = { optional = true, version = "13.0" }
+rustyline = { optional = true, version = "14.0" }
 
 ### ROBLOX
 

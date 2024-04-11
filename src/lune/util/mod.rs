@@ -2,7 +2,6 @@ mod table_builder;
 
 pub mod buffer;
 pub mod formatting;
-pub mod futures;
 pub mod luaurc;
 pub mod paths;
 pub mod traits;

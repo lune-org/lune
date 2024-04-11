@@ -8,7 +8,7 @@ mod require;
 mod version;
 mod warn;
 
-pub fn inject_all(lua: &'static Lua) -> LuaResult<()> {
+pub fn inject_all(lua: &Lua) -> LuaResult<()> {
     let all = TableBuilder::new(lua)?
         .with_value("_G", g_table::create(lua)?)?
         .with_value("_VERSION", version::create(lua)?)?

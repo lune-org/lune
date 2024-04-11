@@ -5,13 +5,11 @@ use std::{
 };
 
 use mlua::prelude::*;
+use mlua_luau_scheduler::{Functions, LuaSpawnExt};
 use os_str_bytes::RawOsString;
 use tokio::io::AsyncWriteExt;
 
-use crate::lune::{
-    scheduler::Scheduler,
-    util::{paths::CWD, TableBuilder},
-};
+use crate::lune::util::{paths::CWD, TableBuilder};
 
 mod tee_writer;
 
@@ -21,12 +19,7 @@ use options::ProcessSpawnOptions;
 mod wait_for_child;
 use wait_for_child::{wait_for_child, WaitForChildResult};
 
-const PROCESS_EXIT_IMPL_LUA: &str = r#"
-exit(...)
-yield()
-"#;
-
-pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
+pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     let cwd_str = {
         let cwd_str = CWD.to_string_lossy().to_string();
         if !cwd_str.ends_with(path::MAIN_SEPARATOR) {
@@ -56,30 +49,9 @@ pub fn create(lua: &'static Lua) -> LuaResult<LuaTable> {
                 .build_readonly()?,
         )?
         .build_readonly()?;
-    // Create our process exit function, this is a bit involved since
-    // we have no way to yield from c / rust, we need to load a lua
-    // chunk that will set the exit code and yield for us instead
-    let coroutine_yield = lua
-        .globals()
-        .get::<_, LuaTable>("coroutine")?
-        .get::<_, LuaFunction>("yield")?;
-    let set_scheduler_exit_code = lua.create_function(|lua, code: Option<u8>| {
-        let sched = lua
-            .app_data_ref::<&Scheduler>()
-            .expect("Lua struct is missing scheduler");
-        sched.set_exit_code(code.unwrap_or_default());
-        Ok(())
-    })?;
-    let process_exit = lua
-        .load(PROCESS_EXIT_IMPL_LUA)
-        .set_name("=process.exit")
-        .set_environment(
-            TableBuilder::new(lua)?
-                .with_value("yield", coroutine_yield)?
-                .with_value("exit", set_scheduler_exit_code)?
-                .build_readonly()?,
-        )
-        .into_function()?;
+    // Create our process exit function, the scheduler crate provides this
+    let fns = Functions::new(lua)?;
+    let process_exit = fns.exit;
     // Create the full process table
     TableBuilder::new(lua)?
         .with_value("os", os)?
@@ -165,22 +137,10 @@ async fn process_spawn(
     lua: &Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
-    /*
-        Spawn the new process in the background, letting the tokio
-        runtime place it on a different thread if possible / necessary
-
-        Note that we have to use our scheduler here, we can't
-        be using tokio::task::spawn directly because our lua
-        scheduler would not drive those futures to completion
-    */
-    let sched = lua
-        .app_data_ref::<&Scheduler>()
-        .expect("Lua struct is missing scheduler");
-
-    let res = sched
+    let res = lua
         .spawn(spawn_command(program, args, options))
         .await
-        .expect("Failed to receive result of spawned process")?;
+        .expect("Failed to receive result of spawned process");
 
     /*
         NOTE: If an exit code was not given by the child process,

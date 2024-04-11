@@ -1,6 +1,8 @@
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, AtomicU16, Ordering},
+    Arc,
+};
 
-use hyper::upgrade::Upgraded;
 use mlua::prelude::*;
 
 use futures_util::{
@@ -9,7 +11,6 @@ use futures_util::{
 };
 use tokio::{
     io::{AsyncRead, AsyncWrite},
-    net::TcpStream,
     sync::Mutex as AsyncMutex,
 };
 
@@ -20,25 +21,25 @@ use hyper_tungstenite::{
     },
     WebSocketStream,
 };
-use tokio_tungstenite::MaybeTlsStream;
 
 use crate::lune::util::{buffer::buf_to_str, TableBuilder};
 
+// Wrapper implementation for compatibility and changing colon syntax to dot syntax
 const WEB_SOCKET_IMPL_LUA: &str = r#"
 return freeze(setmetatable({
 	close = function(...)
-		return close(websocket, ...)
+		return websocket:close(...)
 	end,
 	send = function(...)
-		return send(websocket, ...)
+		return websocket:send(...)
 	end,
 	next = function(...)
-		return next(websocket, ...)
+		return websocket:next(...)
 	end,
 }, {
 	__index = function(self, key)
 		if key == "closeCode" then
-			return close_code(websocket)
+			return websocket.closeCode
 		end
 	end,
 }))
@@ -46,7 +47,8 @@ return freeze(setmetatable({
 
 #[derive(Debug)]
 pub struct NetWebSocket<T> {
-    close_code: Arc<AsyncMutex<Option<u16>>>,
+    close_code_exists: Arc<AtomicBool>,
+    close_code_value: Arc<AtomicU16>,
     read_stream: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
     write_stream: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
 }
@@ -54,7 +56,8 @@ pub struct NetWebSocket<T> {
 impl<T> Clone for NetWebSocket<T> {
     fn clone(&self) -> Self {
         Self {
-            close_code: Arc::clone(&self.close_code),
+            close_code_exists: Arc::clone(&self.close_code_exists),
+            close_code_value: Arc::clone(&self.close_code_value),
             read_stream: Arc::clone(&self.read_stream),
             write_stream: Arc::clone(&self.write_stream),
         }
@@ -63,22 +66,78 @@ impl<T> Clone for NetWebSocket<T> {
 
 impl<T> NetWebSocket<T>
 where
-    T: AsyncRead + AsyncWrite + Unpin,
+    T: AsyncRead + AsyncWrite + Unpin + 'static,
 {
     pub fn new(value: WebSocketStream<T>) -> Self {
         let (write, read) = value.split();
 
         Self {
-            close_code: Arc::new(AsyncMutex::new(None)),
+            close_code_exists: Arc::new(AtomicBool::new(false)),
+            close_code_value: Arc::new(AtomicU16::new(0)),
             read_stream: Arc::new(AsyncMutex::new(read)),
             write_stream: Arc::new(AsyncMutex::new(write)),
         }
     }
 
-    fn into_lua_table_with_env<'lua>(
-        lua: &'lua Lua,
-        env: LuaTable<'lua>,
-    ) -> LuaResult<LuaTable<'lua>> {
+    fn get_close_code(&self) -> Option<u16> {
+        if self.close_code_exists.load(Ordering::Relaxed) {
+            Some(self.close_code_value.load(Ordering::Relaxed))
+        } else {
+            None
+        }
+    }
+
+    fn set_close_code(&self, code: u16) {
+        self.close_code_exists.store(true, Ordering::Relaxed);
+        self.close_code_value.store(code, Ordering::Relaxed);
+    }
+
+    pub async fn send(&self, msg: WsMessage) -> LuaResult<()> {
+        let mut ws = self.write_stream.lock().await;
+        ws.send(msg).await.into_lua_err()
+    }
+
+    pub async fn next(&self) -> LuaResult<Option<WsMessage>> {
+        let mut ws = self.read_stream.lock().await;
+        ws.next().await.transpose().into_lua_err()
+    }
+
+    pub async fn close(&self, code: Option<u16>) -> LuaResult<()> {
+        if self.close_code_exists.load(Ordering::Relaxed) {
+            return Err(LuaError::runtime("Socket has already been closed"));
+        }
+
+        self.send(WsMessage::Close(Some(WsCloseFrame {
+            code: match code {
+                Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
+                Some(code) => {
+                    return Err(LuaError::runtime(format!(
+                        "Close code must be between 1000 and 4999, got {code}"
+                    )))
+                }
+                None => WsCloseCode::Normal,
+            },
+            reason: "".into(),
+        })))
+        .await?;
+
+        let mut ws = self.write_stream.lock().await;
+        ws.close().await.into_lua_err()
+    }
+
+    pub fn into_lua_table(self, lua: &Lua) -> LuaResult<LuaTable> {
+        let setmetatable = lua.globals().get::<_, LuaFunction>("setmetatable")?;
+        let table_freeze = lua
+            .globals()
+            .get::<_, LuaTable>("table")?
+            .get::<_, LuaFunction>("freeze")?;
+
+        let env = TableBuilder::new(lua)?
+            .with_value("websocket", self.clone())?
+            .with_value("setmetatable", setmetatable)?
+            .with_value("freeze", table_freeze)?
+            .build_readonly()?;
+
         lua.load(WEB_SOCKET_IMPL_LUA)
             .set_name("websocket")
             .set_environment(env)
@@ -86,158 +145,46 @@ where
     }
 }
 
-type NetWebSocketStreamClient = MaybeTlsStream<TcpStream>;
-impl NetWebSocket<NetWebSocketStreamClient> {
-    pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
-        let setmetatable = lua.globals().get::<_, LuaFunction>("setmetatable")?;
-        let table_freeze = lua
-            .globals()
-            .get::<_, LuaTable>("table")?
-            .get::<_, LuaFunction>("freeze")?;
-        let socket_env = TableBuilder::new(lua)?
-            .with_value("websocket", self)?
-            .with_function("close_code", close_code::<NetWebSocketStreamClient>)?
-            .with_async_function("close", close::<NetWebSocketStreamClient>)?
-            .with_async_function("send", send::<NetWebSocketStreamClient>)?
-            .with_async_function("next", next::<NetWebSocketStreamClient>)?
-            .with_value("setmetatable", setmetatable)?
-            .with_value("freeze", table_freeze)?
-            .build_readonly()?;
-        Self::into_lua_table_with_env(lua, socket_env)
-    }
-}
-
-type NetWebSocketStreamServer = Upgraded;
-impl NetWebSocket<NetWebSocketStreamServer> {
-    pub fn into_lua_table(self, lua: &'static Lua) -> LuaResult<LuaTable> {
-        let setmetatable = lua.globals().get::<_, LuaFunction>("setmetatable")?;
-        let table_freeze = lua
-            .globals()
-            .get::<_, LuaTable>("table")?
-            .get::<_, LuaFunction>("freeze")?;
-        let socket_env = TableBuilder::new(lua)?
-            .with_value("websocket", self)?
-            .with_function("close_code", close_code::<NetWebSocketStreamServer>)?
-            .with_async_function("close", close::<NetWebSocketStreamServer>)?
-            .with_async_function("send", send::<NetWebSocketStreamServer>)?
-            .with_async_function("next", next::<NetWebSocketStreamServer>)?
-            .with_value("setmetatable", setmetatable)?
-            .with_value("freeze", table_freeze)?
-            .build_readonly()?;
-        Self::into_lua_table_with_env(lua, socket_env)
-    }
-}
-
-impl<T> LuaUserData for NetWebSocket<T> {}
-
-fn close_code<'lua, T>(
-    _lua: &'lua Lua,
-    socket: LuaUserDataRef<'lua, NetWebSocket<T>>,
-) -> LuaResult<LuaValue<'lua>>
+impl<T> LuaUserData for NetWebSocket<T>
 where
-    T: AsyncRead + AsyncWrite + Unpin,
+    T: AsyncRead + AsyncWrite + Unpin + 'static,
 {
-    Ok(
-        match *socket
-            .close_code
-            .try_lock()
-            .expect("Failed to lock close code")
-        {
-            Some(code) => LuaValue::Number(code as f64),
-            None => LuaValue::Nil,
-        },
-    )
-}
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("closeCode", |_, this| Ok(this.get_close_code()));
+    }
 
-async fn close<'lua, T>(
-    _lua: &'lua Lua,
-    (socket, code): (LuaUserDataRef<'lua, NetWebSocket<T>>, Option<u16>),
-) -> LuaResult<()>
-where
-    T: AsyncRead + AsyncWrite + Unpin,
-{
-    let mut ws = socket.write_stream.lock().await;
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_async_method("close", |lua, this, code: Option<u16>| async move {
+            this.close(code).await
+        });
 
-    ws.send(WsMessage::Close(Some(WsCloseFrame {
-        code: match code {
-            Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
-            Some(code) => {
-                return Err(LuaError::RuntimeError(format!(
-                    "Close code must be between 1000 and 4999, got {code}"
-                )))
+        methods.add_async_method(
+            "send",
+            |_, this, (string, as_binary): (LuaString, Option<bool>)| async move {
+                this.send(if as_binary.unwrap_or_default() {
+                    WsMessage::Binary(string.as_bytes().to_vec())
+                } else {
+                    let s = string.to_str().into_lua_err()?;
+                    WsMessage::Text(s.to_string())
+                })
+                .await
+            },
+        );
+
+        methods.add_async_method("next", |lua, this, _: ()| async move {
+            let msg = this.next().await?;
+
+            if let Some(WsMessage::Close(Some(frame))) = msg.as_ref() {
+                this.set_close_code(frame.code.into());
             }
-            None => WsCloseCode::Normal,
-        },
-        reason: "".into(),
-    })))
-    .await
-    .into_lua_err()?;
 
-    let res = ws.close();
-    res.await.into_lua_err()
-}
-
-async fn send<'lua, T>(
-    lua: &'lua Lua,
-    (socket, data, as_binary): (
-        LuaUserDataRef<'lua, NetWebSocket<T>>,
-        LuaValue<'lua>,
-        Option<bool>,
-    ),
-) -> LuaResult<()>
-where
-    T: AsyncRead + AsyncWrite + Unpin,
-{
-    let string = match data {
-        LuaValue::String(str) => Ok(str.to_str()?.to_string()),
-        LuaValue::UserData(inner) => buf_to_str(lua, LuaValue::UserData(inner)),
-        other => Err(LuaError::runtime(format!(
-            "Expected data to be of type string or buffer, got {}",
-            other.type_name()
-        ))),
-    }?;
-
-    let msg = if matches!(as_binary, Some(true)) {
-        WsMessage::Binary(string.as_bytes().to_vec())
-    } else {
-        let s = string;
-        WsMessage::Text(s.to_string())
-    };
-    let mut ws = socket.write_stream.lock().await;
-    ws.send(msg).await.into_lua_err()
-}
-
-async fn next<'lua, T>(
-    lua: &'lua Lua,
-    socket: LuaUserDataRef<'lua, NetWebSocket<T>>,
-) -> LuaResult<LuaValue<'lua>>
-where
-    T: AsyncRead + AsyncWrite + Unpin,
-{
-    let mut ws = socket.read_stream.lock().await;
-    let item = ws.next().await.transpose().into_lua_err();
-    let msg = match item {
-        Ok(Some(WsMessage::Close(msg))) => {
-            if let Some(msg) = &msg {
-                let mut code = socket.close_code.lock().await;
-                *code = Some(msg.code.into());
-            }
-            Ok(Some(WsMessage::Close(msg)))
-        }
-        val => val,
-    }?;
-    while let Some(msg) = &msg {
-        let msg_string_opt = match msg {
-            WsMessage::Binary(bin) => Some(lua.create_string(bin)?),
-            WsMessage::Text(txt) => Some(lua.create_string(txt)?),
-            // Stop waiting for next message if we get a close message
-            WsMessage::Close(_) => return Ok(LuaValue::Nil),
-            // Ignore ping/pong/frame messages, they are handled by tungstenite
-            _ => None,
-        };
-        if let Some(msg_string) = msg_string_opt {
-            return Ok(LuaValue::String(msg_string));
-        }
+            Ok(match msg {
+                Some(WsMessage::Binary(bin)) => LuaValue::String(lua.create_string(bin)?),
+                Some(WsMessage::Text(txt)) => LuaValue::String(lua.create_string(txt)?),
+                Some(WsMessage::Close(_)) | None => LuaValue::Nil,
+                // Ignore ping/pong/frame messages, they are handled by tungstenite
+                msg => unreachable!("Unhandled message: {:?}", msg),
+            })
+        });
     }
-    Ok(LuaValue::Nil)
 }
