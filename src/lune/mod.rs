@@ -7,7 +7,7 @@ use std::{
     },
 };
 
-use mlua::Lua;
+use mlua::{Lua, Value};
 use mlua_luau_scheduler::Scheduler;
 
 mod builtins;
@@ -64,7 +64,7 @@ impl Runtime {
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-    ) -> Result<ExitCode, RuntimeError> {
+    ) -> Result<(ExitCode, Vec<Value>), RuntimeError> {
         // Create a new scheduler for this run
         let sched = Scheduler::new(&self.lua);
 
@@ -83,16 +83,23 @@ impl Runtime {
             .set_name(script_name.as_ref());
 
         // Run it on our scheduler until it and any other spawned threads complete
-        sched.push_thread_back(main, ())?;
+        let main_thread_id = sched.push_thread_back(main, ())?;
         sched.run().await;
 
-        // Return the exit code - default to FAILURE if we got any errors
-        Ok(sched.get_exit_code().unwrap_or({
-            if got_any_error.load(Ordering::SeqCst) {
-                ExitCode::FAILURE
-            } else {
-                ExitCode::SUCCESS
-            }
-        }))
+        let thread_res = sched
+            .get_thread_result(main_thread_id)
+            .unwrap()
+            .unwrap()
+            .into_vec();
+        Ok((
+            sched.get_exit_code().unwrap_or({
+                if got_any_error.load(Ordering::SeqCst) {
+                    ExitCode::FAILURE
+                } else {
+                    ExitCode::SUCCESS
+                }
+            }),
+            thread_res,
+        ))
     }
 }

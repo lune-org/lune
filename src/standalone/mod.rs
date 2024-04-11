@@ -29,16 +29,14 @@ pub async fn run(patched_bin: impl AsRef<[u8]>) -> Result<ExitCode> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let meta = Metadata::from_bytes(patched_bin).expect("must be a standalone binary");
 
-    let result = Runtime::new()
-        .with_args(args)
-        .run("STANDALONE", meta.bytecode)
-        .await;
+    let mut runtime = Runtime::new().with_args(args);
+    let result = runtime.run("STANDALONE", meta.bytecode).await;
 
     Ok(match result {
         Err(err) => {
             eprintln!("{err}");
             ExitCode::FAILURE
         }
-        Ok(code) => code,
+        Ok((code, _)) => code,
     })
 }
