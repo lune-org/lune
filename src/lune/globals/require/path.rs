@@ -1,4 +1,3 @@
-use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use mlua::prelude::*;
@@ -123,14 +122,7 @@ fn append_extension(path: impl Into<PathBuf>, ext: &'static str) -> PathBuf {
 
 fn is_file_not_found_error(err: &LuaError) -> bool {
     if let ExternalError(err) = err {
-        if let Some(err) = err.as_ref().downcast_ref::<std::io::Error>() {
-            matches!(
-                err.kind(),
-                ErrorKind::NotFound | ErrorKind::PermissionDenied
-            )
-        } else {
-            false
-        }
+        err.as_ref().downcast_ref::<std::io::Error>().is_some()
     } else {
         false
     }
