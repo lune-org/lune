@@ -7,7 +7,7 @@ use std::{
     },
 };
 
-use mlua::{Lua, Value};
+use mlua::{IntoLuaMulti, Lua, Value};
 use mlua_luau_scheduler::Scheduler;
 
 mod builtins;
@@ -86,11 +86,11 @@ impl Runtime {
         let main_thread_id = sched.push_thread_back(main, ())?;
         sched.run().await;
 
-        let thread_res = sched
-            .get_thread_result(main_thread_id)
-            .unwrap()
-            .unwrap()
-            .into_vec();
+        let thread_res = match sched.get_thread_result(main_thread_id) {
+            Some(res) => res,
+            None => Value::Nil.into_lua_multi(&self.lua),
+        }?
+        .into_vec();
         Ok((
             sched.get_exit_code().unwrap_or({
                 if got_any_error.load(Ordering::SeqCst) {
