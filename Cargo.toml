@@ -22,7 +22,6 @@ default = ["cli", "roblox"]
 cli = [
     "dep:anyhow",
     "dep:env_logger",
-    "dep:itertools",
     "dep:clap",
     "dep:include_dir",
     "dep:regex",
@@ -131,7 +130,7 @@ chrono_lc = "0.1"
 
 anyhow = { optional = true, version = "1.0" }
 env_logger = { optional = true, version = "0.11" }
-itertools = { optional = true, version = "0.12" }
+itertools = "0.12"
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
 regex = { optional = true, version = "1.7", default-features = false, features = [
