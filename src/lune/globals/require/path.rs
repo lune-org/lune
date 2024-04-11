@@ -124,7 +124,10 @@ fn append_extension(path: impl Into<PathBuf>, ext: &'static str) -> PathBuf {
 fn is_file_not_found_error(err: &LuaError) -> bool {
     if let ExternalError(err) = err {
         if let Some(err) = err.as_ref().downcast_ref::<std::io::Error>() {
-            err.kind() == ErrorKind::NotFound
+            matches!(
+                err.kind(),
+                ErrorKind::NotFound | ErrorKind::PermissionDenied
+            )
         } else {
             false
         }
