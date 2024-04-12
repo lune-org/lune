@@ -1,5 +1,4 @@
 use std::{
-    process::ExitCode,
     rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -64,7 +63,7 @@ impl Runtime {
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-    ) -> Result<(i32, Vec<Value>), RuntimeError> {
+    ) -> Result<(u8, Vec<Value>), RuntimeError> {
         // Create a new scheduler for this run
         let sched = Scheduler::new(&self.lua);
 

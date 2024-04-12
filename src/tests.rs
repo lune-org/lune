@@ -32,7 +32,7 @@ macro_rules! create_tests {
 				.trim_end_matches(".lua")
 				.to_string();
             let (exit_code, _) = lune.run(&script_name, &script).await?;
-            Ok(exit_code)
+            Ok(ExitCode::from(exit_code as u8))
         }
     )* }
 }

@@ -49,7 +49,7 @@ impl RunCommand {
                 eprintln!("{err}");
                 ExitCode::FAILURE
             }
-            Ok((code, _)) => code,
+            Ok((code, _)) => ExitCode::from(code),
         })
     }
 }
