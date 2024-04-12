@@ -91,14 +91,15 @@ impl Runtime {
             None => Value::Nil.into_lua_multi(&self.lua),
         }?
         .into_vec();
+
         Ok((
-            sched.get_exit_code().unwrap_or({
+            ExitCode::from(sched.get_exit_code().unwrap_or({
                 if got_any_error.load(Ordering::SeqCst) {
-                    ExitCode::FAILURE
+                    1
                 } else {
-                    ExitCode::SUCCESS
+                    0
                 }
-            }),
+            }) as u8),
             thread_res,
         ))
     }

@@ -1489,8 +1489,7 @@ dependencies = [
 [[package]]
 name = "mlua-luau-scheduler"
 version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a13eabdbc57fa38cf0b604d98ce3431573c79a964aac56e09c16c240d36cb1bf"
+source = "git+https://github.com/0x5eal/mlua-luau-scheduler-exitstatus.git#22d15b36499db93c46ec381a562a3d1f440d6d02"
 dependencies = [
  "async-executor",
  "blocking",
