@@ -64,7 +64,7 @@ impl Runtime {
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-    ) -> Result<(ExitCode, Vec<Value>), RuntimeError> {
+    ) -> Result<(i32, Vec<Value>), RuntimeError> {
         // Create a new scheduler for this run
         let sched = Scheduler::new(&self.lua);
 
@@ -93,13 +93,13 @@ impl Runtime {
         .into_vec();
 
         Ok((
-            ExitCode::from(sched.get_exit_code().unwrap_or({
+            sched.get_exit_code().unwrap_or({
                 if got_any_error.load(Ordering::SeqCst) {
                     1
                 } else {
                     0
                 }
-            }) as u8),
+            }),
             thread_res,
         ))
     }
