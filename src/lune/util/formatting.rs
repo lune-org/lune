@@ -231,7 +231,7 @@ pub fn pretty_format_luau_error(e: &LuaError, colorized: bool) -> String {
             let mut found_stack_begin = false;
             for (index, line) in err_lines.clone().iter().enumerate().rev() {
                 if *line == "stack traceback:" {
-                    err_lines[index] = stack_begin.clone();
+                    err_lines[index].clone_from(&stack_begin);
                     found_stack_begin = true;
                     break;
                 }

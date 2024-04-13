@@ -4,6 +4,7 @@ use super::formatting::format_label;
 use crate::RuntimeError;
 
 pub trait LuaEmitErrorExt {
+    #[allow(dead_code)]
     fn emit_error(&self, err: LuaError);
 }
 
