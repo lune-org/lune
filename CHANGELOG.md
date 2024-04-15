@@ -8,6 +8,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Fixed `require` not throwing syntax errors (#168)
+- Fixed `require` caching not working correctly (#171)
+- Fixed case-sensitivity issue in `require` with aliases (#173)
+- Fixed itertools dependency being marked optional even though it is mandatory (#176)
+- Fixed test cases for the `net` built-in on Windows (#177)
+
 ## `0.8.2` - March 12th, 2024
 
 ### Fixed
