@@ -8,15 +8,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.8.3` - April 15th, 2024
 
 ### Fixed
 
-- Fixed `require` not throwing syntax errors (#168)
-- Fixed `require` caching not working correctly (#171)
-- Fixed case-sensitivity issue in `require` with aliases (#173)
-- Fixed itertools dependency being marked optional even though it is mandatory (#176)
-- Fixed test cases for the `net` built-in on Windows (#177)
+- Fixed `require` not throwing syntax errors ([#168])
+- Fixed `require` caching not working correctly ([#171])
+- Fixed case-sensitivity issue in `require` with aliases ([#173])
+- Fixed `itertools` dependency being marked optional even though it is mandatory ([#176])
+- Fixed test cases for the `net` built-in library on Windows ([#177])
+
+[#168]: https://github.com/lune-org/lune/pull/168
+[#171]: https://github.com/lune-org/lune/pull/171
+[#173]: https://github.com/lune-org/lune/pull/173
+[#176]: https://github.com/lune-org/lune/pull/176
+[#177]: https://github.com/lune-org/lune/pull/177
 
 ## `0.8.2` - March 12th, 2024
 
