@@ -130,7 +130,7 @@ pub fn pretty_format_value(
             } else if let Some(s) = call_table_tostring_metamethod(tab) {
                 write!(buffer, "{s}")?;
             } else if depth >= 1 && parent_table_addr.eq(&table_addr) {
-                write!(buffer, "{}", STYLE_DIM.apply_to("<self>"))?
+                write!(buffer, "{}", STYLE_DIM.apply_to("<self>"))?;
             } else {
                 let mut is_empty = false;
                 let depth_indent = INDENT.repeat(depth);
@@ -148,7 +148,7 @@ pub fn pretty_format_value(
                         )?,
                         _ => {
                             write!(buffer, "\n{depth_indent}{INDENT}[")?;
-                            pretty_format_value(buffer, &key, parent_table_addr.clone(), depth)?;
+                            pretty_format_value(buffer, &key, parent_table_addr.clone(), depth + 1)?;
                             write!(buffer, "] {} ", STYLE_DIM.apply_to("="))?;
                         }
                     }
