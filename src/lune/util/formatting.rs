@@ -148,7 +148,12 @@ pub fn pretty_format_value(
                         )?,
                         _ => {
                             write!(buffer, "\n{depth_indent}{INDENT}[")?;
-                            pretty_format_value(buffer, &key, parent_table_addr.clone(), depth + 1)?;
+                            pretty_format_value(
+                                buffer,
+                                &key,
+                                parent_table_addr.clone(),
+                                depth + 1,
+                            )?;
                             write!(buffer, "] {} ", STYLE_DIM.apply_to("="))?;
                         }
                     }
