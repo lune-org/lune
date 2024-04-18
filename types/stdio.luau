@@ -59,10 +59,8 @@ end
 	stdio.write("All on the same line")
 	stdio.ewrite("\nAnd some error text, too")
 
-	-- Reading from stdin, either line-by-line or the entire input
-	local firstLine = stdio.readLine()
-	local secondLine = stdio.readLine()
-	local remaining = stdio.readToEnd()
+	-- Reading the entire input from stdin
+	local input = stdio.readToEnd()
 	```
 ]=]
 local stdio = {}
