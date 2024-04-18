@@ -54,7 +54,7 @@ pub struct BuildCommand {
 
 impl BuildCommand {
     pub async fn run(self) -> Result<ExitCode> {
-        let mut output_path = self
+        let output_path = self
             .output
             .unwrap_or_else(|| self.input.with_extension(EXE_EXTENSION));
 
@@ -66,8 +66,8 @@ impl BuildCommand {
             .context("failed to read input file")?;
 
         // Dynamically derive the base executable path based on the CLI arguments provided
-        let (to_cross_compile, base_exe_path) =
-            get_base_exe_path(self.base, self.target, &mut output_path).await?;
+        let (to_cross_compile, base_exe_path, output_path) =
+            get_base_exe_path(self.base, self.target, output_path).await?;
 
         // Read the contents of the lune interpreter as our starting point
         println!(
@@ -138,15 +138,17 @@ pub enum BasePathDiscoveryError {
 async fn get_base_exe_path(
     base: Option<PathBuf>,
     target: Option<String>,
-    output_path: &mut PathBuf,
-) -> Result<(bool, PathBuf)> {
+    output_path: PathBuf,
+) -> Result<(bool, PathBuf, PathBuf), BasePathDiscoveryError> {
     if let Some(base) = base {
-        output_path.set_extension(
-            base.extension()
-                .expect("failed to get extension of base binary"),
-        );
-
-        Ok((true, base))
+        Ok((
+            true,
+            base.clone(),
+            output_path.with_extension(
+                base.extension()
+                    .expect("failed to get extension of base binary"),
+            ),
+        ))
     } else if let Some(target_inner) = target {
         let target_exe_extension = match target_inner.as_str() {
             "windows-x86_64" => "exe",
@@ -154,12 +156,6 @@ async fn get_base_exe_path(
         };
 
         let path = TARGET_BASE_DIR.join(format!("lune-{target_inner}.{target_exe_extension}"));
-
-        output_path.set_extension(if target_exe_extension == "bin" {
-            ""
-        } else {
-            target_exe_extension
-        });
 
         // Create the target base directory in the lune home if it doesn't already exist
         if !TARGET_BASE_DIR.exists() {
@@ -172,96 +168,113 @@ async fn get_base_exe_path(
         // If a cached target base executable doesn't exist, attempt to download it
         if !path.exists() {
             println!("Requested target hasn't been downloaded yet, attempting to download");
-
-            let release_url = format!(
-                "https://github.com/lune-org/lune/releases/download/v{ver}/lune-{ver}-{target}.zip",
-                ver = env!("CARGO_PKG_VERSION"),
-                target = target_inner
-            );
-
-            let target_full_display = release_url
-                .split('/')
-                .last()
-                .unwrap_or("lune-UNKNOWN-UNKNOWN")
-                .replace("zip", target_exe_extension);
-
-            println!(
-                "{} target {}",
-                style("Download").green().bold(),
-                target_full_display
-            );
-
-            // FIXME: Maybe we should use the custom net client used in `@lune/net`
-            // Request the precompiled target from GitHub releases
-            let resp = reqwest::get(release_url).await.map_err(|err| {
-                eprintln!(
-                    "   {} Unable to download base binary found for target `{}`",
-                    style("Download").red().bold(),
-                    target_inner,
-                );
-
-                BasePathDiscoveryError::DownloadError(err)
-            })?;
-
-            let resp_status = resp.status();
-
-            if resp_status != 200 && !resp_status.is_redirection() {
-                eprintln!(
-                    "   {} No precompiled base binary found for target `{}`",
-                    style("Download").red().bold(),
-                    target_inner
-                );
-
-                println!("{}: {}", style("HINT").yellow(), style("Perhaps try providing a path to self-compiled target with the `--base` flag").italic());
-
-                return Err(BasePathDiscoveryError::TargetNotFound {
-                    target: target_inner,
-                }
-                .into());
-            }
-
-            // Wrap the request response in bytes so that we can decompress it, since `async_zip`
-            // requires the underlying reader to implement `AsyncRead` and `Seek`, which `Bytes`
-            // doesn't implement
-            let compressed_data = Cursor::new(
-                resp.bytes()
-                    .await
-                    .map_err(anyhow::Error::from)
-                    .map_err(BasePathDiscoveryError::IoError)?
-                    .to_vec(),
-            );
-
-            // Construct a decoder and decompress the ZIP file using deflate
-            let mut decoder = ZipFileReader::new(compressed_data.compat())
-                .await
-                .map_err(BasePathDiscoveryError::Decompression)?;
-
-            let mut decompressed = vec![];
-
-            decoder
-                .reader_without_entry(0)
-                .await
-                .map_err(BasePathDiscoveryError::Decompression)?
-                .compat()
-                .read_to_end(&mut decompressed)
-                .await
-                .map_err(anyhow::Error::from)
-                .map_err(BasePathDiscoveryError::IoError)?;
-
-            // Finally write the decompressed data to the target base directory
-            write_file_to(&path, decompressed, 0o644)
-                .await
-                .map_err(BasePathDiscoveryError::IoError)?;
-
-            println!(
-                "  {} {}",
-                style("Downloaded").blue(),
-                style(target_full_display).underlined()
-            );
+            cache_target(target_inner, target_exe_extension, &path).await?;
         }
 
-        Ok((true, path))
+        Ok((
+            true,
+            path,
+            output_path.with_extension(if target_exe_extension == "bin" {
+                ""
+            } else {
+                target_exe_extension
+            }),
+        ))
     } else {
-        Ok((false, PathBuf::new()))
+        Ok((false, PathBuf::new(), PathBuf::new()))
     }
+}
+
+async fn cache_target(
+    target: String,
+    target_exe_extension: &str,
+    path: &PathBuf,
+) -> Result<(), BasePathDiscoveryError> {
+    let release_url = format!(
+        "https://github.com/lune-org/lune/releases/download/v{ver}/lune-{ver}-{target}.zip",
+        ver = env!("CARGO_PKG_VERSION"),
+        target = target
+    );
+
+    let target_full_display = release_url
+        .split('/')
+        .last()
+        .unwrap_or("lune-UNKNOWN-UNKNOWN")
+        .replace("zip", target_exe_extension);
+
+    println!(
+        "{} target {}",
+        style("Download").green().bold(),
+        target_full_display
+    );
+
+    let resp = reqwest::get(release_url).await.map_err(|err| {
+        eprintln!(
+            "   {} Unable to download base binary found for target `{}`",
+            style("Download").red().bold(),
+            target,
+        );
+
+        BasePathDiscoveryError::DownloadError(err)
+    })?;
+
+    let resp_status = resp.status();
+
+    if resp_status != 200 && !resp_status.is_redirection() {
+        eprintln!(
+            "   {} No precompiled base binary found for target `{}`",
+            style("Download").red().bold(),
+            target
+        );
+
+        println!(
+            "{}: {}",
+            style("HINT").yellow(),
+            style("Perhaps try providing a path to self-compiled target with the `--base` flag")
+                .italic()
+        );
+
+        return Err(BasePathDiscoveryError::TargetNotFound { target });
+    }
+
+    // Wrap the request response in bytes so that we can decompress it, since `async_zip`
+    // requires the underlying reader to implement `AsyncRead` and `Seek`, which `Bytes`
+    // doesn't implement
+    let compressed_data = Cursor::new(
+        resp.bytes()
+            .await
+            .map_err(anyhow::Error::from)
+            .map_err(BasePathDiscoveryError::IoError)?
+            .to_vec(),
+    );
+
+    // Construct a decoder and decompress the ZIP file using deflate
+    let mut decoder = ZipFileReader::new(compressed_data.compat())
+        .await
+        .map_err(BasePathDiscoveryError::Decompression)?;
+
+    let mut decompressed = vec![];
+
+    decoder
+        .reader_without_entry(0)
+        .await
+        .map_err(BasePathDiscoveryError::Decompression)?
+        .compat()
+        .read_to_end(&mut decompressed)
+        .await
+        .map_err(anyhow::Error::from)
+        .map_err(BasePathDiscoveryError::IoError)?;
+
+    // Finally write the decompressed data to the target base directory
+    write_file_to(&path, decompressed, 0o644)
+        .await
+        .map_err(BasePathDiscoveryError::IoError)?;
+
+    println!(
+        "  {} {}",
+        style("Downloaded").blue(),
+        style(target_full_display).underlined()
+    );
+
+    Ok(())
 }
