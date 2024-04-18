@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.8.2"
+version = "0.8.3"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -139,7 +139,7 @@ rustyline = { optional = true, version = "14.0" }
 
 ### ROBLOX
 
-glam = { optional = true, version = "0.25" }
+glam = { optional = true, version = "0.27" }
 rand = { optional = true, version = "0.8" }
 
 rbx_cookie = { optional = true, version = "0.1.4", default-features = false }
