@@ -5,7 +5,7 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{bail, Context, Error, Result};
+use anyhow::{Context, Result};
 use async_zip::base::read::seek::ZipFileReader;
 use clap::Parser;
 use console::style;
@@ -52,12 +52,6 @@ pub struct BuildCommand {
     pub base: Option<PathBuf>,
 }
 
-// TODO: Currently, the file we are patching is user provided, so we should
-// probably check whether the binary is a valid lune base binary first
-
-// TODO: Handle whether the compiled bytecode may conflict among breaking luau
-// versions
-
 impl BuildCommand {
     pub async fn run(self) -> Result<ExitCode> {
         let mut output_path = self
@@ -72,24 +66,8 @@ impl BuildCommand {
             .context("failed to read input file")?;
 
         // Dynamically derive the base executable path based on the CLI arguments provided
-        let base_exe_path = match get_base_exe_path(self.base, self.target, &mut output_path).await
-        {
-            Ok(path) => Some(path),
-            Err(err) => {
-                let inner_err = err.downcast::<BasePathDiscoveryError<()>>();
-
-                if let Err(other_err) = inner_err {
-                    bail!(
-                        "Encountered an error while handling cross-compilation flags: {:#?}",
-                        other_err
-                    );
-                }
-
-                // If there the downcasted error was ok, it is safe to continue since
-                // neither the --base nor the --target flags were set
-                None
-            }
-        };
+        let (to_cross_compile, base_exe_path) =
+            get_base_exe_path(self.base, self.target, &mut output_path).await?;
 
         // Read the contents of the lune interpreter as our starting point
         println!(
@@ -97,9 +75,16 @@ impl BuildCommand {
             style("Compile").green().bold(),
             style(input_path_displayed).underlined()
         );
-        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code.clone())
-            .await
-            .context("failed to create patched binary")?;
+        let patched_bin = Metadata::create_env_patched_bin(
+            if to_cross_compile {
+                Some(base_exe_path)
+            } else {
+                None
+            },
+            source_code.clone(),
+        )
+        .await
+        .context("failed to create patched binary")?;
 
         // And finally write the patched binary to the output file
         println!(
@@ -134,22 +119,19 @@ async fn write_file_to(
 }
 
 /// Possible ways in which the discovery and/or download of a base binary's path can error
-#[derive(Debug, Clone, Error, PartialEq)]
-pub enum BasePathDiscoveryError<T> {
+#[derive(Debug, Error)]
+pub enum BasePathDiscoveryError {
     /// An error in the decompression of the precompiled target
     #[error("decompression error")]
-    Decompression(T),
+    Decompression(#[from] async_zip::error::ZipError),
     #[error("precompiled base for target not found for {target}")]
     TargetNotFound { target: String },
     /// An error in the precompiled target download process
-    #[error("failed to download precompiled binary base")]
-    DownloadError(T),
+    #[error("failed to download precompiled binary base, reason: {0}")]
+    DownloadError(#[from] reqwest::Error),
     /// An IO related error
-    #[error("a generic error related to an io operation occurred")]
-    IoError(T),
-    /// Safe to continue, the user did not request any cross-compilation
-    #[error("neither a custom base path or precompiled target name provided")]
-    None,
+    #[error("a generic error related to an io operation occurred, details: {0}")]
+    IoError(#[from] anyhow::Error),
 }
 
 /// Discovers the path to the base executable to use for cross-compilation
@@ -157,14 +139,14 @@ async fn get_base_exe_path(
     base: Option<PathBuf>,
     target: Option<String>,
     output_path: &mut PathBuf,
-) -> Result<PathBuf> {
+) -> Result<(bool, PathBuf)> {
     if let Some(base) = base {
         output_path.set_extension(
             base.extension()
                 .expect("failed to get extension of base binary"),
         );
 
-        Ok(base)
+        Ok((true, base))
     } else if let Some(target_inner) = target {
         let target_exe_extension = match target_inner.as_str() {
             "windows-x86_64" => "exe",
@@ -183,6 +165,7 @@ async fn get_base_exe_path(
         if !TARGET_BASE_DIR.exists() {
             fs::create_dir_all(TARGET_BASE_DIR.to_path_buf())
                 .await
+                .map_err(anyhow::Error::from)
                 .map_err(BasePathDiscoveryError::IoError)?;
         }
 
@@ -217,7 +200,7 @@ async fn get_base_exe_path(
                     target_inner,
                 );
 
-                BasePathDiscoveryError::DownloadError::<Error>(err.into())
+                BasePathDiscoveryError::DownloadError(err)
             })?;
 
             let resp_status = resp.status();
@@ -231,7 +214,7 @@ async fn get_base_exe_path(
 
                 println!("{}: {}", style("HINT").yellow(), style("Perhaps try providing a path to self-compiled target with the `--base` flag").italic());
 
-                return Err(BasePathDiscoveryError::TargetNotFound::<String> {
+                return Err(BasePathDiscoveryError::TargetNotFound {
                     target: target_inner,
                 }
                 .into());
@@ -243,6 +226,7 @@ async fn get_base_exe_path(
             let compressed_data = Cursor::new(
                 resp.bytes()
                     .await
+                    .map_err(anyhow::Error::from)
                     .map_err(BasePathDiscoveryError::IoError)?
                     .to_vec(),
             );
@@ -261,7 +245,8 @@ async fn get_base_exe_path(
                 .compat()
                 .read_to_end(&mut decompressed)
                 .await
-                .map_err(BasePathDiscoveryError::Decompression)?;
+                .map_err(anyhow::Error::from)
+                .map_err(BasePathDiscoveryError::IoError)?;
 
             // Finally write the decompressed data to the target base directory
             write_file_to(&path, decompressed, 0o644)
@@ -275,8 +260,8 @@ async fn get_base_exe_path(
             );
         }
 
-        Ok(path)
+        Ok((true, path))
     } else {
-        Err(BasePathDiscoveryError::<()>::None.into())
+        Ok((false, PathBuf::new()))
     }
 }
