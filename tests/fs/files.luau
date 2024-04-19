@@ -9,35 +9,22 @@ local utils = require("./utils")
 fs.writeDir(TEMP_DIR_PATH)
 fs.writeDir(TEMP_ROOT_PATH)
 
--- Write both of our files with string and buffer contents
+-- Write both of our files
 
 fs.writeFile(TEMP_ROOT_PATH .. "/test_binary", utils.binaryBlob)
 fs.writeFile(TEMP_ROOT_PATH .. "/test_json.json", utils.jsonBlob)
-
-fs.writeFile(TEMP_ROOT_PATH .. "/test_binary_buf", buffer.fromstring(utils.binaryBlob))
-fs.writeFile(TEMP_ROOT_PATH .. "/test_json_buf.json", buffer.fromstring(utils.jsonBlob))
 
 -- Make sure reading the file we just
 -- wrote gets us back the original strings
 
 assert(
-	buffer.tostring(fs.readFile(TEMP_ROOT_PATH .. "/test_binary")) == utils.binaryBlob,
-	"(String) Binary file round-trip resulted in different strings"
+	fs.readFile(TEMP_ROOT_PATH .. "/test_binary") == utils.binaryBlob,
+	"Binary file round-trip resulted in different strings"
 )
 
 assert(
-	buffer.tostring(fs.readFile(TEMP_ROOT_PATH .. "/test_json.json")) == utils.jsonBlob,
-	"(String) JSON file round-trip resulted in different strings"
-)
-
-assert(
-	buffer.tostring(fs.readFile(TEMP_ROOT_PATH .. "/test_binary_buf")) == utils.binaryBlob,
-	"(Buffer) Binary file round-trip resulted in different strings"
-)
-
-assert(
-	buffer.tostring(fs.readFile(TEMP_ROOT_PATH .. "/test_json_buf.json")) == utils.jsonBlob,
-	"(Buffer) JSON file round-trip resulted in different strings"
+	fs.readFile(TEMP_ROOT_PATH .. "/test_json.json") == utils.jsonBlob,
+	"JSON file round-trip resulted in different strings"
 )
 
 -- Make sure file checks succeed but dir checks fail

@@ -107,7 +107,7 @@ local fs = {}
 	@param path The path to the file to read
 	@return The contents of the file
 ]=]
-function fs.readFile(path: string): buffer
+function fs.readFile(path: string): string
 	return nil :: any
 end
 
