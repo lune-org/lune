@@ -136,7 +136,7 @@ async fn get_base_exe_path(
     if let Some(target_inner) = target {
         let target_exe_extension = match target_inner.as_str() {
             "windows-x86_64" => "exe",
-            _ => "bin",
+            _ => "",
         };
 
         let path = TARGET_BASE_DIR.join(format!("lune-{target_inner}.{target_exe_extension}"));
@@ -155,15 +155,7 @@ async fn get_base_exe_path(
             cache_target(target_inner, target_exe_extension, &path).await?;
         }
 
-        Ok((
-            true,
-            path,
-            output_path.with_extension(if target_exe_extension == "bin" {
-                ""
-            } else {
-                target_exe_extension
-            }),
-        ))
+        Ok((true, path, output_path.with_extension(target_exe_extension)))
     } else {
         Ok((false, PathBuf::new(), output_path))
     }
@@ -184,7 +176,7 @@ async fn cache_target(
         .split('/')
         .last()
         .unwrap_or("lune-UNKNOWN-UNKNOWN")
-        .replace("zip", target_exe_extension);
+        .replace(".zip", format!(".{target_exe_extension}").as_str());
 
     println!(
         "{} target {}",
