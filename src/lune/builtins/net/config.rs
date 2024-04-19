@@ -1,4 +1,7 @@
-use std::{collections::HashMap, net::Ipv4Addr};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr},
+};
 
 use mlua::prelude::*;
 
@@ -8,7 +11,7 @@ use crate::lune::util::buffer::buf_to_str;
 
 use super::util::table_to_hash_map;
 
-const DEFAULT_IP_ADDRESS: Ipv4Addr = Ipv4Addr::new(127, 0, 0, 1);
+const DEFAULT_IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
 const WEB_SOCKET_UPDGRADE_REQUEST_HANDLER: &str = r#"
 return {
@@ -158,7 +161,7 @@ impl FromLua<'_> for RequestConfig {
 
 #[derive(Debug)]
 pub struct ServeConfig<'a> {
-    pub address: Ipv4Addr,
+    pub address: IpAddr,
     pub handle_request: LuaFunction<'a>,
     pub handle_web_socket: Option<LuaFunction<'a>>,
 }
@@ -178,7 +181,7 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
             let handle_request: Option<LuaFunction> = t.get("handleRequest")?;
             let handle_web_socket: Option<LuaFunction> = t.get("handleWebSocket")?;
             if handle_request.is_some() || handle_web_socket.is_some() {
-                let address: Ipv4Addr = match &address {
+                let address: IpAddr = match &address {
                     Some(addr) => {
                         let addr_str = addr.to_str()?;
 
