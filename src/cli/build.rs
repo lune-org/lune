@@ -44,12 +44,6 @@ pub struct BuildCommand {
     /// The target to compile for - defaults to the host triple
     #[clap(short, long)]
     pub target: Option<String>,
-
-    /// The path to the base executable to use - defaults to
-    /// the currently running executable, used for cross-compilation
-    /// for targets not directly supported
-    #[clap(short, long)]
-    pub base: Option<PathBuf>,
 }
 
 impl BuildCommand {
@@ -67,7 +61,7 @@ impl BuildCommand {
 
         // Dynamically derive the base executable path based on the CLI arguments provided
         let (to_cross_compile, base_exe_path, output_path) =
-            get_base_exe_path(self.base, self.target, output_path).await?;
+            get_base_exe_path(self.target, output_path).await?;
 
         // Read the contents of the lune interpreter as our starting point
         println!(
@@ -136,20 +130,10 @@ pub enum BasePathDiscoveryError {
 
 /// Discovers the path to the base executable to use for cross-compilation
 async fn get_base_exe_path(
-    base: Option<PathBuf>,
     target: Option<String>,
     output_path: PathBuf,
 ) -> Result<(bool, PathBuf, PathBuf), BasePathDiscoveryError> {
-    if let Some(base) = base {
-        Ok((
-            true,
-            base.clone(),
-            output_path.with_extension(
-                base.extension()
-                    .expect("failed to get extension of base binary"),
-            ),
-        ))
-    } else if let Some(target_inner) = target {
+    if let Some(target_inner) = target {
         let target_exe_extension = match target_inner.as_str() {
             "windows-x86_64" => "exe",
             _ => "bin",
@@ -181,7 +165,7 @@ async fn get_base_exe_path(
             }),
         ))
     } else {
-        Ok((false, PathBuf::new(), PathBuf::new()))
+        Ok((false, PathBuf::new(), output_path))
     }
 }
 
@@ -225,13 +209,6 @@ async fn cache_target(
             "   {} No precompiled base binary found for target `{}`",
             style("Download").red().bold(),
             target
-        );
-
-        println!(
-            "{}: {}",
-            style("HINT").yellow(),
-            style("Perhaps try providing a path to self-compiled target with the `--base` flag")
-                .italic()
         );
 
         return Err(BasePathDiscoveryError::TargetNotFound { target });
