@@ -22,7 +22,7 @@ use hyper_tungstenite::{
     WebSocketStream,
 };
 
-use crate::lune::util::{buffer::buf_to_str, TableBuilder};
+use crate::lune::util::TableBuilder;
 
 // Wrapper implementation for compatibility and changing colon syntax to dot syntax
 const WEB_SOCKET_IMPL_LUA: &str = r#"

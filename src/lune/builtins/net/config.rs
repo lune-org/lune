@@ -3,11 +3,10 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
+use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
 
 use reqwest::Method;
-
-use crate::lune::util::buffer::buf_to_str;
 
 use super::util::table_to_hash_map;
 
@@ -109,7 +108,7 @@ impl FromLua<'_> for RequestConfig {
                 Err(_) => HashMap::new(),
             };
             // Extract body
-            let body = match tab.get::<_, LuaString>("body") {
+            let body = match tab.get::<_, BString>("body") {
                 Ok(config_body) => Some(config_body.as_bytes().to_owned()),
                 Err(_) => None,
             };

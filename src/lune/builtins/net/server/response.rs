@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use bstr::{BString, ByteSlice};
 use http_body_util::Full;
 use hyper::{
     body::Bytes,
@@ -56,7 +57,7 @@ impl FromLua<'_> for LuaResponse {
             LuaValue::Table(t) => {
                 let status: Option<u16> = t.get("status")?;
                 let headers: Option<LuaTable> = t.get("headers")?;
-                let body: Option<LuaString> = t.get("body")?;
+                let body: Option<BString> = t.get("body")?;
 
                 let mut headers_map = HeaderMap::new();
                 if let Some(headers) = headers {
