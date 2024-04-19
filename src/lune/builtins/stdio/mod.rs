@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use mlua_luau_scheduler::LuaSpawnExt;
-use tokio::io::{self, AsyncWriteExt};
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 
 use crate::lune::util::{
     formatting::{
@@ -21,6 +21,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable<'_>> {
         .with_function("format", stdio_format)?
         .with_async_function("write", stdio_write)?
         .with_async_function("ewrite", stdio_ewrite)?
+        .with_async_function("readToEnd", stdio_read_to_end)?
         .with_async_function("prompt", stdio_prompt)?
         .build_readonly()
 }
@@ -51,6 +52,21 @@ async fn stdio_ewrite(_: &Lua, s: LuaString<'_>) -> LuaResult<()> {
     stderr.write_all(s.as_bytes()).await?;
     stderr.flush().await?;
     Ok(())
+}
+
+/*
+    FUTURE: Figure out how to expose some kind of "readLine" function using a buffered reader.
+
+    This is a bit tricky since we would want to be able to use **both** readLine and readToEnd
+    in the same script, doing something like readLine, readLine, readToEnd from lua, and
+    having that capture the first two lines and then read the rest of the input.
+*/
+
+async fn stdio_read_to_end(lua: &Lua, _: ()) -> LuaResult<LuaString> {
+    let mut input = Vec::new();
+    let mut stdin = io::stdin();
+    stdin.read_to_end(&mut input).await?;
+    lua.create_string(&input)
 }
 
 async fn stdio_prompt(lua: &Lua, options: PromptOptions) -> LuaResult<PromptResult> {

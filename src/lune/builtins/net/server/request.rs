@@ -18,21 +18,30 @@ impl LuaRequest {
         let path = self.head.uri.path().to_string();
         let body = lua.create_string(&self.body)?;
 
-        let query: HashMap<String, String> = self
+        let query: HashMap<LuaString, LuaString> = self
             .head
             .uri
             .query()
             .unwrap_or_default()
             .split('&')
             .filter_map(|q| q.split_once('='))
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-        let headers: HashMap<String, Vec<u8>> = self
+            .map(|(k, v)| {
+                let k = lua.create_string(k)?;
+                let v = lua.create_string(v)?;
+                Ok((k, v))
+            })
+            .collect::<LuaResult<_>>()?;
+
+        let headers: HashMap<LuaString, LuaString> = self
             .head
             .headers
             .iter()
-            .map(|(k, v)| (k.as_str().to_string(), v.as_bytes().to_vec()))
-            .collect();
+            .map(|(k, v)| {
+                let k = lua.create_string(k.as_str())?;
+                let v = lua.create_string(v.as_bytes())?;
+                Ok((k, v))
+            })
+            .collect::<LuaResult<_>>()?;
 
         TableBuilder::new(lua)?
             .with_value("method", method)?
