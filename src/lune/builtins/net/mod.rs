@@ -46,7 +46,7 @@ fn net_json_encode<'lua>(
         .serialize_to_string(lua, val)
 }
 
-fn net_json_decode<'lua>(lua: &'lua Lua, json: BString) -> LuaResult<LuaValue<'lua>> {
+fn net_json_decode(lua: &Lua, json: BString) -> LuaResult<LuaValue> {
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
