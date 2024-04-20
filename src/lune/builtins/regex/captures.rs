@@ -16,14 +16,26 @@ self_cell! {
     }
 }
 
+/**
+    A wrapper over the `regex::Captures` struct that can be used from Lua.
+*/
 pub struct LuaCaptures {
     inner: LuaCapturesInner,
 }
 
 impl LuaCaptures {
-    pub fn new(pattern: &Regex, text: String) -> Self {
-        Self {
-            inner: LuaCapturesInner::new(Arc::from(text), |owned| pattern.captures(owned.as_str())),
+    /**
+        Create a new `LuaCaptures` instance from a `Regex` pattern and a `String` text.
+
+        Returns `Some(_)` if captures were found, `None` if no captures were found.
+    */
+    pub fn new(pattern: &Regex, text: String) -> Option<Self> {
+        let inner =
+            LuaCapturesInner::new(Arc::from(text), |owned| pattern.captures(owned.as_str()));
+        if inner.borrow_dependent().is_some() {
+            Some(Self { inner })
+        } else {
+            None
         }
     }
 

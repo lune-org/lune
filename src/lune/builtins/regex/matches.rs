@@ -3,6 +3,9 @@ use std::{ops::Range, sync::Arc};
 use mlua::prelude::*;
 use regex::Match;
 
+/**
+    A wrapper over the `regex::Match` struct that can be used from Lua.
+*/
 pub struct LuaMatch {
     text: Arc<String>,
     start: usize,
@@ -10,6 +13,9 @@ pub struct LuaMatch {
 }
 
 impl LuaMatch {
+    /**
+        Create a new `LuaMatch` instance from a `String` text and a `regex::Match`.
+    */
     pub fn new(text: Arc<String>, matched: Match) -> Self {
         Self {
             text,

@@ -5,11 +5,18 @@ use regex::Regex;
 
 use super::{captures::LuaCaptures, matches::LuaMatch};
 
+/**
+    A wrapper over the `regex::Regex` struct that can be used from Lua.
+*/
+#[derive(Debug, Clone)]
 pub struct LuaRegex {
     inner: Regex,
 }
 
 impl LuaRegex {
+    /**
+        Create a new `LuaRegex` instance from a `String` pattern.
+    */
     pub fn new(pattern: String) -> LuaResult<Self> {
         Regex::new(&pattern)
             .map(|inner| Self { inner })
