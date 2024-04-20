@@ -31,10 +31,10 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaAnyUserData> {
+async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaString> {
     let bytes = fs::read(&path).await.into_lua_err()?;
 
-    lua.create_buffer(bytes)
+    lua.create_string(bytes)
 }
 
 async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
