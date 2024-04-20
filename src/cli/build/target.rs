@@ -14,13 +14,13 @@ pub const CACHE_DIR: Lazy<PathBuf> = Lazy::new(|| HOME_DIR.join(".lune").join("t
 
 /// A target operating system supported by Lune
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TargetOS {
+pub enum BuildTargetOS {
     Windows,
     Linux,
     MacOS,
 }
 
-impl TargetOS {
+impl BuildTargetOS {
     fn current_system() -> Self {
         match std::env::consts::OS {
             "windows" => Self::Windows,
@@ -47,7 +47,7 @@ impl TargetOS {
     }
 }
 
-impl fmt::Display for TargetOS {
+impl fmt::Display for BuildTargetOS {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Windows => write!(f, "windows"),
@@ -57,13 +57,13 @@ impl fmt::Display for TargetOS {
     }
 }
 
-impl FromStr for TargetOS {
+impl FromStr for BuildTargetOS {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_ascii_lowercase().as_str() {
-            "windows" => Ok(Self::Windows),
+            "win" | "windows" => Ok(Self::Windows),
             "linux" => Ok(Self::Linux),
-            "macos" => Ok(Self::MacOS),
+            "mac" | "macos" | "darwin" => Ok(Self::MacOS),
             _ => Err("invalid target OS"),
         }
     }
@@ -71,12 +71,12 @@ impl FromStr for TargetOS {
 
 /// A target architecture supported by Lune
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TargetArch {
+pub enum BuildTargetArch {
     X86_64,
     Aarch64,
 }
 
-impl TargetArch {
+impl BuildTargetArch {
     fn current_system() -> Self {
         match ARCH {
             "x86_64" => Self::X86_64,
@@ -86,7 +86,7 @@ impl TargetArch {
     }
 }
 
-impl fmt::Display for TargetArch {
+impl fmt::Display for BuildTargetArch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::X86_64 => write!(f, "x86_64"),
@@ -95,7 +95,7 @@ impl fmt::Display for TargetArch {
     }
 }
 
-impl FromStr for TargetArch {
+impl FromStr for BuildTargetArch {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_ascii_lowercase().as_str() {
@@ -108,21 +108,21 @@ impl FromStr for TargetArch {
 
 /// A full target description for cross-compilation (OS + Arch)
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Target {
-    pub os: TargetOS,
-    pub arch: TargetArch,
+pub struct BuildTarget {
+    pub os: BuildTargetOS,
+    pub arch: BuildTargetArch,
 }
 
-impl Target {
+impl BuildTarget {
     pub fn current_system() -> Self {
         Self {
-            os: TargetOS::current_system(),
-            arch: TargetArch::current_system(),
+            os: BuildTargetOS::current_system(),
+            arch: BuildTargetArch::current_system(),
         }
     }
 
     pub fn is_current_system(&self) -> bool {
-        self.os == TargetOS::current_system() && self.arch == TargetArch::current_system()
+        self.os == BuildTargetOS::current_system() && self.arch == BuildTargetArch::current_system()
     }
 
     pub fn exe_extension(&self) -> &'static str {
@@ -138,13 +138,13 @@ impl Target {
     }
 }
 
-impl fmt::Display for Target {
+impl fmt::Display for BuildTarget {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}-{}", self.os, self.arch)
     }
 }
 
-impl FromStr for Target {
+impl FromStr for BuildTarget {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (left, right) = s
