@@ -43,8 +43,6 @@ impl LuaUserData for LuaMatch {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("isEmpty", |_, this, ()| Ok(this.range().is_empty()));
-
         methods.add_meta_method(LuaMetaMethod::Type, |_, _, ()| Ok("RegexMatch"));
         methods.add_meta_method(LuaMetaMethod::Len, |_, this, ()| Ok(this.range().len()));
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {

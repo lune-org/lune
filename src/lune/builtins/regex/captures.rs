@@ -59,10 +59,10 @@ impl LuaCaptures {
 
 impl LuaUserData for LuaCaptures {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("get", |_, this, n: usize| {
+        methods.add_method("get", |_, this, index: usize| {
             Ok(this
                 .captures()
-                .get(n)
+                .get(index)
                 .map(|m| LuaMatch::new(this.text(), m)))
         });
 
