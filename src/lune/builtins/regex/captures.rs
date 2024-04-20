@@ -79,10 +79,13 @@ impl LuaUserData for LuaCaptures {
             Ok(new)
         });
 
-        methods.add_meta_method(LuaMetaMethod::Type, |_, _, ()| Ok("RegexCaptures"));
         methods.add_meta_method(LuaMetaMethod::Len, |_, this, ()| Ok(this.num_captures()));
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
             Ok(format!("RegexCaptures({})", this.num_captures()))
         });
+    }
+
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_meta_field(LuaMetaMethod::Type, "RegexCaptures");
     }
 }

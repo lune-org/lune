@@ -40,10 +40,11 @@ impl LuaUserData for LuaMatch {
         fields.add_field_method_get("finish", |_, this| Ok(this.end));
         fields.add_field_method_get("len", |_, this| Ok(this.range().len()));
         fields.add_field_method_get("text", |_, this| Ok(this.slice().to_string()));
+
+        fields.add_meta_field(LuaMetaMethod::Type, "RegexMatch");
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_meta_method(LuaMetaMethod::Type, |_, _, ()| Ok("RegexMatch"));
         methods.add_meta_method(LuaMetaMethod::Len, |_, this, ()| Ok(this.range().len()));
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
             Ok(format!("RegexMatch({})", this.slice()))

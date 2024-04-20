@@ -65,9 +65,12 @@ impl LuaUserData for LuaRegex {
             },
         );
 
-        methods.add_meta_method(LuaMetaMethod::Type, |_, _, ()| Ok("Regex"));
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
             Ok(format!("Regex({})", this.inner.as_str()))
         });
+    }
+
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_meta_field(LuaMetaMethod::Type, "Regex");
     }
 }
