@@ -1,13 +1,12 @@
 use mlua::prelude::*;
 
 pub fn create(lua: &Lua) -> LuaResult<impl IntoLua<'_>> {
-    let lune_version = format!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-
+    let lune_version = format!("Lune {}", env!("CARGO_PKG_VERSION"));
+    
     let luau_version_full = lua
         .globals()
         .get::<_, LuaString>("_VERSION")
         .expect("Missing _VERSION global");
-
     let luau_version_str = luau_version_full
         .to_str()
         .context("Invalid utf8 found in _VERSION global")?;
