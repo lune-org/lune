@@ -2,7 +2,9 @@ use thiserror::Error;
 
 use super::target::BuildTarget;
 
-/// Errors that may occur when building a standalone binary
+/**
+    Errors that may occur when building a standalone binary
+*/
 #[derive(Debug, Error)]
 pub enum BuildError {
     #[error("failed to find lune target '{0}' in GitHub release")]

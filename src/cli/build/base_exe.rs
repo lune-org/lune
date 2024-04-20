@@ -13,15 +13,18 @@ use super::{
     target::{BuildTarget, CACHE_DIR},
 };
 
-/// Discovers the path to the base executable to use for cross-compilation, and downloads it if necessary
+/**
+    Discovers the path to the base executable to use for cross-compilation.
+
+    If the target is the same as the current system, the current executable is used.
+
+    If no binary exists at the target path, it will attempt to download it from the internet.
+*/
 pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult<PathBuf> {
-    // If the target matches the current system, just use the current executable
     if target.is_current_system() {
         return Ok(CURRENT_EXE.to_path_buf());
     }
-
-    // If a cached target base executable doesn't exist, attempt to download it
-    if !target.cache_path().exists() {
+    if target.cache_path().exists() {
         return Ok(target.cache_path());
     }
 

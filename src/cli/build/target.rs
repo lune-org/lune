@@ -12,7 +12,9 @@ const HOME_DIR: Lazy<PathBuf> = Lazy::new(|| {
 
 pub const CACHE_DIR: Lazy<PathBuf> = Lazy::new(|| HOME_DIR.join(".lune").join("target"));
 
-/// A target operating system supported by Lune
+/**
+    A target operating system supported by Lune
+*/
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuildTargetOS {
     Windows,
@@ -69,7 +71,9 @@ impl FromStr for BuildTargetOS {
     }
 }
 
-/// A target architecture supported by Lune
+/**
+    A target architecture supported by Lune
+*/
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuildTargetArch {
     X86_64,
@@ -106,7 +110,21 @@ impl FromStr for BuildTargetArch {
     }
 }
 
-/// A full target description for cross-compilation (OS + Arch)
+/**
+    A full target description that Lune supports (OS + Arch)
+
+    This is used to determine the target to build for standalone binaries,
+    and to download the correct base executable for cross-compilation.
+
+    The target may be parsed from and displayed in the form `os-arch`.
+    Examples of valid targets are:
+
+    - `linux-aarch64`
+    - `linux-x86_64`
+    - `macos-aarch64`
+    - `macos-x86_64`
+    - `windows-x86_64`
+*/
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildTarget {
     pub os: BuildTargetOS,

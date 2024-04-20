@@ -52,7 +52,9 @@ impl BuildCommand {
             bail!("output path cannot be the same as input path, please specify a different output path");
         }
 
-        // Try to read the input file
+        // Try to read the given input file
+        // FUTURE: We should try and resolve a full require file graph using the input
+        // path here instead, see the notes in the `standalone` module for more details
         let source_code = fs::read(&self.input)
             .await
             .context("failed to read input file")?;
