@@ -1,22 +1,17 @@
 use std::{
     env::consts,
-    io::Cursor,
+    io::{Cursor, Read},
     path::{Path, PathBuf},
     process::ExitCode,
 };
 
 use anyhow::{Context, Result};
-use async_zip::base::read::seek::ZipFileReader;
 use clap::Parser;
 use console::style;
 use directories::BaseDirs;
 use once_cell::sync::Lazy;
 use thiserror::Error;
-use tokio::{
-    fs,
-    io::{AsyncReadExt, AsyncWriteExt},
-};
-use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
+use tokio::{fs, io::AsyncWriteExt, task::spawn_blocking};
 
 use crate::standalone::metadata::{Metadata, CURRENT_EXE};
 
@@ -30,7 +25,7 @@ const TARGET_BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .join(env!("CARGO_PKG_VERSION"))
 });
 
-// Build a standalone executable
+/// Build a standalone executable
 #[derive(Debug, Clone, Parser)]
 pub struct BuildCommand {
     /// The path to the input file
@@ -64,9 +59,8 @@ impl BuildCommand {
 
         // Read the contents of the lune interpreter as our starting point
         println!(
-            "{} standalone binary using {}",
-            style("Compile").green().bold(),
-            style(input_path_displayed).underlined()
+            "Compiling standalone binary from {}",
+            style(input_path_displayed).green()
         );
         let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code.clone())
             .await
@@ -74,9 +68,8 @@ impl BuildCommand {
 
         // And finally write the patched binary to the output file
         println!(
-            "   {} standalone binary to {}",
-            style("Write").blue().bold(),
-            style(output_path.display()).underlined()
+            "Writing standalone binary to {}",
+            style(output_path.display()).blue()
         );
         write_executable_file_to(output_path, patched_bin).await?; // Read & execute for all, write for owner
 
@@ -84,7 +77,10 @@ impl BuildCommand {
     }
 }
 
-async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]>) -> Result<()> {
+async fn write_executable_file_to(
+    path: impl AsRef<Path>,
+    bytes: impl AsRef<[u8]>,
+) -> Result<(), std::io::Error> {
     let mut options = fs::OpenOptions::new();
     options.write(true).create(true).truncate(true);
 
@@ -99,27 +95,30 @@ async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]
     Ok(())
 }
 
-/// Possible ways in which the discovery and/or download of a base binary's path can error
+/// Errors that may occur when building a standalone binary
 #[derive(Debug, Error)]
-pub enum BasePathDiscoveryError {
-    /// An error in the decompression of the precompiled target
-    #[error("decompression error")]
-    Decompression(#[from] async_zip::error::ZipError),
-    #[error("precompiled base for target not found for {target}")]
-    TargetNotFound { target: String },
-    /// An error in the precompiled target download process
-    #[error("failed to download precompiled binary base, reason: {0}")]
-    DownloadError(#[from] reqwest::Error),
-    /// An IO related error
-    #[error("a generic error related to an io operation occurred, details: {0}")]
-    IoError(#[from] anyhow::Error),
+pub enum BuildError {
+    #[error("failed to find lune target '{0}' in GitHub release")]
+    ReleaseTargetNotFound(String),
+    #[error("failed to find lune binary '{0}' in downloaded zip file")]
+    ZippedBinaryNotFound(String),
+    #[error("failed to download lune binary: {0}")]
+    Download(#[from] reqwest::Error),
+    #[error("failed to unzip lune binary: {0}")]
+    Unzip(#[from] zip_next::result::ZipError),
+    #[error("panicked while unzipping lune binary: {0}")]
+    UnzipJoin(#[from] tokio::task::JoinError),
+    #[error("io error: {0}")]
+    IoError(#[from] std::io::Error),
 }
+
+pub type BuildResult<T, E = BuildError> = std::result::Result<T, E>;
 
 /// Discovers the path to the base executable to use for cross-compilation
 async fn get_base_exe_path(
     target: Option<String>,
     output_path: PathBuf,
-) -> Result<(PathBuf, PathBuf), BasePathDiscoveryError> {
+) -> BuildResult<(PathBuf, PathBuf)> {
     if let Some(target_inner) = target {
         let current_target = format!("{}-{}", consts::OS, consts::ARCH);
 
@@ -140,16 +139,13 @@ async fn get_base_exe_path(
 
         // Create the target base directory in the lune home if it doesn't already exist
         if !TARGET_BASE_DIR.exists() {
-            fs::create_dir_all(TARGET_BASE_DIR.to_path_buf())
-                .await
-                .map_err(anyhow::Error::from)
-                .map_err(BasePathDiscoveryError::IoError)?;
+            fs::create_dir_all(TARGET_BASE_DIR.to_path_buf()).await?;
         }
 
         // If a cached target base executable doesn't exist, attempt to download it
         if !path.exists() {
-            println!("Requested target hasn't been downloaded yet, attempting to download");
-            cache_target(target_inner, target_exe_extension, &path).await?;
+            println!("Requested target does not exist in cache and must be downloaded");
+            download_target_to_cache(target_inner, target_exe_extension, &path).await?;
         }
 
         Ok((path, output_path.with_extension(target_exe_extension)))
@@ -162,89 +158,67 @@ async fn get_base_exe_path(
     }
 }
 
-async fn cache_target(
+/// Downloads the target base executable to the cache directory
+async fn download_target_to_cache(
     target: String,
     target_exe_extension: &str,
     path: &PathBuf,
-) -> Result<(), BasePathDiscoveryError> {
+) -> BuildResult<()> {
+    let version = env!("CARGO_PKG_VERSION");
+    let target_triple = format!("lune-{version}-{target}");
+
     let release_url = format!(
-        "https://github.com/lune-org/lune/releases/download/v{ver}/lune-{ver}-{target}.zip",
-        ver = env!("CARGO_PKG_VERSION"),
-        target = target
+        "{base_url}/v{version}/{target_triple}.zip",
+        base_url = "https://github.com/lune-org/lune/releases/download",
     );
+    println!("Downloading {target_triple}");
 
-    let target_full_display = release_url
-        .split('/')
-        .last()
-        .unwrap_or("lune-UNKNOWN-UNKNOWN")
-        .replace(".zip", format!(".{target_exe_extension}").as_str());
-
-    println!(
-        "{} target {}",
-        style("Download").green().bold(),
-        target_full_display
-    );
-
-    let resp = reqwest::get(release_url).await.map_err(|err| {
-        eprintln!(
-            "   {} Unable to download base binary found for target `{}`",
-            style("Download").red().bold(),
-            target,
-        );
-
-        BasePathDiscoveryError::DownloadError(err)
-    })?;
-
-    let resp_status = resp.status();
-
-    if resp_status != 200 && !resp_status.is_redirection() {
-        eprintln!(
-            "   {} No precompiled base binary found for target `{}`",
-            style("Download").red().bold(),
-            target
-        );
-
-        return Err(BasePathDiscoveryError::TargetNotFound { target });
+    // Try to request to download the zip file from the target url,
+    // making sure transient errors are handled gracefully and
+    // with a different error message than "not found"
+    let response = reqwest::get(release_url).await?;
+    if !response.status().is_success() {
+        if response.status().as_u16() == 404 {
+            return Err(BuildError::ReleaseTargetNotFound(target));
+        }
+        return Err(BuildError::Download(
+            response.error_for_status().unwrap_err(),
+        ));
     }
 
-    // Wrap the request response in bytes so that we can decompress it, since `async_zip`
-    // requires the underlying reader to implement `AsyncRead` and `Seek`, which `Bytes`
-    // doesn't implement
-    let compressed_data = Cursor::new(
-        resp.bytes()
-            .await
-            .map_err(anyhow::Error::from)
-            .map_err(BasePathDiscoveryError::IoError)?
-            .to_vec(),
+    // Receive the full zip file
+    let zip_bytes = response.bytes().await?.to_vec();
+    let zip_file = Cursor::new(zip_bytes);
+
+    // Look for and extract the binary file from the zip file
+    let binary_file_name = format!(
+        "lune{}{target_exe_extension}",
+        if target_exe_extension.is_empty() {
+            ""
+        } else {
+            "."
+        }
     );
 
-    // Construct a decoder and decompress the ZIP file using deflate
-    let mut decoder = ZipFileReader::new(compressed_data.compat())
-        .await
-        .map_err(BasePathDiscoveryError::Decompression)?;
+    // NOTE: We use spawn_blocking here since reading a
+    // zip archive is a somewhat slow / blocking operation
+    let binary_file_handle = spawn_blocking(move || {
+        let mut archive = zip_next::ZipArchive::new(zip_file)?;
 
-    let mut decompressed = vec![];
+        let mut binary = Vec::new();
+        archive
+            .by_name(&binary_file_name)
+            .or(Err(BuildError::ZippedBinaryNotFound(binary_file_name)))?
+            .read_to_end(&mut binary)?;
 
-    decoder
-        .reader_without_entry(0)
-        .await
-        .map_err(BasePathDiscoveryError::Decompression)?
-        .compat()
-        .read_to_end(&mut decompressed)
-        .await
-        .map_err(anyhow::Error::from)
-        .map_err(BasePathDiscoveryError::IoError)?;
+        Ok::<_, BuildError>(binary)
+    });
+    let binary_file_contents = binary_file_handle.await??;
 
     // Finally write the decompressed data to the target base directory
-    write_executable_file_to(&path, decompressed)
-        .await
-        .map_err(BasePathDiscoveryError::IoError)?;
+    write_executable_file_to(&path, binary_file_contents).await?;
 
-    println!(
-        "  {} {}",
-        style("Downloaded").blue(),
-        style(target_full_display).underlined()
-    );
+    println!("Downloaded {target_triple} successfully");
 
     Ok(())
 }
