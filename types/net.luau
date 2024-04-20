@@ -83,7 +83,7 @@ export type ServeRequest = {
 	query: { [string]: string? },
 	method: HttpMethod,
 	headers: { [string]: string },
-	body: string?,
+	body: string,
 }
 
 --[=[
