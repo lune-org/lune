@@ -1,3 +1,4 @@
+use bstr::BString;
 use mlua::prelude::*;
 
 pub(super) mod compress_decompress;
@@ -19,7 +20,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
 
 fn serde_encode<'lua>(
     lua: &'lua Lua,
-    (format, val, pretty): (EncodeDecodeFormat, LuaValue<'lua>, Option<bool>),
+    (format, val, pretty): (EncodeDecodeFormat, BString, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
     let config = EncodeDecodeConfig::from((format, pretty.unwrap_or_default()));
     config.serialize_to_string(lua, val)
@@ -27,7 +28,7 @@ fn serde_encode<'lua>(
 
 fn serde_decode<'lua>(
     lua: &'lua Lua,
-    (format, str): (EncodeDecodeFormat, LuaString<'lua>),
+    (format, str): (EncodeDecodeFormat, BString),
 ) -> LuaResult<LuaValue<'lua>> {
     let config = EncodeDecodeConfig::from(format);
     config.deserialize_from_string(lua, str)

@@ -1,3 +1,4 @@
+use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
 
 use serde_json::Value as JsonValue;
@@ -56,11 +57,14 @@ impl EncodeDecodeConfig {
     pub fn serialize_to_string<'lua>(
         self,
         lua: &'lua Lua,
-        value: LuaValue<'lua>,
+        value: BString,
     ) -> LuaResult<LuaString<'lua>> {
         let bytes = match self.format {
             EncodeDecodeFormat::Json => {
-                let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
+                let serialized: JsonValue = lua.from_value_with(
+                    LuaValue::String(lua.create_string(value)?),
+                    LUA_DESERIALIZE_OPTIONS,
+                )?;
                 if self.pretty {
                     serde_json::to_vec_pretty(&serialized).into_lua_err()?
                 } else {
@@ -68,13 +72,19 @@ impl EncodeDecodeConfig {
                 }
             }
             EncodeDecodeFormat::Yaml => {
-                let serialized: YamlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
+                let serialized: YamlValue = lua.from_value_with(
+                    LuaValue::String(lua.create_string(value)?),
+                    LUA_DESERIALIZE_OPTIONS,
+                )?;
                 let mut writer = Vec::with_capacity(128);
                 serde_yaml::to_writer(&mut writer, &serialized).into_lua_err()?;
                 writer
             }
             EncodeDecodeFormat::Toml => {
-                let serialized: TomlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
+                let serialized: TomlValue = lua.from_value_with(
+                    LuaValue::String(lua.create_string(value)?),
+                    LUA_DESERIALIZE_OPTIONS,
+                )?;
                 let s = if self.pretty {
                     toml::to_string_pretty(&serialized).into_lua_err()?
                 } else {
@@ -89,7 +99,7 @@ impl EncodeDecodeConfig {
     pub fn deserialize_from_string<'lua>(
         self,
         lua: &'lua Lua,
-        string: LuaString<'lua>,
+        string: BString,
     ) -> LuaResult<LuaValue<'lua>> {
         let bytes = string.as_bytes();
         match self.format {

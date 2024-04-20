@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 
+use bstr::BString;
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -39,13 +40,13 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
 
 fn net_json_encode<'lua>(
     lua: &'lua Lua,
-    (val, pretty): (LuaValue<'lua>, Option<bool>),
+    (val, pretty): (BString, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
     EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()))
         .serialize_to_string(lua, val)
 }
 
-fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<LuaValue<'lua>> {
+fn net_json_decode<'lua>(lua: &'lua Lua, json: BString) -> LuaResult<LuaValue<'lua>> {
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
