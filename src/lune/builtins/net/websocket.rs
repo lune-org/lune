@@ -3,6 +3,7 @@ use std::sync::{
     Arc,
 };
 
+use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
 
 use futures_util::{
@@ -160,7 +161,7 @@ where
 
         methods.add_async_method(
             "send",
-            |_, this, (string, as_binary): (LuaString, Option<bool>)| async move {
+            |_, this, (string, as_binary): (BString, Option<bool>)| async move {
                 this.send(if as_binary.unwrap_or_default() {
                     WsMessage::Binary(string.as_bytes().to_vec())
                 } else {

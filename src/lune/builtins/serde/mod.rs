@@ -20,7 +20,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
 
 fn serde_encode<'lua>(
     lua: &'lua Lua,
-    (format, val, pretty): (EncodeDecodeFormat, BString, Option<bool>),
+    (format, val, pretty): (EncodeDecodeFormat, LuaValue<'lua>, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
     let config = EncodeDecodeConfig::from((format, pretty.unwrap_or_default()));
     config.serialize_to_string(lua, val)

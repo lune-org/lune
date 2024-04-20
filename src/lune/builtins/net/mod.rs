@@ -40,7 +40,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
 
 fn net_json_encode<'lua>(
     lua: &'lua Lua,
-    (val, pretty): (BString, Option<bool>),
+    (val, pretty): (LuaValue<'lua>, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
     EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()))
         .serialize_to_string(lua, val)
