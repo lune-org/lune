@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 pub fn create(lua: &Lua) -> LuaResult<impl IntoLua<'_>> {
     let lune_version = format!("Lune {}", env!("CARGO_PKG_VERSION"));
-    
+
     let luau_version_full = lua
         .globals()
         .get::<_, LuaString>("_VERSION")
