@@ -61,7 +61,7 @@ export type FetchResponse = {
 	statusCode: number,
 	statusMessage: string,
 	headers: HttpHeaderMap,
-	body: string?,
+	body: string,
 }
 
 --[=[
