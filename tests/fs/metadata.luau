@@ -45,7 +45,7 @@ assert(metaFile.kind == "file", "File metadata kind was invalid")
 
 local metaBefore = fs.metadata(TEMP_FILE_PATH)
 task.wait(1)
-fs.writeFile(TEMP_FILE_PATH, utils.binaryBlob .. "\n")
+fs.writeFile(TEMP_FILE_PATH, buffer.tostring(utils.binaryBlob) .. "\n")
 local metaAfter = fs.metadata(TEMP_FILE_PATH)
 
 assert(

@@ -50,15 +50,15 @@ assert(fs.isFile(TEMP_ROOT_PATH_2 .. "/foo/buzz"), "Missing copied file - root/f
 -- Make sure the copied files are correct
 
 assert(
-	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/bar/baz") == utils.binaryBlob,
+	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/bar/baz") == buffer.tostring(utils.binaryBlob),
 	"Invalid copied file - root/foo/bar/baz"
 )
 assert(
-	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/fizz") == utils.binaryBlob,
+	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/fizz") == buffer.tostring(utils.binaryBlob),
 	"Invalid copied file - root/foo/fizz"
 )
 assert(
-	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/buzz") == utils.binaryBlob,
+	fs.readFile(TEMP_ROOT_PATH_2 .. "/foo/buzz") == buffer.tostring(utils.binaryBlob),
 	"Invalid copied file - root/foo/buzz"
 )
 

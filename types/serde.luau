@@ -70,7 +70,7 @@ end
 	@param encoded The string to decode
 	@return The decoded lua value
 ]=]
-function serde.decode(format: EncodeDecodeFormat, encoded: string): any
+function serde.decode(format: EncodeDecodeFormat, encoded: buffer | string): any
 	return nil :: any
 end
 
@@ -93,7 +93,7 @@ end
 	@param s The string to compress
 	@return The compressed string
 ]=]
-function serde.compress(format: CompressDecompressFormat, s: string): string
+function serde.compress(format: CompressDecompressFormat, s: buffer | string): string
 	return nil :: any
 end
 
@@ -116,7 +116,7 @@ end
 	@param s The string to decompress
 	@return The decompressed string
 ]=]
-function serde.decompress(format: CompressDecompressFormat, s: string): string
+function serde.decompress(format: CompressDecompressFormat, s: buffer | string): string
 	return nil :: any
 end
 

@@ -11,6 +11,8 @@ fs.writeDir(TEMP_ROOT_PATH)
 
 -- Write both of our files
 
+-- binaryBlob is of type buffer to make sure fs.writeFile
+-- works with both strings and buffers
 fs.writeFile(TEMP_ROOT_PATH .. "/test_binary", utils.binaryBlob)
 fs.writeFile(TEMP_ROOT_PATH .. "/test_json.json", utils.jsonBlob)
 
@@ -18,7 +20,7 @@ fs.writeFile(TEMP_ROOT_PATH .. "/test_json.json", utils.jsonBlob)
 -- wrote gets us back the original strings
 
 assert(
-	fs.readFile(TEMP_ROOT_PATH .. "/test_binary") == utils.binaryBlob,
+	fs.readFile(TEMP_ROOT_PATH .. "/test_binary") == buffer.tostring(utils.binaryBlob),
 	"Binary file round-trip resulted in different strings"
 )
 

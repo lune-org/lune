@@ -144,7 +144,7 @@ end
 	@param path The path of the file
 	@param contents The contents of the file
 ]=]
-function fs.writeFile(path: string, contents: string) end
+function fs.writeFile(path: string, contents: buffer | string) end
 
 --[=[
 	@within FS

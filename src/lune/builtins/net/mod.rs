@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 
+use bstr::BString;
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -45,7 +46,7 @@ fn net_json_encode<'lua>(
         .serialize_to_string(lua, val)
 }
 
-fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<LuaValue<'lua>> {
+fn net_json_decode<'lua>(lua: &'lua Lua, json: BString) -> LuaResult<LuaValue<'lua>> {
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 
