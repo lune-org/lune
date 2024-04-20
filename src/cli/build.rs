@@ -1,5 +1,5 @@
 use std::{
-    env::consts::EXE_EXTENSION,
+    env::consts,
     io::Cursor,
     path::{Path, PathBuf},
     process::ExitCode,
@@ -10,6 +10,7 @@ use async_zip::base::read::seek::ZipFileReader;
 use clap::Parser;
 use console::style;
 use directories::BaseDirs;
+use mlua::Compiler;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 use tokio::{
@@ -18,7 +19,7 @@ use tokio::{
 };
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 
-use crate::standalone::metadata::Metadata;
+use crate::standalone::metadata::{Metadata, CURRENT_EXE};
 
 const TARGET_BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     BaseDirs::new()
@@ -50,7 +51,7 @@ impl BuildCommand {
     pub async fn run(self) -> Result<ExitCode> {
         let output_path = self
             .output
-            .unwrap_or_else(|| self.input.with_extension(EXE_EXTENSION));
+            .unwrap_or_else(|| self.input.with_extension(consts::EXE_EXTENSION));
 
         let input_path_displayed = self.input.display();
 
@@ -60,8 +61,7 @@ impl BuildCommand {
             .context("failed to read input file")?;
 
         // Dynamically derive the base executable path based on the CLI arguments provided
-        let (to_cross_compile, base_exe_path, output_path) =
-            get_base_exe_path(self.target, output_path).await?;
+        let (base_exe_path, output_path) = get_base_exe_path(self.target, output_path).await?;
 
         // Read the contents of the lune interpreter as our starting point
         println!(
@@ -70,12 +70,12 @@ impl BuildCommand {
             style(input_path_displayed).underlined()
         );
         let patched_bin = Metadata::create_env_patched_bin(
-            if to_cross_compile {
-                Some(base_exe_path)
-            } else {
-                None
-            },
+            base_exe_path,
             source_code.clone(),
+            Compiler::new()
+                .set_optimization_level(2)
+                .set_coverage_level(0)
+                .set_debug_level(1),
         )
         .await
         .context("failed to create patched binary")?;
@@ -127,12 +127,22 @@ pub enum BasePathDiscoveryError {
 async fn get_base_exe_path(
     target: Option<String>,
     output_path: PathBuf,
-) -> Result<(bool, PathBuf, PathBuf), BasePathDiscoveryError> {
+) -> Result<(PathBuf, PathBuf), BasePathDiscoveryError> {
     if let Some(target_inner) = target {
+        let current_target = format!("{}-{}", consts::OS, consts::ARCH);
+
         let target_exe_extension = match target_inner.as_str() {
             "windows-x86_64" => "exe",
             _ => "",
         };
+
+        if target_inner == current_target {
+            // If the target is the host target, just use the current executable
+            return Ok((
+                CURRENT_EXE.to_path_buf(),
+                output_path.with_extension(consts::EXE_EXTENSION),
+            ));
+        }
 
         let path = TARGET_BASE_DIR.join(format!("lune-{target_inner}.{target_exe_extension}"));
 
@@ -150,9 +160,13 @@ async fn get_base_exe_path(
             cache_target(target_inner, target_exe_extension, &path).await?;
         }
 
-        Ok((true, path, output_path.with_extension(target_exe_extension)))
+        Ok((path, output_path.with_extension(target_exe_extension)))
     } else {
-        Ok((false, PathBuf::new(), output_path))
+        // If the target flag was not specified, just use the current executable
+        Ok((
+            CURRENT_EXE.to_path_buf(),
+            output_path.with_extension(consts::EXE_EXTENSION),
+        ))
     }
 }
 
