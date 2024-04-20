@@ -1,29 +1,20 @@
 use std::{
-    env::consts,
     io::{Cursor, Read},
     path::{Path, PathBuf},
     process::ExitCode,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use console::style;
-use directories::BaseDirs;
-use once_cell::sync::Lazy;
 use thiserror::Error;
 use tokio::{fs, io::AsyncWriteExt, task::spawn_blocking};
 
 use crate::standalone::metadata::{Metadata, CURRENT_EXE};
 
-const TARGET_BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    BaseDirs::new()
-        .unwrap()
-        .home_dir()
-        .to_path_buf()
-        .join(".lune")
-        .join("target")
-        .join(env!("CARGO_PKG_VERSION"))
-});
+mod target;
+
+use self::target::{Target, CACHE_DIR};
 
 /// Build a standalone executable
 #[derive(Debug, Clone, Parser)]
@@ -36,33 +27,45 @@ pub struct BuildCommand {
     #[clap(short, long)]
     pub output: Option<PathBuf>,
 
-    /// The target to compile for - defaults to the host triple
+    /// The target to compile for in the format `os-arch` -
+    /// defaults to the os and arch of the current system
     #[clap(short, long)]
-    pub target: Option<String>,
+    pub target: Option<Target>,
 }
 
 impl BuildCommand {
     pub async fn run(self) -> Result<ExitCode> {
+        // Derive target spec to use, or default to the current host system
+        let target = self.target.unwrap_or_else(Target::current_system);
+
+        // Derive paths to use, and make sure the output path is
+        // not the same as the input, so that we don't overwrite it
         let output_path = self
             .output
-            .unwrap_or_else(|| self.input.with_extension(consts::EXE_EXTENSION));
-
-        let input_path_displayed = self.input.display();
+            .clone()
+            .unwrap_or_else(|| remove_source_file_ext(&self.input));
+        let output_path = output_path.with_extension(target.exe_extension());
+        if output_path == self.input {
+            if self.output.is_some() {
+                bail!("output path cannot be the same as input path");
+            }
+            bail!("output path cannot be the same as input path, please specify a different output path");
+        }
 
         // Try to read the input file
         let source_code = fs::read(&self.input)
             .await
             .context("failed to read input file")?;
 
-        // Dynamically derive the base executable path based on the CLI arguments provided
-        let (base_exe_path, output_path) = get_base_exe_path(self.target, output_path).await?;
+        // Derive the base executable path based on the arguments provided
+        let base_exe_path = get_or_download_base_executable(target).await?;
 
         // Read the contents of the lune interpreter as our starting point
         println!(
             "Compiling standalone binary from {}",
-            style(input_path_displayed).green()
+            style(self.input.display()).green()
         );
-        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code.clone())
+        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code)
             .await
             .context("failed to create patched binary")?;
 
@@ -77,7 +80,21 @@ impl BuildCommand {
     }
 }
 
-async fn write_executable_file_to(
+/// Removes the source file extension from the given path, if it has one
+/// A source file extension is an extension such as `.lua` or `.luau`
+pub fn remove_source_file_ext(path: &Path) -> PathBuf {
+    if path
+        .extension()
+        .is_some_and(|ext| matches!(ext.to_str(), Some("lua" | "luau")))
+    {
+        path.with_extension("")
+    } else {
+        path.to_path_buf()
+    }
+}
+
+/// Writes the given bytes to a file at the specified path, and makes sure it has permissions to be executed
+pub async fn write_executable_file_to(
     path: impl AsRef<Path>,
     bytes: impl AsRef<[u8]>,
 ) -> Result<(), std::io::Error> {
@@ -99,7 +116,7 @@ async fn write_executable_file_to(
 #[derive(Debug, Error)]
 pub enum BuildError {
     #[error("failed to find lune target '{0}' in GitHub release")]
-    ReleaseTargetNotFound(String),
+    ReleaseTargetNotFound(Target),
     #[error("failed to find lune binary '{0}' in downloaded zip file")]
     ZippedBinaryNotFound(String),
     #[error("failed to download lune binary: {0}")]
@@ -114,56 +131,20 @@ pub enum BuildError {
 
 pub type BuildResult<T, E = BuildError> = std::result::Result<T, E>;
 
-/// Discovers the path to the base executable to use for cross-compilation
-async fn get_base_exe_path(
-    target: Option<String>,
-    output_path: PathBuf,
-) -> BuildResult<(PathBuf, PathBuf)> {
-    if let Some(target_inner) = target {
-        let current_target = format!("{}-{}", consts::OS, consts::ARCH);
-
-        let target_exe_extension = match target_inner.as_str() {
-            "windows-x86_64" => "exe",
-            _ => "",
-        };
-
-        if target_inner == current_target {
-            // If the target is the host target, just use the current executable
-            return Ok((
-                CURRENT_EXE.to_path_buf(),
-                output_path.with_extension(consts::EXE_EXTENSION),
-            ));
-        }
-
-        let path = TARGET_BASE_DIR.join(format!("lune-{target_inner}.{target_exe_extension}"));
-
-        // Create the target base directory in the lune home if it doesn't already exist
-        if !TARGET_BASE_DIR.exists() {
-            fs::create_dir_all(TARGET_BASE_DIR.to_path_buf()).await?;
-        }
-
-        // If a cached target base executable doesn't exist, attempt to download it
-        if !path.exists() {
-            println!("Requested target does not exist in cache and must be downloaded");
-            download_target_to_cache(target_inner, target_exe_extension, &path).await?;
-        }
-
-        Ok((path, output_path.with_extension(target_exe_extension)))
-    } else {
-        // If the target flag was not specified, just use the current executable
-        Ok((
-            CURRENT_EXE.to_path_buf(),
-            output_path.with_extension(consts::EXE_EXTENSION),
-        ))
+/// Discovers the path to the base executable to use for cross-compilation, and downloads it if necessary
+pub async fn get_or_download_base_executable(target: Target) -> BuildResult<PathBuf> {
+    // If the target matches the current system, just use the current executable
+    if target.is_current_system() {
+        return Ok(CURRENT_EXE.to_path_buf());
     }
-}
 
-/// Downloads the target base executable to the cache directory
-async fn download_target_to_cache(
-    target: String,
-    target_exe_extension: &str,
-    path: &PathBuf,
-) -> BuildResult<()> {
+    // If a cached target base executable doesn't exist, attempt to download it
+    if !target.cache_path().exists() {
+        return Ok(target.cache_path());
+    }
+
+    // The target is not cached, we must download it
+    println!("Requested target '{target}' does not exist in cache");
     let version = env!("CARGO_PKG_VERSION");
     let target_triple = format!("lune-{version}-{target}");
 
@@ -171,7 +152,9 @@ async fn download_target_to_cache(
         "{base_url}/v{version}/{target_triple}.zip",
         base_url = "https://github.com/lune-org/lune/releases/download",
     );
-    println!("Downloading {target_triple}");
+
+    // NOTE: This is not entirely accurate, but it is clearer for a user
+    println!("Downloading {target_triple}{}...", target.exe_suffix());
 
     // Try to request to download the zip file from the target url,
     // making sure transient errors are handled gracefully and
@@ -191,17 +174,9 @@ async fn download_target_to_cache(
     let zip_file = Cursor::new(zip_bytes);
 
     // Look for and extract the binary file from the zip file
-    let binary_file_name = format!(
-        "lune{}{target_exe_extension}",
-        if target_exe_extension.is_empty() {
-            ""
-        } else {
-            "."
-        }
-    );
-
-    // NOTE: We use spawn_blocking here since reading a
-    // zip archive is a somewhat slow / blocking operation
+    // NOTE: We use spawn_blocking here since reading a zip
+    // archive is a somewhat slow / blocking operation
+    let binary_file_name = format!("lune{}", target.exe_suffix());
     let binary_file_handle = spawn_blocking(move || {
         let mut archive = zip_next::ZipArchive::new(zip_file)?;
 
@@ -215,10 +190,12 @@ async fn download_target_to_cache(
     });
     let binary_file_contents = binary_file_handle.await??;
 
-    // Finally write the decompressed data to the target base directory
-    write_executable_file_to(&path, binary_file_contents).await?;
+    // Finally, write the extracted binary to the cache
+    if !CACHE_DIR.exists() {
+        fs::create_dir_all(CACHE_DIR.as_path()).await?;
+    }
+    write_executable_file_to(target.cache_path(), binary_file_contents).await?;
+    println!("Downloaded successfully and added to cache");
 
-    println!("Downloaded {target_triple} successfully");
-
-    Ok(())
+    Ok(target.cache_path())
 }
