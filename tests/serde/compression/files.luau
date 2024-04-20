@@ -34,7 +34,7 @@ local TESTS: { Test } = {
 
 local failed = false
 local function testOperation(
-	operationName: string,
+	operationName: "Compress" | "Decompress",
 	operation: (
 		format: serde.CompressDecompressFormat,
 		s: buffer | string
