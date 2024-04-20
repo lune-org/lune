@@ -1,3 +1,4 @@
+use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
 
 use serde_json::Value as JsonValue;
@@ -89,7 +90,7 @@ impl EncodeDecodeConfig {
     pub fn deserialize_from_string<'lua>(
         self,
         lua: &'lua Lua,
-        string: LuaString<'lua>,
+        string: BString,
     ) -> LuaResult<LuaValue<'lua>> {
         let bytes = string.as_bytes();
         match self.format {

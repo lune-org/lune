@@ -3,6 +3,7 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
+use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
 
 use reqwest::Method;
@@ -107,10 +108,11 @@ impl FromLua<'_> for RequestConfig {
                 Err(_) => HashMap::new(),
             };
             // Extract body
-            let body = match tab.get::<_, LuaString>("body") {
+            let body = match tab.get::<_, BString>("body") {
                 Ok(config_body) => Some(config_body.as_bytes().to_owned()),
                 Err(_) => None,
             };
+
             // Convert method string into proper enum
             let method = method.trim().to_ascii_uppercase();
             let method = match method.as_ref() {

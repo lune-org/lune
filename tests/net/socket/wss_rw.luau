@@ -22,7 +22,9 @@ end)
 
 task.wait(1)
 
-socket.send('{"op":1,"d":null}')
+local payload = '{"op":1,"d":null}'
+socket.send(payload)
+socket.send(buffer.fromstring(payload))
 socket.close(1000)
 
 task.cancel(delayedThread)

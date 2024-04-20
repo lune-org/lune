@@ -20,7 +20,7 @@ fs.move("bin/move_test_json.json", "bin/moved_test_json.json")
 -- wrote gets us back the original strings
 
 assert(
-	fs.readFile("bin/moved_test_binary") == utils.binaryBlob,
+	fs.readFile("bin/moved_test_binary") == buffer.tostring(utils.binaryBlob),
 	"Binary file round-trip resulted in different strings"
 )
 
