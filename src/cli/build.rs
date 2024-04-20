@@ -13,7 +13,7 @@ use directories::BaseDirs;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 use tokio::{
-    fs::{self, File},
+    fs,
     io::{AsyncReadExt, AsyncWriteExt},
 };
 use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
@@ -86,30 +86,25 @@ impl BuildCommand {
             style("Write").blue().bold(),
             style(output_path.display()).underlined()
         );
-        write_file_to(output_path, patched_bin, 0o755).await?; // Read & execute for all, write for owner
+        write_executable_file_to(output_path, patched_bin).await?; // Read & execute for all, write for owner
 
         Ok(ExitCode::SUCCESS)
     }
 }
 
-/// Wrapper function to asynchronously create a file at the given path with the given contents and permissions
-async fn write_file_to(
-    path: impl AsRef<Path>,
-    bytes: impl AsRef<[u8]>,
-    perms: u32,
-) -> Result<File> {
+async fn write_executable_file_to(path: impl AsRef<Path>, bytes: impl AsRef<[u8]>) -> Result<()> {
     let mut options = fs::OpenOptions::new();
-    options.write(true).read(true).create(true).truncate(true);
+    options.write(true).create(true).truncate(true);
 
     #[cfg(unix)]
     {
-        options.mode(perms);
+        options.mode(0o755); // Read & execute for all, write for owner
     }
 
     let mut file = options.open(path).await?;
     file.write_all(bytes.as_ref()).await?;
 
-    Ok(file)
+    Ok(())
 }
 
 /// Possible ways in which the discovery and/or download of a base binary's path can error
@@ -235,7 +230,7 @@ async fn cache_target(
         .map_err(BasePathDiscoveryError::IoError)?;
 
     // Finally write the decompressed data to the target base directory
-    write_file_to(&path, decompressed, 0o644)
+    write_executable_file_to(&path, decompressed)
         .await
         .map_err(BasePathDiscoveryError::IoError)?;
 
