@@ -24,7 +24,6 @@ cli = [
     "dep:env_logger",
     "dep:clap",
     "dep:include_dir",
-    "dep:regex",
     "dep:rustyline",
     "dep:zip_next",
 ]
@@ -76,7 +75,9 @@ path-clean = "1.0"
 pathdiff = "0.2"
 pin-project = "1.0"
 urlencoding = "2.1"
-bstr = "1.9.1"
+bstr = "1.9"
+regex = "1.10"
+self_cell = "1.0"
 
 ### RUNTIME
 
@@ -133,10 +134,6 @@ env_logger = { optional = true, version = "0.11" }
 itertools = "0.12"
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
-regex = { optional = true, version = "1.7", default-features = false, features = [
-    "std",
-    "unicode-perl",
-] }
 rustyline = { optional = true, version = "14.0" }
 zip_next = { optional = true, version = "1.1" }
 
