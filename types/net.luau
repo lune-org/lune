@@ -61,7 +61,7 @@ export type FetchResponse = {
 	statusCode: number,
 	statusMessage: string,
 	headers: HttpHeaderMap,
-	body: (string | buffer)?,
+	body: string?,
 }
 
 --[=[
@@ -83,7 +83,7 @@ export type ServeRequest = {
 	query: { [string]: string? },
 	method: HttpMethod,
 	headers: { [string]: string },
-	body: (string | buffer)?,
+	body: string?,
 }
 
 --[=[
