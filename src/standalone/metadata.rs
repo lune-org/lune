@@ -51,8 +51,12 @@ impl Metadata {
     pub async fn create_env_patched_bin(
         base_exe_path: PathBuf,
         script_contents: impl Into<Vec<u8>>,
-        compiler: LuaCompiler,
     ) -> Result<Vec<u8>> {
+        let compiler = LuaCompiler::new()
+            .set_optimization_level(2)
+            .set_coverage_level(0)
+            .set_debug_level(1);
+
         let mut patched_bin = fs::read(base_exe_path).await?;
 
         // Compile luau input into bytecode

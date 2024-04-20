@@ -10,7 +10,6 @@ use async_zip::base::read::seek::ZipFileReader;
 use clap::Parser;
 use console::style;
 use directories::BaseDirs;
-use mlua::Compiler;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 use tokio::{
@@ -69,16 +68,9 @@ impl BuildCommand {
             style("Compile").green().bold(),
             style(input_path_displayed).underlined()
         );
-        let patched_bin = Metadata::create_env_patched_bin(
-            base_exe_path,
-            source_code.clone(),
-            Compiler::new()
-                .set_optimization_level(2)
-                .set_coverage_level(0)
-                .set_debug_level(1),
-        )
-        .await
-        .context("failed to create patched binary")?;
+        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code.clone())
+            .await
+            .context("failed to create patched binary")?;
 
         // And finally write the patched binary to the output file
         println!(
