@@ -13,7 +13,7 @@ pub fn create(lua: &Lua) -> LuaResult<impl IntoLua<'_>> {
 
     // If this function runs more than once, we
     // may get an already formatted lune version.
-    if luau_version_str.starts_with(&lune_version) {
+    if luau_version_str.starts_with(lune_version.as_str()) {
         return Ok(luau_version_full);
     }
 

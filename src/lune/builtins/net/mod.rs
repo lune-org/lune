@@ -24,7 +24,7 @@ use super::serde::encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
 pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     NetClientBuilder::new()
-        .headers(&[("User-Agent", create_user_agent_header())])?
+        .headers(&[("User-Agent", create_user_agent_header(lua)?)])?
         .build()?
         .into_registry(lua);
     TableBuilder::new(lua)?
