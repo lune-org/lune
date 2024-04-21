@@ -9,3 +9,11 @@ path = "src/lib.rs"
 
 [lints]
 workspace = true
+
+[dependencies]
+mlua = "0.9.7"
+mlua-luau-scheduler = "0.0.1"
+
+tokio = { version = "1", features = ["time"] }
+
+lune-utils = { version = "0.8.3", path = "../lune-utils" }

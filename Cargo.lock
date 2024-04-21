@@ -1507,7 +1507,7 @@ dependencies = [
  "itertools",
  "lz4_flex",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2",
  "once_cell",
  "os_str_bytes",
  "path-clean",
@@ -1592,6 +1592,12 @@ version = "0.8.3"
 [[package]]
 name = "lune-std-task"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+ "mlua-luau-scheduler 0.0.1",
+ "tokio",
+]
 
 [[package]]
 name = "lune-utils"
@@ -1696,6 +1702,23 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde-value",
+]
+
+[[package]]
+name = "mlua-luau-scheduler"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c7ba4c0a49d3549cbb152c72cb447a0e733de8f1b70bb276a010e13addbd72b"
+dependencies = [
+ "async-executor",
+ "blocking",
+ "concurrent-queue",
+ "derive_more",
+ "event-listener 4.0.3",
+ "futures-lite",
+ "mlua",
+ "rustc-hash",
+ "tracing",
 ]
 
 [[package]]
