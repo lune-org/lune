@@ -6,7 +6,7 @@ mod context;
 use context::RequireContext;
 
 mod alias;
-mod builtin;
+mod library;
 mod path;
 
 const REQUIRE_IMPL: &str = r"
@@ -36,7 +36,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
     */
 
     let require_fn = lua.create_async_function(require)?;
-    let get_source_fn = lua.create_function(move |lua, _: ()| match lua.inspect_stack(2) {
+    let get_source_fn = lua.create_function(move |lua, (): ()| match lua.inspect_stack(2) {
         None => Err(LuaError::runtime(
             "Failed to get stack info for require source",
         )),
@@ -80,11 +80,8 @@ async fn require<'lua>(
         .app_data_ref()
         .expect("Failed to get RequireContext from app data");
 
-    if let Some(builtin_name) = path
-        .strip_prefix("@lune/")
-        .map(|name| name.to_ascii_lowercase())
-    {
-        builtin::require(lua, &context, &builtin_name).await
+    if let Some(builtin_name) = path.strip_prefix("@lune/").map(str::to_ascii_lowercase) {
+        library::require(lua, &context, &builtin_name)
     } else if let Some(aliased_path) = path.strip_prefix('@') {
         let (alias, path) = aliased_path.split_once('/').ok_or(LuaError::runtime(
             "Require with custom alias must contain '/' delimiter",

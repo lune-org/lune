@@ -1651,6 +1651,9 @@ dependencies = [
  "once_cell",
  "path-clean",
  "pathdiff",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

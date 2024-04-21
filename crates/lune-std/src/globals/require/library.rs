@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use super::context::*;
 
-pub(super) async fn require<'lua, 'ctx>(
+pub(super) fn require<'lua, 'ctx>(
     lua: &'lua Lua,
     ctx: &'ctx RequireContext,
     name: &str,

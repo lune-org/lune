@@ -14,7 +14,7 @@ pub(super) async fn require<'lua, 'ctx>(
 where
     'lua: 'ctx,
 {
-    let (abs_path, rel_path) = ctx.resolve_paths(source, path)?;
+    let (abs_path, rel_path) = RequireContext::resolve_paths(source, path)?;
     require_abs_rel(lua, ctx, abs_path, rel_path).await
 }
 

@@ -27,9 +27,9 @@ use crate::library::LuneStandardLibrary;
 */
 #[derive(Debug, Clone)]
 pub(super) struct RequireContext {
-    cache_libraries: Arc<AsyncMutex<HashMap<LuneStandardLibrary, LuaResult<LuaRegistryKey>>>>,
-    cache_results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
-    cache_pending: Arc<AsyncMutex<HashMap<PathBuf, Sender<()>>>>,
+    libraries: Arc<AsyncMutex<HashMap<LuneStandardLibrary, LuaResult<LuaRegistryKey>>>>,
+    results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
+    pending: Arc<AsyncMutex<HashMap<PathBuf, Sender<()>>>>,
 }
 
 impl RequireContext {
@@ -42,9 +42,9 @@ impl RequireContext {
     */
     pub fn new() -> Self {
         Self {
-            cache_libraries: Arc::new(AsyncMutex::new(HashMap::new())),
-            cache_results: Arc::new(AsyncMutex::new(HashMap::new())),
-            cache_pending: Arc::new(AsyncMutex::new(HashMap::new())),
+            libraries: Arc::new(AsyncMutex::new(HashMap::new())),
+            results: Arc::new(AsyncMutex::new(HashMap::new())),
+            pending: Arc::new(AsyncMutex::new(HashMap::new())),
         }
     }
 
@@ -57,7 +57,6 @@ impl RequireContext {
         absolute path by prepending the current working directory.
     */
     pub fn resolve_paths(
-        &self,
         source: impl AsRef<str>,
         path: impl AsRef<str>,
     ) -> LuaResult<(PathBuf, PathBuf)> {
@@ -66,7 +65,7 @@ impl RequireContext {
             .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
             .join(path.as_ref());
 
-        let abs_path = clean_path_and_make_absolute(path);
+        let abs_path = clean_path_and_make_absolute(&path);
         let rel_path = clean_path(path);
 
         Ok((abs_path, rel_path))
@@ -77,7 +76,7 @@ impl RequireContext {
     */
     pub fn is_cached(&self, abs_path: impl AsRef<Path>) -> LuaResult<bool> {
         let is_cached = self
-            .cache_results
+            .results
             .try_lock()
             .expect("RequireContext may not be used from multiple threads")
             .contains_key(abs_path.as_ref());
@@ -89,7 +88,7 @@ impl RequireContext {
     */
     pub fn is_pending(&self, abs_path: impl AsRef<Path>) -> LuaResult<bool> {
         let is_pending = self
-            .cache_pending
+            .pending
             .try_lock()
             .expect("RequireContext may not be used from multiple threads")
             .contains_key(abs_path.as_ref());
@@ -107,7 +106,7 @@ impl RequireContext {
         abs_path: impl AsRef<Path>,
     ) -> LuaResult<LuaMultiValue<'lua>> {
         let results = self
-            .cache_results
+            .results
             .try_lock()
             .expect("RequireContext may not be used from multiple threads");
 
@@ -137,7 +136,7 @@ impl RequireContext {
     ) -> LuaResult<LuaMultiValue<'lua>> {
         let mut thread_recv = {
             let pending = self
-                .cache_pending
+                .pending
                 .try_lock()
                 .expect("RequireContext may not be used from multiple threads");
             let thread_id = pending
@@ -200,7 +199,7 @@ impl RequireContext {
 
         // Set this abs path as currently pending
         let (broadcast_tx, _) = broadcast::channel(1);
-        self.cache_pending
+        self.pending
             .try_lock()
             .expect("RequireContext may not be used from multiple threads")
             .insert(abs_path.to_path_buf(), broadcast_tx);
@@ -220,7 +219,7 @@ impl RequireContext {
         // NOTE: We use the async lock and not try_lock here because
         // some other thread may be wanting to insert into the require
         // cache at the same time, and that's not an actual error case
-        self.cache_results
+        self.results
             .lock()
             .await
             .insert(abs_path.to_path_buf(), load_res);
@@ -229,7 +228,7 @@ impl RequireContext {
         // broadcast a message to let any listeners know that this
         // path has now finished the require process and is cached
         let broadcast_tx = self
-            .cache_pending
+            .pending
             .try_lock()
             .expect("RequireContext may not be used from multiple threads")
             .remove(abs_path)
@@ -253,7 +252,7 @@ impl RequireContext {
         };
 
         let mut cache = self
-            .cache_libraries
+            .libraries
             .try_lock()
             .expect("RequireContext may not be used from multiple threads");
 
