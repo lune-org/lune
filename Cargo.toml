@@ -50,8 +50,10 @@ cast_possible_wrap = { level = "allow", priority = 1 }
 cast_precision_loss = { level = "allow", priority = 1 }
 cast_sign_loss = { level = "allow", priority = 1 }
 
-unreadable_literal = { level = "allow", priority = 1 }
+similar_names = { level = "allow", priority = 1 }
+unnecessary_wraps = { level = "allow", priority = 1 }
 unnested_or_patterns = { level = "allow", priority = 1 }
+unreadable_literal = { level = "allow", priority = 1 }
 
 multiple_crate_versions = { level = "allow", priority = 1 }
 module_inception = { level = "allow", priority = 1 }
