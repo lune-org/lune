@@ -1644,6 +1644,7 @@ name = "lune-utils"
 version = "0.8.3"
 dependencies = [
  "mlua",
+ "once_cell",
 ]
 
 [[package]]
