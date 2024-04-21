@@ -1554,8 +1554,6 @@ dependencies = [
  "lune-utils",
  "mlua",
  "mlua-luau-scheduler 0.0.1",
- "path-clean",
- "pathdiff",
  "tokio",
 ]
 
@@ -1648,8 +1646,11 @@ dependencies = [
 name = "lune-utils"
 version = "0.8.3"
 dependencies = [
+ "dunce",
  "mlua",
  "once_cell",
+ "path-clean",
+ "pathdiff",
 ]
 
 [[package]]

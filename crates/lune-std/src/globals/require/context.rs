@@ -15,6 +15,8 @@ use tokio::{
     },
 };
 
+use lune_utils::path::{clean_path, clean_path_and_make_absolute};
+
 use crate::library::LuneStandardLibrary;
 
 /**
@@ -64,12 +66,8 @@ impl RequireContext {
             .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
             .join(path.as_ref());
 
-        let rel_path = path_clean::clean(path);
-        let abs_path = if rel_path.is_absolute() {
-            rel_path.to_path_buf()
-        } else {
-            CWD.join(&rel_path)
-        };
+        let abs_path = clean_path_and_make_absolute(path);
+        let rel_path = clean_path(path);
 
         Ok((abs_path, rel_path))
     }

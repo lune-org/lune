@@ -39,9 +39,6 @@ task = ["dep:lune-std-task"]
 mlua = "0.9.7"
 mlua-luau-scheduler = "0.0.1"
 
-path-clean = "1.0"
-pathdiff = "0.2"
-
 tokio = { version = "1", default-features = false, features = ["fs"] }
 
 lune-utils = { version = "0.8.3", path = "../lune-utils" }

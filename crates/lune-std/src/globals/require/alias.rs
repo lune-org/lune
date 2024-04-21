@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use lune_utils::{
     luaurc::LuauRc,
-    paths::{make_absolute_and_clean, CWD},
+    path::{clean_path_and_make_absolute, diff_path, get_current_dir},
 };
 
 use super::context::*;
@@ -19,7 +19,7 @@ where
 {
     let alias = alias.to_ascii_lowercase();
 
-    let parent = make_absolute_and_clean(source)
+    let parent = clean_path_and_make_absolute(source)
         .parent()
         .expect("how did a root path end up here..")
         .to_path_buf();
@@ -66,7 +66,7 @@ where
     // We now have our aliased path, our path require function just needs it
     // in a slightly different format with both absolute + relative to cwd
     let abs_path = luaurc.find_alias(&alias).unwrap().join(path);
-    let rel_path = pathdiff::diff_paths(&abs_path, CWD.as_path()).ok_or_else(|| {
+    let rel_path = diff_path(&abs_path, get_current_dir()).ok_or_else(|| {
         LuaError::runtime(format!("failed to find relative path for alias '{alias}'"))
     })?;
 
