@@ -3,20 +3,32 @@ use std::sync::Arc;
 use mlua::prelude::*;
 use once_cell::sync::Lazy;
 
-static VERSION_STRING: Lazy<Arc<String>> = Lazy::new(create_version_string);
+static LUAU_VERSION: Lazy<Arc<String>> = Lazy::new(create_luau_version_string);
 
 /**
-    Returns the current Lune version string, in the format `Lune x.y.z+luau`.
+    Returns a Lune version string, in the format `Lune x.y.z+luau`.
 
-    This version string is strongly guaranteed to follow the above
-    format and may safely be used for parsing & version comparisons.
+    The version string passed should be the version of the Lune runtime,
+    obtained from `env!("CARGO_PKG_VERSION")` or a similar mechanism.
+
+    # Panics
+
+    Panics if the version string is empty or contains invalid characters.
 */
 #[must_use]
-pub fn get_version_string() -> Arc<String> {
-    Arc::clone(&VERSION_STRING)
+pub fn get_version_string(lune_version: impl AsRef<str>) -> String {
+    let lune_version = lune_version.as_ref();
+
+    assert!(!lune_version.is_empty(), "Lune version string is empty");
+    assert!(
+        lune_version.chars().all(is_valid_version_char),
+        "Lune version string contains invalid characters"
+    );
+
+    format!("Lune {lune_version}+{}", *LUAU_VERSION)
 }
 
-fn create_version_string() -> Arc<String> {
+fn create_luau_version_string() -> Arc<String> {
     // Extract the current Luau version from a fresh Lua state / VM that can't be accessed externally.
     let luau_version_full = {
         let temp_lua = Lua::new();
@@ -55,10 +67,7 @@ fn create_version_string() -> Arc<String> {
         )
     }
 
-    Arc::new(format!(
-        "Lune {}+{luau_version_noprefix}",
-        env!("CARGO_PKG_VERSION")
-    ))
+    luau_version_noprefix.to_string().into()
 }
 
 fn is_valid_version_char(c: char) -> bool {
