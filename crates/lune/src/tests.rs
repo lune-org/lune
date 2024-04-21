@@ -1,3 +1,4 @@
+use std::env::set_current_dir;
 use std::process::ExitCode;
 
 use anyhow::Result;
@@ -13,12 +14,19 @@ macro_rules! create_tests {
     ($($name:ident: $value:expr,)*) => { $(
         #[tokio::test(flavor = "multi_thread")]
         async fn $name() -> Result<ExitCode> {
+            // We need to change the current directory to the workspace root since
+            // we are in a sub-crate and tests would run relative to the sub-crate
+            let workspace_dir_str = format!("{}/../../", env!("CARGO_MANIFEST_DIR"));
+            let workspace_dir = std::path::PathBuf::from(workspace_dir_str).canonicalize()?;
+            set_current_dir(&workspace_dir)?;
+
             // Disable styling for stdout and stderr since
             // some tests rely on output not being styled
             set_colors_enabled(false);
             set_colors_enabled_stderr(false);
+
             // The rest of the test logic can continue as normal
-            let full_name = format!("tests/{}.luau", $value);
+            let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
             let script = read_to_string(&full_name).await?;
             let mut lune = Runtime::new().with_args(
                 ARGS
