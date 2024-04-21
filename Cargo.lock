@@ -1588,6 +1588,13 @@ version = "0.8.3"
 [[package]]
 name = "lune-std-stdio"
 version = "0.8.3"
+dependencies = [
+ "dialoguer",
+ "lune-utils",
+ "mlua",
+ "mlua-luau-scheduler 0.0.1",
+ "tokio",
+]
 
 [[package]]
 name = "lune-std-task"

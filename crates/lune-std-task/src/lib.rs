@@ -16,7 +16,7 @@ use lune_utils::TableBuilder;
 
     Errors when out of memory, or if default Lua globals are missing.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable<'_>> {
+pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let fns = Functions::new(lua)?;
 
     // Create wait & delay functions
