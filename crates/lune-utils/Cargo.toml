@@ -9,3 +9,6 @@ path = "src/lib.rs"
 
 [lints]
 workspace = true
+
+[dependencies]
+mlua = { version = "0.9.7", features = ["async"] }

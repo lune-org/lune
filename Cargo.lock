@@ -1596,6 +1596,9 @@ version = "0.8.3"
 [[package]]
 name = "lune-utils"
 version = "0.8.3"
+dependencies = [
+ "mlua",
+]
 
 [[package]]
 name = "lz4"
