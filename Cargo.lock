@@ -1551,7 +1551,12 @@ dependencies = [
  "lune-std-serde",
  "lune-std-stdio",
  "lune-std-task",
+ "lune-utils",
  "mlua",
+ "mlua-luau-scheduler 0.0.1",
+ "path-clean",
+ "pathdiff",
+ "tokio",
 ]
 
 [[package]]

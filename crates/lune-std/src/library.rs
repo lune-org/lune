@@ -112,10 +112,16 @@ impl FromStr for LuneStandardLibrary {
             #[cfg(feature = "stdio")]    "stdio"    => Self::Stdio,
             #[cfg(feature = "roblox")]   "roblox"   => Self::Roblox,
 
-            _ => return Err(format!(
-                "Unknown standard library '{low}'\nValid libraries are: {}",
-                Self::ALL.iter().map(Self::name).collect::<Vec<_>>().join(", ")
-            )),
+            _ => {
+                return Err(format!(
+                    "Unknown standard library '{low}'\nValid libraries are: {}",
+                    Self::ALL
+                        .iter()
+                        .map(Self::name)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ))
+            }
         })
     }
 }
