@@ -14,6 +14,7 @@ members = [
     "crates/lune-std-serde",
     "crates/lune-std-stdio",
     "crates/lune-std-task",
+    "crates/lune-utils",
 ]
 
 # Profile for building the release binary, with the following options set:

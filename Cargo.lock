@@ -1594,6 +1594,10 @@ name = "lune-std-task"
 version = "0.8.3"
 
 [[package]]
+name = "lune-utils"
+version = "0.8.3"
+
+[[package]]
 name = "lz4"
 version = "1.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
