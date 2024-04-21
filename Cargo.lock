@@ -1538,6 +1538,62 @@ dependencies = [
 ]
 
 [[package]]
+name = "lune-std"
+version = "0.8.3"
+dependencies = [
+ "lune-std-datetime",
+ "lune-std-fs",
+ "lune-std-luau",
+ "lune-std-net",
+ "lune-std-process",
+ "lune-std-regex",
+ "lune-std-roblox",
+ "lune-std-serde",
+ "lune-std-stdio",
+ "lune-std-task",
+]
+
+[[package]]
+name = "lune-std-datetime"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-fs"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-luau"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-net"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-process"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-regex"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-roblox"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-serde"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-stdio"
+version = "0.8.3"
+
+[[package]]
+name = "lune-std-task"
+version = "0.8.3"
+
+[[package]]
 name = "lz4"
 version = "1.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
