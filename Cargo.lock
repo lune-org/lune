@@ -1551,39 +1551,72 @@ dependencies = [
  "lune-std-serde",
  "lune-std-stdio",
  "lune-std-task",
+ "mlua",
 ]
 
 [[package]]
 name = "lune-std-datetime"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-fs"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-luau"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-net"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-process"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-regex"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-roblox"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-serde"
 version = "0.8.3"
+dependencies = [
+ "lune-utils",
+ "mlua",
+]
 
 [[package]]
 name = "lune-std-stdio"

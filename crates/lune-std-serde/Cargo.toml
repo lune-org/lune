@@ -9,3 +9,8 @@ path = "src/lib.rs"
 
 [lints]
 workspace = true
+
+[dependencies]
+mlua = "0.9.7"
+
+lune-utils = { version = "0.8.3", path = "../lune-utils" }

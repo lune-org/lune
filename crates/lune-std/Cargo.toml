@@ -36,6 +36,8 @@ stdio = ["dep:lune-std-stdio"]
 task = ["dep:lune-std-task"]
 
 [dependencies]
+mlua = "0.9.7"
+
 lune-std-datetime = { optional = true, version = "0.8.3", path = "../lune-std-datetime" }
 lune-std-fs = { optional = true, version = "0.8.3", path = "../lune-std-fs" }
 lune-std-luau = { optional = true, version = "0.8.3", path = "../lune-std-luau" }
