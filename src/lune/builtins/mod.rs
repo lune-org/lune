@@ -7,6 +7,7 @@ mod fs;
 mod luau;
 mod net;
 mod process;
+mod regex;
 mod serde;
 mod stdio;
 mod task;
@@ -22,6 +23,7 @@ pub enum LuneBuiltin {
     Net,
     Task,
     Process,
+    Regex,
     Serde,
     Stdio,
     #[cfg(feature = "roblox")]
@@ -37,6 +39,7 @@ impl LuneBuiltin {
             Self::Net => "net",
             Self::Task => "task",
             Self::Process => "process",
+            Self::Regex => "regex",
             Self::Serde => "serde",
             Self::Stdio => "stdio",
             #[cfg(feature = "roblox")]
@@ -52,6 +55,7 @@ impl LuneBuiltin {
             Self::Net => net::create(lua),
             Self::Task => task::create(lua),
             Self::Process => process::create(lua),
+            Self::Regex => regex::create(lua),
             Self::Serde => serde::create(lua),
             Self::Stdio => stdio::create(lua),
             #[cfg(feature = "roblox")]
@@ -77,6 +81,7 @@ impl FromStr for LuneBuiltin {
             "net" => Ok(Self::Net),
             "task" => Ok(Self::Task),
             "process" => Ok(Self::Process),
+            "regex" => Ok(Self::Regex),
             "serde" => Ok(Self::Serde),
             "stdio" => Ok(Self::Stdio),
             #[cfg(feature = "roblox")]

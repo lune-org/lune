@@ -1,6 +1,7 @@
 use std::io::ErrorKind as IoErrorKind;
 use std::path::{PathBuf, MAIN_SEPARATOR};
 
+use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
 use tokio::fs;
 
@@ -32,6 +33,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
 
 async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaString> {
     let bytes = fs::read(&path).await.into_lua_err()?;
+
     lua.create_string(bytes)
 }
 
@@ -64,8 +66,8 @@ async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     Ok(dir_strings_no_prefix)
 }
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, LuaString<'_>)) -> LuaResult<()> {
-    fs::write(&path, &contents.as_bytes()).await.into_lua_err()
+async fn fs_write_file(_: &Lua, (path, contents): (String, BString)) -> LuaResult<()> {
+    fs::write(&path, contents.as_bytes()).await.into_lua_err()
 }
 
 async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {

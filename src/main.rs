@@ -5,7 +5,9 @@
     clippy::match_bool,
     clippy::module_name_repetitions,
     clippy::multiple_crate_versions,
-    clippy::needless_pass_by_value
+    clippy::needless_pass_by_value,
+    clippy::declare_interior_mutable_const,
+    clippy::borrow_interior_mutable_const
 )]
 
 use std::process::ExitCode;

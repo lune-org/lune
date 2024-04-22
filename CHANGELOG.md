@@ -8,6 +8,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Added a builtin API for regular expressions.
+
+  Example basic usage:
+
+  ```lua
+  local Regex = require("@lune/regex")
+
+  local re = Regex.new("hello")
+
+  if re:isMatch("hello, world!") then
+  	print("Matched!")
+  end
+
+  local caps = re:captures("hello, world! hello, again!")
+
+  print(#caps) -- 2
+  print(caps:get(1)) -- "hello"
+  print(caps:get(2)) -- "hello"
+  print(caps:get(3)) -- nil
+  ```
+
+  Check out the documentation for more details.
+
+- Added support for buffers as arguments in builtin APIs ([#148])
+
+  This includes APIs such as `fs.writeFile`, `serde.encode`, and more.
+
+- Added support for cross-compilation of standalone binaries ([#162])
+
+  You can now compile standalone binaries for other platforms by passing
+  an additional `target` argument to the `build` subcommand:
+
+  ```sh
+  lune build my-file.luau --output my-bin --target windows-x86_64
+  ```
+
+  Currently supported targets are the same as the ones included with each
+  release of Lune on GitHub. Check releases for a full list of targets.
+
+- Added `stdio.readToEnd()` for reading the entire stdin passed to Lune
+- Changed the `User-Agent` header in `net.request` to be more descriptive ([#186])
+- Updated to Luau version `0.622`.
+
+### Fixed
+
+- Fixed stack overflow for tables with circular keys ([#183])
+- Fixed `net.serve` no longer accepting ipv6 addresses
+- Fixed headers in `net.serve` being raw bytes instead of strings
+
+[#148]: https://github.com/lune-org/lune/pull/148
+[#162]: https://github.com/lune-org/lune/pull/162
+[#183]: https://github.com/lune-org/lune/pull/183
+[#186]: https://github.com/lune-org/lune/pull/186
+
 ## `0.8.3` - April 15th, 2024
 
 ### Fixed

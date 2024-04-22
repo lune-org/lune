@@ -1,5 +1,6 @@
 #![allow(unused_variables)]
 
+use bstr::BString;
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -23,7 +24,7 @@ use super::serde::encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat};
 
 pub fn create(lua: &Lua) -> LuaResult<LuaTable> {
     NetClientBuilder::new()
-        .headers(&[("User-Agent", create_user_agent_header())])?
+        .headers(&[("User-Agent", create_user_agent_header(lua)?)])?
         .build()?
         .into_registry(lua);
     TableBuilder::new(lua)?
@@ -45,7 +46,7 @@ fn net_json_encode<'lua>(
         .serialize_to_string(lua, val)
 }
 
-fn net_json_decode<'lua>(lua: &'lua Lua, json: LuaString<'lua>) -> LuaResult<LuaValue<'lua>> {
+fn net_json_decode(lua: &Lua, json: BString) -> LuaResult<LuaValue> {
     EncodeDecodeConfig::from(EncodeDecodeFormat::Json).deserialize_from_string(lua, json)
 }
 

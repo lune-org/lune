@@ -24,8 +24,8 @@ cli = [
     "dep:env_logger",
     "dep:clap",
     "dep:include_dir",
-    "dep:regex",
     "dep:rustyline",
+    "dep:zip_next",
 ]
 roblox = [
     "dep:glam",
@@ -75,6 +75,9 @@ path-clean = "1.0"
 pathdiff = "0.2"
 pin-project = "1.0"
 urlencoding = "2.1"
+bstr = "1.9"
+regex = "1.10"
+self_cell = "1.0"
 
 ### RUNTIME
 
@@ -83,9 +86,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1.24", features = ["full", "tracing"] }
 os_str_bytes = { version = "7.0", features = ["conversions"] }
-
 mlua-luau-scheduler = { git = "https://github.com/0x5eal/mlua-luau-scheduler-exitstatus.git" }
-mlua = { version = "0.9.6", features = [
+mlua = { version = "0.9.7", features = [
     "luau",
     "luau-jit",
     "async",
@@ -131,11 +133,8 @@ env_logger = { optional = true, version = "0.11" }
 itertools = "0.12"
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
-regex = { optional = true, version = "1.7", default-features = false, features = [
-    "std",
-    "unicode-perl",
-] }
 rustyline = { optional = true, version = "14.0" }
+zip_next = { optional = true, version = "1.1" }
 
 ### ROBLOX
 

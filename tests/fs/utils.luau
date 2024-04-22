@@ -16,6 +16,6 @@ local jsonBlob = serde.encode("json", {
 -- Return testing data and utils
 
 return {
-	binaryBlob = binaryBlob,
+	binaryBlob = buffer.fromstring(binaryBlob),
 	jsonBlob = jsonBlob,
 }

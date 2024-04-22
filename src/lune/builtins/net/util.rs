@@ -7,12 +7,19 @@ use mlua::prelude::*;
 
 use crate::lune::util::TableBuilder;
 
-pub fn create_user_agent_header() -> String {
-    let (github_owner, github_repo) = env!("CARGO_PKG_REPOSITORY")
-        .trim_start_matches("https://github.com/")
-        .split_once('/')
-        .unwrap();
-    format!("{github_owner}-{github_repo}-cli")
+pub fn create_user_agent_header(lua: &Lua) -> LuaResult<String> {
+    let version_global = lua
+        .globals()
+        .get::<_, LuaString>("_VERSION")
+        .expect("Missing _VERSION global");
+
+    let version_global_str = version_global
+        .to_str()
+        .context("Invalid utf8 found in _VERSION global")?;
+
+    let (package_name, full_version) = version_global_str.split_once(' ').unwrap();
+
+    Ok(format!("{}/{}", package_name.to_lowercase(), full_version))
 }
 
 pub fn header_map_to_table(

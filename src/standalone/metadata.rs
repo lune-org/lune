@@ -5,10 +5,9 @@ use mlua::Compiler as LuaCompiler;
 use once_cell::sync::Lazy;
 use tokio::fs;
 
-const MAGIC: &[u8; 8] = b"cr3sc3nt";
-
-static CURRENT_EXE: Lazy<PathBuf> =
+pub const CURRENT_EXE: Lazy<PathBuf> =
     Lazy::new(|| env::current_exe().expect("failed to get current exe"));
+const MAGIC: &[u8; 8] = b"cr3sc3nt";
 
 /*
     TODO: Right now all we do is append the bytecode to the end
@@ -49,15 +48,19 @@ impl Metadata {
     /**
         Creates a patched standalone binary from the given script contents.
     */
-    pub async fn create_env_patched_bin(script_contents: impl Into<Vec<u8>>) -> Result<Vec<u8>> {
-        let mut patched_bin = fs::read(CURRENT_EXE.to_path_buf()).await?;
-
-        // Compile luau input into bytecode
-        let bytecode = LuaCompiler::new()
+    pub async fn create_env_patched_bin(
+        base_exe_path: PathBuf,
+        script_contents: impl Into<Vec<u8>>,
+    ) -> Result<Vec<u8>> {
+        let compiler = LuaCompiler::new()
             .set_optimization_level(2)
             .set_coverage_level(0)
-            .set_debug_level(1)
-            .compile(script_contents.into());
+            .set_debug_level(1);
+
+        let mut patched_bin = fs::read(base_exe_path).await?;
+
+        // Compile luau input into bytecode
+        let bytecode = compiler.compile(script_contents.into());
 
         // Append the bytecode / metadata to the end
         let meta = Self { bytecode };

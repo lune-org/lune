@@ -33,69 +33,60 @@ local TESTS: { Test } = {
 }
 
 local failed = false
-for _, test in TESTS do
-	local source = fs.readFile(test.Source)
-	local target = fs.readFile(test.Target)
-
-	local success, compressed = pcall(serde.compress, test.Format, source)
+local function testOperation(
+	operationName: "Compress" | "Decompress",
+	operation: (
+		format: serde.CompressDecompressFormat,
+		s: buffer | string
+	) -> string,
+	format: serde.CompressDecompressFormat,
+	source: string | buffer,
+	target: string
+)
+	local success, res = pcall(operation, format, source)
 	if not success then
 		stdio.ewrite(
 			string.format(
-				"Compressing source using '%s' format threw an error!\n%s",
-				tostring(test.Format),
-				tostring(compressed)
+				"%sing source using '%s' format threw an error!\n%s",
+				operationName,
+				tostring(format),
+				tostring(res)
 			)
 		)
 		failed = true
-		continue
-	elseif compressed ~= target then
+	elseif res ~= target then
 		stdio.ewrite(
 			string.format(
-				"Compressing source using '%s' format did not produce target!\n",
-				tostring(test.Format)
+				"%sing source using '%s' format did not produce target!\n",
+				operationName,
+				tostring(format)
 			)
 		)
 		stdio.ewrite(
 			string.format(
-				"Compressed (%d chars long):\n%s\nTarget (%d chars long):\n%s\n\n",
-				#compressed,
-				tostring(compressed),
+				"%sed (%d chars long):\n%s\nTarget (%d chars long):\n%s\n\n",
+				operationName,
+				#res,
+				tostring(res),
 				#target,
 				tostring(target)
 			)
 		)
 		failed = true
-		continue
 	end
+end
 
-	local success2, decompressed = pcall(serde.decompress, test.Format, target)
-	if not success2 then
-		stdio.ewrite(
-			string.format(
-				"Decompressing source using '%s' format threw an error!\n%s",
-				tostring(test.Format),
-				tostring(decompressed)
-			)
-		)
-		failed = true
-		continue
-	elseif decompressed ~= source then
-		stdio.ewrite(
-			string.format(
-				"Decompressing target using '%s' format did not produce source!\n",
-				tostring(test.Format)
-			)
-		)
-		stdio.ewrite(
-			string.format(
-				"Decompressed (%d chars long):\n%s\n\n",
-				#decompressed,
-				tostring(decompressed)
-			)
-		)
-		failed = true
-		continue
-	end
+for _, test in TESTS do
+	local source = fs.readFile(test.Source)
+	local target = fs.readFile(test.Target)
+
+	-- Compression
+	testOperation("Compress", serde.compress, test.Format, source, target)
+	testOperation("Compress", serde.compress, test.Format, buffer.fromstring(source), target)
+
+	-- Decompression
+	testOperation("Decompress", serde.decompress, test.Format, target, source)
+	testOperation("Decompress", serde.decompress, test.Format, buffer.fromstring(target), source)
 end
 
 if failed then
