@@ -3,6 +3,7 @@ resolver = "2"
 default-members = ["crates/lune"]
 members = [
     "crates/lune",
+    "crates/lune-roblox",
     "crates/lune-std",
     "crates/lune-std-datetime",
     "crates/lune-std-fs",

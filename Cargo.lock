@@ -1538,6 +1538,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lune-roblox"
+version = "0.1.0"
+dependencies = [
+ "mlua",
+]
+
+[[package]]
 name = "lune-std"
 version = "0.1.0"
 dependencies = [
