@@ -1,9 +1,8 @@
 use mlua::prelude::*;
 
-use lune_utils::{
-    path::{clean_path_and_make_absolute, diff_path, get_current_dir},
-    LuauRc,
-};
+use lune_utils::path::{clean_path_and_make_absolute, diff_path, get_current_dir};
+
+use crate::luaurc::LuauRc;
 
 use super::context::*;
 

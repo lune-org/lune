@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use tokio::fs::read;
 
-use crate::path::{clean_path, clean_path_and_make_absolute};
+use lune_utils::path::{clean_path, clean_path_and_make_absolute};
 
 const LUAURC_FILE: &str = ".luaurc";
 
