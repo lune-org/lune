@@ -11,6 +11,6 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-mlua = "0.9.7"
+mlua = { version = "0.9.7", features = ["luau"] }
 
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
