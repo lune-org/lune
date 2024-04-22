@@ -4,6 +4,7 @@ mod luaurc;
 mod table_builder;
 mod version_string;
 
+pub mod fmt;
 pub mod path;
 
 pub use self::luaurc::LuauRc;
