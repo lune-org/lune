@@ -12,15 +12,18 @@ impl ValueFormatConfig {
         Creates a new config with default values.
     */
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        Self {
+            max_depth: 3,
+            colors_enabled: false,
+        }
     }
 
     /**
         Sets the maximum depth to which tables will be formatted.
     */
     #[must_use]
-    pub fn with_max_depth(self, max_depth: usize) -> Self {
+    pub const fn with_max_depth(self, max_depth: usize) -> Self {
         Self { max_depth, ..self }
     }
 
@@ -30,7 +33,7 @@ impl ValueFormatConfig {
         Colors are disabled by default.
     */
     #[must_use]
-    pub fn with_colors_enabled(self, colors_enabled: bool) -> Self {
+    pub const fn with_colors_enabled(self, colors_enabled: bool) -> Self {
         Self {
             colors_enabled,
             ..self
@@ -40,9 +43,6 @@ impl ValueFormatConfig {
 
 impl Default for ValueFormatConfig {
     fn default() -> Self {
-        Self {
-            max_depth: 3,
-            colors_enabled: false,
-        }
+        Self::new()
     }
 }
