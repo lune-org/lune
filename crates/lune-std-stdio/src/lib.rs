@@ -8,8 +8,10 @@ use tokio::io::{stderr, stdin, stdout, AsyncReadExt, AsyncWriteExt};
 use lune_utils::TableBuilder;
 
 mod prompt;
+mod style_and_color;
 
 use self::prompt::{prompt, PromptOptions, PromptResult};
+use self::style_and_color::{ColorKind, StyleKind};
 
 /**
     Creates the `stdio` standard library module.
@@ -30,14 +32,12 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn stdio_color(_: &Lua, _color: String) -> LuaResult<String> {
-    // TODO: Migrate from old crate
-    unimplemented!()
+fn stdio_color(lua: &Lua, color: ColorKind) -> LuaResult<LuaValue> {
+    color.ansi_escape_sequence().into_lua(lua)
 }
 
-fn stdio_style(_: &Lua, _color: String) -> LuaResult<String> {
-    // TODO: Migrate from old crate
-    unimplemented!()
+fn stdio_style(lua: &Lua, style: StyleKind) -> LuaResult<LuaValue> {
+    style.ansi_escape_sequence().into_lua(lua)
 }
 
 fn stdio_format(_: &Lua, _args: LuaMultiValue) -> LuaResult<String> {
