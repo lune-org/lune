@@ -1547,7 +1547,6 @@ dependencies = [
  "once_cell",
  "rand",
  "rbx_binary",
- "rbx_cookie",
  "rbx_dom_weak",
  "rbx_reflection",
  "rbx_reflection_database",
@@ -1640,8 +1639,12 @@ dependencies = [
 name = "lune-std-roblox"
 version = "0.1.0"
 dependencies = [
+ "lune-roblox",
  "lune-utils",
  "mlua",
+ "mlua-luau-scheduler 0.0.1",
+ "once_cell",
+ "rbx_cookie",
 ]
 
 [[package]]

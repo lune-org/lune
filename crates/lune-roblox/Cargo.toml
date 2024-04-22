@@ -18,8 +18,6 @@ rand = "0.8"
 thiserror = "1.0"
 once_cell = "1.17"
 
-rbx_cookie = { version = "0.1.4", default-features = false }
-
 rbx_binary = "0.7.3"
 rbx_dom_weak = "2.6.0"
 rbx_reflection = "4.4.0"
