@@ -1623,8 +1623,16 @@ dependencies = [
 name = "lune-std-serde"
 version = "0.1.0"
 dependencies = [
+ "async-compression",
+ "bstr",
  "lune-utils",
+ "lz4_flex",
  "mlua",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tokio",
+ "toml",
 ]
 
 [[package]]
