@@ -1,5 +1,6 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use lune_utils::fmt::{pretty_format_multi_value, ValueFormatConfig};
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -12,6 +13,10 @@ mod style_and_color;
 
 use self::prompt::{prompt, PromptOptions, PromptResult};
 use self::style_and_color::{ColorKind, StyleKind};
+
+const FORMAT_CONFIG: ValueFormatConfig = ValueFormatConfig::new()
+    .with_max_depth(4)
+    .with_colors_enabled(false);
 
 /**
     Creates the `stdio` standard library module.
@@ -40,9 +45,8 @@ fn stdio_style(lua: &Lua, style: StyleKind) -> LuaResult<LuaValue> {
     style.ansi_escape_sequence().into_lua(lua)
 }
 
-fn stdio_format(_: &Lua, _args: LuaMultiValue) -> LuaResult<String> {
-    // TODO: Migrate from old crate
-    unimplemented!()
+fn stdio_format(_: &Lua, args: LuaMultiValue) -> LuaResult<String> {
+    Ok(pretty_format_multi_value(&args, &FORMAT_CONFIG))
 }
 
 async fn stdio_write(_: &Lua, s: LuaString<'_>) -> LuaResult<()> {
