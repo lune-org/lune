@@ -13,4 +13,8 @@ workspace = true
 [dependencies]
 mlua = { version = "0.9.7", features = ["luau"] }
 
+thiserror = "1.0"
+chrono = "=0.4.34" # NOTE: 0.4.35 does not compile with chrono_lc
+chrono_lc = "0.1"
+
 lune-utils = { version = "0.1.0", path = "../lune-utils" }

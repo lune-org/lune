@@ -1561,8 +1561,11 @@ dependencies = [
 name = "lune-std-datetime"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "chrono_lc",
  "lune-utils",
  "mlua",
+ "thiserror",
 ]
 
 [[package]]
