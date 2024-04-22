@@ -13,9 +13,13 @@ pub use self::config::ValueFormatConfig;
 use self::basic::{format_value_styled, lua_value_as_plain_string_key};
 use self::style::STYLE_DIM;
 
-type FmtResult = Result<String, fmt::Error>;
-
-fn format_value_inner(value: &LuaValue, config: &ValueFormatConfig, depth: usize) -> FmtResult {
+// NOTE: We return a result here but it's really just to make handling
+// of the `write!` calls easier. Writing into a string should never fail.
+fn format_value_inner(
+    value: &LuaValue,
+    config: &ValueFormatConfig,
+    depth: usize,
+) -> Result<String, fmt::Error> {
     let mut buffer = String::new();
 
     // TODO: Rewrite this section to not be recursive and
