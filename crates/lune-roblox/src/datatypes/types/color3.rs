@@ -89,8 +89,7 @@ impl LuaExportsTable<'_> for Color3 {
                     b: (b as f32) / 255f32,
                 }),
                 _ => Err(LuaError::RuntimeError(format!(
-                    "Hex color string '{}' contains invalid character",
-                    trimmed
+                    "Hex color string '{trimmed}' contains invalid character",
                 ))),
             }
         };
@@ -155,6 +154,7 @@ impl LuaUserData for Color3 {
             let max = r.max(g).max(b);
             let diff = max - min;
 
+            #[allow(clippy::float_cmp)]
             let hue = (match max {
                 max if max == min => 0.0,
                 max if max == r => (g - b) / diff + (if g < b { 6.0 } else { 0.0 }),

@@ -36,8 +36,7 @@ impl LuaExportsTable<'_> for Vector3 {
                     "Z" => Vector3(Vec3::Z),
                     name => {
                         return Err(LuaError::RuntimeError(format!(
-                            "Axis '{}' is not known",
-                            name
+                            "Axis '{name}' is not known",
                         )))
                     }
                 })
@@ -60,8 +59,7 @@ impl LuaExportsTable<'_> for Vector3 {
                     "Back" => Vector3(Vec3::Z),
                     name => {
                         return Err(LuaError::RuntimeError(format!(
-                            "NormalId '{}' is not known",
-                            name
+                            "NormalId '{name}' is not known",
                         )))
                     }
                 })

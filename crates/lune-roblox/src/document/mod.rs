@@ -78,6 +78,7 @@ impl Document {
         | Model | Binary | `rbxm`    |
         | Model | Xml    | `rbxmx`   |
     */
+    #[must_use]
 	#[rustfmt::skip]
     pub fn canonical_extension(kind: DocumentKind, format: DocumentFormat) -> &'static str {
         match (kind, format) {
@@ -113,6 +114,10 @@ impl Document {
         Note that detection of model vs place file is heavily dependent on the structure
         of the file, and a model file with services in it will detect as a place file, so
         if possible using [`Document::from_bytes`] with an explicit kind should be preferred.
+
+        # Errors
+
+        Errors if the given bytes are not a valid roblox file.
     */
     pub fn from_bytes_auto(bytes: impl AsRef<[u8]>) -> DocumentResult<Self> {
         let (format, dom) = Self::from_bytes_inner(bytes)?;
@@ -125,6 +130,10 @@ impl Document {
 
         This will automatically handle and detect if the document
         should be decoded using a roblox binary or roblox xml format.
+
+        # Errors
+
+        Errors if the given bytes are not a valid roblox file or not of the given kind.
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>, kind: DocumentKind) -> DocumentResult<Self> {
         let (format, dom) = Self::from_bytes_inner(bytes)?;
@@ -138,6 +147,10 @@ impl Document {
         This will use the same format that the document was created
         with, meaning if the document is a binary document the output
         will be binary, and vice versa for xml and other future formats.
+
+        # Errors
+
+        Errors if the document can not be encoded.
     */
     pub fn to_bytes(&self) -> DocumentResult<Vec<u8>> {
         self.to_bytes_with_format(self.format)
@@ -146,6 +159,10 @@ impl Document {
     /**
         Encodes the document as a vector of bytes, to
         be written to a file or sent over the network.
+
+        # Errors
+
+        Errors if the document can not be encoded.
     */
     pub fn to_bytes_with_format(&self, format: DocumentFormat) -> DocumentResult<Vec<u8>> {
         let mut bytes = Vec::new();
@@ -172,6 +189,7 @@ impl Document {
     /**
         Gets the kind this document was created with.
     */
+    #[must_use]
     pub fn kind(&self) -> DocumentKind {
         self.kind
     }
@@ -179,6 +197,7 @@ impl Document {
     /**
         Gets the format this document was created with.
     */
+    #[must_use]
     pub fn format(&self) -> DocumentFormat {
         self.format
     }
@@ -186,14 +205,17 @@ impl Document {
     /**
         Gets the file extension for this document.
     */
+    #[must_use]
     pub fn extension(&self) -> &'static str {
         Self::canonical_extension(self.kind, self.format)
     }
 
     /**
-        Creates a DataModel instance out of this place document.
+        Creates a `DataModel` instance out of this place document.
 
-        Will error if the document is not a place.
+        # Errors
+
+        Errors if the document is not a place.
     */
     pub fn into_data_model_instance(mut self) -> DocumentResult<Instance> {
         if self.kind != DocumentKind::Place {
@@ -219,7 +241,9 @@ impl Document {
     /**
         Creates an array of instances out of this model document.
 
-        Will error if the document is not a model.
+        # Errors
+
+        Errors if the document is not a model.
     */
     pub fn into_instance_array(mut self) -> DocumentResult<Vec<Instance>> {
         if self.kind != DocumentKind::Model {
@@ -237,9 +261,11 @@ impl Document {
     }
 
     /**
-        Creates a place document out of a DataModel instance.
+        Creates a place document out of a `DataModel` instance.
 
-        Will error if the instance is not a DataModel.
+        # Errors
+
+        Errors if the instance is not a `DataModel`.
     */
     pub fn from_data_model_instance(i: Instance) -> DocumentResult<Self> {
         if i.get_class_name() != data_model::CLASS_NAME {
@@ -266,7 +292,9 @@ impl Document {
     /**
         Creates a model document out of an array of instances.
 
-        Will error if any of the instances is a DataModel.
+        # Errors
+
+        Errors if any of the instances is a `DataModel`.
     */
     pub fn from_instance_array(v: Vec<Instance>) -> DocumentResult<Self> {
         for i in &v {

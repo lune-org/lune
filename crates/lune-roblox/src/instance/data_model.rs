@@ -33,7 +33,7 @@ fn data_model_get_workspace(_: &Lua, this: &Instance) -> LuaResult<Instance> {
 }
 
 /**
-    Gets or creates a service for this DataModel.
+    Gets or creates a service for this `DataModel`.
 
     ### See Also
     * [`GetService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#GetService)
@@ -42,8 +42,7 @@ fn data_model_get_workspace(_: &Lua, this: &Instance) -> LuaResult<Instance> {
 fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> LuaResult<Instance> {
     if matches!(class_is_a_service(&service_name), None | Some(false)) {
         Err(LuaError::RuntimeError(format!(
-            "'{}' is not a valid service name",
-            service_name
+            "'{service_name}' is not a valid service name",
         )))
     } else if let Some(service) = this.find_child(|child| child.class == service_name) {
         Ok(service)
@@ -55,7 +54,7 @@ fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> Lua
 }
 
 /**
-    Gets a service for this DataModel, if it exists.
+    Gets a service for this `DataModel`, if it exists.
 
     ### See Also
     * [`FindService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#FindService)
@@ -68,8 +67,7 @@ fn data_model_find_service(
 ) -> LuaResult<Option<Instance>> {
     if matches!(class_is_a_service(&service_name), None | Some(false)) {
         Err(LuaError::RuntimeError(format!(
-            "'{}' is not a valid service name",
-            service_name
+            "'{service_name}' is not a valid service name",
         )))
     } else if let Some(service) = this.find_child(|child| child.class == service_name) {
         Ok(Some(service))

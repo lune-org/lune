@@ -25,6 +25,7 @@ impl DatabaseProperty {
     /**
         Get the name of this property.
     */
+    #[must_use]
     pub fn get_name(&self) -> String {
         self.1.name.to_string()
     }
@@ -36,6 +37,7 @@ impl DatabaseProperty {
 
         For enums this will be a string formatted as `Enum.EnumName`.
     */
+    #[must_use]
     pub fn get_datatype_name(&self) -> String {
         data_type_to_str(self.1.data_type.clone())
     }
@@ -45,8 +47,9 @@ impl DatabaseProperty {
 
         All properties are writable and readable in Lune even if scriptability is not.
     */
+    #[must_use]
     pub fn get_scriptability_str(&self) -> &'static str {
-        scriptability_to_str(&self.1.scriptability)
+        scriptability_to_str(self.1.scriptability)
     }
 
     /**
@@ -59,6 +62,7 @@ impl DatabaseProperty {
         self.1
             .tags
             .iter()
+            .copied()
             .map(property_tag_to_str)
             .collect::<Vec<_>>()
     }

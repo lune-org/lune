@@ -12,7 +12,7 @@ use super::super::*;
 /**
     An implementation of the [NumberRange](https://create.roblox.com/docs/reference/engine/datatypes/NumberRange) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the NumberRange class as of March 2023.
+    This implements all documented properties, methods & constructors of the `NumberRange` class as of March 2023.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NumberRange {

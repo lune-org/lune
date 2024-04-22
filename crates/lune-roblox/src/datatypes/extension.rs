@@ -6,6 +6,7 @@ pub(crate) trait DomValueExt {
 
 impl DomValueExt for DomType {
     fn variant_name(&self) -> Option<&'static str> {
+        #[allow(clippy::enum_glob_use)]
         use DomType::*;
         Some(match self {
             Attributes => "Attributes",

@@ -51,6 +51,13 @@ impl InstanceRegistry {
             .expect("Missing InstanceRegistry in app data")
     }
 
+    /**
+        Inserts a method into the instance registry.
+
+        # Errors
+
+        - If the method already exists in the registry.
+    */
     pub fn insert_method<'lua>(
         lua: &'lua Lua,
         class_name: &str,
@@ -80,6 +87,13 @@ impl InstanceRegistry {
         Ok(())
     }
 
+    /**
+        Inserts a property getter into the instance registry.
+
+        # Errors
+
+        - If the property already exists in the registry.
+    */
     pub fn insert_property_getter<'lua>(
         lua: &'lua Lua,
         class_name: &str,
@@ -109,6 +123,13 @@ impl InstanceRegistry {
         Ok(())
     }
 
+    /**
+        Inserts a property setter into the instance registry.
+
+        # Errors
+
+        - If the property already exists in the registry.
+    */
     pub fn insert_property_setter<'lua>(
         lua: &'lua Lua,
         class_name: &str,
@@ -138,6 +159,12 @@ impl InstanceRegistry {
         Ok(())
     }
 
+    /**
+        Finds a method in the instance registry.
+
+        Returns `None` if the method is not found.
+    */
+    #[must_use]
     pub fn find_method<'lua>(
         lua: &'lua Lua,
         instance: &Instance,
@@ -159,6 +186,12 @@ impl InstanceRegistry {
             })
     }
 
+    /**
+        Finds a property getter in the instance registry.
+
+        Returns `None` if the property getter is not found.
+    */
+    #[must_use]
     pub fn find_property_getter<'lua>(
         lua: &'lua Lua,
         instance: &Instance,
@@ -180,6 +213,12 @@ impl InstanceRegistry {
             })
     }
 
+    /**
+        Finds a property setter in the instance registry.
+
+        Returns `None` if the property setter is not found.
+    */
+    #[must_use]
     pub fn find_property_setter<'lua>(
         lua: &'lua Lua,
         instance: &Instance,
@@ -202,6 +241,16 @@ impl InstanceRegistry {
     }
 }
 
+/**
+    Gets the class name chain for a given class name.
+
+    The chain starts with the given class name and ends with the root class.
+
+    # Panics
+
+    Panics if the class name is not valid.
+*/
+#[must_use]
 pub fn class_name_chain(class_name: &str) -> Vec<&str> {
     let db = rbx_reflection_database::get();
 

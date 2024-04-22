@@ -24,8 +24,7 @@ impl LuaUserData for Enums {
             |_, _, name: String| match Enum::from_name(&name) {
                 Some(e) => Ok(e),
                 None => Err(LuaError::RuntimeError(format!(
-                    "The enum '{}' does not exist",
-                    name
+                    "The enum '{name}' does not exist",
                 ))),
             },
         );

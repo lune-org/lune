@@ -60,12 +60,12 @@ pub(crate) fn find_property_info(
                     value_type: Some(*value_type),
                     ..Default::default()
                 },
-                _ => Default::default(),
+                _ => PropertyInfo::default(),
             });
             break;
         } else if let Some(sup) = &class.superclass {
             // No property found, we should look at the superclass
-            class_name = Cow::Borrowed(sup)
+            class_name = Cow::Borrowed(sup);
         } else {
             break;
         }
@@ -87,7 +87,7 @@ pub(crate) fn find_property_info(
                 break;
             } else if let Some(sup) = &class.superclass {
                 // No default value found, we should look at the superclass
-                class_name = Cow::Borrowed(sup)
+                class_name = Cow::Borrowed(sup);
             } else {
                 break;
             }

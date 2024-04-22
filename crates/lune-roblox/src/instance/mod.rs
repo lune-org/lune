@@ -1,3 +1,5 @@
+#![allow(clippy::missing_panics_doc)]
+
 use std::{
     collections::{BTreeMap, VecDeque},
     fmt,
@@ -55,9 +57,10 @@ impl Instance {
             .get_by_ref(dom_ref)
             .expect("Failed to find instance in document");
 
-        if instance.referent() == dom.root_ref() {
-            panic!("Instances can not be created from dom roots")
-        }
+        assert!(
+            !(instance.referent() == dom.root_ref()),
+            "Instances can not be created from dom roots"
+        );
 
         Self {
             dom_ref,
@@ -77,9 +80,10 @@ impl Instance {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         if let Some(instance) = dom.get_by_ref(dom_ref) {
-            if instance.referent() == dom.root_ref() {
-                panic!("Instances can not be created from dom roots")
-            }
+            assert!(
+                !(instance.referent() == dom.root_ref()),
+                "Instances can not be created from dom roots"
+            );
 
             Some(Self {
                 dom_ref,
@@ -155,7 +159,7 @@ impl Instance {
 
         let cloned = dom.clone_multiple_into_external(referents, external_dom);
 
-        for referent in cloned.iter() {
+        for referent in &cloned {
             external_dom.transfer_within(*referent, external_dom.root_ref());
         }
 
@@ -172,7 +176,8 @@ impl Instance {
         * [`Clone`](https://create.roblox.com/docs/reference/engine/classes/Instance#Clone)
         on the Roblox Developer Hub
     */
-    pub fn clone_instance(&self) -> Instance {
+    #[must_use]
+    pub fn clone_instance(&self) -> Self {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let new_ref = dom.clone_within(self.dom_ref);
         drop(dom); // Self::new needs mutex handle, drop it first
@@ -255,6 +260,7 @@ impl Instance {
         * [`ClassName`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClassName)
         on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_class_name(&self) -> &str {
         self.class_name.as_str()
     }
@@ -287,7 +293,7 @@ impl Instance {
 
         dom.get_by_ref_mut(self.dom_ref)
             .expect("Failed to find instance in document")
-            .name = name.into()
+            .name = name.into();
     }
 
     /**
@@ -327,9 +333,7 @@ impl Instance {
     pub fn set_parent(&self, parent: Option<Instance>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
-        let parent_ref = parent
-            .map(|parent| parent.dom_ref)
-            .unwrap_or_else(|| dom.root_ref());
+        let parent_ref = parent.map_or_else(|| dom.root_ref(), |parent| parent.dom_ref);
 
         dom.transfer_within(self.dom_ref, parent_ref);
     }
@@ -664,9 +668,8 @@ impl Instance {
             if predicate(ancestor) {
                 drop(dom); // Self::new needs mutex handle, drop it first
                 return Some(Self::new(ancestor_ref));
-            } else {
-                ancestor_ref = ancestor.parent();
             }
+            ancestor_ref = ancestor.parent();
         }
 
         None
@@ -700,9 +703,8 @@ impl Instance {
                 let queue_ref = queue_item.referent();
                 drop(dom); // Self::new needs mutex handle, drop it first
                 return Some(Self::new(queue_ref));
-            } else {
-                queue.extend(queue_item.children())
             }
+            queue.extend(queue_item.children());
         }
 
         None
@@ -718,8 +720,7 @@ impl LuaExportsTable<'_> for Instance {
                 Instance::new_orphaned(class_name).into_lua(lua)
             } else {
                 Err(LuaError::RuntimeError(format!(
-                    "Failed to create Instance - '{}' is not a valid class name",
-                    class_name
+                    "Failed to create Instance - '{class_name}' is not a valid class name",
                 )))
             }
         };
@@ -757,7 +758,7 @@ impl LuaUserData for Instance {
 
 impl Hash for Instance {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.dom_ref.hash(state)
+        self.dom_ref.hash(state);
     }
 }
 

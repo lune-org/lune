@@ -23,7 +23,7 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(methods: &mut M)
         CLASS_NAME,
         "SetMaterialColor",
         terrain_set_material_color,
-    )
+    );
 }
 
 fn get_or_create_material_colors(instance: &Instance) -> MaterialColors {

@@ -4,6 +4,15 @@ use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
 
 use super::extension::DomValueExt;
 
+/**
+    Checks if the given name is a valid attribute name.
+
+    # Errors
+
+    - If the name starts with the prefix "RBX".
+    - If the name contains any characters other than alphanumeric characters and underscore.
+    - If the name is longer than 100 characters.
+*/
 pub fn ensure_valid_attribute_name(name: impl AsRef<str>) -> LuaResult<()> {
     let name = name.as_ref();
     if name.to_ascii_uppercase().starts_with("RBX") {
@@ -23,6 +32,13 @@ pub fn ensure_valid_attribute_name(name: impl AsRef<str>) -> LuaResult<()> {
     }
 }
 
+/**
+    Checks if the given value is a valid attribute value.
+
+    # Errors
+
+    - If the value is not a valid attribute type.
+*/
 pub fn ensure_valid_attribute_value(value: &DomValue) -> LuaResult<()> {
     let is_valid = matches!(
         value.ty(),

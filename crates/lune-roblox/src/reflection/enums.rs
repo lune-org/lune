@@ -23,6 +23,7 @@ impl DatabaseEnum {
     /**
         Get the name of this enum.
     */
+    #[must_use]
     pub fn get_name(&self) -> String {
         self.0.name.to_string()
     }
@@ -31,8 +32,9 @@ impl DatabaseEnum {
         Get all known members of this enum.
 
         Note that this is a direct map of name -> enum values,
-        and does not actually use the EnumItem datatype itself.
+        and does not actually use the `EnumItem` datatype itself.
     */
+    #[must_use]
     pub fn get_items(&self) -> HashMap<String, u32> {
         self.0
             .items

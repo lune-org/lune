@@ -17,7 +17,7 @@ pub fn data_type_to_str(data_type: DataType) -> String {
      NOTE: Remember to add any new strings here to typedefs too!
 */
 
-pub fn scriptability_to_str(scriptability: &Scriptability) -> &'static str {
+pub fn scriptability_to_str(scriptability: Scriptability) -> &'static str {
     match scriptability {
         Scriptability::None => "None",
         Scriptability::Custom => "Custom",
@@ -28,7 +28,7 @@ pub fn scriptability_to_str(scriptability: &Scriptability) -> &'static str {
     }
 }
 
-pub fn property_tag_to_str(tag: &PropertyTag) -> &'static str {
+pub fn property_tag_to_str(tag: PropertyTag) -> &'static str {
     match tag {
         PropertyTag::Deprecated => "Deprecated",
         PropertyTag::Hidden => "Hidden",
@@ -41,7 +41,7 @@ pub fn property_tag_to_str(tag: &PropertyTag) -> &'static str {
     }
 }
 
-pub fn class_tag_to_str(tag: &ClassTag) -> &'static str {
+pub fn class_tag_to_str(tag: ClassTag) -> &'static str {
     match tag {
         ClassTag::Deprecated => "Deprecated",
         ClassTag::NotBrowsable => "NotBrowsable",

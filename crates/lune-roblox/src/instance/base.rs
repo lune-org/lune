@@ -1,3 +1,5 @@
+#![allow(clippy::items_after_statements)]
+
 use mlua::prelude::*;
 
 use rbx_dom_weak::{
@@ -17,6 +19,7 @@ use crate::{
 
 use super::{data_model, registry::InstanceRegistry, Instance};
 
+#[allow(clippy::too_many_lines)]
 pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
     m.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
         ensure_not_destroyed(this)?;
@@ -142,7 +145,7 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         ensure_not_destroyed(this)?;
         let attributes = this.get_attributes();
         let tab = lua.create_table_with_capacity(0, attributes.len())?;
-        for (key, value) in attributes.into_iter() {
+        for (key, value) in attributes {
             tab.set(key, LuaValue::dom_value_to_lua(lua, &value)?)?;
         }
         Ok(tab)
@@ -227,8 +230,7 @@ fn instance_property_get<'lua>(
             if let DomValue::Enum(enum_value) = prop {
                 let enum_name = info.enum_name.ok_or_else(|| {
                     LuaError::RuntimeError(format!(
-                        "Failed to get property '{}' - encountered unknown enum",
-                        prop_name
+                        "Failed to get property '{prop_name}' - encountered unknown enum",
                     ))
                 })?;
                 EnumItem::from_enum_name_and_value(&enum_name, enum_value.to_u32())
@@ -246,8 +248,7 @@ fn instance_property_get<'lua>(
             EnumItem::from_enum_name_and_value(&enum_name, enum_value)
                 .ok_or_else(|| {
                     LuaError::RuntimeError(format!(
-                        "Failed to get property '{}' - Enum.{} does not contain numeric value {}",
-                        prop_name, enum_name, enum_value
+                        "Failed to get property '{prop_name}' - Enum.{enum_name} does not contain numeric value {enum_value}",
                     ))
                 })?
                 .into_lua(lua)
@@ -258,14 +259,12 @@ fn instance_property_get<'lua>(
                 Ok(LuaValue::Nil)
             } else {
                 Err(LuaError::RuntimeError(format!(
-                    "Failed to get property '{}' - missing default value",
-                    prop_name
+                    "Failed to get property '{prop_name}' - missing default value",
                 )))
             }
         } else {
             Err(LuaError::RuntimeError(format!(
-                "Failed to get property '{}' - malformed property info",
-                prop_name
+                "Failed to get property '{prop_name}' - malformed property info",
             )))
         }
     } else if let Some(inst) = this.find_child(|inst| inst.name == prop_name) {
@@ -276,8 +275,7 @@ fn instance_property_get<'lua>(
         Ok(LuaValue::Function(method))
     } else {
         Err(LuaError::RuntimeError(format!(
-            "{} is not a valid member of {}",
-            prop_name, this
+            "{prop_name} is not a valid member of {this}",
         )))
     }
 }
@@ -347,16 +345,14 @@ fn instance_property_set<'lua>(
             }
         } else {
             Err(LuaError::RuntimeError(format!(
-                "Failed to set property '{}' - malformed property info",
-                prop_name
+                "Failed to set property '{prop_name}' - malformed property info",
             )))
         }
     } else if let Some(setter) = InstanceRegistry::find_property_setter(lua, this, &prop_name) {
         setter.call((this.clone(), prop_value))
     } else {
         Err(LuaError::RuntimeError(format!(
-            "{} is not a valid member of {}",
-            prop_name, this
+            "{prop_name} is not a valid member of {this}",
         )))
     }
 }

@@ -58,6 +58,7 @@ impl DocumentKind {
 
         Returns `None` if the given dom is empty and as such can not have its kind inferred.
     */
+    #[must_use]
     pub fn from_weak_dom(dom: &WeakDom) -> Option<Self> {
         let mut has_top_level_child = false;
         let mut has_top_level_service = false;

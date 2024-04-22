@@ -1,3 +1,5 @@
+#![allow(clippy::items_after_statements)]
+
 use core::fmt;
 use std::ops;
 
@@ -16,7 +18,7 @@ use super::{super::*, Vector3};
     Roblox datatype, backed by [`glam::Mat4`].
 
     This implements all documented properties, methods &
-    constructors of the CFrame class as of March 2023.
+    constructors of the `CFrame` class as of March 2023.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CFrame(pub Mat4);
@@ -44,6 +46,7 @@ impl CFrame {
 impl LuaExportsTable<'_> for CFrame {
     const EXPORT_NAME: &'static str = "CFrame";
 
+    #[allow(clippy::too_many_lines)]
     fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
         let cframe_angles = |_, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
@@ -70,8 +73,7 @@ impl LuaExportsTable<'_> for CFrame {
             Ok(CFrame(Mat4::from_cols(
                 rx.0.extend(0.0),
                 ry.0.extend(0.0),
-                rz.map(|r| r.0)
-                    .unwrap_or_else(|| rx.0.cross(ry.0).normalize())
+                rz.map_or_else(|| rx.0.cross(ry.0).normalize(), |r| r.0)
                     .extend(0.0),
                 pos.0.extend(1.0),
             )))
@@ -197,6 +199,7 @@ impl LuaUserData for CFrame {
         });
     }
 
+    #[allow(clippy::too_many_lines)]
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Inverse", |_, this, ()| Ok(this.inverse()));
@@ -228,34 +231,49 @@ impl LuaUserData for CFrame {
         methods.add_method(
             "ToWorldSpace",
             |_, this, rhs: Variadic<LuaUserDataRef<CFrame>>| {
-                Ok(Variadic::from_iter(rhs.into_iter().map(|cf| *this * *cf)))
+                Ok(rhs
+                    .into_iter()
+                    .map(|cf| *this * *cf)
+                    .collect::<Variadic<_>>())
             },
         );
         methods.add_method(
             "ToObjectSpace",
             |_, this, rhs: Variadic<LuaUserDataRef<CFrame>>| {
                 let inverse = this.inverse();
-                Ok(Variadic::from_iter(rhs.into_iter().map(|cf| inverse * *cf)))
+                Ok(rhs
+                    .into_iter()
+                    .map(|cf| inverse * *cf)
+                    .collect::<Variadic<_>>())
             },
         );
         methods.add_method(
             "PointToWorldSpace",
             |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
-                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| *this * *v3)))
+                Ok(rhs
+                    .into_iter()
+                    .map(|v3| *this * *v3)
+                    .collect::<Variadic<_>>())
             },
         );
         methods.add_method(
             "PointToObjectSpace",
             |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
                 let inverse = this.inverse();
-                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| inverse * *v3)))
+                Ok(rhs
+                    .into_iter()
+                    .map(|v3| inverse * *v3)
+                    .collect::<Variadic<_>>())
             },
         );
         methods.add_method(
             "VectorToWorldSpace",
             |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
                 let result = *this - Vector3(this.position());
-                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| result * *v3)))
+                Ok(rhs
+                    .into_iter()
+                    .map(|v3| result * *v3)
+                    .collect::<Variadic<_>>())
             },
         );
         methods.add_method(
@@ -263,8 +281,10 @@ impl LuaUserData for CFrame {
             |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
                 let inverse = this.inverse();
                 let result = inverse - Vector3(inverse.position());
-
-                Ok(Variadic::from_iter(rhs.into_iter().map(|v3| result * *v3)))
+                Ok(rhs
+                    .into_iter()
+                    .map(|v3| result * *v3)
+                    .collect::<Variadic<_>>())
             },
         );
         #[rustfmt::skip]
@@ -447,7 +467,7 @@ mod cframe_test {
             Vec3::new(1.0, 2.0, 3.0).extend(1.0),
         ));
 
-        assert_eq!(CFrame::from(dom_cframe), cframe)
+        assert_eq!(CFrame::from(dom_cframe), cframe);
     }
 
     #[test]
@@ -468,6 +488,6 @@ mod cframe_test {
             ),
         );
 
-        assert_eq!(DomCFrame::from(cframe), dom_cframe)
+        assert_eq!(DomCFrame::from(cframe), dom_cframe);
     }
 }

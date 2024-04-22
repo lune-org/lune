@@ -14,7 +14,7 @@ use super::{super::*, NumberSequenceKeypoint};
 /**
     An implementation of the [NumberSequence](https://create.roblox.com/docs/reference/engine/datatypes/NumberSequence) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the NumberSequence class as of March 2023.
+    This implements all documented properties, methods & constructors of the `NumberSequence` class as of March 2023.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberSequence {
@@ -93,9 +93,9 @@ impl fmt::Display for NumberSequence {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (index, keypoint) in self.keypoints.iter().enumerate() {
             if index < self.keypoints.len() - 1 {
-                write!(f, "{}, ", keypoint)?;
+                write!(f, "{keypoint}, ")?;
             } else {
-                write!(f, "{}", keypoint)?;
+                write!(f, "{keypoint}")?;
             }
         }
         Ok(())
@@ -108,7 +108,7 @@ impl From<DomNumberSequence> for NumberSequence {
             keypoints: v
                 .keypoints
                 .iter()
-                .cloned()
+                .copied()
                 .map(NumberSequenceKeypoint::from)
                 .collect(),
         }
@@ -121,7 +121,7 @@ impl From<NumberSequence> for DomNumberSequence {
             keypoints: v
                 .keypoints
                 .iter()
-                .cloned()
+                .copied()
                 .map(DomNumberSequenceKeypoint::from)
                 .collect(),
         }

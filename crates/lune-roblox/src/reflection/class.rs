@@ -28,6 +28,7 @@ impl DatabaseClass {
     /**
         Get the name of this class.
     */
+    #[must_use]
     pub fn get_name(&self) -> String {
         self.0.name.to_string()
     }
@@ -37,6 +38,7 @@ impl DatabaseClass {
 
         May be `None` if no parent class exists.
     */
+    #[must_use]
     pub fn get_superclass(&self) -> Option<String> {
         let sup = self.0.superclass.as_ref()?;
         Some(sup.to_string())
@@ -45,6 +47,7 @@ impl DatabaseClass {
     /**
         Get all known properties for this class.
     */
+    #[must_use]
     pub fn get_properties(&self) -> HashMap<String, DatabaseProperty> {
         self.0
             .properties
@@ -56,6 +59,7 @@ impl DatabaseClass {
     /**
         Get all default values for properties of this class.
     */
+    #[must_use]
     pub fn get_defaults(&self) -> HashMap<String, DomVariant> {
         self.0
             .default_properties
@@ -71,7 +75,12 @@ impl DatabaseClass {
         to players at runtime, and top-level class categories.
     */
     pub fn get_tags_str(&self) -> Vec<&'static str> {
-        self.0.tags.iter().map(class_tag_to_str).collect::<Vec<_>>()
+        self.0
+            .tags
+            .iter()
+            .copied()
+            .map(class_tag_to_str)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -135,14 +144,12 @@ fn make_enum_value(inner: DbClass, name: impl AsRef<str>, value: u32) -> LuaResu
     let name = name.as_ref();
     let enum_name = find_enum_name(inner, name).ok_or_else(|| {
         LuaError::RuntimeError(format!(
-            "Failed to get default property '{}' - No enum descriptor was found",
-            name
+            "Failed to get default property '{name}' - No enum descriptor was found",
         ))
     })?;
     EnumItem::from_enum_name_and_value(&enum_name, value).ok_or_else(|| {
         LuaError::RuntimeError(format!(
-            "Failed to get default property '{}' - Enum.{} does not contain numeric value {}",
-            name, enum_name, value
+            "Failed to get default property '{name}' - Enum.{enum_name} does not contain numeric value {value}",
         ))
     })
 }

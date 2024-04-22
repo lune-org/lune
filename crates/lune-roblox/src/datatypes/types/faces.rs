@@ -1,3 +1,5 @@
+#![allow(clippy::struct_excessive_bools)]
+
 use core::fmt;
 
 use mlua::prelude::*;
@@ -56,8 +58,7 @@ impl LuaExportsTable<'_> for Faces {
                         check(&e);
                     } else {
                         return Err(LuaError::RuntimeError(format!(
-                            "Expected argument #{} to be an EnumItem, got userdata",
-                            index
+                            "Expected argument #{index} to be an EnumItem, got userdata",
                         )));
                     }
                 } else {

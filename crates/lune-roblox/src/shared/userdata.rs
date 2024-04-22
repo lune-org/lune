@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use std::{any::type_name, cell::RefCell, fmt, ops};
 
 use mlua::prelude::*;
@@ -5,21 +7,29 @@ use mlua::prelude::*;
 // Utility functions
 
 type ListWriter = dyn Fn(&mut fmt::Formatter<'_>, bool, &str) -> fmt::Result;
+
+#[must_use]
 pub fn make_list_writer() -> Box<ListWriter> {
     let first = RefCell::new(true);
     Box::new(move |f, flag, literal| {
         if flag {
             if first.take() {
-                write!(f, "{}", literal)?;
+                write!(f, "{literal}")?;
             } else {
-                write!(f, ", {}", literal)?;
+                write!(f, ", {literal}")?;
             }
         }
         Ok::<_, fmt::Error>(())
     })
 }
 
-// Userdata metamethod implementations
+/**
+    Userdata metamethod implementations
+
+    Note that many of these return [`LuaResult`] even though they don't
+    return any errors - this is for consistency reasons and to make it
+    easier to add these blanket implementations to [`LuaUserData`] impls.
+*/
 
 pub fn userdata_impl_to_string<D>(_: &Lua, datatype: &D, _: ()) -> LuaResult<String>
 where

@@ -13,7 +13,7 @@ use super::{super::*, Color3};
 /**
     An implementation of the [BrickColor](https://create.roblox.com/docs/reference/engine/datatypes/BrickColor) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the BrickColor class as of March 2023.
+    This implements all documented properties, methods & constructors of the `BrickColor` class as of March 2023.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BrickColor {

@@ -20,8 +20,7 @@ pub(crate) fn add_class_restricted_getter<'lua, F: LuaUserDataFields<'lua, Insta
             field_getter(lua, this)
         } else {
             Err(LuaError::RuntimeError(format!(
-                "{} is not a valid member of {}",
-                field_name, class_name
+                "{field_name} is not a valid member of {class_name}",
             )))
         }
     });
@@ -42,8 +41,7 @@ pub(crate) fn add_class_restricted_setter<'lua, F: LuaUserDataFields<'lua, Insta
             field_getter(lua, this, value)
         } else {
             Err(LuaError::RuntimeError(format!(
-                "{} is not a valid member of {}",
-                field_name, class_name
+                "{field_name} is not a valid member of {class_name}",
             )))
         }
     });
@@ -64,8 +62,7 @@ pub(crate) fn add_class_restricted_method<'lua, M: LuaUserDataMethods<'lua, Inst
             method(lua, this, args)
         } else {
             Err(LuaError::RuntimeError(format!(
-                "{} is not a valid member of {}",
-                method_name, class_name
+                "{method_name} is not a valid member of {class_name}",
             )))
         }
     });
@@ -92,8 +89,7 @@ pub(crate) fn add_class_restricted_method_mut<
             method(lua, this, args)
         } else {
             Err(LuaError::RuntimeError(format!(
-                "{} is not a valid member of {}",
-                method_name, class_name
+                "{method_name} is not a valid member of {class_name}",
             )))
         }
     });
@@ -102,7 +98,7 @@ pub(crate) fn add_class_restricted_method_mut<
 /**
     Gets or creates the instance child with the given reference prop name and class name.
 
-    Note that the class name here must be an exact match, it is not checked using IsA.
+    Note that the class name here must be an exact match, it is not checked using `IsA`.
 
     The instance may be in one of several states but this function will guarantee that the
     property reference is correct and that the instance exists after it has been called:

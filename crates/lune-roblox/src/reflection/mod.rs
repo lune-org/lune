@@ -30,6 +30,7 @@ impl Database {
     /**
         Creates a new database struct, referencing the bundled reflection database.
     */
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -40,6 +41,7 @@ impl Database {
         This will follow the format `x.y.z.w`, which most
         commonly looks something like `0.567.0.123456789`.
     */
+    #[must_use]
     pub fn get_version(&self) -> String {
         let [x, y, z, w] = self.0.version;
         format!("{x}.{y}.{z}.{w}")
@@ -48,15 +50,17 @@ impl Database {
     /**
         Retrieves a list of all currently known enum names.
     */
+    #[must_use]
     pub fn get_enum_names(&self) -> Vec<String> {
-        self.0.enums.keys().map(|e| e.to_string()).collect()
+        self.0.enums.keys().map(ToString::to_string).collect()
     }
 
     /**
         Retrieves a list of all currently known class names.
     */
+    #[must_use]
     pub fn get_class_names(&self) -> Vec<String> {
-        self.0.classes.keys().map(|e| e.to_string()).collect()
+        self.0.classes.keys().map(ToString::to_string).collect()
     }
 
     /**
@@ -108,14 +112,17 @@ impl Database {
 
 impl LuaUserData for Database {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("Version", |_, this| Ok(this.get_version()))
+        fields.add_field_method_get("Version", |_, this| Ok(this.get_version()));
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
-        methods.add_method("GetEnumNames", |_, this, _: ()| Ok(this.get_enum_names()));
-        methods.add_method("GetClassNames", |_, this, _: ()| Ok(this.get_class_names()));
+        methods.add_method("GetEnumNames", |_, this, (): ()| Ok(this.get_enum_names()));
+        methods.add_method(
+            "GetClassNames",
+            |_, this, (): ()| Ok(this.get_class_names()),
+        );
         methods.add_method("GetEnum", |_, this, name: String| Ok(this.get_enum(name)));
         methods.add_method("GetClass", |_, this, name: String| Ok(this.get_class(name)));
         methods.add_method("FindEnum", |_, this, name: String| Ok(this.find_enum(name)));

@@ -64,7 +64,7 @@ impl LuaExportsTable<'_> for Font {
         let font_from_name =
             |_, (file, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
                 Ok(Font {
-                    family: format!("rbxasset://fonts/families/{}.json", file),
+                    family: format!("rbxasset://fonts/families/{file}.json"),
                     weight: weight.unwrap_or_default(),
                     style: style.unwrap_or_default(),
                     cached_id: None,
@@ -74,7 +74,7 @@ impl LuaExportsTable<'_> for Font {
         let font_from_id =
             |_, (id, weight, style): (i32, Option<FontWeight>, Option<FontStyle>)| {
                 Ok(Font {
-                    family: format!("rbxassetid://{}", id),
+                    family: format!("rbxassetid://{id}"),
                     weight: weight.unwrap_or_default(),
                     style: style.unwrap_or_default(),
                     cached_id: None,
@@ -208,7 +208,7 @@ pub(crate) enum FontWeight {
 }
 
 impl FontWeight {
-    pub(crate) fn as_u16(&self) -> u16 {
+    pub(crate) fn as_u16(self) -> u16 {
         match self {
             Self::Thin => 100,
             Self::ExtraLight => 200,
@@ -317,7 +317,7 @@ impl<'lua> IntoLua<'lua> for FontWeight {
             None => Err(LuaError::ToLuaConversionError {
                 from: "FontWeight",
                 to: "EnumItem",
-                message: Some(format!("Found unknown Enum.FontWeight value '{}'", self)),
+                message: Some(format!("Found unknown Enum.FontWeight value '{self}'")),
             }),
         }
     }
@@ -330,7 +330,7 @@ pub(crate) enum FontStyle {
 }
 
 impl FontStyle {
-    pub(crate) fn as_u8(&self) -> u8 {
+    pub(crate) fn as_u8(self) -> u8 {
         match self {
             Self::Normal => 0,
             Self::Italic => 1,
@@ -411,7 +411,7 @@ impl<'lua> IntoLua<'lua> for FontStyle {
             None => Err(LuaError::ToLuaConversionError {
                 from: "FontStyle",
                 to: "EnumItem",
-                message: Some(format!("Found unknown Enum.FontStyle value '{}'", self)),
+                message: Some(format!("Found unknown Enum.FontStyle value '{self}'")),
             }),
         }
     }
