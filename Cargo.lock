@@ -1572,8 +1572,11 @@ dependencies = [
 name = "lune-std-fs"
 version = "0.1.0"
 dependencies = [
+ "bstr",
+ "lune-std-datetime",
  "lune-utils",
  "mlua",
+ "tokio",
 ]
 
 [[package]]

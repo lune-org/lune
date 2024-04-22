@@ -8,7 +8,7 @@ mod date_time;
 mod result;
 mod values;
 
-use self::date_time::DateTime;
+pub use self::date_time::DateTime;
 
 /**
     Creates the `datetime` standard library module.
