@@ -1541,7 +1541,18 @@ dependencies = [
 name = "lune-roblox"
 version = "0.1.0"
 dependencies = [
+ "glam",
+ "lune-utils",
  "mlua",
+ "once_cell",
+ "rand",
+ "rbx_binary",
+ "rbx_cookie",
+ "rbx_dom_weak",
+ "rbx_reflection",
+ "rbx_reflection_database",
+ "rbx_xml",
+ "thiserror",
 ]
 
 [[package]]
