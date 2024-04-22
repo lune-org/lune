@@ -15,6 +15,9 @@ dialoguer = "0.11"
 mlua = { version = "0.9.7", features = ["luau"] }
 mlua-luau-scheduler = "0.0.1"
 
-tokio = { version = "1", default-features = false }
+tokio = { version = "1", default-features = false, features = [
+    "io-std",
+    "io-util",
+] }
 
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
