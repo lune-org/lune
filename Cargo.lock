@@ -1614,6 +1614,8 @@ version = "0.1.0"
 dependencies = [
  "lune-utils",
  "mlua",
+ "regex",
+ "self_cell",
 ]
 
 [[package]]

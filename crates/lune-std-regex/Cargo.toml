@@ -13,4 +13,7 @@ workspace = true
 [dependencies]
 mlua = { version = "0.9.7", features = ["luau"] }
 
+regex = "1.10"
+self_cell = "1.0"
+
 lune-utils = { version = "0.1.0", path = "../lune-utils" }

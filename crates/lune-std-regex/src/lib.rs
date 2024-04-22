@@ -4,6 +4,12 @@ use mlua::prelude::*;
 
 use lune_utils::TableBuilder;
 
+mod captures;
+mod matches;
+mod regex;
+
+use self::regex::LuaRegex;
+
 /**
     Creates the `regex` standard library module.
 
@@ -12,5 +18,11 @@ use lune_utils::TableBuilder;
     Errors when out of memory.
 */
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    TableBuilder::new(lua)?.build_readonly()
+    TableBuilder::new(lua)?
+        .with_function("new", new_regex)?
+        .build_readonly()
+}
+
+fn new_regex(_: &Lua, pattern: String) -> LuaResult<LuaRegex> {
+    LuaRegex::new(pattern)
 }
