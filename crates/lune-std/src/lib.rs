@@ -7,6 +7,7 @@ mod globals;
 mod library;
 
 pub use self::global::LuneStandardGlobal;
+pub use self::globals::version::set_global_version;
 pub use self::library::LuneStandardLibrary;
 
 /**
