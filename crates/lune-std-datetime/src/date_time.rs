@@ -26,6 +26,7 @@ impl DateTime {
 
         See [`chrono::DateTime::now`] for additional details.
     */
+    #[must_use]
     pub fn now() -> Self {
         Self { inner: Utc::now() }
     }
@@ -43,6 +44,10 @@ impl DateTime {
         ```
 
         See [`chrono::DateTime::from_timestamp`] for additional details.
+
+        # Errors
+
+        Returns an error if the input value is out of range.
     */
     pub fn from_unix_timestamp_float(unix_timestamp: f64) -> DateTimeResult<Self> {
         let whole = unix_timestamp.trunc() as i64;
@@ -61,6 +66,10 @@ impl DateTime {
 
         See [`chrono::NaiveDate::from_ymd_opt`] and [`chrono::NaiveTime::from_hms_milli_opt`]
         for additional details and cases where this constructor may return an error.
+
+        # Errors
+
+        Returns an error if the date or time values are invalid.
     */
     pub fn from_universal_time(values: &DateTimeValues) -> DateTimeResult<Self> {
         let date = NaiveDate::from_ymd_opt(values.year, values.month, values.day)
@@ -85,6 +94,10 @@ impl DateTime {
 
         See [`chrono::NaiveDate::from_ymd_opt`] and [`chrono::NaiveTime::from_hms_milli_opt`]
         for additional details and cases where this constructor may return an error.
+
+        # Errors
+
+        Returns an error if the date or time values are invalid or ambiguous.
     */
     pub fn from_local_time(values: &DateTimeValues) -> DateTimeResult<Self> {
         let date = NaiveDate::from_ymd_opt(values.year, values.month, values.day)
@@ -115,6 +128,7 @@ impl DateTime {
 
         See [`chrono_lc::DateTime::formatl`] for additional details.
     */
+    #[must_use]
     pub fn format_string_local(&self, format: Option<&str>, locale: Option<&str>) -> String {
         self.inner
             .with_timezone(&Local)
@@ -133,6 +147,7 @@ impl DateTime {
 
         See [`chrono_lc::DateTime::formatl`] for additional details.
     */
+    #[must_use]
     pub fn format_string_universal(&self, format: Option<&str>, locale: Option<&str>) -> String {
         self.inner
             .with_timezone(&Utc)
@@ -148,6 +163,10 @@ impl DateTime {
         `1996-12-19T16:39:57-08:00`, into a new `DateTime` struct.
 
         See [`chrono::DateTime::parse_from_rfc3339`] for additional details.
+
+        # Errors
+
+        Returns an error if the input string is not a valid RFC 3339 date-time.
     */
     pub fn from_iso_date(iso_date: impl AsRef<str>) -> DateTimeResult<Self> {
         let inner = ChronoDateTime::parse_from_rfc3339(iso_date.as_ref())?.with_timezone(&Utc);
@@ -158,6 +177,7 @@ impl DateTime {
         Extracts individual date & time values from this
         `DateTime`, using the current local time zone.
     */
+    #[must_use]
     pub fn to_local_time(self) -> DateTimeValues {
         DateTimeValues::from(self.inner.with_timezone(&Local))
     }
@@ -166,6 +186,7 @@ impl DateTime {
         Extracts individual date & time values from this
         `DateTime`, using the universal (UTC) time zone.
     */
+    #[must_use]
     pub fn to_universal_time(self) -> DateTimeValues {
         DateTimeValues::from(self.inner.with_timezone(&Utc))
     }
@@ -175,6 +196,7 @@ impl DateTime {
 
         See [`chrono::DateTime::to_rfc3339`] for additional details.
     */
+    #[must_use]
     pub fn to_iso_date(self) -> String {
         self.inner.to_rfc3339()
     }
