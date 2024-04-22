@@ -1599,8 +1599,13 @@ dependencies = [
 name = "lune-std-process"
 version = "0.1.0"
 dependencies = [
+ "directories",
  "lune-utils",
  "mlua",
+ "mlua-luau-scheduler 0.0.1",
+ "os_str_bytes",
+ "pin-project",
+ "tokio",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 use std::{
     env::{current_dir, current_exe},
-    path::{Path, PathBuf},
+    path::{Path, PathBuf, MAIN_SEPARATOR},
     sync::Arc,
 };
 
@@ -11,14 +11,25 @@ static CWD: Lazy<Arc<Path>> = Lazy::new(create_cwd);
 static EXE: Lazy<Arc<Path>> = Lazy::new(create_exe);
 
 fn create_cwd() -> Arc<Path> {
-    let cwd = current_dir().expect("failed to find current working directory");
+    let mut cwd = current_dir()
+        .expect("failed to find current working directory")
+        .to_str()
+        .expect("current working directory is not valid UTF-8")
+        .to_string();
+    if !cwd.ends_with(MAIN_SEPARATOR) {
+        cwd.push(MAIN_SEPARATOR);
+    }
     dunce::canonicalize(cwd)
         .expect("failed to canonicalize current working directory")
         .into()
 }
 
 fn create_exe() -> Arc<Path> {
-    let exe = current_exe().expect("failed to find current executable");
+    let exe = current_exe()
+        .expect("failed to find current executable")
+        .to_str()
+        .expect("current executable is not valid UTF-8")
+        .to_string();
     dunce::canonicalize(exe)
         .expect("failed to canonicalize current executable")
         .into()
@@ -29,6 +40,11 @@ fn create_exe() -> Arc<Path> {
 
     This absolute path is canonicalized and does not contain any `.` or `..`
     components, and it is also in a friendly (non-UNC) format.
+
+    This path is also guaranteed to:
+
+    - Be valid UTF-8.
+    - End with the platform's main path separator.
 */
 #[must_use]
 pub fn get_current_dir() -> Arc<Path> {
@@ -40,6 +56,10 @@ pub fn get_current_dir() -> Arc<Path> {
 
     This absolute path is canonicalized and does not contain any `.` or `..`
     components, and it is also in a friendly (non-UNC) format.
+
+    This path is also guaranteed to:
+
+    - Be valid UTF-8.
 */
 #[must_use]
 pub fn get_current_exe() -> Arc<Path> {
