@@ -6,7 +6,6 @@ use std::{
 use anyhow::{anyhow, bail, Result};
 use console::style;
 use directories::UserDirs;
-use itertools::Itertools;
 use once_cell::sync::Lazy;
 
 const LUNE_COMMENT_PREFIX: &str = "-->";
@@ -180,10 +179,9 @@ pub fn parse_lune_description_from_file(contents: &str) -> Option<String> {
         });
         let unindented_lines = comment_lines
             .iter()
-            .map(|line| &line[shortest_indent..])
-            // Replace newlines with a single space inbetween instead
-            .interleave(std::iter::repeat(" ").take(comment_lines.len() - 1))
-            .collect();
+            .map(|line| line[shortest_indent..].to_string())
+            .collect::<Vec<_>>()
+            .join(" ");
         Some(unindented_lines)
     }
 }

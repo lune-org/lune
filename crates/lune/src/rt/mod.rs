@@ -1,3 +1,5 @@
+#![allow(clippy::missing_panics_doc)]
+
 use std::{
     process::ExitCode,
     rc::Rc,
@@ -10,11 +12,9 @@ use std::{
 use mlua::Lua;
 use mlua_luau_scheduler::Scheduler;
 
-mod builtins;
-mod error;
-mod globals;
+use lune_std::inject_globals;
 
-pub(crate) mod util;
+mod error;
 
 pub use error::RuntimeError;
 
@@ -28,6 +28,7 @@ impl Runtime {
     /**
         Creates a new Lune runtime, with a new Luau VM.
     */
+    #[must_use]
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let lua = Rc::new(Lua::new());
@@ -35,7 +36,7 @@ impl Runtime {
         lua.set_app_data(Rc::downgrade(&lua));
         lua.set_app_data(Vec::<String>::new());
 
-        globals::inject_all(&lua).expect("Failed to inject globals");
+        inject_globals(&lua).expect("Failed to inject globals");
 
         Self {
             lua,
@@ -46,6 +47,7 @@ impl Runtime {
     /**
         Sets arguments to give in `process.args` for Lune scripts.
     */
+    #[must_use]
     pub fn with_args<V>(mut self, args: V) -> Self
     where
         V: Into<Vec<String>>,
@@ -59,6 +61,10 @@ impl Runtime {
         Runs a Lune script inside of the current runtime.
 
         This will preserve any modifications to global values / context.
+
+        # Errors
+
+        This function will return an error if the script fails to run.
     */
     pub async fn run(
         &mut self,

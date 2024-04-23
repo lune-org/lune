@@ -5,7 +5,7 @@ use std::{
 
 use mlua::prelude::*;
 
-use crate::lune::util::formatting::pretty_format_luau_error;
+use lune_utils::fmt::ErrorComponents;
 
 /**
     An opaque error type for formatted lua errors.
@@ -22,6 +22,7 @@ impl RuntimeError {
 
         Colorization is enabled by default.
     */
+    #[must_use]
     #[doc(hidden)]
     pub fn enable_colors(mut self) -> Self {
         self.disable_colors = false;
@@ -33,6 +34,7 @@ impl RuntimeError {
 
         Colorization is enabled by default.
     */
+    #[must_use]
     #[doc(hidden)]
     pub fn disable_colors(mut self) -> Self {
         self.disable_colors = true;
@@ -44,6 +46,7 @@ impl RuntimeError {
 
         See [`mlua::Error::SyntaxError`] for more information.
     */
+    #[must_use]
     pub fn is_incomplete_input(&self) -> bool {
         matches!(
             self.error,
@@ -75,11 +78,7 @@ impl From<&LuaError> for RuntimeError {
 
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "{}",
-            pretty_format_luau_error(&self.error, !self.disable_colors)
-        )
+        write!(f, "{}", ErrorComponents::from(self.error.clone()))
     }
 }
 

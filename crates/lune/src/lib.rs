@@ -1,9 +1,11 @@
-mod lune;
+#![allow(clippy::cargo_common_metadata)]
+
+mod rt;
 
 #[cfg(feature = "roblox")]
-pub mod roblox;
+pub use lune_roblox as roblox;
 
 #[cfg(test)]
 mod tests;
 
-pub use crate::lune::{Runtime, RuntimeError};
+pub use crate::rt::{Runtime, RuntimeError};

@@ -16,7 +16,8 @@ pub(crate) mod cli;
 pub(crate) mod standalone;
 
 use cli::Cli;
-use console::style;
+
+use lune_utils::fmt::Label;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> ExitCode {
@@ -35,12 +36,7 @@ async fn main() -> ExitCode {
     match Cli::new().run().await {
         Ok(code) => code,
         Err(err) => {
-            eprintln!(
-                "{}{}{}\n{err:?}",
-                style("[").dim(),
-                style("ERROR").red(),
-                style("]").dim(),
-            );
+            eprintln!("{}\n{err:?}", Label::Error);
             ExitCode::FAILURE
         }
     }
