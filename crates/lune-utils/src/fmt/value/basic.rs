@@ -34,13 +34,14 @@ pub(crate) fn lua_value_as_plain_string_key(value: &LuaValue) -> Option<String> 
 
     This does not recursively format tables.
 */
-pub(crate) fn format_value_styled(value: &LuaValue) -> String {
+pub(crate) fn format_value_styled(value: &LuaValue, prefer_plain: bool) -> String {
     match value {
         LuaValue::Nil => COLOR_YELLOW.apply_to("nil").to_string(),
         LuaValue::Boolean(true) => COLOR_YELLOW.apply_to("true").to_string(),
         LuaValue::Boolean(false) => COLOR_YELLOW.apply_to("false").to_string(),
         LuaValue::Number(n) => COLOR_CYAN.apply_to(n).to_string(),
         LuaValue::Integer(i) => COLOR_CYAN.apply_to(i).to_string(),
+        LuaValue::String(s) if prefer_plain => s.to_string_lossy().to_string(),
         LuaValue::String(s) => COLOR_GREEN
             .apply_to({
                 let mut s = s.to_string_lossy().to_string();

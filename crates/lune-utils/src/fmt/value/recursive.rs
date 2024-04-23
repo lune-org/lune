@@ -9,6 +9,8 @@ use super::{
     style::STYLE_DIM,
 };
 
+const INDENT: &str = "    ";
+
 /**
     Representation of a pointer in memory to a Lua value.
 */
@@ -54,14 +56,16 @@ pub(crate) fn format_value_recursive(
                 let (key, value) = res.expect("conversion to LuaValue should never fail");
                 let formatted = if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
                     format!(
-                        "{plain_key} {} {}{}",
+                        "{}{plain_key} {} {}{}",
+                        INDENT.repeat(1 + depth),
                         STYLE_DIM.apply_to("="),
                         format_value_recursive(&value, config, visited, depth + 1)?,
                         STYLE_DIM.apply_to(","),
                     )
                 } else {
                     format!(
-                        "{}{}{} {} {}{}",
+                        "{}{}{}{} {} {}{}",
+                        INDENT.repeat(1 + depth),
                         STYLE_DIM.apply_to("["),
                         format_value_recursive(&key, config, visited, depth + 1)?,
                         STYLE_DIM.apply_to("]"),
@@ -74,10 +78,11 @@ pub(crate) fn format_value_recursive(
             }
 
             visited.remove(&LuaValueId::from(t));
-            writeln!(buffer, "{}", STYLE_DIM.apply_to("}"))?;
+            write!(buffer, "\n{}", STYLE_DIM.apply_to("}"))?;
         }
     } else {
-        write!(buffer, "{}", format_value_styled(value))?;
+        let prefer_plain = depth == 0;
+        write!(buffer, "{}", format_value_styled(value, prefer_plain))?;
     }
 
     Ok(buffer)
