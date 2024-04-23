@@ -7,6 +7,8 @@ use mlua::prelude::*;
 
 use lune_utils::fmt::ErrorComponents;
 
+pub type RuntimeResult<T, E = RuntimeError> = Result<T, E>;
+
 /**
     An opaque error type for formatted lua errors.
 */

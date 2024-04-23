@@ -8,4 +8,4 @@ pub use lune_roblox as roblox;
 #[cfg(test)]
 mod tests;
 
-pub use crate::rt::{Runtime, RuntimeError};
+pub use crate::rt::{Runtime, RuntimeError, RuntimeResult};
