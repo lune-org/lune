@@ -1,21 +1,11 @@
-#![deny(clippy::all)]
-#![warn(clippy::cargo, clippy::pedantic)]
-#![allow(
-    clippy::cargo_common_metadata,
-    clippy::match_bool,
-    clippy::module_name_repetitions,
-    clippy::multiple_crate_versions,
-    clippy::needless_pass_by_value,
-    clippy::declare_interior_mutable_const,
-    clippy::borrow_interior_mutable_const
-)]
+#![allow(clippy::cargo_common_metadata)]
 
 use std::process::ExitCode;
 
+#[cfg(feature = "cli")]
 pub(crate) mod cli;
-pub(crate) mod standalone;
 
-use cli::Cli;
+pub(crate) mod standalone;
 
 use lune_utils::fmt::Label;
 
@@ -33,11 +23,20 @@ async fn main() -> ExitCode {
         return standalone::run(bin).await.unwrap();
     }
 
-    match Cli::new().run().await {
-        Ok(code) => code,
-        Err(err) => {
-            eprintln!("{}\n{err:?}", Label::Error);
-            ExitCode::FAILURE
+    #[cfg(feature = "cli")]
+    {
+        match cli::Cli::new().run().await {
+            Ok(code) => code,
+            Err(err) => {
+                eprintln!("{}\n{err:?}", Label::Error);
+                ExitCode::FAILURE
+            }
         }
+    }
+
+    #[cfg(not(feature = "cli"))]
+    {
+        eprintln!("{}\nCLI feature is disabled", Label::Error);
+        ExitCode::FAILURE
     }
 }

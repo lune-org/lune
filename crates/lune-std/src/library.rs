@@ -71,7 +71,7 @@ impl LuneStandardLibrary {
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
     pub fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
-        let res = match self {
+        let res: LuaResult<LuaTable> = match self {
             #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(lua),
             #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::module(lua),
             #[cfg(feature = "luau")]     Self::Luau     => lune_std_luau::module(lua),

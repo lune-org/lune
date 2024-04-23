@@ -45,7 +45,6 @@ std = [
 ]
 
 cli = [
-    "dep:anyhow",
     "dep:env_logger",
     "dep:clap",
     "dep:include_dir",
@@ -60,6 +59,7 @@ workspace = true
 mlua = { version = "0.9.7", features = ["luau"] }
 mlua-luau-scheduler = "0.0.1"
 
+anyhow = "1.0"
 console = "0.15"
 dialoguer = "0.11"
 directories = "5.0"
@@ -82,7 +82,6 @@ lune-utils = { version = "0.1.0", path = "../lune-utils" }
 
 ### CLI
 
-anyhow = { optional = true, version = "1.0" }
 env_logger = { optional = true, version = "0.11" }
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }

@@ -55,7 +55,7 @@ macro_rules! create_tests {
     feature = "std-roblox",
     feature = "std-serde",
     feature = "std-stdio",
-    feature = "std-task"
+    feature = "std-task",
 ))]
 create_tests! {
     require_aliases: "require/tests/aliases",

@@ -12,8 +12,6 @@ use std::{
 use mlua::Lua;
 use mlua_luau_scheduler::Scheduler;
 
-use lune_std::inject_globals;
-
 use super::{RuntimeError, RuntimeResult};
 
 #[derive(Debug)]
@@ -25,6 +23,8 @@ pub struct Runtime {
 impl Runtime {
     /**
         Creates a new Lune runtime, with a new Luau VM.
+
+        Injects standard globals and libraries if any of the `std` features are enabled.
     */
     #[must_use]
     #[allow(clippy::new_without_default)]
@@ -34,7 +34,21 @@ impl Runtime {
         lua.set_app_data(Rc::downgrade(&lua));
         lua.set_app_data(Vec::<String>::new());
 
-        inject_globals(&lua).expect("Failed to inject globals");
+        #[cfg(any(
+            feature = "std-datetime",
+            feature = "std-fs",
+            feature = "std-luau",
+            feature = "std-net",
+            feature = "std-process",
+            feature = "std-regex",
+            feature = "std-roblox",
+            feature = "std-serde",
+            feature = "std-stdio",
+            feature = "std-task",
+        ))]
+        {
+            lune_std::inject_globals(&lua).expect("Failed to inject globals");
+        }
 
         Self {
             lua,
