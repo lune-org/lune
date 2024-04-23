@@ -5,6 +5,7 @@ use std::{
         self,
         consts::{ARCH, OS},
     },
+    path::MAIN_SEPARATOR,
     process::Stdio,
 };
 
@@ -33,10 +34,13 @@ use lune_utils::path::get_current_dir;
 */
 #[allow(clippy::missing_panics_doc)]
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    let cwd_str = get_current_dir()
+    let mut cwd_str = get_current_dir()
         .to_str()
         .expect("cwd should be valid UTF-8")
         .to_string();
+    if !cwd_str.ends_with(MAIN_SEPARATOR) {
+        cwd_str.push(MAIN_SEPARATOR);
+    }
     // Create constants for OS & processor architecture
     let os = lua.create_string(&OS.to_lowercase())?;
     let arch = lua.create_string(&ARCH.to_lowercase())?;
