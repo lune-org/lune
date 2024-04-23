@@ -12,5 +12,22 @@ workspace = true
 
 [dependencies]
 mlua = { version = "0.9.7", features = ["luau"] }
+mlua-luau-scheduler = "0.0.1"
+
+bstr = "1.9"
+futures-util = "0.3"
+hyper = { version = "1.1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http = "1.0"
+http-body-util = { version = "0.1" }
+hyper-tungstenite = { version = "0.13" }
+reqwest = { version = "0.11", default-features = false, features = [
+    "rustls-tls",
+] }
+tokio-tungstenite = { version = "0.21", features = ["rustls-tls-webpki-roots"] }
+urlencoding = "2.1"
+
+tokio = { version = "1", default-features = false, features = ["sync", "net"] }
 
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
+lune-std-serde = { version = "0.1.0", path = "../lune-std-serde" }
