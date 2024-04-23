@@ -18,30 +18,31 @@ name = "lune"
 path = "src/lib.rs"
 
 [features]
-default = [
-    "datetime",
-    "fs",
-    "luau",
-    "net",
-    "process",
-    "regex",
-    "roblox",
-    "serde",
-    "stdio",
-    "task",
-    "cli",
-]
+default = ["std", "cli"]
 
-datetime = ["lune-std/datetime"]
-fs = ["lune-std/fs"]
-luau = ["lune-std/luau"]
-net = ["lune-std/net"]
-process = ["lune-std/process"]
-regex = ["lune-std/regex"]
-roblox = ["lune-std/roblox", "dep:lune-roblox"]
-serde = ["lune-std/serde"]
-stdio = ["lune-std/stdio"]
-task = ["lune-std/task"]
+std-datetime = ["dep:lune-std", "lune-std/datetime"]
+std-fs = ["dep:lune-std", "lune-std/fs"]
+std-luau = ["dep:lune-std", "lune-std/luau"]
+std-net = ["dep:lune-std", "lune-std/net"]
+std-process = ["dep:lune-std", "lune-std/process"]
+std-regex = ["dep:lune-std", "lune-std/regex"]
+std-roblox = ["dep:lune-std", "lune-std/roblox", "dep:lune-roblox"]
+std-serde = ["dep:lune-std", "lune-std/serde"]
+std-stdio = ["dep:lune-std", "lune-std/stdio"]
+std-task = ["dep:lune-std", "lune-std/task"]
+
+std = [
+    "std-datetime",
+    "std-fs",
+    "std-luau",
+    "std-net",
+    "std-process",
+    "std-regex",
+    "std-roblox",
+    "std-serde",
+    "std-stdio",
+    "std-task",
+]
 
 cli = [
     "dep:anyhow",
@@ -75,9 +76,9 @@ reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
 
-lune-std = { version = "0.1.0", path = "../lune-std" }
-lune-utils = { version = "0.1.0", path = "../lune-utils" }
+lune-std = { optional = true, version = "0.1.0", path = "../lune-std" }
 lune-roblox = { optional = true, version = "0.1.0", path = "../lune-roblox" }
+lune-utils = { version = "0.1.0", path = "../lune-utils" }
 
 ### CLI
 

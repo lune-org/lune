@@ -2,7 +2,7 @@
 
 mod rt;
 
-#[cfg(feature = "roblox")]
+#[cfg(feature = "std-roblox")]
 pub use lune_roblox as roblox;
 
 #[cfg(test)]

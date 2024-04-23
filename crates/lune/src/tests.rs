@@ -45,56 +45,19 @@ macro_rules! create_tests {
     )* }
 }
 
+#[cfg(any(
+    feature = "std-datetime",
+    feature = "std-fs",
+    feature = "std-luau",
+    feature = "std-net",
+    feature = "std-process",
+    feature = "std-regex",
+    feature = "std-roblox",
+    feature = "std-serde",
+    feature = "std-stdio",
+    feature = "std-task"
+))]
 create_tests! {
-    datetime_format_local_time: "datetime/formatLocalTime",
-    datetime_format_universal_time: "datetime/formatUniversalTime",
-    datetime_from_iso_date: "datetime/fromIsoDate",
-    datetime_from_local_time: "datetime/fromLocalTime",
-    datetime_from_universal_time: "datetime/fromUniversalTime",
-    datetime_from_unix_timestamp: "datetime/fromUnixTimestamp",
-    datetime_now: "datetime/now",
-    datetime_to_iso_date: "datetime/toIsoDate",
-    datetime_to_local_time: "datetime/toLocalTime",
-    datetime_to_universal_time: "datetime/toUniversalTime",
-
-    fs_files: "fs/files",
-    fs_copy: "fs/copy",
-    fs_dirs: "fs/dirs",
-    fs_metadata: "fs/metadata",
-    fs_move: "fs/move",
-
-    luau_compile: "luau/compile",
-    luau_load: "luau/load",
-    luau_options: "luau/options",
-
-    net_request_codes: "net/request/codes",
-    net_request_compression: "net/request/compression",
-    net_request_methods: "net/request/methods",
-    net_request_query: "net/request/query",
-    net_request_redirect: "net/request/redirect",
-    net_url_encode: "net/url/encode",
-    net_url_decode: "net/url/decode",
-    net_serve_requests: "net/serve/requests",
-    net_serve_websockets: "net/serve/websockets",
-    net_socket_basic: "net/socket/basic",
-    net_socket_wss: "net/socket/wss",
-    net_socket_wss_rw: "net/socket/wss_rw",
-
-    process_args: "process/args",
-    process_cwd: "process/cwd",
-    process_env: "process/env",
-    process_exit: "process/exit",
-    process_spawn_async: "process/spawn/async",
-    process_spawn_basic: "process/spawn/basic",
-    process_spawn_cwd: "process/spawn/cwd",
-    process_spawn_shell: "process/spawn/shell",
-    process_spawn_stdin: "process/spawn/stdin",
-    process_spawn_stdio: "process/spawn/stdio",
-
-    regex_general: "regex/general",
-    regex_metamethods: "regex/metamethods",
-    regex_replace: "regex/replace",
-
     require_aliases: "require/tests/aliases",
     require_async: "require/tests/async",
     require_async_concurrent: "require/tests/async_concurrent",
@@ -117,28 +80,76 @@ create_tests! {
     global_type: "globals/type",
     global_typeof: "globals/typeof",
     global_warn: "globals/warn",
-
-    serde_compression_files: "serde/compression/files",
-    serde_compression_roundtrip: "serde/compression/roundtrip",
-    serde_json_decode: "serde/json/decode",
-    serde_json_encode: "serde/json/encode",
-    serde_toml_decode: "serde/toml/decode",
-    serde_toml_encode: "serde/toml/encode",
-
-    stdio_format: "stdio/format",
-    stdio_color: "stdio/color",
-    stdio_style: "stdio/style",
-    stdio_write: "stdio/write",
-    stdio_ewrite: "stdio/ewrite",
-
-    task_cancel: "task/cancel",
-    task_defer: "task/defer",
-    task_delay: "task/delay",
-    task_spawn: "task/spawn",
-    task_wait: "task/wait",
 }
 
-#[cfg(feature = "roblox")]
+#[cfg(feature = "std-datetime")]
+create_tests! {
+    datetime_format_local_time: "datetime/formatLocalTime",
+    datetime_format_universal_time: "datetime/formatUniversalTime",
+    datetime_from_iso_date: "datetime/fromIsoDate",
+    datetime_from_local_time: "datetime/fromLocalTime",
+    datetime_from_universal_time: "datetime/fromUniversalTime",
+    datetime_from_unix_timestamp: "datetime/fromUnixTimestamp",
+    datetime_now: "datetime/now",
+    datetime_to_iso_date: "datetime/toIsoDate",
+    datetime_to_local_time: "datetime/toLocalTime",
+    datetime_to_universal_time: "datetime/toUniversalTime",
+}
+
+#[cfg(feature = "std-fs")]
+create_tests! {
+    fs_files: "fs/files",
+    fs_copy: "fs/copy",
+    fs_dirs: "fs/dirs",
+    fs_metadata: "fs/metadata",
+    fs_move: "fs/move",
+}
+
+#[cfg(feature = "std-luau")]
+create_tests! {
+    luau_compile: "luau/compile",
+    luau_load: "luau/load",
+    luau_options: "luau/options",
+}
+
+#[cfg(feature = "std-net")]
+create_tests! {
+    net_request_codes: "net/request/codes",
+    net_request_compression: "net/request/compression",
+    net_request_methods: "net/request/methods",
+    net_request_query: "net/request/query",
+    net_request_redirect: "net/request/redirect",
+    net_url_encode: "net/url/encode",
+    net_url_decode: "net/url/decode",
+    net_serve_requests: "net/serve/requests",
+    net_serve_websockets: "net/serve/websockets",
+    net_socket_basic: "net/socket/basic",
+    net_socket_wss: "net/socket/wss",
+    net_socket_wss_rw: "net/socket/wss_rw",
+}
+
+#[cfg(feature = "std-process")]
+create_tests! {
+    process_args: "process/args",
+    process_cwd: "process/cwd",
+    process_env: "process/env",
+    process_exit: "process/exit",
+    process_spawn_async: "process/spawn/async",
+    process_spawn_basic: "process/spawn/basic",
+    process_spawn_cwd: "process/spawn/cwd",
+    process_spawn_shell: "process/spawn/shell",
+    process_spawn_stdin: "process/spawn/stdin",
+    process_spawn_stdio: "process/spawn/stdio",
+}
+
+#[cfg(feature = "std-regex")]
+create_tests! {
+    regex_general: "regex/general",
+    regex_metamethods: "regex/metamethods",
+    regex_replace: "regex/replace",
+}
+
+#[cfg(feature = "std-roblox")]
 create_tests! {
     roblox_datatype_axes: "roblox/datatypes/Axes",
     roblox_datatype_brick_color: "roblox/datatypes/BrickColor",
@@ -205,4 +216,32 @@ create_tests! {
     roblox_reflection_database: "roblox/reflection/database",
     roblox_reflection_enums: "roblox/reflection/enums",
     roblox_reflection_property: "roblox/reflection/property",
+}
+
+#[cfg(feature = "std-serde")]
+create_tests! {
+    serde_compression_files: "serde/compression/files",
+    serde_compression_roundtrip: "serde/compression/roundtrip",
+    serde_json_decode: "serde/json/decode",
+    serde_json_encode: "serde/json/encode",
+    serde_toml_decode: "serde/toml/decode",
+    serde_toml_encode: "serde/toml/encode",
+}
+
+#[cfg(feature = "std-stdio")]
+create_tests! {
+    stdio_format: "stdio/format",
+    stdio_color: "stdio/color",
+    stdio_style: "stdio/style",
+    stdio_write: "stdio/write",
+    stdio_ewrite: "stdio/ewrite",
+}
+
+#[cfg(feature = "std-task")]
+create_tests! {
+    task_cancel: "task/cancel",
+    task_defer: "task/defer",
+    task_delay: "task/delay",
+    task_spawn: "task/spawn",
+    task_wait: "task/wait",
 }
