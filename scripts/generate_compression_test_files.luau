@@ -190,6 +190,26 @@ for _, spec in OUTPUT_FILES do
 		)
 	end
 
+	-- If the newly compressed contents do not match the existing contents,
+	-- warn the user about this and ask if they want to overwrite the file
+	local existingContents = fs.readFile(spec.final)
+	if compressedContents ~= existingContents then
+		stdio.ewrite("\nCompressed file does not match existing contents!")
+		stdio.ewrite("\n\nExisting:\n")
+		stdio.ewrite(stringAsHex(existingContents))
+		stdio.ewrite("\n\nCompressed:\n")
+		stdio.ewrite(hexDiff(existingContents, compressedContents))
+		stdio.ewrite("\n\n")
+		local confirm = stdio.prompt("confirm", "Do you want to continue?")
+		if confirm == true then
+			print("Overwriting file!")
+		else
+			stdio.ewrite("\n\nAborting...\n")
+			process.exit(1)
+			return
+		end
+	end
+
 	-- Check if the compressed contents can be decompressed using serde
 	local decompressSuccess, decompressedContents =
 		pcall(serde.decompress, spec.format, compressedContents)
@@ -220,26 +240,6 @@ for _, spec in OUTPUT_FILES do
 		local confirm = stdio.prompt("confirm", "Do you want to continue?")
 		if confirm == true then
 			print("Ignoring decompression mismatch!")
-		else
-			stdio.ewrite("\n\nAborting...\n")
-			process.exit(1)
-			return
-		end
-	end
-
-	-- If the newly compressed contents do not match the existing contents,
-	-- warn the user about this and ask if they want to overwrite the file
-	local existingContents = fs.readFile(spec.final)
-	if compressedContents ~= existingContents then
-		stdio.ewrite("\nCompressed file does not match existing contents!")
-		stdio.ewrite("\n\nExisting:\n")
-		stdio.ewrite(stringAsHex(existingContents))
-		stdio.ewrite("\n\nCompressed:\n")
-		stdio.ewrite(hexDiff(existingContents, compressedContents))
-		stdio.ewrite("\n\n")
-		local confirm = stdio.prompt("confirm", "Do you want to continue?")
-		if confirm == true then
-			print("Overwriting file!")
 		else
 			stdio.ewrite("\n\nAborting...\n")
 			process.exit(1)
