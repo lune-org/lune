@@ -191,7 +191,25 @@ for _, spec in OUTPUT_FILES do
 	end
 
 	-- Check if the compressed contents can be decompressed using serde
-	local decompressedContents = serde.decompress(spec.format, compressedContents)
+	local decompressSuccess, decompressedContents =
+		pcall(serde.decompress, spec.format, compressedContents)
+	if not decompressSuccess then
+		stdio.ewrite("\nCompressed contents could not be decompressed using serde!")
+		stdio.ewrite("\n\nCompressed:\n")
+		stdio.ewrite(stringAsHex(compressedContents))
+		stdio.ewrite("\n\n")
+		stdio.ewrite("Error:\n")
+		stdio.ewrite(tostring(decompressedContents))
+		stdio.ewrite("\n\n")
+		local confirm = stdio.prompt("confirm", "Do you want to continue?")
+		if confirm == true then
+			print("Ignoring decompression error!")
+		else
+			stdio.ewrite("\n\nAborting...\n")
+			process.exit(1)
+			return
+		end
+	end
 	if decompressedContents ~= INPUT_FILE_CONTENTS then
 		stdio.ewrite("\nCompressed contents were not decompressable properly using serde!")
 		stdio.ewrite("\n\nOriginal:\n")
@@ -201,7 +219,7 @@ for _, spec in OUTPUT_FILES do
 		stdio.ewrite("\n\n")
 		local confirm = stdio.prompt("confirm", "Do you want to continue?")
 		if confirm == true then
-			print("Ignoring decompression error!")
+			print("Ignoring decompression mismatch!")
 		else
 			stdio.ewrite("\n\nAborting...\n")
 			process.exit(1)
