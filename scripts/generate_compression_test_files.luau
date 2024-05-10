@@ -85,17 +85,23 @@ local function run(program: string, args: { string }): string
 	local result = process.spawn(program, args)
 	if not result.ok then
 		stdio.ewrite(string.format("Command '%s' failed\n", program))
-		if result.stdout then
-			stdio.ewrite("stdout: ")
+		if #result.stdout > 0 then
+			stdio.ewrite("stdout:\n")
 			stdio.ewrite(result.stdout)
 			stdio.ewrite("\n")
 		end
-		if result.stderr then
-			stdio.ewrite("stderr: ")
+		if #result.stderr > 0 then
+			stdio.ewrite("stderr:\n")
 			stdio.ewrite(result.stderr)
 			stdio.ewrite("\n")
 		end
 		process.exit(1)
+	else
+		if #result.stdout > 0 then
+			stdio.ewrite("stdout:\n")
+			stdio.ewrite(result.stdout)
+			stdio.ewrite("\n")
+		end
 	end
 	return result.stdout
 end
