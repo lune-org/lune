@@ -164,6 +164,25 @@ for _, spec in OUTPUT_FILES do
 		)
 	end
 
+	-- Check if the compressed contents can be decompressed using serde
+	local decompressedContents = serde.decompress(spec.format, compressedContents)
+	if decompressedContents ~= INPUT_FILE_CONTENTS then
+		stdio.ewrite("\nCompressed contents were not decompressable properly using serde!")
+		stdio.ewrite("\n\nOriginal:\n")
+		stdio.ewrite(INPUT_FILE_CONTENTS)
+		stdio.ewrite("\n\nDecompressed:\n")
+		stdio.ewrite(decompressedContents)
+		stdio.ewrite("\n\n")
+		local confirm = stdio.prompt("confirm", "Do you want to continue?")
+		if confirm == true then
+			print("Ignoring decompression error!")
+		else
+			stdio.ewrite("\n\nAborting...\n")
+			process.exit(1)
+			return
+		end
+	end
+
 	-- If the newly compressed contents do not match the existing contents,
 	-- warn the user about this and ask if they want to overwrite the file
 	local existingContents = fs.readFile(spec.final)
