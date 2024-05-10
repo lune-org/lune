@@ -57,6 +57,21 @@ local function hexDiff(a: string, b: string): string
 	return table.concat(diff)
 end
 
+-- Make some processing functions for manipulating output of certain commands
+
+local function processNoop(output: string): string
+	return output
+end
+
+local function processGzipSetOsUnknown(output: string): string
+	-- This will set the os bits to be "unknown" so that the
+	-- output is deterministic and consistent with serde lib
+	-- https://www.rfc-editor.org/rfc/rfc1952#section-2.3.1
+	local buf = buffer.fromstring(output)
+	buffer.writeu8(buf, 9, 0xFF)
+	return buffer.tostring(buf)
+end
+
 -- Make sure we have all of the different compression tools installed,
 -- note that on macos we do not use the system-installed compression
 -- tools, instead preferring to use homebrew-installed (gnu) ones
@@ -118,6 +133,7 @@ local OUTPUT_FILES = {
 		format = "brotli" :: serde.CompressDecompressFormat,
 		args = { "--best", "-w", "22", TEMP_FILE },
 		output = TEMP_FILE .. ".br",
+		process = processNoop,
 		final = INPUT_FILE .. ".br",
 	},
 	{
@@ -125,13 +141,15 @@ local OUTPUT_FILES = {
 		format = "gzip" :: serde.CompressDecompressFormat,
 		args = { "--best", "--no-name", "--synchronous", TEMP_FILE },
 		output = TEMP_FILE .. ".gz",
+		process = processGzipSetOsUnknown,
 		final = INPUT_FILE .. ".gz",
 	},
 	{
 		command = BIN_LZ4,
 		format = "lz4" :: serde.CompressDecompressFormat,
-		args = { "--best", TEMP_FILE },
+		args = { "--best", TEMP_FILE, TEMP_FILE .. ".lz4" },
 		output = TEMP_FILE .. ".lz4",
+		process = processNoop,
 		final = INPUT_FILE .. ".lz4",
 	},
 	-- {
@@ -139,6 +157,7 @@ local OUTPUT_FILES = {
 	--	format = "zlib" :: serde.CompressDecompressFormat,
 	-- 	args = { "-c", INPUT_FILE },
 	-- 	output = TEMP_FILE .. ".z",
+	-- 	process = processNoop,
 	--	final = INPUT_FILE .. ".z",
 	-- },
 }
@@ -158,6 +177,7 @@ for _, spec in OUTPUT_FILES do
 	local compressedContents
 	pcall(function()
 		compressedContents = fs.readFile(spec.output)
+		compressedContents = spec.process(compressedContents)
 		fs.removeFile(spec.output)
 	end)
 	if not compressedContents then

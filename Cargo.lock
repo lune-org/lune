@@ -163,9 +163,9 @@ dependencies = [
 
 [[package]]
 name = "async-compression"
-version = "0.4.8"
+version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07dbbf24db18d609b1462965249abdf49129ccad073ec257da372adc83259c60"
+checksum = "9c90a406b4495d129f00461241616194cb8a032c8d1c53c657f0961d5f8e0498"
 dependencies = [
  "brotli",
  "flate2",
@@ -313,9 +313,9 @@ dependencies = [
 
 [[package]]
 name = "brotli"
-version = "4.0.0"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "125740193d7fee5cc63ab9e16c2fdc4e07c74ba755cc53b327d6ea029e9fc569"
+checksum = "74f7971dbd9326d58187408ab83117d8ac1bb9c17b085fdacd1cf2f598719b6b"
 dependencies = [
  "alloc-no-stdlib",
  "alloc-stdlib",
@@ -324,9 +324,9 @@ dependencies = [
 
 [[package]]
 name = "brotli-decompressor"
-version = "3.0.0"
+version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65622a320492e09b5e0ac436b14c54ff68199bac392d0e89a6832c4518eea525"
+checksum = "e6221fe77a248b9117d431ad93761222e1cf8ff282d9d1d5d9f53d6299a1cf76"
 dependencies = [
  "alloc-no-stdlib",
  "alloc-stdlib",
