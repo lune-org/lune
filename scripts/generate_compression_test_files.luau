@@ -132,7 +132,7 @@ local OUTPUT_FILES = {
 	-- 	command = "zlib",
 	--	format = "zlib" :: serde.CompressDecompressFormat,
 	-- 	args = { "-c", INPUT_FILE },
-	-- 	output = TEST_FILES_DIR .. "/loremipsum.txt.z",
+	-- 	output = TEMP_FILE .. ".z",
 	--	final = INPUT_FILE .. ".z",
 	-- },
 }
