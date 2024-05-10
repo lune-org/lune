@@ -3,7 +3,67 @@ local process = require("@lune/process")
 local serde = require("@lune/serde")
 local stdio = require("@lune/stdio")
 
--- Make sure we have all of the different compression tools installed
+-- Make some utility functions for viewing unexpected differences in files easier
+
+local function stringAsHex(str: string): string
+	local hex = {}
+	for i = 1, #str do
+		table.insert(hex, string.format("%02x", string.byte(str, i)))
+	end
+	return table.concat(hex)
+end
+
+local function hexDiff(a: string, b: string): string
+	local diff = {}
+	for i = 1, math.max(#a, #b) do
+		local aByte = if #a >= i then string.byte(a, i) else nil
+		local bByte = if #b >= i then string.byte(b, i) else nil
+		if aByte == nil then
+			table.insert(
+				diff,
+				string.format(
+					"%s%02x%s",
+					stdio.color("green"),
+					assert(bByte, "unreachable"),
+					stdio.color("reset")
+				)
+			)
+		elseif bByte == nil then
+			table.insert(
+				diff,
+				string.format(
+					"%s%02x%s",
+					stdio.color("red"),
+					assert(aByte, "unreachable"),
+					stdio.color("reset")
+				)
+			)
+		else
+			if aByte == bByte then
+				table.insert(diff, string.format("%02x", aByte))
+			else
+				table.insert(
+					diff,
+					string.format(
+						"%s%02x%s",
+						stdio.color("yellow"),
+						assert(bByte, "unreachable"),
+						stdio.color("reset")
+					)
+				)
+			end
+		end
+	end
+	return table.concat(diff)
+end
+
+-- Make sure we have all of the different compression tools installed,
+-- note that on macos we do not use the system-installed compression
+-- tools, instead preferring to use homebrew-installed (gnu) ones
+
+local BIN_BROTLI = if process.os == "macos" then "/opt/homebrew/bin/brotli" else "brotli"
+local BIN_GZIP = if process.os == "macos" then "/opt/homebrew/bin/gzip" else "gzip"
+local BIN_LZ4 = if process.os == "macos" then "/opt/homebrew/bin/lz4" else "lz4"
 
 local function checkInstalled(program: string, args: { string }?)
 	print("Checking if", program, "is installed")
@@ -14,9 +74,9 @@ local function checkInstalled(program: string, args: { string }?)
 	end
 end
 
-checkInstalled("brotli", { "--version" })
-checkInstalled("gzip", { "--version" })
-checkInstalled("lz4", { "--version" })
+checkInstalled(BIN_BROTLI, { "--version" })
+checkInstalled(BIN_GZIP, { "--version" })
+checkInstalled(BIN_LZ4, { "--version" })
 -- checkInstalled("zlib", { "--version" })
 
 -- Run them to generate files
@@ -48,21 +108,21 @@ local INPUT_FILE_CONTENTS = fs.readFile(INPUT_FILE)
 
 local OUTPUT_FILES = {
 	{
-		command = "brotli",
+		command = BIN_BROTLI,
 		format = "brotli" :: serde.CompressDecompressFormat,
 		args = { "--best", "-w", "22", TEMP_FILE },
 		output = TEMP_FILE .. ".br",
 		final = INPUT_FILE .. ".br",
 	},
 	{
-		command = "gzip",
+		command = BIN_GZIP,
 		format = "gzip" :: serde.CompressDecompressFormat,
-		args = { "--best", "--no-name", TEMP_FILE },
+		args = { "--best", "--no-name", "--synchronous", TEMP_FILE },
 		output = TEMP_FILE .. ".gz",
 		final = INPUT_FILE .. ".gz",
 	},
 	{
-		command = "lz4",
+		command = BIN_LZ4,
 		format = "lz4" :: serde.CompressDecompressFormat,
 		args = { "--best", TEMP_FILE },
 		output = TEMP_FILE .. ".lz4",
@@ -108,17 +168,15 @@ for _, spec in OUTPUT_FILES do
 	-- warn the user about this and ask if they want to overwrite the file
 	local existingContents = fs.readFile(spec.final)
 	if compressedContents ~= existingContents then
-		stdio.ewrite("Output file does not match expected contents\n")
-		stdio.ewrite("\nCompressed:\n")
-		stdio.ewrite(compressedContents)
-		stdio.ewrite("\n")
-		stdio.ewrite("\nExisting:\n")
-		stdio.ewrite(existingContents)
+		stdio.ewrite("\nCompressed file does not match existing contents!")
+		stdio.ewrite("\n\nExisting:\n")
+		stdio.ewrite(stringAsHex(existingContents))
+		stdio.ewrite("\n\nCompressed:\n")
+		stdio.ewrite(hexDiff(existingContents, compressedContents))
 		stdio.ewrite("\n\n")
-		local confirm = stdio.prompt("confirm", "Do you want to overwrite the file?")
+		local confirm = stdio.prompt("confirm", "Do you want to continue?")
 		if confirm == true then
 			print("Overwriting file!")
-			fs.writeFile(spec.output, compressedContents)
 		else
 			stdio.ewrite("\n\nAborting...\n")
 			process.exit(1)
@@ -131,13 +189,12 @@ for _, spec in OUTPUT_FILES do
 	-- it because we are updating the serde library and need to update test files
 	local serdeContents = serde.compress(spec.format, INPUT_FILE_CONTENTS)
 	if compressedContents ~= serdeContents then
-		stdio.ewrite("Temp file does not match contents compressed with serde!\n")
-		stdio.ewrite("This will caused the new compressed file to fail tests.\n")
-		stdio.ewrite("\nCompressed:\n")
-		stdio.ewrite(compressedContents)
-		stdio.ewrite("\n")
-		stdio.ewrite("\nSerde:\n")
-		stdio.ewrite(serdeContents)
+		stdio.ewrite("\nTemp file does not match contents compressed with serde!")
+		stdio.ewrite("\nThis will caused the new compressed file to fail tests.")
+		stdio.ewrite("\n\nSerde:\n")
+		stdio.ewrite(stringAsHex(serdeContents))
+		stdio.ewrite("\n\nCompressed:\n")
+		stdio.ewrite(hexDiff(serdeContents, compressedContents))
 		stdio.ewrite("\n\n")
 		local confirm = stdio.prompt("confirm", "Do you want to continue?")
 		if confirm == true then
