@@ -3,6 +3,12 @@ local process = require("@lune/process")
 local serde = require("@lune/serde")
 local stdio = require("@lune/stdio")
 
+local TEST_FILES_DIR = process.cwd .. "tests/serde/test-files"
+local INPUT_FILE = TEST_FILES_DIR .. "/loremipsum.txt"
+local TEMP_FILE = TEST_FILES_DIR .. "/loremipsum.temp"
+
+local INPUT_FILE_CONTENTS = fs.readFile(INPUT_FILE)
+
 -- Make some utility functions for viewing unexpected differences in files easier
 
 local function stringAsHex(str: string): string
@@ -72,6 +78,16 @@ local function processGzipSetOsUnknown(output: string): string
 	return buffer.tostring(buf)
 end
 
+local function processLz4PrependSize(output: string): string
+	-- Lune supports only lz4 with the decompressed size
+	-- prepended to it, but the lz4 command line tool
+	-- doesn't add this automatically, so we have to
+	local buf = buffer.create(4 + #output)
+	buffer.writeu32(buf, 0, #INPUT_FILE_CONTENTS)
+	buffer.writestring(buf, 4, output)
+	return buffer.tostring(buf)
+end
+
 -- Make sure we have all of the different compression tools installed,
 -- note that on macos we do not use the system-installed compression
 -- tools, instead preferring to use homebrew-installed (gnu) ones
@@ -121,12 +137,6 @@ local function run(program: string, args: { string }): string
 	return result.stdout
 end
 
-local TEST_FILES_DIR = process.cwd .. "tests/serde/test-files"
-local INPUT_FILE = TEST_FILES_DIR .. "/loremipsum.txt"
-local TEMP_FILE = TEST_FILES_DIR .. "/loremipsum.temp"
-
-local INPUT_FILE_CONTENTS = fs.readFile(INPUT_FILE)
-
 local OUTPUT_FILES = {
 	{
 		command = BIN_BROTLI,
@@ -149,7 +159,7 @@ local OUTPUT_FILES = {
 		format = "lz4" :: serde.CompressDecompressFormat,
 		args = { "--best", TEMP_FILE, TEMP_FILE .. ".lz4" },
 		output = TEMP_FILE .. ".lz4",
-		process = processNoop,
+		process = processLz4PrependSize,
 		final = INPUT_FILE .. ".lz4",
 	},
 	-- {
