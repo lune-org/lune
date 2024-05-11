@@ -1,10 +1,13 @@
 use std::env::set_current_dir;
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use anyhow::Result;
 use console::set_colors_enabled;
 use console::set_colors_enabled_stderr;
 use tokio::fs::read_to_string;
+
+use lune_utils::path::clean_path_and_make_absolute;
 
 use crate::Runtime;
 
@@ -17,7 +20,7 @@ macro_rules! create_tests {
             // We need to change the current directory to the workspace root since
             // we are in a sub-crate and tests would run relative to the sub-crate
             let workspace_dir_str = format!("{}/../../", env!("CARGO_MANIFEST_DIR"));
-            let workspace_dir = std::path::PathBuf::from(workspace_dir_str).canonicalize()?;
+            let workspace_dir = clean_path_and_make_absolute(PathBuf::from(workspace_dir_str));
             set_current_dir(&workspace_dir)?;
 
             // Disable styling for stdout and stderr since
