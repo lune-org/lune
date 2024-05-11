@@ -63,6 +63,14 @@ local function hexDiff(a: string, b: string): string
 	return table.concat(diff)
 end
 
+local function stripCwdIfPresent(path: string): string
+	if string.sub(path, 1, #process.cwd) == process.cwd then
+		return string.sub(path, #process.cwd + 1)
+	else
+		return path
+	end
+end
+
 -- Make some processing functions for manipulating output of certain commands
 
 local function processNoop(output: string): string
@@ -178,7 +186,11 @@ for _, spec in OUTPUT_FILES do
 	-- Write the temp file for the compression tool to read and use, then
 	-- remove it, some tools may remove it on their own, so we ignore errors
 	fs.writeFile(TEMP_FILE, INPUT_FILE_CONTENTS)
-	print("\nRunning", spec.command, "with args", table.concat(spec.args, " "))
+	local argsToDisplay = {}
+	for _, arg in spec.args do
+		table.insert(argsToDisplay, stripCwdIfPresent(arg))
+	end
+	print("\nRunning", spec.command, "with args", table.concat(argsToDisplay, " "))
 	local output = run(spec.command, spec.args)
 	if #output > 0 then
 		print("Output:", output)
@@ -282,5 +294,5 @@ for _, spec in OUTPUT_FILES do
 
 	-- Finally, write the new compressed file
 	fs.writeFile(spec.final, compressedContents)
-	print("Wrote new file successfully to", spec.final)
+	print("Wrote new file successfully to", stripCwdIfPresent(spec.final))
 end
