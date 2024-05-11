@@ -96,6 +96,7 @@ end
 local BIN_BROTLI = if process.os == "macos" then "/opt/homebrew/bin/brotli" else "brotli"
 local BIN_GZIP = if process.os == "macos" then "/opt/homebrew/bin/gzip" else "gzip"
 local BIN_LZ4 = if process.os == "macos" then "/opt/homebrew/bin/lz4" else "lz4"
+local BIN_ZLIB = if process.os == "macos" then "/opt/homebrew/bin/pigz" else "pigz"
 
 local function checkInstalled(program: string, args: { string }?)
 	print("Checking if", program, "is installed")
@@ -109,7 +110,7 @@ end
 checkInstalled(BIN_BROTLI, { "--version" })
 checkInstalled(BIN_GZIP, { "--version" })
 checkInstalled(BIN_LZ4, { "--version" })
--- checkInstalled("zlib", { "--version" })
+checkInstalled(BIN_ZLIB, { "--version" })
 
 -- Run them to generate files
 
@@ -163,14 +164,14 @@ local OUTPUT_FILES = {
 		process = processLz4PrependSize,
 		final = INPUT_FILE .. ".lz4",
 	},
-	-- {
-	-- 	command = "zlib",
-	--	format = "zlib" :: serde.CompressDecompressFormat,
-	-- 	args = { "-c", INPUT_FILE },
-	-- 	output = TEMP_FILE .. ".z",
-	-- 	process = processNoop,
-	--	final = INPUT_FILE .. ".z",
-	-- },
+	{
+		command = BIN_ZLIB,
+		format = "zlib" :: serde.CompressDecompressFormat,
+		args = { "--best", "--zlib", TEMP_FILE },
+		output = TEMP_FILE .. ".zz",
+		process = processNoop,
+		final = INPUT_FILE .. ".z",
+	},
 }
 
 for _, spec in OUTPUT_FILES do
