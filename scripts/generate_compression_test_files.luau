@@ -190,7 +190,12 @@ for _, spec in OUTPUT_FILES do
 	for _, arg in spec.args do
 		table.insert(argsToDisplay, stripCwdIfPresent(arg))
 	end
-	print("\nRunning", spec.command, "with args", table.concat(argsToDisplay, " "))
+	print(
+		"\nRunning compression\n  Cmd:  ",
+		spec.command,
+		"\n  Args: ",
+		stdio.format(table.unpack(argsToDisplay))
+	)
 	local output = run(spec.command, spec.args)
 	if #output > 0 then
 		print("Output:", output)
