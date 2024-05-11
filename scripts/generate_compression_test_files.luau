@@ -82,6 +82,7 @@ local function processLz4PrependSize(output: string): string
 	-- Lune supports only lz4 with the decompressed size
 	-- prepended to it, but the lz4 command line tool
 	-- doesn't add this automatically, so we have to
+	-- TODO: Remove this in the future when no longer needed
 	local buf = buffer.create(4 + #output)
 	buffer.writeu32(buf, 0, #INPUT_FILE_CONTENTS)
 	buffer.writestring(buf, 4, output)
@@ -157,7 +158,7 @@ local OUTPUT_FILES = {
 	{
 		command = BIN_LZ4,
 		format = "lz4" :: serde.CompressDecompressFormat,
-		args = { "-3", "--content-size", TEMP_FILE, TEMP_FILE .. ".lz4" },
+		args = { "--best", TEMP_FILE, TEMP_FILE .. ".lz4" },
 		output = TEMP_FILE .. ".lz4",
 		process = processLz4PrependSize,
 		final = INPUT_FILE .. ".lz4",

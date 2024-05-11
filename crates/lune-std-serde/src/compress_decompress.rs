@@ -1,6 +1,8 @@
+use std::io::{copy as copy_std, Cursor, Read as _, Write as _};
+
 use mlua::prelude::*;
 
-use lz4_flex::{compress_prepend_size, decompress_size_prepended};
+use lz4::{Decoder, EncoderBuilder};
 use tokio::{
     io::{copy, BufReader},
     task::spawn_blocking,
@@ -120,8 +122,9 @@ pub async fn compress<'lua>(
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return spawn_blocking(move || compress_prepend_size(&source))
+        return spawn_blocking(move || compress_lz4(source))
             .await
+            .into_lua_err()?
             .into_lua_err();
     }
 
@@ -160,7 +163,7 @@ pub async fn decompress<'lua>(
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return spawn_blocking(move || decompress_size_prepended(&source))
+        return spawn_blocking(move || decompress_lz4(source))
             .await
             .into_lua_err()?
             .into_lua_err();
@@ -186,4 +189,48 @@ pub async fn decompress<'lua>(
     }
 
     Ok(bytes)
+}
+
+// TODO: Remove the compatibility layer. Prepending size is no longer
+// necessary, using lz4 create instead of lz4-flex, but we must remove
+// it in a major version to not unexpectedly break compatibility
+
+fn compress_lz4(input: Vec<u8>) -> LuaResult<Vec<u8>> {
+    let mut input = Cursor::new(input);
+    let mut output = Cursor::new(Vec::new());
+
+    // Prepend size for compatibility with old lz4-flex implementation
+    let len = input.get_ref().len() as u32;
+    output.write_all(len.to_le_bytes().as_ref())?;
+
+    let mut encoder = EncoderBuilder::new()
+        .level(16)
+        .checksum(lz4::ContentChecksum::ChecksumEnabled)
+        .block_mode(lz4::BlockMode::Independent)
+        .build(output)?;
+
+    copy_std(&mut input, &mut encoder)?;
+    let (output, result) = encoder.finish();
+    result?;
+
+    Ok(output.into_inner())
+}
+
+fn decompress_lz4(input: Vec<u8>) -> LuaResult<Vec<u8>> {
+    let mut input = Cursor::new(input);
+
+    // Skip size for compatibility with old lz4-flex implementation
+    // Note that right now we use it for preallocating the output buffer
+    // and a small efficiency gain, maybe we can expose this as some kind
+    // of "size hint" parameter instead in the serde library in the future
+    let mut size = [0; 4];
+    input.read_exact(&mut size)?;
+
+    let capacity = u32::from_le_bytes(size) as usize;
+    let mut output = Cursor::new(Vec::with_capacity(capacity));
+
+    let mut decoder = Decoder::new(input)?;
+    copy_std(&mut decoder, &mut output)?;
+
+    Ok(output.into_inner())
 }
