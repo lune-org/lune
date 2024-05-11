@@ -157,7 +157,7 @@ local OUTPUT_FILES = {
 	{
 		command = BIN_LZ4,
 		format = "lz4" :: serde.CompressDecompressFormat,
-		args = { "--best", TEMP_FILE, TEMP_FILE .. ".lz4" },
+		args = { "-3", "--content-size", TEMP_FILE, TEMP_FILE .. ".lz4" },
 		output = TEMP_FILE .. ".lz4",
 		process = processLz4PrependSize,
 		final = INPUT_FILE .. ".lz4",
