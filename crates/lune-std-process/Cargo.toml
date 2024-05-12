@@ -21,6 +21,7 @@ pin-project = "1.0"
 os_str_bytes = { version = "7.0", features = ["conversions"] }
 
 tokio = { version = "1", default-features = false, features = [
+    "io-std",
     "io-util",
     "process",
     "rt",
