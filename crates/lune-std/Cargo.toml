@@ -1,0 +1,59 @@
+[package]
+name = "lune-std"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+repository = "https://github.com/lune-org/lune"
+description = "Lune standard library"
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[features]
+default = [
+    "datetime",
+    "fs",
+    "luau",
+    "net",
+    "process",
+    "regex",
+    "roblox",
+    "serde",
+    "stdio",
+    "task",
+]
+
+datetime = ["dep:lune-std-datetime"]
+fs = ["dep:lune-std-fs"]
+luau = ["dep:lune-std-luau"]
+net = ["dep:lune-std-net"]
+process = ["dep:lune-std-process"]
+regex = ["dep:lune-std-regex"]
+roblox = ["dep:lune-std-roblox"]
+serde = ["dep:lune-std-serde"]
+stdio = ["dep:lune-std-stdio"]
+task = ["dep:lune-std-task"]
+
+[dependencies]
+mlua = { version = "0.9.7", features = ["luau"] }
+mlua-luau-scheduler = "0.0.2"
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", default-features = false, features = ["fs", "sync"] }
+
+lune-utils = { version = "0.1.0", path = "../lune-utils" }
+
+lune-std-datetime = { optional = true, version = "0.1.0", path = "../lune-std-datetime" }
+lune-std-fs = { optional = true, version = "0.1.0", path = "../lune-std-fs" }
+lune-std-luau = { optional = true, version = "0.1.0", path = "../lune-std-luau" }
+lune-std-net = { optional = true, version = "0.1.0", path = "../lune-std-net" }
+lune-std-process = { optional = true, version = "0.1.0", path = "../lune-std-process" }
+lune-std-regex = { optional = true, version = "0.1.0", path = "../lune-std-regex" }
+lune-std-roblox = { optional = true, version = "0.1.0", path = "../lune-std-roblox" }
+lune-std-serde = { optional = true, version = "0.1.0", path = "../lune-std-serde" }
+lune-std-stdio = { optional = true, version = "0.1.0", path = "../lune-std-stdio" }
+lune-std-task = { optional = true, version = "0.1.0", path = "../lune-std-task" }

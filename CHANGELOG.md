@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.8.4` - May 12th, 2024
 
 ### Changed
 
@@ -51,12 +51,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Currently supported targets are the same as the ones included with each
   release of Lune on GitHub. Check releases for a full list of targets.
 
+- Split the repository into modular crates instead of a monolith. ([#188])
+
+  If you previously depended on Lune as a crate, nothing about it has changed for version `0.8.4`, but now each individual sub-crate has also been published and is available for use:
+
+  - `lune` (old)
+  - `lune-utils`
+  - `lune-roblox`
+  - `lune-std-*` for every builtin library
+
+  When depending on the main `lune` crate, each builtin library also has a feature flag that can be toggled in the format `std-*`.
+
+  In general, this should mean that it is now much easier to make your own Lune builtin, publish your own flavor of a Lune CLI, or take advantage of all the work that has been done for Lune as a runtime when making your own Rust programs.
+
 - Added `stdio.readToEnd()` for reading the entire stdin passed to Lune
 - Changed the `User-Agent` header in `net.request` to be more descriptive ([#186])
 - Updated to Luau version `0.622`.
 
 ### Fixed
 
+- Fixed not being able to decompress `lz4` format in high compression mode
 - Fixed stack overflow for tables with circular keys ([#183])
 - Fixed `net.serve` no longer accepting ipv6 addresses
 - Fixed headers in `net.serve` being raw bytes instead of strings
@@ -65,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#162]: https://github.com/lune-org/lune/pull/162
 [#183]: https://github.com/lune-org/lune/pull/183
 [#186]: https://github.com/lune-org/lune/pull/186
+[#188]: https://github.com/lune-org/lune/pull/188
 
 ## `0.8.3` - April 15th, 2024
 

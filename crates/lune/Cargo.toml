@@ -1,0 +1,89 @@
+[package]
+name = "lune"
+version = "0.8.4"
+edition = "2021"
+license = "MPL-2.0"
+repository = "https://github.com/lune-org/lune"
+description = "A standalone Luau runtime"
+readme = "README.md"
+keywords = ["cli", "lua", "luau", "runtime"]
+categories = ["command-line-interface"]
+
+[[bin]]
+name = "lune"
+path = "src/main.rs"
+
+[lib]
+name = "lune"
+path = "src/lib.rs"
+
+[features]
+default = ["std", "cli"]
+
+std-datetime = ["dep:lune-std", "lune-std/datetime"]
+std-fs = ["dep:lune-std", "lune-std/fs"]
+std-luau = ["dep:lune-std", "lune-std/luau"]
+std-net = ["dep:lune-std", "lune-std/net"]
+std-process = ["dep:lune-std", "lune-std/process"]
+std-regex = ["dep:lune-std", "lune-std/regex"]
+std-roblox = ["dep:lune-std", "lune-std/roblox", "dep:lune-roblox"]
+std-serde = ["dep:lune-std", "lune-std/serde"]
+std-stdio = ["dep:lune-std", "lune-std/stdio"]
+std-task = ["dep:lune-std", "lune-std/task"]
+
+std = [
+    "std-datetime",
+    "std-fs",
+    "std-luau",
+    "std-net",
+    "std-process",
+    "std-regex",
+    "std-roblox",
+    "std-serde",
+    "std-stdio",
+    "std-task",
+]
+
+cli = [
+    "dep:env_logger",
+    "dep:clap",
+    "dep:include_dir",
+    "dep:rustyline",
+    "dep:zip_next",
+]
+
+[lints]
+workspace = true
+
+[dependencies]
+mlua = { version = "0.9.7", features = ["luau"] }
+mlua-luau-scheduler = { git = "https://github.com/0x5eal/mlua-luau-scheduler-exitstatus.git" }
+
+anyhow = "1.0"
+console = "0.15"
+dialoguer = "0.11"
+directories = "5.0"
+futures-util = "0.3"
+once_cell = "1.17"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.11", default-features = false, features = [
+    "rustls-tls",
+] }
+
+lune-std = { optional = true, version = "0.1.0", path = "../lune-std" }
+lune-roblox = { optional = true, version = "0.1.0", path = "../lune-roblox" }
+lune-utils = { version = "0.1.0", path = "../lune-utils" }
+
+### CLI
+
+env_logger = { optional = true, version = "0.11" }
+clap = { optional = true, version = "4.1", features = ["derive"] }
+include_dir = { optional = true, version = "0.7", features = ["glob"] }
+rustyline = { optional = true, version = "14.0" }
+zip_next = { optional = true, version = "1.1" }
