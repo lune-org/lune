@@ -24,7 +24,7 @@ jobs:
           components: rustfmt
 
       - name: Install Just
-        uses: extractions/setup-just@v1
+        uses: extractions/setup-just@v2
 
       - name: Install Tooling
         uses: ok-nick/setup-aftman@v0.4.2
@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Just
-        uses: extractions/setup-just@v1
+        uses: extractions/setup-just@v2
 
       - name: Install Tooling
         uses: ok-nick/setup-aftman@v0.4.2
