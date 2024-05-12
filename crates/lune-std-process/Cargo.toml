@@ -1,0 +1,26 @@
+[package]
+name = "lune-std-process"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+mlua = { version = "0.9.7", features = ["luau"] }
+mlua-luau-scheduler = "0.0.2"
+
+directories = "5.0"
+pin-project = "1.0"
+os_str_bytes = { version = "7.0", features = ["conversions"] }
+
+tokio = { version = "1", default-features = false, features = [
+    "sync",
+    "process",
+] }
+
+lune-utils = { version = "0.1.0", path = "../lune-utils" }

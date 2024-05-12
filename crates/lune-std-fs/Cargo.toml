@@ -1,0 +1,21 @@
+[package]
+name = "lune-std-fs"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+mlua = { version = "0.9.7", features = ["luau"] }
+
+bstr = "1.9"
+
+tokio = { version = "1", default-features = false, features = ["fs"] }
+
+lune-utils = { version = "0.1.0", path = "../lune-utils" }
+lune-std-datetime = { version = "0.1.0", path = "../lune-std-datetime" }
