@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## `0.8.4` - May 12th, 2024
 
-### Changed
+### Added
 
 - Added a builtin API for regular expressions.
 
@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Currently supported targets are the same as the ones included with each
   release of Lune on GitHub. Check releases for a full list of targets.
 
+- Added `stdio.readToEnd()` for reading the entire stdin passed to Lune
+
+### Changed
+
 - Split the repository into modular crates instead of a monolith. ([#188])
 
   If you previously depended on Lune as a crate, nothing about it has changed for version `0.8.4`, but now each individual sub-crate has also been published and is available for use:
@@ -64,7 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   In general, this should mean that it is now much easier to make your own Lune builtin, publish your own flavor of a Lune CLI, or take advantage of all the work that has been done for Lune as a runtime when making your own Rust programs.
 
-- Added `stdio.readToEnd()` for reading the entire stdin passed to Lune
 - Changed the `User-Agent` header in `net.request` to be more descriptive ([#186])
 - Updated to Luau version `0.622`.
 
