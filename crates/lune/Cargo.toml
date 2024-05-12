@@ -5,7 +5,7 @@ edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
 description = "A standalone Luau runtime"
-readme = "README.md"
+readme = "../../README.md"
 keywords = ["cli", "lua", "luau", "runtime"]
 categories = ["command-line-interface"]
 
