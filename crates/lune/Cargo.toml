@@ -44,13 +44,7 @@ std = [
     "std-task",
 ]
 
-cli = [
-    "dep:env_logger",
-    "dep:clap",
-    "dep:include_dir",
-    "dep:rustyline",
-    "dep:zip_next",
-]
+cli = ["dep:clap", "dep:include_dir", "dep:rustyline", "dep:zip_next"]
 
 [lints]
 workspace = true
@@ -82,7 +76,6 @@ lune-utils = { version = "0.1.0", path = "../lune-utils" }
 
 ### CLI
 
-env_logger = { optional = true, version = "0.11" }
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
 rustyline = { optional = true, version = "14.0" }
