@@ -1485,7 +1485,7 @@ dependencies = [
  "lune-std",
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (git+https://github.com/0x5eal/mlua-luau-scheduler-exitstatus.git)",
  "once_cell",
  "reqwest",
  "rustyline",
@@ -1531,7 +1531,7 @@ dependencies = [
  "lune-std-task",
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
  "tokio",
@@ -1581,7 +1581,7 @@ dependencies = [
  "lune-std-serde",
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest",
  "tokio",
  "tokio-tungstenite",
@@ -1595,7 +1595,7 @@ dependencies = [
  "directories",
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_str_bytes",
  "pin-project",
  "tokio",
@@ -1618,7 +1618,7 @@ dependencies = [
  "lune-roblox",
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "rbx_cookie",
 ]
@@ -1646,7 +1646,7 @@ dependencies = [
  "dialoguer",
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
 ]
 
@@ -1656,7 +1656,7 @@ version = "0.1.0"
 dependencies = [
  "lune-utils",
  "mlua",
- "mlua-luau-scheduler",
+ "mlua-luau-scheduler 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
 ]
 
@@ -1767,6 +1767,22 @@ name = "mlua-luau-scheduler"
 version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a13eabdbc57fa38cf0b604d98ce3431573c79a964aac56e09c16c240d36cb1bf"
+dependencies = [
+ "async-executor",
+ "blocking",
+ "concurrent-queue",
+ "derive_more",
+ "event-listener 4.0.3",
+ "futures-lite",
+ "mlua",
+ "rustc-hash",
+ "tracing",
+]
+
+[[package]]
+name = "mlua-luau-scheduler"
+version = "0.0.2"
+source = "git+https://github.com/0x5eal/mlua-luau-scheduler-exitstatus.git#82c8b902e09a21a9befa4e037beadefbe2360b7f"
 dependencies = [
  "async-executor",
  "blocking",
