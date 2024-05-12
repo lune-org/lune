@@ -24,7 +24,7 @@ jobs:
         uses: SebRollen/toml-action@v1.2.0
         id: get_version
         with:
-          file: Cargo.toml
+          file: crates/lune/Cargo.toml
           field: package.version
 
   dry-run:
