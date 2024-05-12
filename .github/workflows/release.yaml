@@ -27,8 +27,26 @@ jobs:
           file: Cargo.toml
           field: package.version
 
-  build:
+  dry-run:
+    name: Dry-run
     needs: ["init"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish (dry-run)
+        uses: katyo/publish-crates@v2
+        with:
+          dry-run: true
+          check-repo: true
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  build:
+    needs: ["init", "dry-run"]
     strategy:
       fail-fast: false
       matrix:
@@ -91,10 +109,10 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: release.zip
 
-  release:
-    name: Release
+  release-github:
+    name: Release (GitHub)
     runs-on: ubuntu-latest
-    needs: ["init", "build"]
+    needs: ["init", "dry-run", "build"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -120,3 +138,21 @@ jobs:
           fail_on_unmatched_files: true
           files: ./releases/*.zip
           draft: true
+
+  release-crates:
+    name: Release (crates.io)
+    runs-on: ubuntu-latest
+    needs: ["init", "dry-run", "build"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish crates
+        uses: katyo/publish-crates@v2
+        with:
+          dry-run: false
+          check-repo: true
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
