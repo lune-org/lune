@@ -3,6 +3,8 @@ name = "lune-std-luau"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
+repository = "https://github.com/lune-org/lune"
+description = "Lune standard library - Luau"
 
 [lib]
 path = "src/lib.rs"
