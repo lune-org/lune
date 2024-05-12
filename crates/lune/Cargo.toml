@@ -70,7 +70,7 @@ reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
 
-lune-std = { optional = true, version = "0.1.0", path = "../lune-std" }
+lune-std = { optional = true, version = "0.1.1", path = "../lune-std" }
 lune-roblox = { optional = true, version = "0.1.0", path = "../lune-roblox" }
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
 
