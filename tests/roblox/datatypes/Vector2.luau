@@ -39,4 +39,7 @@ assert(Vector2.new(2, 4) / Vector2.new(1, 2) == Vector2.new(2, 2))
 assert(Vector2.new(2, 4) * 2 == Vector2.new(4, 8))
 assert(Vector2.new(2, 4) / 2 == Vector2.new(1, 2))
 
+assert(Vector2.new(7, 15) // Vector2.new(3, 7) == Vector2.new(2, 2))
+assert(Vector2.new(3, 7) // 2 == Vector2.new(1, 3))
+
 -- TODO: Vector math

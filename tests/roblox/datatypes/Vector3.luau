@@ -42,4 +42,7 @@ assert(Vector3.new(2, 4, 8) / Vector3.new(1, 1, 2) == Vector3.new(2, 4, 4))
 assert(Vector3.new(2, 4, 8) * 2 == Vector3.new(4, 8, 16))
 assert(Vector3.new(2, 4, 8) / 2 == Vector3.new(1, 2, 4))
 
+assert(Vector3.new(7, 11, 15) // Vector3.new(3, 5, 7) == Vector3.new(2, 2, 2))
+assert(Vector3.new(3, 5, 7) // 2 == Vector3.new(1, 2, 3))
+
 -- TODO: Vector math
