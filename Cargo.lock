@@ -412,9 +412,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
-version = "0.4.34"
+version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
+checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -426,9 +426,9 @@ dependencies = [
 
 [[package]]
 name = "chrono_lc"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "809c968b91b4949802fba00279fd0610158cbb2ae5f10663f0c3d5331f88d6d6"
+checksum = "aa1812634894df89eb9d5075eba0b97d42b4affe477bde7d0db3d2cf8454a800"
 dependencies = [
  "chrono",
  "lazy_static",
@@ -778,29 +778,6 @@ name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
-
-[[package]]
-name = "env_filter"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38b35839ba51819680ba087cd351788c9a3c476841207e0b8cee0b04722343b9"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "humantime",
- "log",
-]
 
 [[package]]
 name = "equivalent"
@@ -1183,12 +1160,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
-
-[[package]]
 name = "hyper"
 version = "0.14.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1478,7 +1449,6 @@ dependencies = [
  "console",
  "dialoguer",
  "directories",
- "env_logger",
  "futures-util",
  "include_dir",
  "lune-roblox",
@@ -1517,7 +1487,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lune-std-datetime",
  "lune-std-fs",
@@ -1539,7 +1509,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-datetime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "chrono_lc",

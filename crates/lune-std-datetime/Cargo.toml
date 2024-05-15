@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-datetime"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -16,7 +16,7 @@ workspace = true
 mlua = { version = "0.9.7", features = ["luau"] }
 
 thiserror = "1.0"
-chrono = "=0.4.34" # NOTE: 0.4.35 does not compile with chrono_lc
-chrono_lc = "0.1"
+chrono = "0.4.38"
+chrono_lc = "0.1.6"
 
 lune-utils = { version = "0.1.0", path = "../lune-utils" }

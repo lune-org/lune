@@ -149,6 +149,37 @@ where
     })
 }
 
+pub trait IDiv<Rhs = Self> {
+    type Output;
+    #[must_use]
+    fn idiv(self, rhs: Rhs) -> Self::Output;
+}
+
+pub fn userdata_impl_idiv_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+where
+    D: LuaUserData + IDiv<D, Output = D> + IDiv<f32, Output = D> + Copy + 'static,
+{
+    match &rhs {
+        LuaValue::Number(n) => return Ok(datatype.idiv(*n as f32)),
+        LuaValue::Integer(i) => return Ok(datatype.idiv(*i as f32)),
+        LuaValue::UserData(ud) => {
+            if let Ok(vec) = ud.borrow::<D>() {
+                return Ok(datatype.idiv(*vec));
+            }
+        }
+        _ => {}
+    };
+    Err(LuaError::FromLuaConversionError {
+        from: rhs.type_name(),
+        to: type_name::<D>(),
+        message: Some(format!(
+            "Expected {} or number, got {}",
+            type_name::<D>(),
+            rhs.type_name()
+        )),
+    })
+}
+
 pub fn userdata_impl_div_i32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
 where
     D: LuaUserData + ops::Div<D, Output = D> + ops::Div<i32, Output = D> + Copy + 'static,

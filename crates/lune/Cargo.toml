@@ -5,7 +5,7 @@ edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
 description = "A standalone Luau runtime"
-readme = "README.md"
+readme = "../../README.md"
 keywords = ["cli", "lua", "luau", "runtime"]
 categories = ["command-line-interface"]
 
@@ -44,13 +44,7 @@ std = [
     "std-task",
 ]
 
-cli = [
-    "dep:env_logger",
-    "dep:clap",
-    "dep:include_dir",
-    "dep:rustyline",
-    "dep:zip_next",
-]
+cli = ["dep:clap", "dep:include_dir", "dep:rustyline", "dep:zip_next"]
 
 [lints]
 workspace = true
@@ -76,13 +70,12 @@ reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",
 ] }
 
-lune-std = { optional = true, version = "0.1.0", path = "../lune-std" }
+lune-std = { optional = true, version = "0.1.1", path = "../lune-std" }
 lune-roblox = { optional = true, version = "0.1.0", path = "../lune-roblox" }
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
 
 ### CLI
 
-env_logger = { optional = true, version = "0.11" }
 clap = { optional = true, version = "4.1", features = ["derive"] }
 include_dir = { optional = true, version = "0.7", features = ["glob"] }
 rustyline = { optional = true, version = "14.0" }

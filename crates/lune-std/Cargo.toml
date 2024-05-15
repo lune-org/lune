@@ -1,6 +1,6 @@
 [package]
 name = "lune-std"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -47,7 +47,7 @@ tokio = { version = "1", default-features = false, features = ["fs", "sync"] }
 
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
 
-lune-std-datetime = { optional = true, version = "0.1.0", path = "../lune-std-datetime" }
+lune-std-datetime = { optional = true, version = "0.1.1", path = "../lune-std-datetime" }
 lune-std-fs = { optional = true, version = "0.1.0", path = "../lune-std-fs" }
 lune-std-luau = { optional = true, version = "0.1.0", path = "../lune-std-luau" }
 lune-std-net = { optional = true, version = "0.1.0", path = "../lune-std-net" }
