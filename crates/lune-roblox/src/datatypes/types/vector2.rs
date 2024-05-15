@@ -80,6 +80,7 @@ impl LuaUserData for Vector2 {
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
         methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
+        methods.add_meta_method(LuaMetaMethod::IDiv, userdata_impl_idiv_f32);
     }
 }
 
@@ -135,6 +136,20 @@ impl ops::Div<f32> for Vector2 {
     type Output = Vector2;
     fn div(self, rhs: f32) -> Self::Output {
         Self(self.0 / rhs)
+    }
+}
+
+impl IDiv for Vector2 {
+    type Output = Vector2;
+    fn idiv(self, rhs: Self) -> Self::Output {
+        Self((self.0 / rhs.0).floor())
+    }
+}
+
+impl IDiv<f32> for Vector2 {
+    type Output = Vector2;
+    fn idiv(self, rhs: f32) -> Self::Output {
+        Self((self.0 / rhs).floor())
     }
 }
 
