@@ -30,6 +30,11 @@ local TESTS: { Test } = {
 		Source = "tests/serde/test-files/loremipsum.txt",
 		Target = "tests/serde/test-files/loremipsum.txt.z",
 	},
+	{
+		Format = "zstd",
+		Source = "tests/serde/test-files/loremipsum.txt",
+		Target = "tests/serde/test-files/loremipsum.txt.zst",
+	},
 }
 
 local failed = false

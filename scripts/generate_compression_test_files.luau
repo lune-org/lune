@@ -105,6 +105,7 @@ local BIN_BROTLI = if process.os == "macos" then "/opt/homebrew/bin/brotli" else
 local BIN_GZIP = if process.os == "macos" then "/opt/homebrew/bin/gzip" else "gzip"
 local BIN_LZ4 = if process.os == "macos" then "/opt/homebrew/bin/lz4" else "lz4"
 local BIN_ZLIB = if process.os == "macos" then "/opt/homebrew/bin/pigz" else "pigz"
+local BIN_ZSTD = if process.os == "macos" then "/opt/homebrew/bin/zstd" else "zstd"
 
 local function checkInstalled(program: string, args: { string }?)
 	print("Checking if", program, "is installed")
@@ -119,6 +120,7 @@ checkInstalled(BIN_BROTLI, { "--version" })
 checkInstalled(BIN_GZIP, { "--version" })
 checkInstalled(BIN_LZ4, { "--version" })
 checkInstalled(BIN_ZLIB, { "--version" })
+checkInstalled(BIN_ZSTD, { "--version" })
 
 -- Run them to generate files
 
@@ -180,6 +182,14 @@ local OUTPUT_FILES = {
 		process = processNoop,
 		final = INPUT_FILE .. ".z",
 	},
+	{
+		command = BIN_ZSTD,
+		format = "zstd" :: serde.CompressDecompressFormat,
+		args = { "--compress", "--ultra", "-22", "--format=zstd", TEMP_FILE },
+		output = TEMP_FILE .. ".zst",
+		process = processNoop,
+		final = INPUT_FILE .. ".zst",
+	},
 }
 
 for _, spec in OUTPUT_FILES do
@@ -219,23 +229,25 @@ for _, spec in OUTPUT_FILES do
 		)
 	end
 
-	-- If the newly compressed contents do not match the existing contents,
-	-- warn the user about this and ask if they want to overwrite the file
-	local existingContents = fs.readFile(spec.final)
-	if compressedContents ~= existingContents then
-		stdio.ewrite("\nCompressed file does not match existing contents!")
-		stdio.ewrite("\n\nExisting:\n")
-		stdio.ewrite(stringAsHex(existingContents))
-		stdio.ewrite("\n\nCompressed:\n")
-		stdio.ewrite(hexDiff(existingContents, compressedContents))
-		stdio.ewrite("\n\n")
-		local confirm = stdio.prompt("confirm", "Do you want to continue?")
-		if confirm == true then
-			print("Overwriting file!")
-		else
-			stdio.ewrite("\n\nAborting...\n")
-			process.exit(1)
-			return
+	if fs.isFile(spec.final) then
+		-- If the newly compressed contents do not match the existing contents,
+		-- warn the user about this and ask if they want to overwrite the file
+		local existingContents = fs.readFile(spec.final)
+		if compressedContents ~= existingContents then
+			stdio.ewrite("\nCompressed file does not match existing contents!")
+			stdio.ewrite("\n\nExisting:\n")
+			stdio.ewrite(stringAsHex(existingContents))
+			stdio.ewrite("\n\nCompressed:\n")
+			stdio.ewrite(hexDiff(existingContents, compressedContents))
+			stdio.ewrite("\n\n")
+			local confirm = stdio.prompt("confirm", "Do you want to continue?")
+			if confirm == true then
+				print("Overwriting file!")
+			else
+				stdio.ewrite("\n\nAborting...\n")
+				process.exit(1)
+				return
+			end
 		end
 	end
 
@@ -243,7 +255,7 @@ for _, spec in OUTPUT_FILES do
 	local decompressSuccess, decompressedContents =
 		pcall(serde.decompress, spec.format, compressedContents)
 	if not decompressSuccess then
-		stdio.ewrite("\nCompressed contents could not be decompressed using serde!")
+		stdio.ewrite(`\nCompressed contents for format {spec.format} could not be decompressed using serde!`)
 		stdio.ewrite("\n\nCompressed:\n")
 		stdio.ewrite(stringAsHex(compressedContents))
 		stdio.ewrite("\n\nError:\n")
