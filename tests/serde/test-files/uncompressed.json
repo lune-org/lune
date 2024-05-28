@@ -1,17 +1,30 @@
 {
     "name": "John",
     "age": 30,
-    "hobbies": ["reading", "writing", "coding", "👽"],
+    "hobbies": [
+        "reading",
+        "writing",
+        "coding",
+        "👽"
+    ],
     "friends": [
         {
             "name": "Ξθής",
             "age": 28,
-            "hobbies": ["painting", "hiking", "🦛"]
+            "hobbies": [
+                "painting",
+                "hiking",
+                "🦛"
+            ]
         },
         {
             "name": "Bob",
             "age": 35,
-            "hobbies": ["fishing", "gardening", "🌿"]
+            "hobbies": [
+                "fishing",
+                "gardening",
+                "🌿"
+            ]
         }
     ]
 }

@@ -21,6 +21,7 @@ async-compression = { version = "0.4", features = [
     "deflate",
     "gzip",
     "zlib",
+    "zstd",
 ] }
 bstr = "1.9"
 lz4 = "1.24"

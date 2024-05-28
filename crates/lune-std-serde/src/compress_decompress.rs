@@ -11,8 +11,10 @@ use tokio::{
 use async_compression::{
     tokio::bufread::{
         BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
+        ZstdDecoder, ZstdEncoder,
     },
     Level::Best as CompressionQuality,
+    Level::Precise as ZstdCompressionQuality,
 };
 
 /**
@@ -24,6 +26,7 @@ pub enum CompressDecompressFormat {
     GZip,
     LZ4,
     ZLib,
+    ZStd,
 }
 
 #[allow(dead_code)]
@@ -63,6 +66,12 @@ impl CompressDecompressFormat {
             {
                 Some(Self::ZLib)
             }
+
+            b if b.len() >= 4
+                && matches!(u32::from_le_bytes(b[..4].try_into().unwrap()), 0xFD2FB528) =>
+            {
+                Some(Self::ZStd)
+            }
             _ => None,
         }
     }
@@ -91,6 +100,7 @@ impl<'lua> FromLua<'lua> for CompressDecompressFormat {
                 "gzip" => Ok(Self::GZip),
                 "lz4" => Ok(Self::LZ4),
                 "zlib" => Ok(Self::ZLib),
+                "zstd" => Ok(Self::ZStd),
                 kind => Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
                     to: "CompressDecompressFormat",
@@ -144,6 +154,10 @@ pub async fn compress<'lua>(
             let mut encoder = ZlibEncoder::with_quality(reader, CompressionQuality);
             copy(&mut encoder, &mut bytes).await?;
         }
+        CompressDecompressFormat::ZStd => {
+            let mut encoder = ZstdEncoder::with_quality(reader, ZstdCompressionQuality(22));
+            copy(&mut encoder, &mut bytes).await?;
+        }
         CompressDecompressFormat::LZ4 => unreachable!(),
     }
 
@@ -183,6 +197,10 @@ pub async fn decompress<'lua>(
         }
         CompressDecompressFormat::ZLib => {
             let mut decoder = ZlibDecoder::new(reader);
+            copy(&mut decoder, &mut bytes).await?;
+        }
+        CompressDecompressFormat::ZStd => {
+            let mut decoder = ZstdDecoder::new(reader);
             copy(&mut decoder, &mut bytes).await?;
         }
         CompressDecompressFormat::LZ4 => unreachable!(),

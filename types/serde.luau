@@ -1,6 +1,6 @@
 export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 
-export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
+export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib" | "zstd"
 
 --[=[
 	@class Serde
