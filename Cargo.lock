@@ -1487,7 +1487,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "lune-std-datetime",
  "lune-std-fs",
@@ -1560,7 +1560,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-process"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "directories",
  "lune-utils",
@@ -1583,7 +1583,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-roblox"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lune-roblox",
  "lune-utils",
@@ -1632,7 +1632,7 @@ dependencies = [
 
 [[package]]
 name = "lune-utils"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "console",
  "dunce",
