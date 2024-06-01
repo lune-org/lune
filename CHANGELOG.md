@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tables that are arrays no longer display their keys.
   - Empty tables are no longer spread across lines.
 
+## Fixed
+
+- Fixed formatted values in tables not being separated by newlines
+- Fixed panicking (crashing) when using `process.spawn` with a program that does not exist.
+
 ## `0.8.4` - May 12th, 2024
 
 ### Added
