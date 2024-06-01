@@ -140,6 +140,7 @@ create_tests! {
     process_spawn_async: "process/spawn/async",
     process_spawn_basic: "process/spawn/basic",
     process_spawn_cwd: "process/spawn/cwd",
+    process_spawn_no_panic: "process/spawn/no_panic",
     process_spawn_shell: "process/spawn/shell",
     process_spawn_stdin: "process/spawn/stdin",
     process_spawn_stdio: "process/spawn/stdio",
