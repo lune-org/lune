@@ -52,33 +52,23 @@ pub(crate) fn format_value_recursive(
         } else {
             write!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
 
-            let mut is_empty = true;
-            let mut table_lines = Vec::new();
-            for res in t.clone().pairs::<LuaValue, LuaValue>() {
-                let (key, value) = res.expect("conversion to LuaValue should never fail");
-                let formatted = if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
-                    format!(
-                        "{}{plain_key} {} {}{}",
-                        INDENT.repeat(1 + depth),
-                        STYLE_DIM.apply_to("="),
-                        format_value_recursive(&value, config, visited, depth + 1)?,
-                        STYLE_DIM.apply_to(","),
-                    )
-                } else {
-                    format!(
-                        "{}{}{}{} {} {}{}",
-                        INDENT.repeat(1 + depth),
-                        STYLE_DIM.apply_to("["),
-                        format_value_recursive(&key, config, visited, depth + 1)?,
-                        STYLE_DIM.apply_to("]"),
-                        STYLE_DIM.apply_to("="),
-                        format_value_recursive(&value, config, visited, depth + 1)?,
-                        STYLE_DIM.apply_to(","),
-                    )
-                };
-                table_lines.push(formatted);
-                is_empty = false;
-            }
+            let values = t
+                .clone()
+                .pairs::<LuaValue, LuaValue>()
+                .map(|res| res.expect("conversion to LuaValue should never fail"))
+                .collect::<Vec<_>>();
+
+            let is_empty = values.is_empty();
+            let is_array = values
+                .iter()
+                .enumerate()
+                .all(|(i, (key, _))| key.as_integer().is_some_and(|x| x == (i as i32) + 1));
+
+            let formatted_values = if is_array {
+                format_array(values, config, visited, depth)?
+            } else {
+                format_table(values, config, visited, depth)?
+            };
 
             visited.remove(&LuaValueId::from(t));
 
@@ -87,10 +77,9 @@ pub(crate) fn format_value_recursive(
             } else {
                 write!(
                     buffer,
-                    "\n{}\n{}{}{}",
-                    table_lines.join("\n"),
+                    "\n{}\n{}{}",
+                    formatted_values.join("\n"),
                     INDENT.repeat(depth),
-                    if is_empty { " " } else { "" },
                     STYLE_DIM.apply_to("}")
                 )?;
             }
@@ -101,4 +90,56 @@ pub(crate) fn format_value_recursive(
     }
 
     Ok(buffer)
+}
+
+fn format_array(
+    values: Vec<(LuaValue, LuaValue)>,
+    config: &ValueFormatConfig,
+    visited: &mut HashSet<LuaValueId>,
+    depth: usize,
+) -> Result<Vec<String>, fmt::Error> {
+    values
+        .into_iter()
+        .map(|(_, value)| {
+            Ok(format!(
+                "{}{}{}",
+                INDENT.repeat(1 + depth),
+                format_value_recursive(&value, config, visited, depth + 1)?,
+                STYLE_DIM.apply_to(","),
+            ))
+        })
+        .collect()
+}
+
+fn format_table(
+    values: Vec<(LuaValue, LuaValue)>,
+    config: &ValueFormatConfig,
+    visited: &mut HashSet<LuaValueId>,
+    depth: usize,
+) -> Result<Vec<String>, fmt::Error> {
+    values
+        .into_iter()
+        .map(|(key, value)| {
+            if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
+                Ok(format!(
+                    "{}{plain_key} {} {}{}",
+                    INDENT.repeat(1 + depth),
+                    STYLE_DIM.apply_to("="),
+                    format_value_recursive(&value, config, visited, depth + 1)?,
+                    STYLE_DIM.apply_to(","),
+                ))
+            } else {
+                Ok(format!(
+                    "{}{}{}{} {} {}{}",
+                    INDENT.repeat(1 + depth),
+                    STYLE_DIM.apply_to("["),
+                    format_value_recursive(&key, config, visited, depth + 1)?,
+                    STYLE_DIM.apply_to("]"),
+                    STYLE_DIM.apply_to("="),
+                    format_value_recursive(&value, config, visited, depth + 1)?,
+                    STYLE_DIM.apply_to(","),
+                ))
+            }
+        })
+        .collect()
 }
