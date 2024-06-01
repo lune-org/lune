@@ -45,7 +45,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", default-features = false, features = ["fs", "sync"] }
 
-lune-utils = { version = "0.1.0", path = "../lune-utils" }
+lune-utils = { version = "0.1.1", path = "../lune-utils" }
 
 lune-std-datetime = { optional = true, version = "0.1.1", path = "../lune-std-datetime" }
 lune-std-fs = { optional = true, version = "0.1.0", path = "../lune-std-fs" }
