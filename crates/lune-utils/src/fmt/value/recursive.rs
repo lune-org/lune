@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::{self, Write as _};
 
@@ -52,11 +53,12 @@ pub(crate) fn format_value_recursive(
         } else {
             write!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
 
-            let values = t
+            let mut values = t
                 .clone()
                 .pairs::<LuaValue, LuaValue>()
                 .map(|res| res.expect("conversion to LuaValue should never fail"))
                 .collect::<Vec<_>>();
+            sort_for_formatting(&mut values);
 
             let is_empty = values.is_empty();
             let is_array = values
@@ -90,6 +92,25 @@ pub(crate) fn format_value_recursive(
     }
 
     Ok(buffer)
+}
+
+fn sort_for_formatting(values: &mut [(LuaValue, LuaValue)]) {
+    values.sort_by(|(a, _), (b, _)| {
+        if a.type_name() == b.type_name() {
+            // If we have the same type, sort either numerically or alphabetically
+            match (a, b) {
+                (LuaValue::Integer(a), LuaValue::Integer(b)) => a.cmp(b),
+                (LuaValue::Number(a), LuaValue::Number(b)) => a.partial_cmp(b).unwrap(),
+                (LuaValue::String(a), LuaValue::String(b)) => a.to_str().ok().cmp(&b.to_str().ok()),
+                _ => Ordering::Equal,
+            }
+        } else {
+            // If we have different types, sort numbers first, then strings, then others
+            a.is_number()
+                .cmp(&b.is_number())
+                .then_with(|| a.is_string().cmp(&b.is_string()))
+        }
+    });
 }
 
 fn format_array(
