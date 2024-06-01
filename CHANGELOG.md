@@ -8,6 +8,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Improved table pretty formatting when using `print`, `warn`, and `stdio.format`:
+
+  - Keys are sorted numerically / alphabetically when possible.
+  - Keys of different types are put in distinct sections for mixed tables.
+  - Tables that are arrays no longer display their keys.
+  - Empty tables are no longer spread across lines.
+
 ## `0.8.4` - May 12th, 2024
 
 ### Added
