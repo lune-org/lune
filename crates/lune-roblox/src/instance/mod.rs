@@ -443,6 +443,29 @@ impl Instance {
     }
 
     /**
+        Removes an attribute from the instance.
+
+        Note that this does not have an equivalent in the Roblox engine API,
+        but separating this from `set_attribute` lets `set_attribute` be more
+        ergonomic and not require an `Option<DomValue>` for the value argument.
+        The equivalent in the Roblox engine API would be `instance:SetAttribute(name, nil)`.
+    */
+    pub fn remove_attribute(&self, name: impl AsRef<str>) {
+        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        let inst = dom
+            .get_by_ref_mut(self.dom_ref)
+            .expect("Failed to find instance in document");
+        if let Some(DomValue::Attributes(attributes)) =
+            inst.properties.get_mut(PROPERTY_NAME_ATTRIBUTES)
+        {
+            attributes.remove(name.as_ref());
+            if attributes.is_empty() {
+                inst.properties.remove(PROPERTY_NAME_ATTRIBUTES);
+            }
+        }
+    }
+
+    /**
         Adds a tag to the instance.
 
         ### See Also

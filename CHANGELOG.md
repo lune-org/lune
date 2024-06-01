@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 
-- Fixed formatted values in tables not being separated by newlines
+- Fixed formatted values in tables not being separated by newlines.
 - Fixed panicking (crashing) when using `process.spawn` with a program that does not exist.
+- Fixed `instance:SetAttribute("name", nil)` throwing an error and not removing the attribute.
 
 ## `0.8.4` - May 12th, 2024
 

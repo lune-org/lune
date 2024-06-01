@@ -101,6 +101,11 @@ local folder = Instance.new("Folder")
 folder:SetAttribute("Foo", "Bar")
 assert(folder:GetAttribute("Foo") == "Bar")
 
+-- Setting attributes to nil should work
+
+folder:SetAttribute("Foo", nil)
+assert(folder:GetAttribute("Foo") == nil)
+
 -- Writing files with modified attributes should work
 
 local game = Instance.new("DataModel")
