@@ -52,6 +52,7 @@ pub(crate) fn format_value_recursive(
         } else {
             writeln!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
 
+            let mut is_empty = true;
             for res in t.clone().pairs::<LuaValue, LuaValue>() {
                 let (key, value) = res.expect("conversion to LuaValue should never fail");
                 let formatted = if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
@@ -75,10 +76,18 @@ pub(crate) fn format_value_recursive(
                     )
                 };
                 buffer.push_str(&formatted);
+                buffer.push('\n');
+                is_empty = false;
             }
 
             visited.remove(&LuaValueId::from(t));
-            write!(buffer, "\n{}", STYLE_DIM.apply_to("}"))?;
+            write!(
+                buffer,
+                "{}{}{}",
+                INDENT.repeat(depth),
+                if is_empty { " " } else { "" },
+                STYLE_DIM.apply_to("}")
+            )?;
         }
     } else {
         let prefer_plain = depth == 0;
