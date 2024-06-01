@@ -50,9 +50,10 @@ pub(crate) fn format_value_recursive(
         } else if !visited.insert(LuaValueId::from(t)) {
             write!(buffer, "{}", STYLE_DIM.apply_to("{ recursive }"))?;
         } else {
-            writeln!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
+            write!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
 
             let mut is_empty = true;
+            let mut table_lines = Vec::new();
             for res in t.clone().pairs::<LuaValue, LuaValue>() {
                 let (key, value) = res.expect("conversion to LuaValue should never fail");
                 let formatted = if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
@@ -75,19 +76,24 @@ pub(crate) fn format_value_recursive(
                         STYLE_DIM.apply_to(","),
                     )
                 };
-                buffer.push_str(&formatted);
-                buffer.push('\n');
+                table_lines.push(formatted);
                 is_empty = false;
             }
 
             visited.remove(&LuaValueId::from(t));
-            write!(
-                buffer,
-                "{}{}{}",
-                INDENT.repeat(depth),
-                if is_empty { " " } else { "" },
-                STYLE_DIM.apply_to("}")
-            )?;
+
+            if is_empty {
+                write!(buffer, " {}", STYLE_DIM.apply_to("}"))?;
+            } else {
+                write!(
+                    buffer,
+                    "\n{}\n{}{}{}",
+                    table_lines.join("\n"),
+                    INDENT.repeat(depth),
+                    if is_empty { " " } else { "" },
+                    STYLE_DIM.apply_to("}")
+                )?;
+            }
         }
     } else {
         let prefer_plain = depth == 0;
