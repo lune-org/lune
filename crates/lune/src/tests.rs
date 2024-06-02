@@ -231,6 +231,7 @@ create_tests! {
     serde_toml_decode: "serde/toml/decode",
     serde_toml_encode: "serde/toml/encode",
     serde_hashing_hash: "serde/hashing/hash",
+    serde_hashing_hmac: "serde/hashing/hmac",
 }
 
 #[cfg(feature = "std-stdio")]
