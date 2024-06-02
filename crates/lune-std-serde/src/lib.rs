@@ -65,6 +65,5 @@ fn hash_message(lua: &Lua, options: HashOptions) -> LuaResult<LuaString> {
 }
 
 fn hmac_message(lua: &Lua, options: HashOptions) -> LuaResult<LuaString> {
-    let bytes = options.hmac()?;
-    lua.create_string(bytes)
+    lua.create_string(options.hmac()?)
 }
