@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use bstr::BString;
 use md5::Md5;
 use mlua::prelude::*;
@@ -45,15 +47,15 @@ impl HashAlgorithm {
 impl HashOptions {
     /**
         Computes the hash for the `message` using whatever `algorithm` is
-        contained within this struct.
+        contained within this struct and returns it as a string of hex digits.
     */
     #[inline]
     #[must_use = "hashing a message is useless without using the resulting hash"]
-    pub fn hash(self) -> Vec<u8> {
+    pub fn hash(self) -> String {
         use digest::Digest;
 
         let message = self.message;
-        match self.algorithm {
+        let bytes = match self.algorithm {
             HashAlgorithm::Md5 => Md5::digest(message).to_vec(),
             HashAlgorithm::Sha1 => Sha1::digest(message).to_vec(),
             HashAlgorithm::Sha2_224 => Sha224::digest(message).to_vec(),
@@ -67,19 +69,29 @@ impl HashOptions {
             HashAlgorithm::Sha3_512 => Sha3_512::digest(message).to_vec(),
 
             HashAlgorithm::Blake3 => Blake3::digest(message).to_vec(),
-        }
+        };
+
+        // We don't want to return raw binary data generally, since that's not
+        // what most people want a hash for. So we have to make a hex string.
+        bytes
+            .iter()
+            .fold(String::with_capacity(bytes.len() * 2), |mut output, b| {
+                let _ = write!(output, "{b:02x}");
+                output
+            })
     }
 
     /**
         Computes the HMAC for the `message` using whatever `algorithm` and
-        `secret` are contained within this struct.
+        `secret` are contained within this struct. The computed value is
+        returned as a string of hex digits.
 
         # Errors
 
         If the `secret` is not provided or is otherwise invalid.
     */
     #[inline]
-    pub fn hmac(self) -> LuaResult<Vec<u8>> {
+    pub fn hmac(self) -> LuaResult<String> {
         use hmac::{Hmac, Mac, SimpleHmac};
 
         let secret = self
@@ -103,7 +115,7 @@ impl HashOptions {
             ($Type:ty) => {{
                 let mut mac: Hmac<$Type> = Hmac::new_from_slice(&secret).into_lua_err()?;
                 mac.update(&self.message);
-                Ok(mac.finalize().into_bytes().to_vec())
+                mac.finalize().into_bytes().to_vec()
             }};
         }
         macro_rules! hmac_no_blocks {
@@ -111,11 +123,11 @@ impl HashOptions {
                 let mut mac: SimpleHmac<$Type> =
                     SimpleHmac::new_from_slice(&secret).into_lua_err()?;
                 mac.update(&self.message);
-                Ok(mac.finalize().into_bytes().to_vec())
+                mac.finalize().into_bytes().to_vec()
             }};
         }
 
-        match self.algorithm {
+        let bytes = match self.algorithm {
             HashAlgorithm::Md5 => hmac!(Md5),
             HashAlgorithm::Sha1 => hmac!(Sha1),
 
@@ -130,7 +142,13 @@ impl HashOptions {
             HashAlgorithm::Sha3_512 => hmac!(Sha3_512),
 
             HashAlgorithm::Blake3 => hmac_no_blocks!(Blake3),
-        }
+        };
+        Ok(bytes
+            .iter()
+            .fold(String::with_capacity(bytes.len() * 2), |mut output, b| {
+                let _ = write!(output, "{b:02x}");
+                output
+            }))
     }
 }
 
