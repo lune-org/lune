@@ -11,7 +11,7 @@ pub struct HashOptions {
     algorithm: HashAlgorithm,
     message: BString,
     secret: Option<BString>,
-    seed: Option<BString>,
+    // seed: Option<BString>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -201,16 +201,16 @@ impl<'lua> FromLuaMulti<'lua> for HashOptions {
             .pop_front()
             .map(|value| BString::from_lua(value, lua))
             .transpose()?;
-        let seed = values
-            .pop_front()
-            .map(|value| BString::from_lua(value, lua))
-            .transpose()?;
+        // let seed = values
+        //     .pop_front()
+        //     .map(|value| BString::from_lua(value, lua))
+        //     .transpose()?;
 
         Ok(HashOptions {
             algorithm,
             message,
             secret,
-            seed,
+            // seed,
         })
     }
 }
