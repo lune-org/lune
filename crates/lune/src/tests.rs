@@ -230,6 +230,7 @@ create_tests! {
     serde_json_encode: "serde/json/encode",
     serde_toml_decode: "serde/toml/decode",
     serde_toml_encode: "serde/toml/encode",
+    serde_hashing_hash: "serde/hashing/hash",
 }
 
 #[cfg(feature = "std-stdio")]
