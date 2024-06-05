@@ -26,11 +26,11 @@ assert(
 	"expected source block name for 'luau.load' to return a custom debug name"
 )
 
-local success = pcall(function()
+local loadSuccess = pcall(function()
 	luau.load(luau.compile(RETURN_LUAU_CODE_BLOCK))
 end)
 
-assert(success, "expected `luau.load` to be able to process the result of `luau.compile`")
+assert(loadSuccess, "expected `luau.load` to be able to process the result of `luau.compile`")
 
 local CUSTOM_SOURCE_WITH_FOO_FN = "return foo()"
 
@@ -48,34 +48,92 @@ local fooFn = luau.load(CUSTOM_SOURCE_WITH_FOO_FN, {
 local fooFnRet = fooFn()
 assert(fooFnRet == fooValue, "expected `luau.load` with custom environment to return proper values")
 
-local CUSTOM_SOURCE_WITH_PRINT_FN = "return print()"
-
--- NOTE: Same as what we did above, new userdata to guarantee unique-ness
-local overriddenValue = newproxy(false)
-local overriddenFn = luau.load(CUSTOM_SOURCE_WITH_PRINT_FN, {
+local fooValue2 = newproxy(false)
+local fooFn2 = luau.load(CUSTOM_SOURCE_WITH_FOO_FN, {
 	environment = {
-		print = function()
-			return overriddenValue
+		foo = function()
+			return fooValue2
 		end,
 	},
+	enableGlobals = false,
 })
 
-local overriddenFnRet = overriddenFn()
+local fooFn2Ret = fooFn2()
 assert(
-	overriddenFnRet == overriddenValue,
+	fooFn2Ret == fooValue2,
+	"expected `luau.load` with custom environment and no default globals to still return proper values"
+)
+
+local CUSTOM_SOURCE_WITH_PRINT_FN = "return print()"
+
+-- NOTE: Testing overriding the print function
+local overriddenPrintValue1 = newproxy(false)
+local overriddenPrintFn1 = luau.load(CUSTOM_SOURCE_WITH_PRINT_FN, {
+	environment = {
+		print = function()
+			return overriddenPrintValue1
+		end,
+	},
+	enableGlobals = true,
+})
+
+local overriddenPrintFnRet1 = overriddenPrintFn1()
+assert(
+	overriddenPrintFnRet1 == overriddenPrintValue1,
 	"expected `luau.load` with overridden environment to return proper values"
 )
 
-local CUSTOM_SOURCE_WITH_DEFAULT_FN = "return string.lower(...)"
-
-local overriddenFn2 = luau.load(CUSTOM_SOURCE_WITH_DEFAULT_FN, {
+local overriddenPrintValue2 = newproxy(false)
+local overriddenPrintFn2 = luau.load(CUSTOM_SOURCE_WITH_PRINT_FN, {
 	environment = {
-		hello = "world",
+		print = function()
+			return overriddenPrintValue2
+		end,
 	},
+	enableGlobals = false,
 })
 
-local overriddenFn2Ret = overriddenFn2("LOWERCASE")
+local overriddenPrintFnRet2 = overriddenPrintFn2()
 assert(
-	overriddenFn2Ret == "lowercase",
-	"expected `luau.load` with overridden environment to contain default globals"
+	overriddenPrintFnRet2 == overriddenPrintValue2,
+	"expected `luau.load` with overridden environment and disabled default globals to return proper values"
+)
+
+-- NOTE: Testing whether injectGlobals works
+local CUSTOM_SOURCE_WITH_DEFAULT_FN = "return string.lower(...)"
+
+local lowerFn1 = luau.load(CUSTOM_SOURCE_WITH_DEFAULT_FN, {
+	environment = {},
+	injectGlobals = false,
+})
+
+local lowerFn1Success = pcall(lowerFn1, "LOWERCASE")
+
+assert(
+	not lowerFn1Success,
+	"expected `luau.load` with injectGlobals = false and empty custom environment to not contain default globals"
+)
+
+local lowerFn2 = luau.load(CUSTOM_SOURCE_WITH_DEFAULT_FN, {
+	environment = { string = string },
+	injectGlobals = false,
+})
+
+local lowerFn2Success, lowerFn2Result = pcall(lowerFn2, "LOWERCASE")
+
+assert(
+	lowerFn2Success and lowerFn2Result == "lowercase",
+	"expected `luau.load` with injectGlobals = false and valid custom environment to return proper values"
+)
+
+local lowerFn3 = luau.load(CUSTOM_SOURCE_WITH_DEFAULT_FN, {
+	environment = {},
+	injectGlobals = true,
+})
+
+local lowerFn3Success, lowerFn3Result = pcall(lowerFn3, "LOWERCASE")
+
+assert(
+	lowerFn3Success and lowerFn3Result == "lowercase",
+	"expected `luau.load` with injectGlobals = true and empty custom environment to return proper values"
 )

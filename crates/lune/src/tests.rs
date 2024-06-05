@@ -113,6 +113,7 @@ create_tests! {
     luau_compile: "luau/compile",
     luau_load: "luau/load",
     luau_options: "luau/options",
+    luau_safeenv: "luau/safeenv",
 }
 
 #[cfg(feature = "std-net")]
