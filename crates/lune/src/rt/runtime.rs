@@ -9,8 +9,8 @@ use std::{
     },
 };
 
-use mlua::Lua;
-use mlua_luau_scheduler::Scheduler;
+use mlua::prelude::*;
+use mlua_luau_scheduler::{Functions, Scheduler};
 
 use super::{RuntimeError, RuntimeResult};
 
@@ -94,6 +94,12 @@ impl Runtime {
             eprintln!("{}", RuntimeError::from(e));
         });
 
+        // Overwrite resume & wrap functions on the coroutine global
+        // with ones that are compatible with our scheduler
+        // We also sandbox the VM, preventing further modifications
+        // to the global environment, and enabling optimizations
+        inject_scheduler_functions_and_sandbox(&self.lua)?;
+
         // Load our "main" thread
         let main = self
             .lua
@@ -105,12 +111,45 @@ impl Runtime {
         sched.run().await;
 
         // Return the exit code - default to FAILURE if we got any errors
-        Ok(sched.get_exit_code().unwrap_or({
+        let exit_code = sched.get_exit_code().unwrap_or({
             if got_any_error.load(Ordering::SeqCst) {
                 ExitCode::FAILURE
             } else {
                 ExitCode::SUCCESS
             }
-        }))
+        });
+
+        Ok(exit_code)
     }
+}
+
+fn inject_scheduler_functions_and_sandbox(lua: &Lua) -> LuaResult<()> {
+    let fns = Functions::new(lua)?;
+
+    let co = lua.globals().get::<_, LuaTable>("coroutine")?;
+    co.set("resume", fns.resume.clone())?;
+    co.set("wrap", fns.wrap.clone())?;
+
+    lua.sandbox(true)?;
+
+    // NOTE: We need to create the _G table after
+    // sandboxing, otherwise it will be read-only
+    #[cfg(any(
+        feature = "std-datetime",
+        feature = "std-fs",
+        feature = "std-luau",
+        feature = "std-net",
+        feature = "std-process",
+        feature = "std-regex",
+        feature = "std-roblox",
+        feature = "std-serde",
+        feature = "std-stdio",
+        feature = "std-task",
+    ))]
+    {
+        let g_global = lune_std::LuneStandardGlobal::GTable;
+        lua.globals().set(g_global.name(), g_global.create(lua)?)?;
+    }
+
+    Ok(())
 }
