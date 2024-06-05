@@ -51,7 +51,7 @@ workspace = true
 
 [dependencies]
 mlua = { version = "0.9.7", features = ["luau"] }
-mlua-luau-scheduler = "0.0.2"
+mlua-luau-scheduler = { version = "0.0.2", path = "../mlua-luau-scheduler" }
 
 anyhow = "1.0"
 console = "0.15"
