@@ -2,6 +2,19 @@ export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 
 export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
 
+export type HashAlgorithm =
+	"md5"
+	| "sha1"
+	| "sha224"
+	| "sha256"
+	| "sha384"
+	| "sha512"
+	| "sha3-224"
+	| "sha3-256"
+	| "sha3-384"
+	| "sha3-512"
+	| "blake3"
+
 --[=[
 	@class Serde
 
@@ -117,6 +130,18 @@ end
 	@return The decompressed string
 ]=]
 function serde.decompress(format: CompressDecompressFormat, s: buffer | string): string
+	return nil :: any
+end
+
+function serde.hash(algorithm: HashAlgorithm, message: string | buffer): string
+	return nil :: any
+end
+
+function serde.hmac(
+	algorithm: HashAlgorithm,
+	message: string | buffer,
+	secret: string | buffer
+): string
 	return nil :: any
 end
 
