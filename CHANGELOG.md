@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sandboxing and codegen in the Luau VM is now fully enabled, resulting in up to 2x or faster code execution.
   This should not result in any behavior differences in Lune, but if it does, please open an issue.
+- Improved formatting of custom error objects (such as when `fs.readFile` returns an error) when printed or formatted using `stdio.format`.
+
+### Fixed
+
+- Fixed `__type` and `__tostring` metamethods on userdatas and tables not being respected when printed or formatted using `stdio.format`.
 
 ## `0.8.5` - June 1st, 2024
 
