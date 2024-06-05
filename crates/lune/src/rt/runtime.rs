@@ -120,11 +120,13 @@ impl Runtime {
         Sets arguments to give in `process.args` for Lune scripts.
     */
     #[must_use]
-    pub fn with_args<V>(self, args: V) -> Self
+    pub fn with_args<A, S>(self, args: A) -> Self
     where
-        V: Into<Vec<String>>,
+        A: IntoIterator<Item = S>,
+        S: Into<String>,
     {
-        self.inner.lua().set_app_data(args.into());
+        let args = args.into_iter().map(Into::into).collect::<Vec<_>>();
+        self.inner.lua().set_app_data(args);
         self
     }
 
