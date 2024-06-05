@@ -100,7 +100,6 @@ impl RuntimeInner {
 */
 pub struct Runtime {
     inner: RuntimeInner,
-    args: Vec<String>,
 }
 
 impl Runtime {
@@ -114,7 +113,6 @@ impl Runtime {
     pub fn new() -> Self {
         Self {
             inner: RuntimeInner::create().expect("Failed to create runtime"),
-            args: Vec::new(),
         }
     }
 
@@ -122,12 +120,11 @@ impl Runtime {
         Sets arguments to give in `process.args` for Lune scripts.
     */
     #[must_use]
-    pub fn with_args<V>(mut self, args: V) -> Self
+    pub fn with_args<V>(self, args: V) -> Self
     where
         V: Into<Vec<String>>,
     {
-        self.args = args.into();
-        self.inner.lua().set_app_data(self.args.clone());
+        self.inner.lua().set_app_data(args.into());
         self
     }
 
