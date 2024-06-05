@@ -81,7 +81,7 @@ impl LuaUserData for LuaCaptures {
 
         methods.add_meta_method(LuaMetaMethod::Len, |_, this, ()| Ok(this.num_captures()));
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
-            Ok(format!("RegexCaptures({})", this.num_captures()))
+            Ok(format!("{}", this.num_captures()))
         });
     }
 

@@ -66,7 +66,7 @@ impl LuaUserData for LuaRegex {
         );
 
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
-            Ok(format!("Regex({})", this.inner.as_str()))
+            Ok(this.inner.as_str().to_string())
         });
     }
 

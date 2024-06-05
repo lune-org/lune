@@ -1,10 +1,18 @@
 local process = require("@lune/process")
+local regex = require("@lune/regex")
 local roblox = require("@lune/roblox")
 local stdio = require("@lune/stdio")
 
 local function assertFormatting(errorMessage: string, formatted: string, expected: string)
 	if formatted ~= expected then
 		stdio.ewrite(string.format("%s\nExpected: %s\nGot: %s", errorMessage, expected, formatted))
+		process.exit(1)
+	end
+end
+
+local function assertContains(errorMessage: string, haystack: string, needle: string)
+	if string.find(haystack, needle) == nil then
+		stdio.ewrite(string.format("%s\nHaystack: %s\nNeedle: %s", errorMessage, needle, haystack))
 		process.exit(1)
 	end
 end
@@ -47,25 +55,38 @@ assertFormatting(
 
 local userdatas = {
 	Foo = newproxy(false),
-	Bar = (roblox :: any).Vector3.new(),
+	Bar = regex.new("TEST"),
+	Baz = (roblox :: any).Vector3.new(1, 2, 3),
 }
 
 assertFormatting(
-	"Should format userdatas as their type (unknown userdata)",
+	"Should format userdatas as generic 'userdata' if unknown",
 	stdio.format(userdatas.Foo),
 	"<userdata>"
 )
 
-assertFormatting(
-	"Should format userdatas as their type (known userdata)",
+assertContains(
+	"Should format userdatas with their type if they have a __type metafield",
 	stdio.format(userdatas.Bar),
-	"<Vector3>"
+	"Regex"
+)
+
+assertContains(
+	"Should format userdatas with their type even if they have a __tostring metamethod",
+	stdio.format(userdatas.Baz),
+	"Vector3"
+)
+
+assertContains(
+	"Should format userdatas with their tostringed value if they have a __tostring metamethod",
+	stdio.format(userdatas.Baz),
+	"1, 2, 3"
 )
 
 assertFormatting(
-	"Should format userdatas as their type in tables",
+	"Should format userdatas properly in tables",
 	stdio.format(userdatas),
-	"{\n    Foo = <userdata>,\n    Bar = <Vector3>,\n}"
+	"{\n    Bar = <Regex(TEST)>,\n    Baz = <Vector3(1, 2, 3)>,\n    Foo = <userdata>,\n}"
 )
 
 local nested = {
@@ -80,7 +101,24 @@ local nested = {
 	},
 }
 
-assert(
-	string.find(stdio.format(nested), "Nesting = { ... }", 1, true) ~= nil,
-	"Should print 4 levels of nested tables before cutting off"
+assertContains(
+	"Should print 4 levels of nested tables before cutting off",
+	stdio.format(nested),
+	"Nesting = { ... }"
 )
+
+local _, errorMessage = pcall(function()
+	local function innerInnerFn()
+		process.spawn("PROGRAM_THAT_DOES_NOT_EXIST")
+	end
+	local function innerFn()
+		innerInnerFn()
+	end
+	innerFn()
+end)
+
+stdio.ewrite(typeof(errorMessage))
+
+assertContains("Should format errors similarly to userdata", stdio.format(errorMessage), "<LuaErr")
+assertContains("Should format errors with stack begins", stdio.format(errorMessage), "Stack Begin")
+assertContains("Should format errors with stack ends", stdio.format(errorMessage), "Stack End")
