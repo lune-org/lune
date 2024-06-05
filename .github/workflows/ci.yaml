@@ -88,17 +88,20 @@ jobs:
       - name: Build
         run: |
           cargo build \
+          --workspace
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Lint
         run: |
           cargo clippy \
+          --workspace
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Test
         run: |
           cargo test \
+          --lib --workspace
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
