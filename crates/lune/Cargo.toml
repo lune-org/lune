@@ -59,6 +59,7 @@ dialoguer = "0.11"
 directories = "5.0"
 futures-util = "0.3"
 once_cell = "1.17"
+self_cell = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"

@@ -1521,6 +1521,7 @@ dependencies = [
  "once_cell",
  "reqwest",
  "rustyline",
+ "self_cell",
  "serde",
  "serde_json",
  "thiserror",

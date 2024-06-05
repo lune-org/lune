@@ -11,12 +11,95 @@ use std::{
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
+use self_cell::self_cell;
 
 use super::{RuntimeError, RuntimeResult};
 
-#[derive(Debug)]
+// NOTE: We need to use self_cell to create a self-referential
+// struct storing both the Lua VM and the scheduler. The scheduler
+// needs to be created at the same time so that we can also create
+// and inject the scheduler functions which will be used across runs.
+self_cell! {
+    struct RuntimeInner {
+        owner: Rc<Lua>,
+        #[covariant]
+        dependent: Scheduler,
+    }
+}
+
+impl RuntimeInner {
+    fn create() -> LuaResult<Self> {
+        let lua = Rc::new(Lua::new());
+
+        lua.set_app_data(Rc::downgrade(&lua));
+        lua.set_app_data(Vec::<String>::new());
+
+        Self::try_new(lua, |lua| {
+            let sched = Scheduler::new(lua);
+            let fns = Functions::new(lua)?;
+
+            // Overwrite some globals that are not compatible with our scheduler
+            let co = lua.globals().get::<_, LuaTable>("coroutine")?;
+            co.set("resume", fns.resume.clone())?;
+            co.set("wrap", fns.wrap.clone())?;
+
+            // Inject all the globals that are enabled
+            #[cfg(any(
+                feature = "std-datetime",
+                feature = "std-fs",
+                feature = "std-luau",
+                feature = "std-net",
+                feature = "std-process",
+                feature = "std-regex",
+                feature = "std-roblox",
+                feature = "std-serde",
+                feature = "std-stdio",
+                feature = "std-task",
+            ))]
+            {
+                lune_std::inject_globals(lua)?;
+            }
+
+            // Sandbox the Luau VM and make it go zooooooooom
+            lua.sandbox(true)?;
+
+            // _G table needs to be injected again after sandboxing,
+            // otherwise it will be read-only and completely unusable
+            #[cfg(any(
+                feature = "std-datetime",
+                feature = "std-fs",
+                feature = "std-luau",
+                feature = "std-net",
+                feature = "std-process",
+                feature = "std-regex",
+                feature = "std-roblox",
+                feature = "std-serde",
+                feature = "std-stdio",
+                feature = "std-task",
+            ))]
+            {
+                let g_table = lune_std::LuneStandardGlobal::GTable;
+                lua.globals().set(g_table.name(), g_table.create(lua)?)?;
+            }
+
+            Ok(sched)
+        })
+    }
+
+    fn lua(&self) -> &Lua {
+        self.borrow_owner()
+    }
+
+    fn scheduler(&self) -> &Scheduler {
+        self.borrow_dependent()
+    }
+}
+
+/**
+    A Lune runtime.
+*/
 pub struct Runtime {
-    lua: Rc<Lua>,
+    inner: RuntimeInner,
     args: Vec<String>,
 }
 
@@ -29,29 +112,8 @@ impl Runtime {
     #[must_use]
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        let lua = Rc::new(Lua::new());
-
-        lua.set_app_data(Rc::downgrade(&lua));
-        lua.set_app_data(Vec::<String>::new());
-
-        #[cfg(any(
-            feature = "std-datetime",
-            feature = "std-fs",
-            feature = "std-luau",
-            feature = "std-net",
-            feature = "std-process",
-            feature = "std-regex",
-            feature = "std-roblox",
-            feature = "std-serde",
-            feature = "std-stdio",
-            feature = "std-task",
-        ))]
-        {
-            lune_std::inject_globals(&lua).expect("Failed to inject globals");
-        }
-
         Self {
-            lua,
+            inner: RuntimeInner::create().expect("Failed to create runtime"),
             args: Vec::new(),
         }
     }
@@ -65,7 +127,7 @@ impl Runtime {
         V: Into<Vec<String>>,
     {
         self.args = args.into();
-        self.lua.set_app_data(self.args.clone());
+        self.inner.lua().set_app_data(self.args.clone());
         self
     }
 
@@ -83,26 +145,19 @@ impl Runtime {
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> RuntimeResult<ExitCode> {
-        // Create a new scheduler for this run
-        let sched = Scheduler::new(&self.lua);
+        let lua = self.inner.lua();
+        let sched = self.inner.scheduler();
 
         // Add error callback to format errors nicely + store status
         let got_any_error = Arc::new(AtomicBool::new(false));
         let got_any_inner = Arc::clone(&got_any_error);
-        sched.set_error_callback(move |e| {
+        self.inner.scheduler().set_error_callback(move |e| {
             got_any_inner.store(true, Ordering::SeqCst);
             eprintln!("{}", RuntimeError::from(e));
         });
 
-        // Overwrite resume & wrap functions on the coroutine global
-        // with ones that are compatible with our scheduler
-        // We also sandbox the VM, preventing further modifications
-        // to the global environment, and enabling optimizations
-        inject_scheduler_functions_and_sandbox(&self.lua)?;
-
         // Load our "main" thread
-        let main = self
-            .lua
+        let main = lua
             .load(script_contents.as_ref())
             .set_name(script_name.as_ref());
 
@@ -121,35 +176,4 @@ impl Runtime {
 
         Ok(exit_code)
     }
-}
-
-fn inject_scheduler_functions_and_sandbox(lua: &Lua) -> LuaResult<()> {
-    let fns = Functions::new(lua)?;
-
-    let co = lua.globals().get::<_, LuaTable>("coroutine")?;
-    co.set("resume", fns.resume.clone())?;
-    co.set("wrap", fns.wrap.clone())?;
-
-    lua.sandbox(true)?;
-
-    // NOTE: We need to create the _G table after
-    // sandboxing, otherwise it will be read-only
-    #[cfg(any(
-        feature = "std-datetime",
-        feature = "std-fs",
-        feature = "std-luau",
-        feature = "std-net",
-        feature = "std-process",
-        feature = "std-regex",
-        feature = "std-roblox",
-        feature = "std-serde",
-        feature = "std-stdio",
-        feature = "std-task",
-    ))]
-    {
-        let g_global = lune_std::LuneStandardGlobal::GTable;
-        lua.globals().set(g_global.name(), g_global.create(lua)?)?;
-    }
-
-    Ok(())
 }
