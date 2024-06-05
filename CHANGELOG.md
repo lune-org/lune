@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
 - Added a builtin API for hashing and calculating HMACs as part of the `serde` library
 
   Basic usage:
@@ -25,6 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The returned hashes are sequences of lowercase hexadecimal digits. The following algorithms are supported:
   `md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`, `sha3-224`, `sha3-256`, `sha3-384`, `sha3-512`, `blake3`
+
+- Added two new options to `luau.load`:
+
+  - `codegenEnabled` - whether or not codegen should be enabled for the loaded chunk.
+  - `injectGlobals` - whether or not to inject globals into a passed `environment`.
+
+  By default, globals are injected and codegen is disabled.
+  Check the documentation for the `luau` standard library for more information.
+
+### Changed
+
+- Sandboxing and codegen in the Luau VM is now fully enabled, resulting in up to 2x or faster code execution.
+  This should not result in any behavior differences in Lune, but if it does, please open an issue.
 
 ## `0.8.5` - June 1st, 2024
 

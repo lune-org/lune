@@ -24,9 +24,9 @@ local safeCodegenFunction = luau.load(TEST_BYTECODE, {
 })
 local unsafeCodegenFunction = luau.load(TEST_BYTECODE, {
 	debugName = "unsafeCodegenFunction",
-	codegenEnabled = true,
 	environment = {},
 	injectGlobals = true,
+	codegenEnabled = true,
 })
 local safeFunction = luau.load(TEST_BYTECODE, {
 	debugName = "safeFunction",
@@ -34,9 +34,9 @@ local safeFunction = luau.load(TEST_BYTECODE, {
 })
 local unsafeFunction = luau.load(TEST_BYTECODE, {
 	debugName = "unsafeFunction",
-	codegenEnabled = false,
 	environment = {},
 	injectGlobals = true,
+	codegenEnabled = false,
 })
 
 -- Run the functions to get the timings

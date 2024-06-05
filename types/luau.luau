@@ -29,7 +29,7 @@ export type CompileOptions = {
 	* `debugName` - The debug name of the closure. Defaults to `luau.load(...)`.
 	* `environment` - A custom environment to load the chunk in. Setting a custom environment will deoptimize the chunk and forcefully disable codegen. Defaults to the global environment.
 	* `injectGlobals` - Whether or not to inject globals in the custom environment. Has no effect if no custom environment is provided. Defaults to `true`.
-	* `codegenEnabled` - Whether or not to enable codegen. Defaults to `true`.
+	* `codegenEnabled` - Whether or not to enable codegen. Defaults to `false`.
 ]=]
 export type LoadOptions = {
 	debugName: string?,
