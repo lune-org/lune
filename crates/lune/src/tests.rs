@@ -138,13 +138,13 @@ create_tests! {
     process_cwd: "process/cwd",
     process_env: "process/env",
     process_exit: "process/exit",
-    process_spawn_async: "process/spawn/async",
-    process_spawn_basic: "process/spawn/basic",
-    process_spawn_cwd: "process/spawn/cwd",
-    process_spawn_no_panic: "process/spawn/no_panic",
-    process_spawn_shell: "process/spawn/shell",
-    process_spawn_stdin: "process/spawn/stdin",
-    process_spawn_stdio: "process/spawn/stdio",
+    process_exec_async: "process/exec/async",
+    process_exec_basic: "process/exec/basic",
+    process_exec_cwd: "process/exec/cwd",
+    process_exec_no_panic: "process/exec/no_panic",
+    process_exec_shell: "process/exec/shell",
+    process_exec_stdin: "process/exec/stdin",
+    process_exec_stdio: "process/exec/stdio",
 }
 
 #[cfg(feature = "std-regex")]
@@ -249,6 +249,6 @@ create_tests! {
     task_cancel: "task/cancel",
     task_defer: "task/defer",
     task_delay: "task/delay",
-    task_spawn: "task/spawn",
+    task_exec: "task/exec",
     task_wait: "task/wait",
 }

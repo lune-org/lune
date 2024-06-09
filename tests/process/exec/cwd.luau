@@ -6,7 +6,7 @@ local pwdCommand = if IS_WINDOWS then "cmd" else "pwd"
 local pwdArgs = if IS_WINDOWS then { "/c", "cd" } else {}
 
 -- Make sure the cwd option actually uses the directory we want
-local rootPwd = process.spawn(pwdCommand, pwdArgs, {
+local rootPwd = process.exec(pwdCommand, pwdArgs, {
 	cwd = "/",
 }).stdout
 rootPwd = string.gsub(rootPwd, "^%s+", "")
@@ -27,24 +27,24 @@ end
 
 -- Setting cwd should not change the cwd of this process
 
-local pwdBefore = process.spawn(pwdCommand, pwdArgs).stdout
-process.spawn("ls", {}, {
+local pwdBefore = process.exec(pwdCommand, pwdArgs).stdout
+process.exec("ls", {}, {
 	cwd = "/",
 	shell = true,
 })
-local pwdAfter = process.spawn(pwdCommand, pwdArgs).stdout
+local pwdAfter = process.exec(pwdCommand, pwdArgs).stdout
 assert(pwdBefore == pwdAfter, "Current working directory changed after running child process")
 
 -- Setting the cwd on a child process should properly
 -- replace any leading ~ with the users real home dir
 
-local homeDir1 = process.spawn("echo $HOME", nil, {
+local homeDir1 = process.exec("echo $HOME", nil, {
 	shell = true,
 }).stdout
 
 -- NOTE: Powershell for windows uses `$pwd.Path` instead of `pwd` as pwd would return
 -- a PathInfo object, using $pwd.Path gets the Path property of the PathInfo object
-local homeDir2 = process.spawn(if IS_WINDOWS then "$pwd.Path" else "pwd", nil, {
+local homeDir2 = process.exec(if IS_WINDOWS then "$pwd.Path" else "pwd", nil, {
 	shell = true,
 	cwd = "~",
 }).stdout

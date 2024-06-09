@@ -12,7 +12,7 @@ end)
 
 local IS_WINDOWS = process.os == "windows"
 
-local result = process.spawn(
+local result = process.exec(
 	if IS_WINDOWS then "cmd" else "ls",
 	if IS_WINDOWS then { "/c", "dir" } else { "-a" }
 )

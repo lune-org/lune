@@ -12,7 +12,7 @@ export type SpawnOptionsStdio = {
 	@interface SpawnOptions
 	@within Process
 
-	A dictionary of options for `process.spawn`, with the following available values:
+	A dictionary of options for `process.exec`, with the following available values:
 
 	* `cwd` - The current working directory for the process
 	* `env` - Extra environment variables to give to the process
@@ -32,7 +32,7 @@ export type SpawnOptions = {
 	@interface SpawnResult
 	@within Process
 
-	Result type for child processes in `process.spawn`.
+	Result type for child processes in `process.exec`.
 
 	This is a dictionary containing the following values:
 
@@ -74,7 +74,7 @@ export type SpawnResult = {
 	print("Running " .. process.os .. " on " .. process.arch .. "!")
 
 	-- Spawning a child process
-	local result = process.spawn("program", {
+	local result = process.exec("program", {
 		"cli argument",
 		"other cli argument"
 	})
@@ -175,7 +175,7 @@ end
 	@param options A dictionary of options for the child process
 	@return A dictionary representing the result of the child process
 ]=]
-function process.spawn(program: string, params: { string }?, options: SpawnOptions?): SpawnResult
+function process.exec(program: string, params: { string }?, options: SpawnOptions?): SpawnResult
 	return nil :: any
 end
 

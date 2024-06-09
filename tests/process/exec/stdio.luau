@@ -5,7 +5,7 @@ local IS_WINDOWS = process.os == "windows"
 -- Inheriting stdio & environment variables should work
 
 local echoMessage = "Hello from child process!"
-local echoResult = process.spawn("echo", {
+local echoResult = process.exec("echo", {
 	if IS_WINDOWS then '"$Env:TEST_VAR"' else '"$TEST_VAR"',
 }, {
 	env = { TEST_VAR = echoMessage },
