@@ -17,12 +17,22 @@ impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
 
         Ok(buf.to_vec())
     }
+
+    pub async fn read_to_end(&mut self) -> LuaResult<Vec<u8>> {
+        let mut buf = vec![];
+        self.0.read_to_end(&mut buf).await?;
+        Ok(buf)
+    }
 }
 
 impl<R: AsyncRead + Unpin + 'static> LuaUserData for ChildProcessReader<R> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_async_method_mut("read", |lua, this, ()| async {
             Ok(lua.create_buffer(this.read().await?))
+        });
+
+        methods.add_async_method_mut("readToEnd", |lua, this, ()| async {
+            Ok(lua.create_buffer(this.read_to_end().await?))
         });
     }
 }

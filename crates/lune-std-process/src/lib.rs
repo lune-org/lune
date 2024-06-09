@@ -264,7 +264,7 @@ async fn process_spawn(
 
                 TableBuilder::new(lua)?
                     .with_value("code", code)?
-                    .with_value("success", code == 0)?
+                    .with_value("ok", code == 0)?
                     .build_readonly()
             }
         })?
