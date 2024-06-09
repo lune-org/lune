@@ -4,7 +4,7 @@ local task = require("@lune/task")
 
 local IS_WINDOWS = process.os == "windows"
 
--- Spawning a process should not block any lua thread(s)
+-- Executing a command should not block any lua thread(s)
 
 local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
