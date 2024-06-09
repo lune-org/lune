@@ -189,7 +189,7 @@ async fn process_spawn(
     let (stdin_tx, stdin_rx) = tokio::sync::oneshot::channel();
     let (stdout_tx, stdout_rx) = tokio::sync::oneshot::channel();
     let (stderr_tx, stderr_rx) = tokio::sync::oneshot::channel();
-    let (code_tx, code_rx) = tokio::sync::broadcast::channel(100);
+    let (code_tx, code_rx) = tokio::sync::broadcast::channel(4);
     let code_rx_rc = Rc::new(RefCell::new(code_rx));
 
     tokio::spawn(async move {
