@@ -10,7 +10,7 @@ local echoResult = process.exec("echo", {
 }, {
 	env = { TEST_VAR = echoMessage },
 	shell = if IS_WINDOWS then "powershell" else "bash",
-	stdio = "inherit",
+	stdio = "inherit" :: process.SpawnOptionsStdioKind, -- FIXME: This should just work without a cast?
 })
 
 -- Windows uses \r\n (CRLF) and unix uses \n (LF)

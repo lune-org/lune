@@ -11,18 +11,16 @@ pub struct ChildProcessReader<R: AsyncRead>(pub R);
 pub struct ChildProcessWriter<W: AsyncWrite>(pub W);
 
 impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
-    pub async fn read(&mut self) -> LuaResult<Vec<u8>> {
-        let mut buf = BytesMut::with_capacity(CHUNK_SIZE);
+    pub async fn read(&mut self, chunk_size: Option<usize>) -> LuaResult<Vec<u8>> {
+        let mut buf = BytesMut::with_capacity(chunk_size.unwrap_or(CHUNK_SIZE));
         self.0.read_buf(&mut buf).await?;
 
         Ok(buf.to_vec())
     }
 
     pub async fn read_to_end(&mut self) -> LuaResult<Vec<u8>> {
-        // FIXME: This yields, but should rather only return the stdout
-        // till present moment instead, so we should have our own logic
-        // instead of using read_to_end
         let mut buf = vec![];
+
         self.0.read_to_end(&mut buf).await?;
         Ok(buf)
     }
@@ -30,8 +28,8 @@ impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
 
 impl<R: AsyncRead + Unpin + 'static> LuaUserData for ChildProcessReader<R> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_async_method_mut("read", |lua, this, ()| async {
-            Ok(lua.create_buffer(this.read().await?))
+        methods.add_async_method_mut("read", |lua, this, chunk_size: Option<usize>| async move {
+            Ok(lua.create_buffer(this.read(chunk_size).await?))
         });
 
         methods.add_async_method_mut("readToEnd", |lua, this, ()| async {

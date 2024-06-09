@@ -41,7 +41,7 @@ export type SpawnOptions = {
 	* `stdin` - Optional standard input to pass to executed child process
 ]=]
 export type ExecuteOptions = SpawnOptions & {
-	stdio: (SpawnOptionsStdio | SpawnOptionsStdioKind)?,
+	stdio: (SpawnOptionsStdioKind | SpawnOptionsStdio)?,
 	stdin: string?, -- TODO: Remove this since it is now available in stdio above, breaking change
 }
 
@@ -56,12 +56,13 @@ local ChildProcessReader = {}
 --[=[
 	@within ChildProcessReader
 
-	Reads a chunk of data (8 bytes at a time) from the reader into a buffer.
-	Returns a buffer of size 0 if there is no more data to read.
+	Reads a chunk of data (specified length or a default of 8 bytes at a time) from 
+	the reader into a buffer. Returns a buffer of size 0 if there is no more data to 
+	read.
 
 	@return The buffer containing the data read from the reader
 ]=]
-function ChildProcessReader:read(): buffer
+function ChildProcessReader:read(chunkSize: number?): buffer
 	return nil :: any
 end
 
@@ -69,6 +70,7 @@ end
 	@within ChildProcessReader
 
 	Reads all the data currently present in the reader into a buffer.
+	This function will yield until the process exits.
 
 	@return The buffer containing the data read from the reader
 ]=]
