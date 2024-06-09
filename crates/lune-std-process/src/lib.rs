@@ -221,6 +221,7 @@ async fn process_spawn(
             .expect("ExitCode receiver was unexpectedly dropped");
     });
 
+    // TODO: If not piped, don't return readers and writers instead of panicking
     TableBuilder::new(lua)?
         .with_value(
             "stdout",

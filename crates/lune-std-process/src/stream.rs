@@ -19,6 +19,9 @@ impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
     }
 
     pub async fn read_to_end(&mut self) -> LuaResult<Vec<u8>> {
+        // FIXME: This yields, but should rather only return the stdout
+        // till present moment instead, so we should have our own logic
+        // instead of using read_to_end
         let mut buf = vec![];
         self.0.read_to_end(&mut buf).await?;
         Ok(buf)
