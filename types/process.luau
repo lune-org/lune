@@ -26,7 +26,6 @@ export type SpawnOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
 	shell: (boolean | string)?,
-	stdio: (SpawnOptionsStdio | SpawnOptionsStdioKind)?,
 }
 
 --[=[
@@ -42,6 +41,7 @@ export type SpawnOptions = {
 	* `stdin` - Optional standard input to pass to executed child process
 ]=]
 export type ExecuteOptions = SpawnOptions & {
+	stdio: (SpawnOptionsStdio | SpawnOptionsStdioKind)?,
 	stdin: string?, -- TODO: Remove this since it is now available in stdio above, breaking change
 }
 

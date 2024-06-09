@@ -15,6 +15,7 @@ use mlua::prelude::*;
 
 use lune_utils::TableBuilder;
 use mlua_luau_scheduler::{Functions, LuaSpawnExt};
+use options::ProcessSpawnOptionsStdio;
 use os_str_bytes::RawOsString;
 use stream::{ChildProcessReader, ChildProcessWriter};
 use tokio::{io::AsyncWriteExt, process::Child};
@@ -183,8 +184,10 @@ async fn process_spawn(
     lua: &Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
+    // Spawn does not accept stdio options, so we remove them from the options
+    // and use the defaults instead
     let mut spawn_options = options.clone();
-    spawn_options.stdio.stdin = None;
+    spawn_options.stdio = ProcessSpawnOptionsStdio::default();
 
     let (stdin_tx, stdin_rx) = tokio::sync::oneshot::channel();
     let (stdout_tx, stdout_rx) = tokio::sync::oneshot::channel();
@@ -221,7 +224,7 @@ async fn process_spawn(
             .expect("ExitCode receiver was unexpectedly dropped");
     });
 
-    // TODO: If not piped, don't return readers and writers instead of panicking
+    // TODO: Remove the lua errors since we no longer accept stdio options for spawn
     TableBuilder::new(lua)?
         .with_value(
             "stdout",
