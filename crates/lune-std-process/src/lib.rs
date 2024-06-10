@@ -224,7 +224,6 @@ async fn process_spawn(
             .expect("ExitCode receiver was unexpectedly dropped");
     });
 
-    // TODO: Remove the lua errors since we no longer accept stdio options for spawn
     TableBuilder::new(lua)?
         .with_value(
             "stdout",
@@ -232,9 +231,7 @@ async fn process_spawn(
                 stdout_rx
                     .await
                     .expect("Stdout sender unexpectedly dropped")
-                    .ok_or(LuaError::runtime(
-                        "Cannot read from stdout when it is not piped",
-                    ))?,
+                    .unwrap(),
             ),
         )?
         .with_value(
@@ -243,9 +240,7 @@ async fn process_spawn(
                 stderr_rx
                     .await
                     .expect("Stderr sender unexpectedly dropped")
-                    .ok_or(LuaError::runtime(
-                        "Cannot read from stderr when it is not piped",
-                    ))?,
+                    .unwrap(),
             ),
         )?
         .with_value(
@@ -284,10 +279,6 @@ async fn spawn_command(
     let stderr = options.stdio.stderr;
     let stdin = options.stdio.stdin.take();
 
-    // TODO: Have an stdin_kind which the user can supply as piped or not
-    // TODO: Maybe even revamp the stdout/stderr kinds? User should only use
-    // piped when they are sure they want to read the stdout. Currently we default
-    // to piped
     let mut child = options
         .into_command(program, args)
         .stdin(Stdio::piped())

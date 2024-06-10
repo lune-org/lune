@@ -13,6 +13,6 @@ for _ = 1, SAMPLES do
 	local delta = os.time() - start
 	assert(
 		delta <= 1,
-		`Spawning a child process should not block the main thread, process.spawn took {delta}s to return it should return immediately`
+		`Spawning a child process should not block the main thread, process.spawn took {delta}s to return when it should return immediately`
 	)
 end
