@@ -60,6 +60,9 @@ local ChildProcessReader = {}
 	the reader into a buffer. Returns a buffer of size 0 if there is no more data to 
 	read.
 
+	This function may yield until there is new data to read from reader, if all data
+	has already been read.
+
 	@return The buffer containing the data read from the reader
 ]=]
 function ChildProcessReader:read(chunkSize: number?): buffer
