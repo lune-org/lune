@@ -12,7 +12,7 @@ assert(
 )
 
 local echoChild = if process.os == "windows"
-	then process.spawn("echo", { msg, "2>&1" }, { shell = "cmd" })
+	then process.spawn("echo", { msg, "1>&2" }, { shell = "cmd" })
 	else process.spawn("echo", { msg, ">>/dev/stderr" }, { shell = true })
 
 assert(
