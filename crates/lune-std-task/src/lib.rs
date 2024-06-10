@@ -33,12 +33,6 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .set_environment(task_delay_env)
         .into_function()?;
 
-    // Overwrite resume & wrap functions on the coroutine global
-    // with ones that are compatible with our scheduler
-    let co = lua.globals().get::<_, LuaTable>("coroutine")?;
-    co.set("resume", fns.resume.clone())?;
-    co.set("wrap", fns.wrap.clone())?;
-
     TableBuilder::new(lua)?
         .with_value("cancel", fns.cancel)?
         .with_value("defer", fns.defer)?

@@ -155,13 +155,18 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         |lua, this, (attribute_name, lua_value): (String, LuaValue)| {
             ensure_not_destroyed(this)?;
             ensure_valid_attribute_name(&attribute_name)?;
-            match lua_value.lua_to_dom_value(lua, None) {
-                Ok(dom_value) => {
-                    ensure_valid_attribute_value(&dom_value)?;
-                    this.set_attribute(attribute_name, dom_value);
-                    Ok(())
+            if lua_value.is_nil() || lua_value.is_null() {
+                this.remove_attribute(attribute_name);
+                Ok(())
+            } else {
+                match lua_value.lua_to_dom_value(lua, None) {
+                    Ok(dom_value) => {
+                        ensure_valid_attribute_value(&dom_value)?;
+                        this.set_attribute(attribute_name, dom_value);
+                        Ok(())
+                    }
+                    Err(e) => Err(e.into()),
                 }
-                Err(e) => Err(e.into()),
             }
         },
     );

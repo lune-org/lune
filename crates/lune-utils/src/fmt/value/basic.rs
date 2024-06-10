@@ -1,7 +1,12 @@
 use mlua::prelude::*;
 
+use crate::fmt::ErrorComponents;
+
 use super::{
-    metamethods::{call_table_tostring_metamethod, call_userdata_tostring_metamethod},
+    metamethods::{
+        call_table_tostring_metamethod, call_userdata_tostring_metamethod,
+        get_table_type_metavalue, get_userdata_type_metavalue,
+    },
     style::{COLOR_CYAN, COLOR_GREEN, COLOR_MAGENTA, COLOR_YELLOW},
 };
 
@@ -56,19 +61,39 @@ pub(crate) fn format_value_styled(value: &LuaValue, prefer_plain: bool) -> Strin
         LuaValue::Function(_) => COLOR_MAGENTA.apply_to("<function>").to_string(),
         LuaValue::LightUserData(_) => COLOR_MAGENTA.apply_to("<pointer>").to_string(),
         LuaValue::UserData(u) => {
-            if let Some(s) = call_userdata_tostring_metamethod(u) {
-                s
-            } else {
-                COLOR_MAGENTA.apply_to("<userdata>").to_string()
-            }
+            let formatted = format_typename_and_tostringed(
+                "userdata",
+                get_userdata_type_metavalue(u),
+                call_userdata_tostring_metamethod(u),
+            );
+            COLOR_MAGENTA.apply_to(formatted).to_string()
         }
         LuaValue::Table(t) => {
-            if let Some(s) = call_table_tostring_metamethod(t) {
-                s
-            } else {
-                COLOR_MAGENTA.apply_to("<table>").to_string()
-            }
+            let formatted = format_typename_and_tostringed(
+                "table",
+                get_table_type_metavalue(t),
+                call_table_tostring_metamethod(t),
+            );
+            COLOR_MAGENTA.apply_to(formatted).to_string()
         }
-        _ => COLOR_MAGENTA.apply_to("<?>").to_string(),
+        LuaValue::Error(e) => COLOR_MAGENTA
+            .apply_to(format!(
+                "<LuaError(\n{})>",
+                ErrorComponents::from(e.clone())
+            ))
+            .to_string(),
+    }
+}
+
+fn format_typename_and_tostringed(
+    fallback: &'static str,
+    typename: Option<String>,
+    tostringed: Option<String>,
+) -> String {
+    match (typename, tostringed) {
+        (Some(typename), Some(tostringed)) => format!("<{typename}({tostringed})>"),
+        (Some(typename), None) => format!("<{typename}>"),
+        (None, Some(tostringed)) => format!("<{tostringed}>"),
+        (None, None) => format!("<{fallback}>"),
     }
 }

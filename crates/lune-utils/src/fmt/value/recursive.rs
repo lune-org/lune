@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::{self, Write as _};
 
@@ -50,35 +51,40 @@ pub(crate) fn format_value_recursive(
         } else if !visited.insert(LuaValueId::from(t)) {
             write!(buffer, "{}", STYLE_DIM.apply_to("{ recursive }"))?;
         } else {
-            writeln!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
+            write!(buffer, "{}", STYLE_DIM.apply_to("{"))?;
 
-            for res in t.clone().pairs::<LuaValue, LuaValue>() {
-                let (key, value) = res.expect("conversion to LuaValue should never fail");
-                let formatted = if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
-                    format!(
-                        "{}{plain_key} {} {}{}",
-                        INDENT.repeat(1 + depth),
-                        STYLE_DIM.apply_to("="),
-                        format_value_recursive(&value, config, visited, depth + 1)?,
-                        STYLE_DIM.apply_to(","),
-                    )
-                } else {
-                    format!(
-                        "{}{}{}{} {} {}{}",
-                        INDENT.repeat(1 + depth),
-                        STYLE_DIM.apply_to("["),
-                        format_value_recursive(&key, config, visited, depth + 1)?,
-                        STYLE_DIM.apply_to("]"),
-                        STYLE_DIM.apply_to("="),
-                        format_value_recursive(&value, config, visited, depth + 1)?,
-                        STYLE_DIM.apply_to(","),
-                    )
-                };
-                buffer.push_str(&formatted);
-            }
+            let mut values = t
+                .clone()
+                .pairs::<LuaValue, LuaValue>()
+                .map(|res| res.expect("conversion to LuaValue should never fail"))
+                .collect::<Vec<_>>();
+            sort_for_formatting(&mut values);
+
+            let is_empty = values.is_empty();
+            let is_array = values
+                .iter()
+                .enumerate()
+                .all(|(i, (key, _))| key.as_integer().is_some_and(|x| x == (i as i32) + 1));
+
+            let formatted_values = if is_array {
+                format_array(values, config, visited, depth)?
+            } else {
+                format_table(values, config, visited, depth)?
+            };
 
             visited.remove(&LuaValueId::from(t));
-            write!(buffer, "\n{}", STYLE_DIM.apply_to("}"))?;
+
+            if is_empty {
+                write!(buffer, " {}", STYLE_DIM.apply_to("}"))?;
+            } else {
+                write!(
+                    buffer,
+                    "\n{}\n{}{}",
+                    formatted_values.join("\n"),
+                    INDENT.repeat(depth),
+                    STYLE_DIM.apply_to("}")
+                )?;
+            }
         }
     } else {
         let prefer_plain = depth == 0;
@@ -86,4 +92,75 @@ pub(crate) fn format_value_recursive(
     }
 
     Ok(buffer)
+}
+
+fn sort_for_formatting(values: &mut [(LuaValue, LuaValue)]) {
+    values.sort_by(|(a, _), (b, _)| {
+        if a.type_name() == b.type_name() {
+            // If we have the same type, sort either numerically or alphabetically
+            match (a, b) {
+                (LuaValue::Integer(a), LuaValue::Integer(b)) => a.cmp(b),
+                (LuaValue::Number(a), LuaValue::Number(b)) => a.partial_cmp(b).unwrap(),
+                (LuaValue::String(a), LuaValue::String(b)) => a.to_str().ok().cmp(&b.to_str().ok()),
+                _ => Ordering::Equal,
+            }
+        } else {
+            // If we have different types, sort numbers first, then strings, then others
+            a.is_number()
+                .cmp(&b.is_number())
+                .then_with(|| a.is_string().cmp(&b.is_string()))
+        }
+    });
+}
+
+fn format_array(
+    values: Vec<(LuaValue, LuaValue)>,
+    config: &ValueFormatConfig,
+    visited: &mut HashSet<LuaValueId>,
+    depth: usize,
+) -> Result<Vec<String>, fmt::Error> {
+    values
+        .into_iter()
+        .map(|(_, value)| {
+            Ok(format!(
+                "{}{}{}",
+                INDENT.repeat(1 + depth),
+                format_value_recursive(&value, config, visited, depth + 1)?,
+                STYLE_DIM.apply_to(","),
+            ))
+        })
+        .collect()
+}
+
+fn format_table(
+    values: Vec<(LuaValue, LuaValue)>,
+    config: &ValueFormatConfig,
+    visited: &mut HashSet<LuaValueId>,
+    depth: usize,
+) -> Result<Vec<String>, fmt::Error> {
+    values
+        .into_iter()
+        .map(|(key, value)| {
+            if let Some(plain_key) = lua_value_as_plain_string_key(&key) {
+                Ok(format!(
+                    "{}{plain_key} {} {}{}",
+                    INDENT.repeat(1 + depth),
+                    STYLE_DIM.apply_to("="),
+                    format_value_recursive(&value, config, visited, depth + 1)?,
+                    STYLE_DIM.apply_to(","),
+                ))
+            } else {
+                Ok(format!(
+                    "{}{}{}{} {} {}{}",
+                    INDENT.repeat(1 + depth),
+                    STYLE_DIM.apply_to("["),
+                    format_value_recursive(&key, config, visited, depth + 1)?,
+                    STYLE_DIM.apply_to("]"),
+                    STYLE_DIM.apply_to("="),
+                    format_value_recursive(&value, config, visited, depth + 1)?,
+                    STYLE_DIM.apply_to(","),
+                ))
+            }
+        })
+        .collect()
 }

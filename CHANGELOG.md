@@ -8,6 +8,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added a builtin API for hashing and calculating HMACs as part of the `serde` library
+
+  Basic usage:
+
+  ```lua
+  local serde = require("@lune/serde")
+  local hash = serde.hash("sha256", "a message to hash")
+  local hmac = serde.hmac("sha256", "a message to hash", "a secret string")
+
+  print(hash)
+  print(hmac)
+  ```
+
+  The returned hashes are sequences of lowercase hexadecimal digits. The following algorithms are supported:
+  `md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`, `sha3-224`, `sha3-256`, `sha3-384`, `sha3-512`, `blake3`
+
+- Added two new options to `luau.load`:
+
+  - `codegenEnabled` - whether or not codegen should be enabled for the loaded chunk.
+  - `injectGlobals` - whether or not to inject globals into a passed `environment`.
+
+  By default, globals are injected and codegen is disabled.
+  Check the documentation for the `luau` standard library for more information.
+
+### Changed
+
+- Sandboxing and codegen in the Luau VM is now fully enabled, resulting in up to 2x or faster code execution.
+  This should not result in any behavior differences in Lune, but if it does, please open an issue.
+- Improved formatting of custom error objects (such as when `fs.readFile` returns an error) when printed or formatted using `stdio.format`.
+
+### Fixed
+
+- Fixed `__type` and `__tostring` metamethods on userdatas and tables not being respected when printed or formatted using `stdio.format`.
+
+## `0.8.5` - June 1st, 2024
+
+### Changed
+
+- Improved table pretty formatting when using `print`, `warn`, and `stdio.format`:
+
+  - Keys are sorted numerically / alphabetically when possible.
+  - Keys of different types are put in distinct sections for mixed tables.
+  - Tables that are arrays no longer display their keys.
+  - Empty tables are no longer spread across lines.
+
+## Fixed
+
+- Fixed formatted values in tables not being separated by newlines.
+- Fixed panicking (crashing) when using `process.spawn` with a program that does not exist.
+- Fixed `instance:SetAttribute("name", nil)` throwing an error and not removing the attribute.
+
 ## `0.8.4` - May 12th, 2024
 
 ### Added

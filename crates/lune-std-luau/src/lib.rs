@@ -44,26 +44,41 @@ fn load_source<'lua>(
     (source, options): (LuaString<'lua>, LuauLoadOptions),
 ) -> LuaResult<LuaFunction<'lua>> {
     let mut chunk = lua.load(source.as_bytes()).set_name(options.debug_name);
+    let env_changed = options.environment.is_some();
 
-    if let Some(environment) = options.environment {
-        let environment_with_globals = lua.create_table()?;
+    if let Some(custom_environment) = options.environment {
+        let environment = lua.create_table()?;
 
-        if let Some(meta) = environment.get_metatable() {
-            environment_with_globals.set_metatable(Some(meta));
+        // Inject all globals into the environment
+        if options.inject_globals {
+            for pair in lua.globals().pairs() {
+                let (key, value): (LuaValue, LuaValue) = pair?;
+                environment.set(key, value)?;
+            }
+
+            if let Some(global_metatable) = lua.globals().get_metatable() {
+                environment.set_metatable(Some(global_metatable));
+            }
+        } else if let Some(custom_metatable) = custom_environment.get_metatable() {
+            // Since we don't need to set the global metatable,
+            // we can just set a custom metatable if it exists
+            environment.set_metatable(Some(custom_metatable));
         }
 
-        for pair in lua.globals().pairs() {
+        // Inject the custom environment
+        for pair in custom_environment.pairs() {
             let (key, value): (LuaValue, LuaValue) = pair?;
-            environment_with_globals.set(key, value)?;
+            environment.set(key, value)?;
         }
 
-        for pair in environment.pairs() {
-            let (key, value): (LuaValue, LuaValue) = pair?;
-            environment_with_globals.set(key, value)?;
-        }
-
-        chunk = chunk.set_environment(environment_with_globals);
+        chunk = chunk.set_environment(environment);
     }
 
-    chunk.into_function()
+    // Enable JIT if codegen is enabled and the environment hasn't
+    // changed, otherwise disable JIT since it'll fall back anyways
+    lua.enable_jit(options.codegen_enabled && !env_changed);
+    let function = chunk.into_function()?;
+    lua.enable_jit(true);
+
+    Ok(function)
 }

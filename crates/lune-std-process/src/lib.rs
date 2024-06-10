@@ -145,10 +145,7 @@ async fn process_spawn(
     lua: &Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
-    let res = lua
-        .spawn(spawn_command(program, args, options))
-        .await
-        .expect("Failed to receive result of spawned process");
+    let res = lua.spawn(spawn_command(program, args, options)).await?;
 
     /*
         NOTE: If an exit code was not given by the child process,
