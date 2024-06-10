@@ -61,7 +61,7 @@ local ChildProcessReader = {}
 	read.
 
 	This function may yield until there is new data to read from reader, if all data
-	has already been read.
+	till present has already been read, and the process has not exited.
 
 	@return The buffer containing the data read from the reader
 ]=]
