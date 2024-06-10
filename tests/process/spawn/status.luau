@@ -2,7 +2,7 @@ local process = require("@lune/process")
 
 -- The exit code of an child process should be correct
 
-local randomExitCode = math.random(1, 255)
+local randomExitCode = math.random(0, 255)
 local isOk = randomExitCode == 0
 local child = process.spawn("exit", { tostring(randomExitCode) }, { shell = true })
 local status = child.status()
