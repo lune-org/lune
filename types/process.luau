@@ -162,7 +162,7 @@ export type ExecuteResult = {
 	-- Getting the current os and processor architecture
 	print("Running " .. process.os .. " on " .. process.arch .. "!")
 
-	-- Executeing a child process
+	-- Executing a command
 	local result = process.exec("program", {
 		"cli argument",
 		"other cli argument"
@@ -172,6 +172,19 @@ export type ExecuteResult = {
 	else
 		print(result.stderr)
 	end
+
+	-- Spawning a child process
+	local child = process.spawn("program", {
+		"cli argument",
+		"other cli argument"
+	})
+
+	-- Writing to the child process' stdin
+	child.stdin:write("Hello from Lune!")
+
+	-- Reading from the child process' stdout
+	local data = child.stdout:read()
+	print(buffer.tostring(data))
 	```
 ]=]
 local process = {}
