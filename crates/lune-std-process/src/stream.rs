@@ -20,8 +20,8 @@ impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
 
     pub async fn read_to_end(&mut self) -> LuaResult<Vec<u8>> {
         let mut buf = vec![];
-
         self.0.read_to_end(&mut buf).await?;
+
         Ok(buf)
     }
 }
