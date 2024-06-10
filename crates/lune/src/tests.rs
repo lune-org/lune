@@ -145,6 +145,9 @@ create_tests! {
     process_exec_shell: "process/exec/shell",
     process_exec_stdin: "process/exec/stdin",
     process_exec_stdio: "process/exec/stdio",
+    process_spawn_non_blocking: "process/spawn/non_blocking",
+    process_spawn_status: "process/spawn/status",
+    process_spawn_stream: "process/spawn/stream",
 }
 
 #[cfg(feature = "std-regex")]
@@ -249,6 +252,6 @@ create_tests! {
     task_cancel: "task/cancel",
     task_defer: "task/defer",
     task_delay: "task/delay",
-    task_exec: "task/exec",
+    task_spawn: "task/spawn",
     task_wait: "task/wait",
 }
