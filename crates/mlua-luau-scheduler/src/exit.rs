@@ -1,4 +1,4 @@
-use std::{cell::Cell, process::ExitCode, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 
 use event_listener::Event;
 

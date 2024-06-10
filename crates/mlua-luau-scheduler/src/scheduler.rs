@@ -2,7 +2,6 @@
 
 use std::{
     cell::Cell,
-    process::ExitCode,
     rc::{Rc, Weak as WeakRc},
     sync::{Arc, Weak as WeakArc},
     thread::panicking,
