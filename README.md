@@ -33,7 +33,7 @@ Lune provides fully asynchronous APIs wherever possible, and is built in Rust �
 ## Features
 
 - 🌙 Strictly minimal but powerful interface that is easy to read and remember, just like Luau itself
-- 🧰 Fully featured APIs for the filesystem, networking, stdio, all included in the small (~5mb) executable
+- 🧰 Fully featured APIs for the filesystem, networking, stdio, all included in the small (~5mb zipped) executable
 - 📚 World-class documentation, on the web _or_ directly in your editor, no network connection necessary
 - 🏡 Familiar runtime environment for Roblox developers, with an included 1-to-1 task scheduler port
 - ✏️ Optional built-in library for manipulating Roblox place & model files, and their instances
