@@ -1,9 +1,5 @@
 * text=auto
 
-# Temporarily highlight luau as normal lua files
-# until we get native linguist support for Luau
-*.luau linguist-language=Lua
-
 # Ensure all lua files use LF
 *.lua  eol=lf
 *.luau eol=lf
