@@ -57,27 +57,26 @@ local ChildProcessReader = {}
 	@within ChildProcessReader
 
 	Reads a chunk of data (specified length or a default of 8 bytes at a time) from 
-	the reader into a buffer. Returns a buffer of size 0 if there is no more data to 
-	read.
+	the reader as a string. Returns nil if there is no more data to read.
 
 	This function may yield until there is new data to read from reader, if all data
 	till present has already been read, and the process has not exited.
 
-	@return The buffer containing the data read from the reader
+	@return The string containing the data read from the reader
 ]=]
-function ChildProcessReader:read(chunkSize: number?): buffer
+function ChildProcessReader:read(chunkSize: number?): string?
 	return nil :: any
 end
 
 --[=[
 	@within ChildProcessReader
 
-	Reads all the data currently present in the reader into a buffer.
+	Reads all the data currently present in the reader as a string.
 	This function will yield until the process exits.
 
-	@return The buffer containing the data read from the reader
+	@return The string containing the data read from the reader
 ]=]
-function ChildProcessReader:readToEnd(): buffer
+function ChildProcessReader:readToEnd(): string
 	return nil :: any
 end
 

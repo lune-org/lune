@@ -29,11 +29,17 @@ impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
 impl<R: AsyncRead + Unpin + 'static> LuaUserData for ChildProcessReader<R> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_async_method_mut("read", |lua, this, chunk_size: Option<usize>| async move {
-            Ok(lua.create_buffer(this.read(chunk_size).await?))
+            let buf = this.read(chunk_size).await?;
+
+            if buf.is_empty() {
+                return Ok(LuaValue::Nil);
+            }
+
+            Ok(LuaValue::String(lua.create_string(buf)?))
         });
 
         methods.add_async_method_mut("readToEnd", |lua, this, ()| async {
-            Ok(lua.create_buffer(this.read_to_end().await?))
+            Ok(lua.create_string(this.read_to_end().await?))
         });
     }
 }
