@@ -47,8 +47,8 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         cwd_str.push(MAIN_SEPARATOR);
     }
     // Create constants for OS & processor architecture
-    let os = lua.create_string(&OS.to_lowercase())?;
-    let arch = lua.create_string(&ARCH.to_lowercase())?;
+    let os = lua.create_string(OS.to_lowercase())?;
+    let arch = lua.create_string(ARCH.to_lowercase())?;
     // Create readonly args array
     let args_vec = lua
         .app_data_ref::<Vec<String>>()
