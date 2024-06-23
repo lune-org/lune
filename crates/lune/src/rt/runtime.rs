@@ -57,6 +57,7 @@ impl RuntimeInner {
                 feature = "std-task",
             ))]
             {
+                lune_std::set_global_version(lua, env!("CARGO_PKG_VERSION"));
                 lune_std::inject_globals(lua)?;
             }
 
