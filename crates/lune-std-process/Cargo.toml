@@ -20,7 +20,7 @@ directories = "5.0"
 pin-project = "1.0"
 os_str_bytes = { version = "7.0", features = ["conversions"] }
 
-bstr = "1.9"
+bytes = "1.6.0"
 
 tokio = { version = "1", default-features = false, features = [
     "io-std",
@@ -31,4 +31,3 @@ tokio = { version = "1", default-features = false, features = [
 ] }
 
 lune-utils = { version = "0.1.0", path = "../lune-utils" }
-bytes = "1.6.0"

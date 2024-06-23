@@ -1625,7 +1625,6 @@ dependencies = [
 name = "lune-std-process"
 version = "0.1.1"
 dependencies = [
- "bstr",
  "bytes",
  "directories",
  "lune-utils",
