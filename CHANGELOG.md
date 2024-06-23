@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Check the documentation for the `luau` standard library for more information.
 
 - Implemented support for floor division operator / `__idiv` for the `Vector2` and `Vector3` types in the `roblox` standard library ([#196])
+- Fixed the `_VERSION` global containing an incorrect Lune version string.
 
 ### Changed
 
