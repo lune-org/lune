@@ -2,7 +2,7 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
--- Executing a comamnd should work, with options
+-- Executing a command should work, with options
 
 local thread = task.delay(1, function()
 	stdio.ewrite("Spawning a process should take a reasonable amount of time\n")
