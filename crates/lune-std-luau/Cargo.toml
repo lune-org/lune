@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-luau"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -15,4 +15,4 @@ workspace = true
 [dependencies]
 mlua = { version = "0.9.7", features = ["luau"] }
 
-lune-utils = { version = "0.1.0", path = "../lune-utils" }
+lune-utils = { version = "0.1.2", path = "../lune-utils" }

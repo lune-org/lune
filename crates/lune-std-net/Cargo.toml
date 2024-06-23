@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-net"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -35,5 +35,5 @@ tokio = { version = "1", default-features = false, features = [
     "macros",
 ] }
 
-lune-utils = { version = "0.1.0", path = "../lune-utils" }
-lune-std-serde = { version = "0.1.0", path = "../lune-std-serde" }
+lune-utils = { version = "0.1.2", path = "../lune-utils" }
+lune-std-serde = { version = "0.1.1", path = "../lune-std-serde" }
