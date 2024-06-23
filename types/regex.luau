@@ -180,7 +180,7 @@ export type Regex = typeof(Regex)
 	### Example usage
 
 	```lua
-    local Regex = require("@lune/regex")
+	local Regex = require("@lune/regex")
 
 	local re = Regex.new("hello")
 
