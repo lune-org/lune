@@ -1,3 +1,4 @@
+use bstr::BString;
 use bytes::BytesMut;
 use mlua::prelude::*;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
