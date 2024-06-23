@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a builtin API for hashing and calculating HMACs as part of the `serde` library
+- Added a builtin API for hashing and calculating HMACs as part of the `serde` library ([#193])
 
   Basic usage:
 
@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   By default, globals are injected and codegen is disabled.
   Check the documentation for the `luau` standard library for more information.
 
+- Implemented support for floor division operator / `__idiv` for the `Vector2` and `Vector3` types in the `roblox` standard library ([#196])
+
 ### Changed
 
 - Sandboxing and codegen in the Luau VM is now fully enabled, resulting in up to 2x or faster code execution.
@@ -45,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `__type` and `__tostring` metamethods on userdatas and tables not being respected when printed or formatted using `stdio.format`.
+
+[#193]: https://github.com/lune-org/lune/pull/193
+[#196]: https://github.com/lune-org/lune/pull/196
 
 ## `0.8.5` - June 1st, 2024
 
