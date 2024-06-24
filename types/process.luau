@@ -15,7 +15,7 @@ export type ExecuteOptionsStdio = SpawnOptionsStdio & {
 	@interface SpawnOptions
 	@within Process
 
-	A dictionary of options for `process.spawn`, with the following available values:
+	A dictionary of options for `process.create`, with the following available values:
 
 	* `cwd` - The current working directory for the process
 	* `env` - Extra environment variables to give to the process
@@ -103,7 +103,7 @@ end
 	@interface SpawnResult
 	@within Process
 
-	Result type for child processes in `process.spawn`.
+	Result type for child processes in `process.create`.
 
 	This is a dictionary containing the following values:
 
@@ -176,7 +176,7 @@ export type ExecuteResult = {
 	end
 
 	-- Spawning a child process
-	local child = process.spawn("program", {
+	local child = process.create("program", {
 		"cli argument",
 		"other cli argument"
 	})
@@ -282,7 +282,7 @@ end
 	@param options A dictionary of options for the child process
 	@return A dictionary with the readers and writers to communicate with the child process
 ]=]
-function process.spawn(program: string, params: { string }?, options: SpawnOptions?): ChildProcess
+function process.create(program: string, params: { string }?, options: SpawnOptions?): ChildProcess
 	return nil :: any
 end
 
@@ -292,7 +292,7 @@ end
 	Executes a child process that will execute the command `program`, waiting for it to exit. 
 	Upon exit, it returns a dictionary that describes the final status and ouput of the child process.
 
-	In order to spawn a child process in the background, see `process.spawn`.
+	In order to spawn a child process in the background, see `process.create`.
 
 	The second argument, `params`, can be passed as a list of string parameters to give to the program.
 

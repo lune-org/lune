@@ -6,7 +6,7 @@ local SAMPLES = 400
 
 for _ = 1, SAMPLES do
 	local start = os.time()
-	local child = process.spawn("echo", { "hello, world" })
+	local child = process.create("echo", { "hello, world" })
 
 	assert(child ~= nil, "Failed to spawn child process")
 

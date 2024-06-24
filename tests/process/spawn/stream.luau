@@ -4,7 +4,7 @@ local process = require("@lune/process")
 
 local msg = "hello, world"
 
-local catChild = process.spawn("cat")
+local catChild = process.create("cat")
 catChild.stdin:write(msg)
 assert(
 	msg == catChild.stdout:read(#msg),
@@ -12,8 +12,8 @@ assert(
 )
 
 local echoChild = if process.os == "windows"
-	then process.spawn("/c", { "echo", msg, "1>&2" }, { shell = "cmd" })
-	else process.spawn("echo", { msg, ">>/dev/stderr" }, { shell = true })
+	then process.create("/c", { "echo", msg, "1>&2" }, { shell = "cmd" })
+	else process.create("echo", { msg, ">>/dev/stderr" }, { shell = true })
 
 assert(
 	msg == echoChild.stderr:read(#msg),

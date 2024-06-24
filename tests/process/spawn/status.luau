@@ -4,7 +4,7 @@ local process = require("@lune/process")
 
 local randomExitCode = math.random(0, 255)
 local isOk = randomExitCode == 0
-local child = process.spawn("exit", { tostring(randomExitCode) }, { shell = true })
+local child = process.create("exit", { tostring(randomExitCode) }, { shell = true })
 local status = child.status()
 
 assert(

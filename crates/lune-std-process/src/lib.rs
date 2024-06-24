@@ -79,7 +79,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_value("env", env_tab)?
         .with_value("exit", process_exit)?
         .with_async_function("exec", process_exec)?
-        .with_async_function("spawn", process_spawn)?
+        .with_async_function("create", process_spawn)?
         .build_readonly()
 }
 
