@@ -35,12 +35,34 @@ enum HashAlgorithm {
 }
 
 impl HashAlgorithm {
-    pub fn list_all_as_string() -> String {
-        [
-            "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha3-224", "sha3-256",
-            "sha3-384", "sha3-512", "blake3",
-        ]
-        .join(", ")
+    pub const ALL: [Self; 11] = [
+        Self::Md5,
+        Self::Sha1,
+        Self::Sha2_224,
+        Self::Sha2_256,
+        Self::Sha2_384,
+        Self::Sha2_512,
+        Self::Sha3_224,
+        Self::Sha3_256,
+        Self::Sha3_384,
+        Self::Sha3_512,
+        Self::Blake3,
+    ];
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Md5 => "md5",
+            Self::Sha1 => "sha1",
+            Self::Sha2_224 => "sha224",
+            Self::Sha2_256 => "sha256",
+            Self::Sha2_384 => "sha384",
+            Self::Sha2_512 => "sha512",
+            Self::Sha3_224 => "sha3-224",
+            Self::Sha3_256 => "sha3-256",
+            Self::Sha3_384 => "sha3-384",
+            Self::Sha3_512 => "sha3-512",
+            Self::Blake3 => "blake3",
+        }
     }
 }
 
@@ -164,15 +186,15 @@ impl<'lua> FromLua<'lua> for HashAlgorithm {
                 "md5" => Ok(Self::Md5),
                 "sha1" => Ok(Self::Sha1),
 
-                "sha224" => Ok(Self::Sha2_224),
-                "sha256" => Ok(Self::Sha2_256),
-                "sha384" => Ok(Self::Sha2_384),
-                "sha512" => Ok(Self::Sha2_512),
+                "sha2-224" | "sha2_224" | "sha224" => Ok(Self::Sha2_224),
+                "sha2-256" | "sha2_256" | "sha256" => Ok(Self::Sha2_256),
+                "sha2-384" | "sha2_384" | "sha384" => Ok(Self::Sha2_384),
+                "sha2-512" | "sha2_512" | "sha512" => Ok(Self::Sha2_512),
 
-                "sha3-224" => Ok(Self::Sha3_224),
-                "sha3-256" => Ok(Self::Sha3_256),
-                "sha3-384" => Ok(Self::Sha3_384),
-                "sha3-512" => Ok(Self::Sha3_512),
+                "sha3-224" | "sha3_224" => Ok(Self::Sha3_224),
+                "sha3-256" | "sha3_256" => Ok(Self::Sha3_256),
+                "sha3-384" | "sha3_384" => Ok(Self::Sha3_384),
+                "sha3-512" | "sha3_512" => Ok(Self::Sha3_512),
 
                 "blake3" => Ok(Self::Blake3),
 
@@ -181,7 +203,11 @@ impl<'lua> FromLua<'lua> for HashAlgorithm {
                     to: "HashAlgorithm",
                     message: Some(format!(
                         "Invalid hashing algorithm '{str}', valid kinds are:\n{}",
-                        HashAlgorithm::list_all_as_string()
+                        HashAlgorithm::ALL
+                            .into_iter()
+                            .map(HashAlgorithm::name)
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     )),
                 }),
             }
