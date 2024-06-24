@@ -15,7 +15,4 @@ local echoChild = if process.os == "windows"
 	then process.create("/c", { "echo", msg, "1>&2" }, { shell = "cmd" })
 	else process.create("echo", { msg, ">>/dev/stderr" }, { shell = true })
 
-assert(
-	msg == echoChild.stderr:read(#msg),
-	"Failed to read from stderr of child process"
-)
+assert(msg == echoChild.stderr:read(#msg), "Failed to read from stderr of child process")

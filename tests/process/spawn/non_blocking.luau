@@ -1,18 +1,13 @@
 local process = require("@lune/process")
 
--- Spawning a child process should not block the main thread
+-- Spawning a child process should not block the thread
 
-local SAMPLES = 400
+local childThread = coroutine.create(process.create)
 
-for _ = 1, SAMPLES do
-	local start = os.time()
-	local child = process.create("echo", { "hello, world" })
+local ok, err = coroutine.resume(childThread, "echo", { "hello, world" })
+assert(ok, err)
 
-	assert(child ~= nil, "Failed to spawn child process")
-
-	local delta = os.time() - start
-	assert(
-		delta <= 1,
-		`Spawning a child process should not block the main thread, process.spawn took {delta}s to return when it should return immediately`
-	)
-end
+assert(
+	coroutine.status(childThread) == "dead",
+	"Child process should not block the thread it is running on"
+)

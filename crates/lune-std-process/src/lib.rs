@@ -79,7 +79,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_value("env", env_tab)?
         .with_value("exit", process_exit)?
         .with_async_function("exec", process_exec)?
-        .with_async_function("create", process_spawn)?
+        .with_function("create", process_spawn)?
         .build_readonly()
 }
 
@@ -153,7 +153,7 @@ async fn process_exec(
 ) -> LuaResult<LuaTable> {
     let res = lua
         .spawn(async move {
-            let cmd = spawn_command(program, args, options.clone()).await?;
+            let cmd = spawn_command_with_stdin(program, args, options.clone()).await?;
             wait_for_child(cmd, options.stdio.stdout, options.stdio.stderr).await
         })
         .await?;
@@ -180,7 +180,7 @@ async fn process_exec(
 }
 
 #[allow(clippy::await_holding_refcell_ref)]
-async fn process_spawn(
+fn process_spawn(
     lua: &Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
@@ -189,26 +189,15 @@ async fn process_spawn(
     let mut spawn_options = options.clone();
     spawn_options.stdio = ProcessSpawnOptionsStdio::default();
 
-    let (stdin_tx, stdin_rx) = tokio::sync::oneshot::channel();
-    let (stdout_tx, stdout_rx) = tokio::sync::oneshot::channel();
-    let (stderr_tx, stderr_rx) = tokio::sync::oneshot::channel();
     let (code_tx, code_rx) = tokio::sync::broadcast::channel(4);
     let code_rx_rc = Rc::new(RefCell::new(code_rx));
 
-    tokio::spawn(async move {
-        let mut child = spawn_command(program, args, spawn_options)
-            .await
-            .expect("Could not spawn child process");
-        stdin_tx
-            .send(child.stdin.take())
-            .expect("Stdin receiver was unexpectedly dropped");
-        stdout_tx
-            .send(child.stdout.take())
-            .expect("Stdout receiver was unexpectedly dropped");
-        stderr_tx
-            .send(child.stderr.take())
-            .expect("Stderr receiver was unexpectedly dropped");
+    let mut child = spawn_command(program, args, spawn_options)?;
+    let stdin = child.stdin.take().unwrap();
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
 
+    tokio::spawn(async move {
         let res = child
             .wait_with_output()
             .await
@@ -225,33 +214,9 @@ async fn process_spawn(
     });
 
     TableBuilder::new(lua)?
-        .with_value(
-            "stdout",
-            ChildProcessReader(
-                stdout_rx
-                    .await
-                    .expect("Stdout sender unexpectedly dropped")
-                    .unwrap(),
-            ),
-        )?
-        .with_value(
-            "stderr",
-            ChildProcessReader(
-                stderr_rx
-                    .await
-                    .expect("Stderr sender unexpectedly dropped")
-                    .unwrap(),
-            ),
-        )?
-        .with_value(
-            "stdin",
-            ChildProcessWriter(
-                stdin_rx
-                    .await
-                    .expect("Stdin sender unexpectedly dropped")
-                    .unwrap(),
-            ),
-        )?
+        .with_value("stdout", ChildProcessReader(stdout))?
+        .with_value("stderr", ChildProcessReader(stderr))?
+        .with_value("stdin", ChildProcessWriter(stdin))?
         .with_async_function("status", move |lua, ()| {
             let code_rx_rc_clone = Rc::clone(&code_rx_rc);
             async move {
@@ -270,26 +235,37 @@ async fn process_spawn(
         .build_readonly()
 }
 
-async fn spawn_command(
+async fn spawn_command_with_stdin(
     program: String,
     args: Option<Vec<String>>,
     mut options: ProcessSpawnOptions,
 ) -> LuaResult<Child> {
-    let stdout = options.stdio.stdout;
-    let stderr = options.stdio.stderr;
     let stdin = options.stdio.stdin.take();
 
-    let mut child = options
-        .into_command(program, args)
-        .stdin(Stdio::piped())
-        .stdout(stdout.as_stdio())
-        .stderr(stderr.as_stdio())
-        .spawn()?;
+    let mut child = spawn_command(program, args, options)?;
 
     if let Some(stdin) = stdin {
         let mut child_stdin = child.stdin.take().unwrap();
         child_stdin.write_all(&stdin).await.into_lua_err()?;
     }
+
+    Ok(child)
+}
+
+fn spawn_command(
+    program: String,
+    args: Option<Vec<String>>,
+    options: ProcessSpawnOptions,
+) -> LuaResult<Child> {
+    let stdout = options.stdio.stdout;
+    let stderr = options.stdio.stderr;
+
+    let child = options
+        .into_command(program, args)
+        .stdin(Stdio::piped())
+        .stdout(stdout.as_stdio())
+        .stderr(stderr.as_stdio())
+        .spawn()?;
 
     Ok(child)
 }
