@@ -234,11 +234,9 @@ fn process_create(
         .with_async_function("status", move |lua, ()| {
             let code_rx_rc_clone = Rc::clone(&code_rx_rc);
             async move {
-                let code = code_rx_rc_clone
-                    .borrow_mut()
-                    .recv()
-                    .await
-                    .expect("Code sender unexpectedly dropped");
+                // Exit code of 9 corresponds to SIGKILL, which should be the only case where
+                // the receiver gets suddenly dropped
+                let code = code_rx_rc_clone.borrow_mut().recv().await.unwrap_or(9);
 
                 TableBuilder::new(lua)?
                     .with_value("code", code)?
