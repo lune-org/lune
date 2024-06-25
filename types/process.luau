@@ -110,12 +110,14 @@ end
 	* `stdin` - A writer to write to the child process' stdin - see `ChildProcessWriter` for more info
 	* `stdout` - A reader to read from the child process' stdout - see `ChildProcessReader` for more info
 	* `stderr` - A reader to read from the child process' stderr - see `ChildProcessReader` for more info
+	* `kill` - A function that kills the child process
 	* `status` - A function that yields and returns the exit status of the child process
 ]=]
 export type ChildProcess = {
 	stdin: typeof(ChildProcessWriter),
 	stdout: typeof(ChildProcessReader),
 	stderr: typeof(ChildProcessReader),
+	kill: () -> ();
 	status: () -> { ok: boolean, code: number }
 }
 
