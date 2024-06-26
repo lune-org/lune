@@ -1,7 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
 use std::io::ErrorKind as IoErrorKind;
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::path::PathBuf;
 
 use bstr::{BString, ByteSlice};
 use mlua::prelude::*;
@@ -50,29 +50,16 @@ async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
     let mut dir = fs::read_dir(&path).await.into_lua_err()?;
     while let Some(dir_entry) = dir.next_entry().await.into_lua_err()? {
-        if let Some(dir_path_str) = dir_entry.path().to_str() {
-            dir_strings.push(dir_path_str.to_owned());
+        if let Some(dir_name_str) = dir_entry.file_name().to_str() {
+            dir_strings.push(dir_name_str.to_owned());
         } else {
             return Err(LuaError::RuntimeError(format!(
-                "File path could not be converted into a string: '{}'",
-                dir_entry.path().display()
+                "File name could not be converted into a string: '{}'",
+                dir_entry.file_name().to_string_lossy()
             )));
         }
     }
-    let mut dir_string_prefix = path;
-    if !dir_string_prefix.ends_with(MAIN_SEPARATOR) {
-        dir_string_prefix.push(MAIN_SEPARATOR);
-    }
-    let dir_strings_no_prefix = dir_strings
-        .iter()
-        .map(|inner_path| {
-            inner_path
-                .trim()
-                .trim_start_matches(&dir_string_prefix)
-                .to_owned()
-        })
-        .collect::<Vec<_>>();
-    Ok(dir_strings_no_prefix)
+    Ok(dir_strings)
 }
 
 async fn fs_write_file(_: &Lua, (path, contents): (String, BString)) -> LuaResult<()> {
