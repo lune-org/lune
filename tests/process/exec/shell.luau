@@ -5,7 +5,7 @@ local IS_WINDOWS = process.os == "windows"
 -- Default shell should be /bin/sh on unix and powershell on Windows,
 -- note that powershell needs slightly different command flags for ls
 
-local shellResult = process.spawn("ls", {
+local shellResult = process.exec("ls", {
 	if IS_WINDOWS then "-Force" else "-a",
 }, {
 	shell = true,

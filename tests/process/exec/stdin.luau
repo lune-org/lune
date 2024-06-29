@@ -10,8 +10,8 @@ local echoMessage = "Hello from child process!"
 -- When passing stdin to powershell on windows we must "accept" using the double newline
 
 local result = if IS_WINDOWS
-	then process.spawn("powershell", { "echo" }, { stdin = echoMessage .. "\n\n" })
-	else process.spawn("xargs", { "echo" }, { stdin = echoMessage })
+	then process.exec("powershell", { "echo" }, { stdin = echoMessage .. "\n\n" })
+	else process.exec("xargs", { "echo" }, { stdin = echoMessage })
 
 local resultStdout = if IS_WINDOWS
 	then string.sub(result.stdout, #result.stdout - #echoMessage - 1)
