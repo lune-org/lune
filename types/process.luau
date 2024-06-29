@@ -100,7 +100,7 @@ function ChildProcessWriter:write(data: buffer | string): ()
 end
 
 --[=[
-	@interface SpawnResult
+	@interface ChildProcess
 	@within Process
 
 	Result type for child processes in `process.create`.
