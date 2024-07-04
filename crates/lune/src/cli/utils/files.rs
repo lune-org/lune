@@ -127,10 +127,11 @@ pub fn discover_script_path(path: impl AsRef<str>, in_home_dir: bool) -> Result<
 
 /**
     Discovers a script file path based on a given script name, and tries to
-    find scripts in `lune` and `.lune` folders if one was not directly found.
+    find scripts in `lune`, `.lune` and `scripts` folders if one was not
+    directly found.
 
-    Note that looking in `lune` and `.lune` folders is automatically
-    disabled if the given script name is an absolute path.
+    Note that looking in `lune`, `scripts` and `.lune` folders is
+    automatically disabled if the given script name is an absolute path.
 
     Behavior is otherwise exactly the same as for `discover_script_file_path`.
 */
@@ -148,6 +149,7 @@ pub fn discover_script_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
             // directories + the home directory for the current user
             let res = discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), false)
                 .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), false))
+                .or_else(|_| discover_script_path(format!("scripts{MAIN_SEPARATOR}{path}"), false))
                 .or_else(|_| discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), true))
                 .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), true));
 

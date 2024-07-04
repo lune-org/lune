@@ -23,6 +23,9 @@ pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)
     if lune_dir.is_err() {
         lune_dir = fs::read_dir(base_path.join(".lune")).await;
     }
+    if lune_dir.is_err() && !in_home_dir {
+        lune_dir = fs::read_dir(base_path.join("scripts")).await;
+    }
     match lune_dir {
         Ok(mut dir) => {
             let mut files = Vec::new();
