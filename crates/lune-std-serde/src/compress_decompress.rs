@@ -13,6 +13,7 @@ use async_compression::{
         BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
     },
     Level::Best as CompressionQuality,
+    Level::Precise as PreciseCompressionQuality,
 };
 
 /**
@@ -119,6 +120,7 @@ impl<'lua> FromLua<'lua> for CompressDecompressFormat {
 pub async fn compress<'lua>(
     source: impl AsRef<[u8]>,
     format: CompressDecompressFormat,
+    level: Option<i32>,
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
@@ -130,18 +132,22 @@ pub async fn compress<'lua>(
 
     let mut bytes = Vec::new();
     let reader = BufReader::new(source.as_ref());
+    let compression_quality = match level {
+        Some(l) => PreciseCompressionQuality(l),
+        None => CompressionQuality,
+    };
 
     match format {
         CompressDecompressFormat::Brotli => {
-            let mut encoder = BrotliEncoder::with_quality(reader, CompressionQuality);
+            let mut encoder = BrotliEncoder::with_quality(reader, compression_quality);
             copy(&mut encoder, &mut bytes).await?;
         }
         CompressDecompressFormat::GZip => {
-            let mut encoder = GzipEncoder::with_quality(reader, CompressionQuality);
+            let mut encoder = GzipEncoder::with_quality(reader, compression_quality);
             copy(&mut encoder, &mut bytes).await?;
         }
         CompressDecompressFormat::ZLib => {
-            let mut encoder = ZlibEncoder::with_quality(reader, CompressionQuality);
+            let mut encoder = ZlibEncoder::with_quality(reader, compression_quality);
             copy(&mut encoder, &mut bytes).await?;
         }
         CompressDecompressFormat::LZ4 => unreachable!(),
