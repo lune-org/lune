@@ -86,6 +86,7 @@ impl LuaUserData for Vector2 {
         methods.add_method("Abs", |_, this, ()| Ok(Vector2(this.0.abs())));
         methods.add_method("Ceil", |_, this, ()| Ok(Vector2(this.0.ceil())));
         methods.add_method("Floor", |_, this, ()| Ok(Vector2(this.0.floor())));
+        methods.add_method("Sign", |_, this, ()| Ok(Vector2(this.0.signum())));
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
