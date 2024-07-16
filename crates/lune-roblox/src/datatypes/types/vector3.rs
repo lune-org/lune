@@ -134,6 +134,7 @@ impl LuaUserData for Vector3 {
             Ok(Vector3(this.0.min(rhs.0)))
         });
         methods.add_method("Abs", |_, this, ()| Ok(Vector3(this.0.abs())));
+        methods.add_method("Ceil", |_, this, ()| Ok(Vector3(this.0.ceil())));
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
