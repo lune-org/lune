@@ -64,6 +64,14 @@ impl LuaUserData for Vector2 {
             Ok(this.0.dot(rhs.0))
         });
         methods.add_method(
+            "FuzzyEq",
+            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector2>, f32)| {
+                let eq_x = (rhs.0.x - this.0.x).abs() <= epsilon;
+                let eq_y = (rhs.0.y - this.0.y).abs() <= epsilon;
+                Ok(eq_x && eq_y)
+            },
+        );
+        methods.add_method(
             "Lerp",
             |_, this, (rhs, alpha): (LuaUserDataRef<Vector2>, f32)| {
                 Ok(Vector2(this.0.lerp(rhs.0, alpha)))
