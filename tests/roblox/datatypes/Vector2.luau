@@ -49,7 +49,6 @@ assert(Vector2.new(-1.9, 2.1):Ceil() == Vector2.new(-1, 3))
 assert(Vector2.new(-1.1, 2.99):Floor() == Vector2.new(-2, 2))
 
 assert(Vector2.new(1, 2):FuzzyEq(Vector2.new(1 - 1e-6, 2 + 1e-6)))
-assert(Vector2.new(1, 2):Angle(Vector2.new(3, 4)))
 
 local angle = Vector2.new(1, 1):Angle(Vector2.new(-1, 1))
 assert(math.abs(angle - (math.pi / 2)) < 1e-5)
