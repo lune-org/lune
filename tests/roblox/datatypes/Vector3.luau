@@ -45,4 +45,8 @@ assert(Vector3.new(2, 4, 8) / 2 == Vector3.new(1, 2, 4))
 assert(Vector3.new(7, 11, 15) // Vector3.new(3, 5, 7) == Vector3.new(2, 2, 2))
 assert(Vector3.new(3, 5, 7) // 2 == Vector3.new(1, 2, 3))
 
--- TODO: Vector math
+-- Vector math methods
+assert(Vector3.new(-1, -2, -3):Abs() == Vector3.new(1, 2, 3))
+assert(Vector3.new(-1.7, 2, -3):Sign() == Vector3.new(-1, 1, -1))
+assert(Vector3.new(-1.9, 2.1, 3.5):Ceil() == Vector3.new(-1, 3, 4))
+assert(Vector3.new(-1.1, 2.99, 3.5):Floor() == Vector3.new(-2, 2, 3))
