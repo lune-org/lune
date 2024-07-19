@@ -50,3 +50,5 @@ assert(Vector3.new(-1, -2, -3):Abs() == Vector3.new(1, 2, 3))
 assert(Vector3.new(-1.7, 2, -3):Sign() == Vector3.new(-1, 1, -1))
 assert(Vector3.new(-1.9, 2.1, 3.5):Ceil() == Vector3.new(-1, 3, 4))
 assert(Vector3.new(-1.1, 2.99, 3.5):Floor() == Vector3.new(-2, 2, 3))
+
+assert(Vector3.new(1, 2, 3):FuzzyEq(Vector3.new(1 - 1e-6, 2 + 1e-6, 3 + 1e-6), 1e-5))
