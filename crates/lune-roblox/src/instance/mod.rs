@@ -45,38 +45,26 @@ impl Instance {
         Creates a new `Instance` from an existing dom object ref.
 
         Panics if the instance does not exist in the internal dom,
-        or if the given dom object ref points to the dom root.
+        or if the given dom object ref points to the internal dom root.
 
         **WARNING:** Creating a new instance requires locking the internal dom,
         any existing lock must first be released to prevent any deadlocking.
     */
-    pub(crate) fn new(dom_ref: DomRef) -> Self {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let instance = dom
-            .get_by_ref(dom_ref)
-            .expect("Failed to find instance in document");
-
-        assert!(
-            !(instance.referent() == dom.root_ref()),
-            "Instances can not be created from dom roots"
-        );
-
-        Self {
-            dom_ref,
-            class_name: instance.class.clone(),
-        }
+    #[must_use]
+    pub fn new(dom_ref: DomRef) -> Self {
+        Self::new_opt(dom_ref).expect("Failed to find instance in document")
     }
 
     /**
         Creates a new `Instance` from a dom object ref, if the instance exists.
 
-        Panics if the given dom object ref points to the dom root.
+        Panics if the given dom object ref points to the internal dom root.
 
         **WARNING:** Creating a new instance requires locking the internal dom,
         any existing lock must first be released to prevent any deadlocking.
     */
-    pub(crate) fn new_opt(dom_ref: DomRef) -> Option<Self> {
+    #[must_use]
+    pub fn new_opt(dom_ref: DomRef) -> Option<Self> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         if let Some(instance) = dom.get_by_ref(dom_ref) {
@@ -97,12 +85,13 @@ impl Instance {
     /**
         Creates a new orphaned `Instance` with a given class name.
 
-        An orphaned instance is an instance at the root of a weak dom.
+        An orphaned instance is an instance at the root of Lune's internal weak dom.
 
         **WARNING:** Creating a new instance requires locking the internal dom,
         any existing lock must first be released to prevent any deadlocking.
     */
-    pub(crate) fn new_orphaned(class_name: impl AsRef<str>) -> Self {
+    #[must_use]
+    pub fn new_orphaned(class_name: impl AsRef<str>) -> Self {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let class_name = class_name.as_ref();
@@ -122,10 +111,11 @@ impl Instance {
         Creates a new orphaned `Instance` by transferring
         it from an external weak dom to the internal one.
 
-        An orphaned instance is an instance at the root of a weak dom.
+        An orphaned instance is an instance at the root of Lune's internal weak dom.
 
         Panics if the given dom ref is the root dom ref of the external weak dom.
     */
+    #[must_use]
     pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let dom_root = dom.root_ref();
@@ -151,6 +141,12 @@ impl Instance {
         cloned
     }
 
+    /**
+        Clones multiple instances to an external weak dom.
+
+        This will place the instances as children of the
+        root of the weak dom, and return their referents.
+    */
     pub fn clone_multiple_into_external_dom(
         referents: &[DomRef],
         external_dom: &mut WeakDom,
@@ -324,7 +320,7 @@ impl Instance {
 
         If the provided parent is [`None`] the instance will become orphaned.
 
-        An orphaned instance is an instance at the root of a weak dom.
+        An orphaned instance is an instance at the root of Lune's internal weak dom.
 
         ### See Also
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
