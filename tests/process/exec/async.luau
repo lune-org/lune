@@ -4,7 +4,7 @@ local task = require("@lune/task")
 
 local IS_WINDOWS = process.os == "windows"
 
--- Spawning a process should not block any lua thread(s)
+-- Executing a command should not block any lua thread(s)
 
 local SLEEP_DURATION = 1 / 4
 local SLEEP_SAMPLES = 2
@@ -31,7 +31,7 @@ for i = 1, SLEEP_SAMPLES, 1 do
 			table.insert(args, 1, "-Milliseconds")
 		end
 		-- Windows does not have `sleep` as a process, so we use powershell instead.
-		process.spawn("sleep", args, if IS_WINDOWS then { shell = true } else nil)
+		process.exec("sleep", args, if IS_WINDOWS then { shell = true } else nil)
 		sleepCounter += 1
 	end)
 end

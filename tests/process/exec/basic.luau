@@ -2,7 +2,7 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
--- Spawning a child process should work, with options
+-- Executing a command should work, with options
 
 local thread = task.delay(1, function()
 	stdio.ewrite("Spawning a process should take a reasonable amount of time\n")
@@ -12,7 +12,7 @@ end)
 
 local IS_WINDOWS = process.os == "windows"
 
-local result = process.spawn(
+local result = process.exec(
 	if IS_WINDOWS then "cmd" else "ls",
 	if IS_WINDOWS then { "/c", "dir" } else { "-a" }
 )

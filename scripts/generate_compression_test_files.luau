@@ -108,7 +108,7 @@ local BIN_ZLIB = if process.os == "macos" then "/opt/homebrew/bin/pigz" else "pi
 
 local function checkInstalled(program: string, args: { string }?)
 	print("Checking if", program, "is installed")
-	local result = process.spawn(program, args)
+	local result = process.exec(program, args)
 	if not result.ok then
 		stdio.ewrite(string.format("Program '%s' is not installed\n", program))
 		process.exit(1)
@@ -123,7 +123,7 @@ checkInstalled(BIN_ZLIB, { "--version" })
 -- Run them to generate files
 
 local function run(program: string, args: { string }): string
-	local result = process.spawn(program, args)
+	local result = process.exec(program, args)
 	if not result.ok then
 		stdio.ewrite(string.format("Command '%s' failed\n", program))
 		if #result.stdout > 0 then
