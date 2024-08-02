@@ -52,6 +52,9 @@ impl LuaUserData for Vector2 {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Methods
+        methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector2>| {
+            Ok(this.0.angle_between(rhs.0))
+        });
         methods.add_method("Cross", |_, this, rhs: LuaUserDataRef<Vector2>| {
             let this_v3 = Vec3::new(this.0.x, this.0.y, 0f32);
             let rhs_v3 = Vec3::new(rhs.0.x, rhs.0.y, 0f32);
@@ -60,6 +63,14 @@ impl LuaUserData for Vector2 {
         methods.add_method("Dot", |_, this, rhs: LuaUserDataRef<Vector2>| {
             Ok(this.0.dot(rhs.0))
         });
+        methods.add_method(
+            "FuzzyEq",
+            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector2>, f32)| {
+                let eq_x = (rhs.0.x - this.0.x).abs() <= epsilon;
+                let eq_y = (rhs.0.y - this.0.y).abs() <= epsilon;
+                Ok(eq_x && eq_y)
+            },
+        );
         methods.add_method(
             "Lerp",
             |_, this, (rhs, alpha): (LuaUserDataRef<Vector2>, f32)| {
@@ -72,6 +83,10 @@ impl LuaUserData for Vector2 {
         methods.add_method("Min", |_, this, rhs: LuaUserDataRef<Vector2>| {
             Ok(Vector2(this.0.min(rhs.0)))
         });
+        methods.add_method("Abs", |_, this, ()| Ok(Vector2(this.0.abs())));
+        methods.add_method("Ceil", |_, this, ()| Ok(Vector2(this.0.ceil())));
+        methods.add_method("Floor", |_, this, ()| Ok(Vector2(this.0.floor())));
+        methods.add_method("Sign", |_, this, ()| Ok(Vector2(this.0.signum())));
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
