@@ -41,21 +41,29 @@ end)
 task.wait()
 assert(flag3 == 3, "Defer should run after spawned threads")
 
--- Delay should be able to be nested
+-- Defer should be able to be nested
 
 local flag4: boolean = false
-task.delay(0.05, function()
+task.defer(function()
 	local function nested3()
-		task.delay(0.05, function()
+		task.defer(function()
+			task.wait(0.05)
 			flag4 = true
 		end)
 	end
 	local function nested2()
-		task.delay(0.05, nested3)
+		task.defer(function()
+			task.wait(0.05)
+			nested3()
+		end)
 	end
 	local function nested1()
-		task.delay(0.05, nested2)
+		task.defer(function()
+			task.wait(0.05)
+			nested2()
+		end)
 	end
+	task.wait(0.05)
 	nested1()
 end)
 task.wait(0.25)

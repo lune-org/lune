@@ -8,7 +8,7 @@ use std::{
     thread::panicking,
 };
 
-use futures_lite::prelude::*;
+use futures_lite::{future::yield_now, prelude::*};
 use mlua::prelude::*;
 
 use async_executor::{Executor, LocalExecutor};
@@ -369,23 +369,28 @@ impl<'lua> Scheduler<'lua> {
 
                 // 5
                 let mut num_processed = 0;
-                let span_tick = trace_span!("Scheduler::tick");
-                let fut_tick = async {
-                    local_exec.tick().await;
-                    // NOTE: Try to do as much work as possible instead of just a single tick()
-                    num_processed += 1;
-                    while local_exec.try_tick() {
-                        num_processed += 1;
-                    }
-                };
+                // let span_tick = trace_span!("Scheduler::tick");
+                // let fut_tick = async {
+                //     local_exec.tick().await;
+                //     // NOTE: Try to do as much work as possible instead of just a single tick()
+                //     num_processed += 1;
+                //     while local_exec.try_tick() {
+                //         num_processed += 1;
+                //     }
+                // };
+                local_exec
+                    .run(
+                        fut_exit.or(fut_spawn).or(fut_defer).or(fut_futs).or(async {
+                            local_exec.tick().await; // weird but is required to preserve scheduler ordering
+
+                            if !local_exec.is_empty() {
+                                yield_now().await;
+                            }
+                        }), // .or(fut_tick.instrument(span_tick.or_current())),
+                    )
+                    .await;
 
                 // 1 + 2 + 3 + 4 + 5
-                fut_exit
-                    .or(fut_spawn)
-                    .or(fut_defer)
-                    .or(fut_futs)
-                    .or(fut_tick.instrument(span_tick.or_current()))
-                    .await;
 
                 // Check if we should exit
                 if self.exit.get().is_some() {
