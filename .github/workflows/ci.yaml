@@ -23,9 +23,6 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Install Just
-        uses: extractions/setup-just@v2
-
       - name: Install Tooling
         uses: CompeyDev/setup-rokit@v0.1.0
 
@@ -39,9 +36,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install Just
-        uses: extractions/setup-just@v2
 
       - name: Install Tooling
         uses: CompeyDev/setup-rokit@v0.1.0
