@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a compression level option to `serde.compress` ([#224])
 - Added missing vector methods to the `roblox` library ([#228])
 
+### Changed
+
+- Updated to Luau version `0.635`
+- Updated to rbx-dom database version `0.634`
+
 ### Fixed
 
 - Fixed `fs.readDir` with trailing forward-slash on Windows ([#220])
