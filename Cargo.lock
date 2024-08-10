@@ -1508,7 +1508,7 @@ dependencies = [
 
 [[package]]
 name = "lune"
-version = "0.8.6"
+version = "0.8.7"
 dependencies = [
  "anyhow",
  "clap",
@@ -1537,7 +1537,7 @@ dependencies = [
 
 [[package]]
 name = "lune-roblox"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "glam",
  "lune-utils",
@@ -1554,7 +1554,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "lune-std-datetime",
  "lune-std-fs",
@@ -1576,7 +1576,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-datetime"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "chrono",
  "chrono_lc",
@@ -1587,7 +1587,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-fs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bstr",
  "lune-std-datetime",
@@ -1598,7 +1598,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-luau"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "lune-utils",
  "mlua",
@@ -1606,7 +1606,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-net"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bstr",
  "futures-util",
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-process"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "directories",
  "lune-utils",
@@ -1640,7 +1640,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-regex"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "lune-utils",
  "mlua",
@@ -1650,7 +1650,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-roblox"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "lune-roblox",
  "lune-utils",
@@ -1662,7 +1662,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-serde"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-compression",
  "blake3",
@@ -1685,7 +1685,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-stdio"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "dialoguer",
  "lune-utils",
@@ -1696,7 +1696,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-task"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "lune-utils",
  "mlua",
@@ -1706,7 +1706,7 @@ dependencies = [
 
 [[package]]
 name = "lune-utils"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "console",
  "dunce",
