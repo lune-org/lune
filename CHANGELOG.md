@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `fs.readDir` with trailing forward-slash on Windows ([#220])
+- Fixed `__type` and `__tostring` metamethods not always being respected when formatting tables
 
 [#220]: https://github.com/lune-org/lune/pull/220
 [#224]: https://github.com/lune-org/lune/pull/224
