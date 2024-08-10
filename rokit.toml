@@ -2,3 +2,4 @@
 luau-lsp = "JohnnyMorganz/luau-lsp@1.29.1"
 selene = "Kampfkarren/selene@0.27.1"
 stylua = "JohnnyMorganz/StyLua@0.20.0"
+just = "casey/just@1.34.0"
