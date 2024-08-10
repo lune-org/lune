@@ -27,7 +27,7 @@ jobs:
         uses: extractions/setup-just@v2
 
       - name: Install Tooling
-        uses: ok-nick/setup-aftman@v0.4.2
+        uses: CompeyDev/setup-rokit@v0.1.0
 
       - name: Check Formatting
         run: just fmt-check
@@ -44,7 +44,7 @@ jobs:
         uses: extractions/setup-just@v2
 
       - name: Install Tooling
-        uses: ok-nick/setup-aftman@v0.4.2
+        uses: CompeyDev/setup-rokit@v0.1.0
 
       - name: Analyze
         run: just analyze
