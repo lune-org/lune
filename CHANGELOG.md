@@ -8,6 +8,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added a compression level option to `serde.compress` ([#224])
+- Added missing vector methods to the `roblox` library ([#228])
+
+### Changed
+
+- Updated to Luau version `0.635`
+- Updated to rbx-dom database version `0.634`
+
+### Fixed
+
+- Fixed `fs.readDir` with trailing forward-slash on Windows ([#220])
+- Fixed `__type` and `__tostring` metamethods not always being respected when formatting tables
+
+[#220]: https://github.com/lune-org/lune/pull/220
+[#224]: https://github.com/lune-org/lune/pull/224
+[#228]: https://github.com/lune-org/lune/pull/228
+
 ## `0.8.6` - June 23rd, 2024
 
 ### Added
