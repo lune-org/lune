@@ -26,7 +26,7 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
 
     ### See Also
     * [`Terrain`](https://create.roblox.com/docs/reference/engine/classes/Workspace#Terrain)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn data_model_get_workspace(_: &Lua, this: &Instance) -> LuaResult<Instance> {
     get_or_create_property_ref_instance(this, "Workspace", "Workspace")
@@ -37,7 +37,7 @@ fn data_model_get_workspace(_: &Lua, this: &Instance) -> LuaResult<Instance> {
 
     ### See Also
     * [`GetService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#GetService)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> LuaResult<Instance> {
     if matches!(class_is_a_service(&service_name), None | Some(false)) {
@@ -58,7 +58,7 @@ fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> Lua
 
     ### See Also
     * [`FindService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#FindService)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn data_model_find_service(
     _: &Lua,

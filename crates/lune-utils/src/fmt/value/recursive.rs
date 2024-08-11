@@ -4,6 +4,7 @@ use std::fmt::{self, Write as _};
 
 use mlua::prelude::*;
 
+use super::metamethods::{call_table_tostring_metamethod, get_table_type_metavalue};
 use super::{
     basic::{format_value_styled, lua_value_as_plain_string_key},
     config::ValueFormatConfig,
@@ -46,7 +47,12 @@ pub(crate) fn format_value_recursive(
     let mut buffer = String::new();
 
     if let LuaValue::Table(ref t) = value {
-        if depth >= config.max_depth {
+        if let Some(formatted) = format_typename_and_tostringed(
+            get_table_type_metavalue(t),
+            call_table_tostring_metamethod(t),
+        ) {
+            write!(buffer, "{formatted}")?;
+        } else if depth >= config.max_depth {
             write!(buffer, "{}", STYLE_DIM.apply_to("{ ... }"))?;
         } else if !visited.insert(LuaValueId::from(t)) {
             write!(buffer, "{}", STYLE_DIM.apply_to("{ recursive }"))?;
@@ -163,4 +169,16 @@ fn format_table(
             }
         })
         .collect()
+}
+
+fn format_typename_and_tostringed(
+    typename: Option<String>,
+    tostringed: Option<String>,
+) -> Option<String> {
+    match (typename, tostringed) {
+        (Some(typename), Some(tostringed)) => Some(format!("<{typename}({tostringed})>")),
+        (Some(typename), None) => Some(format!("<{typename}>")),
+        (None, Some(tostringed)) => Some(tostringed),
+        (None, None) => None,
+    }
 }

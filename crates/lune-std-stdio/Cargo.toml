@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-stdio"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 dialoguer = "0.11"
-mlua = { version = "0.9.7", features = ["luau"] }
+mlua = { version = "0.9.9", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.0.2", path = "../mlua-luau-scheduler" }
 
 tokio = { version = "1", default-features = false, features = [
@@ -22,4 +22,4 @@ tokio = { version = "1", default-features = false, features = [
     "io-util",
 ] }
 
-lune-utils = { version = "0.1.2", path = "../lune-utils" }
+lune-utils = { version = "0.1.3", path = "../lune-utils" }

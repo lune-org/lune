@@ -18,6 +18,7 @@ impl LuaRequest {
         let path = self.head.uri.path().to_string();
         let body = lua.create_string(&self.body)?;
 
+        #[allow(clippy::mutable_key_type)]
         let query: HashMap<LuaString, LuaString> = self
             .head
             .uri
@@ -32,6 +33,7 @@ impl LuaRequest {
             })
             .collect::<LuaResult<_>>()?;
 
+        #[allow(clippy::mutable_key_type)]
         let headers: HashMap<LuaString, LuaString> = self
             .head
             .headers
