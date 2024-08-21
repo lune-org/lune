@@ -4,11 +4,19 @@ use super::associate::set_associate;
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
-use crate::luaref::LuaRef;
+use crate::ffiref::FfiRef;
 
 pub struct LuaLibrary(Library);
 
 const SYM_INNER: &str = "__syn_inner";
+
+// For convenience, it would be nice to provide a way to get
+// symbols from a table with type and field names specified.
+// But right now, we are starting from the lowest level, so we will make it later.
+
+// I wanted to provide something like cdef,
+// but that is beyond the scope of lune's support.
+// Higher-level bindings for convenience are much preferable written in Lua.
 
 impl LuaLibrary {
     pub fn new(libname: String) -> LuaResult<Self> {
@@ -30,7 +38,7 @@ impl LuaLibrary {
                 .map_err(|err| LuaError::external(format!("{err}")))?
         };
 
-        let luasym = lua.create_userdata(LuaRef::new(*sym))?;
+        let luasym = lua.create_userdata(FfiRef::new(*sym))?;
 
         set_associate(lua, SYM_INNER, luasym.clone(), this.clone())?;
 

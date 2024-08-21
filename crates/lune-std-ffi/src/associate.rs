@@ -9,7 +9,15 @@
 // Since mlua does not provide Lua state (private),
 // uservalue operations cannot be performed directly,
 // so this is the best solution for now.
-
+// If the dependency is deep, the value may be completely destroyed when
+// gc is performed multiple times. As an example, there is the following case:
+//
+// ffi.i32:ptr():ptr()
+// box:ref():ref()
+//
+// Since the outermost pointer holds the definition for the pointer
+// type inside it, only the outermost type will be removed on the first gc.
+// It doesn't matter much. But if there is a cleaner way, we should choose it
 use mlua::prelude::*;
 
 // Forces 'associated' to persist as long as 'value' is alive.

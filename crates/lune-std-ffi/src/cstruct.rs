@@ -12,12 +12,6 @@ use crate::associate::{get_associate, set_associate};
 
 use super::ctype::CType;
 
-// pub fn ffi_get_struct_offsets(
-//     abi: ffi_abi,
-//     struct_type: *mut ffi_type,
-//     offsets: *mut usize,
-// ) -> ffi_status;
-
 pub struct CStruct {
     libffi_cfi: Cif,
     libffi_type: Type,

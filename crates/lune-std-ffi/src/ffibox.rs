@@ -1,24 +1,22 @@
 #![allow(clippy::cargo_common_metadata)]
 
+// It is an untyped, sized memory area that Lua can manage.
+// This area is safe within Lua. Operations have their boundaries checked.
+// It is basically intended to implement passing a pointed space to the outside.
+// It also helps you handle data that Lua cannot handle.
+// Depending on the type, operations such as sum, mul, and mod may be implemented.
+
 use super::associate::set_associate;
-use super::luaref::LuaRef;
+use super::ffiref::FfiRef;
 use core::ffi::c_void;
 use mlua::prelude::*;
 use std::boxed::Box;
 
-// use std::borrow::{Borrow, BorrowMut};
-// use std::ops::Bound;
-// use std::{mem, ptr, slice};
-
-// use core::ffi::c_void;
-// use libffi::middle::{Cif, Type};
-// use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
-
 const BOX_REF_INNER: &str = "__box_ref";
 
-pub struct LuaBox(Box<[u8]>);
+pub struct FfiBox(Box<[u8]>);
 
-impl LuaBox {
+impl FfiBox {
     pub fn new(size: usize) -> Self {
         Self(vec![0u8; size].into_boxed_slice())
     }
@@ -27,7 +25,7 @@ impl LuaBox {
         self.0.len()
     }
 
-    pub fn copy(&self, target: &mut LuaBox) {}
+    pub fn copy(&self, target: &mut FfiBox) {}
 
     pub fn get_ptr(&self) -> *mut c_void {
         self.0.as_ptr() as *mut c_void
@@ -37,9 +35,9 @@ impl LuaBox {
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let target = this.borrow::<LuaBox>()?;
+        let target = this.borrow::<FfiBox>()?;
 
-        let luaref = lua.create_userdata(LuaRef::new(target.get_ptr()))?;
+        let luaref = lua.create_userdata(FfiRef::new(target.get_ptr()))?;
 
         set_associate(lua, BOX_REF_INNER, luaref.clone(), this.clone())?;
 
@@ -51,7 +49,7 @@ impl LuaBox {
     }
 }
 
-impl LuaUserData for LuaBox {
+impl LuaUserData for FfiBox {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size()));
     }
@@ -62,7 +60,7 @@ impl LuaUserData for LuaBox {
             Ok(())
         });
         methods.add_function("ref", |lua, this: LuaAnyUserData| {
-            let luaref = LuaBox::luaref(lua, this)?;
+            let luaref = FfiBox::luaref(lua, this)?;
             Ok(luaref)
         });
         methods.add_meta_method(LuaMetaMethod::Len, |_, this, ()| Ok(this.size()));

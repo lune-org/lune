@@ -1,4 +1,13 @@
 
+use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
+
+// pub fn ffi_get_struct_offsets(
+//     abi: ffi_abi,
+//     struct_type: *mut ffi_type,
+//     offsets: *mut usize,
+// ) -> ffi_status;
+
+
 # Raw
 
 - [ ] Raw:toRef()  
