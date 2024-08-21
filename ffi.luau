@@ -14,7 +14,7 @@ print(libzip)
 local myst = ffi.struct({ ffi.i32, ffi.i64 })
 print(myst)
 print(myst.inner[1])
-print(ffi.i32.size,ffi.i64.size,ffi.i32:ptr())
+print(ffi.i32.size,ffi.i64.size,ffi.i32:ptr().size)
 
 local box = ffi.box(ffi.i64.size)
 print(box,tostring(box))
