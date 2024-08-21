@@ -7,6 +7,10 @@ use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 //     offsets: *mut usize,
 // ) -> ffi_status;
 
+- last thing to do
+- [ ] Add tests
+- [ ] Add docs
+- [ ] Typing
 
 # Raw
 
@@ -36,6 +40,10 @@ use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 # Struct
 
+- [!] :offset(index)
+- [x] :ptr()
+- [x] .inner[n]
+
 size, offset is strange. maybe related to cif state.
 
 # Type
@@ -53,7 +61,7 @@ size, offset is strange. maybe related to cif state.
 
 ## subtype
 - [x] :ptr() -> Ptr
-- [ ] :arr(len) -> Arr
+- [~] :arr(len) -> Arr
 - [x] .size
 
 - [ ] :cast(box,type) TODO
@@ -63,7 +71,7 @@ size, offset is strange. maybe related to cif state.
 - [x] .inner
 - [x] .size
 - [x] :ptr()
-- [ ] :arr()
+- [~] :arr()
 
 ## Arr
 

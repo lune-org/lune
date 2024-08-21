@@ -3,14 +3,16 @@
 use std::borrow::Borrow;
 
 use super::association::{get_association, set_association};
+use super::cstruct::CStruct;
 use libffi::middle::{Cif, Type};
+use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 const POINTER_INNER: &str = "__pointer_inner";
 
 pub struct CType {
-    libffi_cfi: Cif,
+    libffi_cif: Cif,
     libffi_type: Type,
     size: usize,
 }
@@ -23,7 +25,7 @@ impl CType {
         let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
         let size = unsafe { (*libffi_type.as_raw_ptr()).size };
         Self {
-            libffi_cfi,
+            libffi_cif: libffi_cfi,
             libffi_type,
             size,
         }
@@ -35,7 +37,7 @@ impl CType {
 
     pub fn pointer<'lua>(lua: &'lua Lua, inner: LuaAnyUserData) -> LuaResult<LuaValue<'lua>> {
         let value = Self {
-            libffi_cfi: Cif::new(vec![Type::pointer()], Type::void()),
+            libffi_cif: Cif::new(vec![Type::pointer()], Type::void()),
             libffi_type: Type::pointer(),
             size: size_of::<usize>(),
         }
@@ -51,13 +53,18 @@ impl LuaUserData for CType {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
         fields.add_field_function_get("inner", |lua, this| {
-            get_association(lua, POINTER_INNER, this)
+            let inner = get_association(lua, POINTER_INNER, this)?;
+            match inner {
+                Some(t) => Ok(t),
+                None => Ok(LuaNil),
+            }
         });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            Ok(CType::pointer(lua, this))
+            let pointer = CType::pointer(lua, this)?;
+            Ok(pointer)
         });
     }
 }
@@ -76,4 +83,45 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
         ("f64", CType::new(Type::f64()).into_lua(lua)?),
         ("void", CType::new(Type::void()).into_lua(lua)?),
     ])
+}
+
+pub fn libffi_types_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
+    let len: usize = table.raw_len();
+    let mut fields = Vec::with_capacity(len);
+
+    for i in 0..len {
+        // Test required
+        let value = table.raw_get(i + 1)?;
+        match value {
+            LuaValue::UserData(field_type) => {
+                fields.push(libffi_type_from_userdata(&field_type)?);
+            }
+            _ => {
+                return Err(LuaError::external(format!(
+                    "Unexpected field. CStruct, CType or CArr is required for element but got {}",
+                    pretty_format_value(&value, &ValueFormatConfig::new())
+                )));
+            }
+        }
+    }
+
+    Ok(fields)
+}
+
+pub fn libffi_type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
+    if userdata.is::<CStruct>() {
+        Ok(userdata.borrow::<CStruct>()?.get_type())
+    } else if userdata.is::<CType>() {
+        Ok(userdata.borrow::<CType>()?.get_type())
+    } else {
+        Err(LuaError::external(format!(
+            "Unexpected field. CStruct, CType or CArr is required for element but got {}",
+            pretty_format_value(
+                // Since the data is in the Lua location,
+                // there is no problem with the clone.
+                &LuaValue::UserData(userdata.to_owned()),
+                &ValueFormatConfig::new()
+            )
+        )))
+    }
 }

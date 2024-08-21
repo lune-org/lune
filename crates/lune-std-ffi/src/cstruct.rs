@@ -5,15 +5,15 @@ use mlua::prelude::*;
 use libffi::low::ffi_abi_FFI_DEFAULT_ABI;
 use libffi::middle::{Cif, Type};
 use libffi::raw::ffi_get_struct_offsets;
-use std::ptr;
 use std::vec::Vec;
 
 use crate::association::{get_association, set_association};
+use crate::ctype::libffi_types_from_table;
 
 use super::ctype::CType;
 
 pub struct CStruct {
-    libffi_cfi: Cif,
+    libffi_cif: Cif,
     libffi_type: Type,
     fields: Vec<Type>,
     offsets: Vec<usize>,
@@ -27,20 +27,17 @@ impl CStruct {
         let libffi_type = Type::structure(fields.clone());
         let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
         let size = unsafe { (*libffi_type.as_raw_ptr()).size };
-        let mut offsets = Vec::with_capacity(fields.len());
-        for mut i in 0..fields.len() {
-            dbg!(i);
-            offsets.push(unsafe {
-                ffi_get_struct_offsets(
-                    ffi_abi_FFI_DEFAULT_ABI,
-                    libffi_type.as_raw_ptr(),
-                    ptr::from_mut(&mut i),
-                ) as usize
-            });
+        let mut offsets = Vec::<usize>::with_capacity(fields.len());
+        unsafe {
+            ffi_get_struct_offsets(
+                ffi_abi_FFI_DEFAULT_ABI,
+                libffi_type.as_raw_ptr(),
+                offsets.as_mut_ptr(),
+            );
         }
 
         Self {
-            libffi_cfi,
+            libffi_cif: libffi_cfi,
             libffi_type,
             fields,
             offsets,
@@ -52,20 +49,15 @@ impl CStruct {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let len: usize = table.raw_len();
-        let mut fields = Vec::with_capacity(len);
-
-        for i in 0..len {
-            // Test required
-            let field_type: LuaAnyUserData = table.get(i + 1)?;
-            fields.push(field_type.borrow::<CType>()?.get_type());
-        }
-
-        table.set_readonly(true);
-
+        let fields = libffi_types_from_table(&table)?;
         let cstruct = lua.create_userdata(Self::new(fields))?;
+        table.set_readonly(true);
         set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
         Ok(cstruct)
+    }
+
+    pub fn get_type(&self) -> Type {
+        self.libffi_type.clone()
     }
 
     pub fn offset(&self, index: usize) -> usize {
@@ -76,16 +68,22 @@ impl CStruct {
 impl LuaUserData for CStruct {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
+
+        // Simply pass in the locked table used when first creating this object.
+        // By strongly referencing the table, the types inside do not disappear
+        // and the user can read the contents as needed. (good recycling!)
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
             let table: LuaValue = get_association(lua, CSTRUCT_INNER, this)?
+                // It shouldn't happen.
                 .ok_or(LuaError::external("inner field not found"))?;
             Ok(table)
         });
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("offset", |_, this, index: usize| {
-            let offset = this.offset(index);
-            Ok(offset)
+        methods.add_method("offset", |_, this, index: usize| Ok(this.offset(index)));
+        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
+            let pointer = CType::pointer(lua, this)?;
+            Ok(pointer)
         });
     }
 }

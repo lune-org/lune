@@ -6,6 +6,7 @@ use mlua::prelude::*;
 mod association;
 mod carr;
 mod cfn;
+mod cstring;
 mod cstruct;
 mod ctype;
 mod ffibox;
@@ -14,6 +15,7 @@ mod ffiraw;
 mod ffiref;
 
 use self::association::get_table;
+use self::cfn::CFn;
 use self::cstruct::CStruct;
 use self::ctype::create_all_types;
 use self::ffibox::FfiBox;
@@ -38,6 +40,10 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("struct", |lua, types: LuaTable| {
             let cstruct = CStruct::from_lua_table(lua, types)?;
             Ok(cstruct)
+        })?
+        .with_function("fn", |_, (args, ret): (LuaTable, LuaAnyUserData)| {
+            let cfn = CFn::from_lua_table(args, ret)?;
+            Ok(cfn)
         })?;
 
     #[cfg(debug_assertions)]
