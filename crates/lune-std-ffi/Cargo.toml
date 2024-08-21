@@ -1,0 +1,22 @@
+[package]
+name = "lune-std-ffi"
+version = "0.1.1"
+edition = "2021"
+license = "MPL-2.0"
+repository = "https://github.com/lune-org/lune"
+description = "Lune standard library - FFI"
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+mlua = { version = "0.9.9", features = ["luau"] }
+mlua-sys = { version = "0.6.2", features = ["luau"] }
+dlopen2 = "0.6"
+
+libffi = "3.2.0"
+
+lune-utils = { version = "0.1.3", path = "../lune-utils" }
