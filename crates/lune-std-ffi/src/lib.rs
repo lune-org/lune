@@ -3,21 +3,21 @@
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
-mod associate;
+mod association;
 mod carr;
 mod cfn;
 mod cstruct;
 mod ctype;
-mod dlopen;
 mod ffibox;
+mod ffilib;
 mod ffiraw;
 mod ffiref;
 
-use self::associate::get_table;
+use self::association::get_table;
 use self::cstruct::CStruct;
 use self::ctype::create_all_types;
-use self::dlopen::LuaLibrary;
 use self::ffibox::FfiBox;
+use self::ffilib::FfiLib;
 
 /**
     Creates the `ffi` standard library module.
@@ -32,7 +32,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_values(ctypes)?
         .with_function("box", |_, size: usize| Ok(FfiBox::new(size)))?
         .with_function("dlopen", |_, name: String| {
-            let lib = LuaLibrary::new(name)?;
+            let lib = FfiLib::new(name)?;
             Ok(lib)
         })?
         .with_function("struct", |lua, types: LuaTable| {

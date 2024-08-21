@@ -5,8 +5,11 @@
 // It is basically intended to implement passing a pointed space to the outside.
 // It also helps you handle data that Lua cannot handle.
 // Depending on the type, operations such as sum, mul, and mod may be implemented.
+// There is no need to enclose all data in a box;
+// rather, it creates more heap space, so it should be used appropriately
+// where necessary.
 
-use super::associate::set_associate;
+use super::association::set_association;
 use super::ffiref::FfiRef;
 use core::ffi::c_void;
 use mlua::prelude::*;
@@ -31,6 +34,7 @@ impl FfiBox {
         self.0.as_ptr() as *mut c_void
     }
 
+    // bad naming. i have no idea what should i use
     pub fn luaref<'lua>(
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
@@ -39,7 +43,7 @@ impl FfiBox {
 
         let luaref = lua.create_userdata(FfiRef::new(target.get_ptr()))?;
 
-        set_associate(lua, BOX_REF_INNER, luaref.clone(), this.clone())?;
+        set_association(lua, BOX_REF_INNER, luaref.clone(), this.clone())?;
 
         Ok(luaref)
     }

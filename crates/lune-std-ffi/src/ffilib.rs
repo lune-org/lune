@@ -1,15 +1,16 @@
 use std::ffi::c_void;
 
-use super::associate::set_associate;
+use super::association::set_association;
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
 use crate::ffiref::FfiRef;
 
-pub struct LuaLibrary(Library);
+pub struct FfiLib(Library);
 
 const SYM_INNER: &str = "__syn_inner";
 
+// COMMENT HERE
 // For convenience, it would be nice to provide a way to get
 // symbols from a table with type and field names specified.
 // But right now, we are starting from the lowest level, so we will make it later.
@@ -18,7 +19,7 @@ const SYM_INNER: &str = "__syn_inner";
 // but that is beyond the scope of lune's support.
 // Higher-level bindings for convenience are much preferable written in Lua.
 
-impl LuaLibrary {
+impl FfiLib {
     pub fn new(libname: String) -> LuaResult<Self> {
         match Library::open(libname) {
             Ok(t) => Ok(Self(t)),
@@ -31,7 +32,7 @@ impl LuaLibrary {
         this: LuaAnyUserData<'lua>,
         name: String,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let lib = this.borrow::<LuaLibrary>()?;
+        let lib = this.borrow::<FfiLib>()?;
         let sym = unsafe {
             lib.0
                 .symbol::<*mut c_void>(name.as_str())
@@ -40,16 +41,16 @@ impl LuaLibrary {
 
         let luasym = lua.create_userdata(FfiRef::new(*sym))?;
 
-        set_associate(lua, SYM_INNER, luasym.clone(), this.clone())?;
+        set_association(lua, SYM_INNER, luasym.clone(), this.clone())?;
 
         Ok(luasym)
     }
 }
 
-impl LuaUserData for LuaLibrary {
+impl LuaUserData for FfiLib {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("dlsym", |lua, (this, name): (LuaAnyUserData, String)| {
-            let luasym = LuaLibrary::get_sym(lua, this, name)?;
+            let luasym = FfiLib::get_sym(lua, this, name)?;
             Ok(luasym)
         });
     }

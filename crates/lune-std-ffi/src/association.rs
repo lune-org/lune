@@ -24,7 +24,7 @@ use mlua::prelude::*;
 // 'value' can only hold one value. If you want to keep something else,
 // use a table with a different name.
 // You can delete the relationship by changing 'associated' to nil
-pub fn set_associate<'lua, T, U>(
+pub fn set_association<'lua, T, U>(
     lua: &'lua Lua,
     regname: &str,
     value: T,
@@ -55,7 +55,7 @@ where
 // returns the Lua value that 'value' keeps.
 // If there is no table in registry, it returns None.
 // If there is no value in table, it returns LuaNil.
-pub fn get_associate<'lua, T>(
+pub fn get_association<'lua, T>(
     lua: &'lua Lua,
     regname: &str,
     value: T,

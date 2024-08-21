@@ -2,7 +2,7 @@
 
 use std::borrow::Borrow;
 
-use super::associate::{get_associate, set_associate};
+use super::association::{get_association, set_association};
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
@@ -41,7 +41,7 @@ impl CType {
         }
         .into_lua(lua)?;
 
-        set_associate(lua, POINTER_INNER, value.borrow(), inner)?;
+        set_association(lua, POINTER_INNER, value.borrow(), inner)?;
 
         Ok(value)
     }
@@ -50,7 +50,9 @@ impl CType {
 impl LuaUserData for CType {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
-        fields.add_field_function_get("inner", |lua, this| get_associate(lua, POINTER_INNER, this));
+        fields.add_field_function_get("inner", |lua, this| {
+            get_association(lua, POINTER_INNER, this)
+        });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {

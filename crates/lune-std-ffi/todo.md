@@ -25,9 +25,10 @@ use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 # Ref (Unsafe)
 
-- [ ] ref:offset(bytes)
-- [ ] ref:fromRef(size,offset?=0)
-- [ ] ref:fromBox(size,offset?=0)
+- [x] ref:deref() -> ref
+- [x] ref:offset(bytes) -> ref
+- [ ] ref:fromRef(size,offset?=0) ?? what is this
+- [ ] ref:fromBox(size,offset?=0) ?? what is this
 
 # Struct
 

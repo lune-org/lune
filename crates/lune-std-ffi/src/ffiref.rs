@@ -1,5 +1,7 @@
+use super::association::set_association;
 use core::ffi::c_void;
 use mlua::prelude::*;
+use std::ptr;
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
@@ -9,10 +11,49 @@ use mlua::prelude::*;
 
 pub struct FfiRef(*mut c_void);
 
+const REF_INNER: &str = "__ref_inner";
+
 impl FfiRef {
     pub fn new(target: *mut c_void) -> Self {
         Self(target)
     }
+
+    // bad naming. i have no idea what should i use
+    pub fn luaref<'lua>(
+        lua: &'lua Lua,
+        this: LuaAnyUserData<'lua>,
+    ) -> LuaResult<LuaAnyUserData<'lua>> {
+        let target = this.borrow::<FfiRef>()?;
+
+        let luaref = lua.create_userdata(FfiRef::new(ptr::from_ref(&target.0) as *mut c_void))?;
+
+        set_association(lua, REF_INNER, luaref.clone(), this.clone())?;
+
+        Ok(luaref)
+    }
+
+    pub unsafe fn deref(&self) -> Self {
+        Self::new(*self.0.cast::<*mut c_void>())
+    }
+
+    pub unsafe fn offset(&self, offset: isize) -> Self {
+        Self::new(self.0.offset(offset))
+    }
 }
 
-impl LuaUserData for FfiRef {}
+impl LuaUserData for FfiRef {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method("deref", |_, this, ()| {
+            let ffiref = unsafe { this.deref() };
+            Ok(ffiref)
+        });
+        methods.add_method("offset", |_, this, offset: isize| {
+            let ffiref = unsafe { this.offset(offset) };
+            Ok(ffiref)
+        });
+        methods.add_method("ref", |_, this, offset: isize| {
+            let ffiref = unsafe { this.offset(offset) };
+            Ok(ffiref)
+        });
+    }
+}

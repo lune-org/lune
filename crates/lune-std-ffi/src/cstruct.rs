@@ -8,7 +8,7 @@ use libffi::raw::ffi_get_struct_offsets;
 use std::ptr;
 use std::vec::Vec;
 
-use crate::associate::{get_associate, set_associate};
+use crate::association::{get_association, set_association};
 
 use super::ctype::CType;
 
@@ -64,7 +64,7 @@ impl CStruct {
         table.set_readonly(true);
 
         let cstruct = lua.create_userdata(Self::new(fields))?;
-        set_associate(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
+        set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
         Ok(cstruct)
     }
 
@@ -77,7 +77,7 @@ impl LuaUserData for CStruct {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
-            let table: LuaValue = get_associate(lua, CSTRUCT_INNER, this)?
+            let table: LuaValue = get_association(lua, CSTRUCT_INNER, this)?
                 .ok_or(LuaError::external("inner field not found"))?;
             Ok(table)
         });

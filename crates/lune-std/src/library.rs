@@ -18,7 +18,7 @@ pub enum LuneStandardLibrary {
     #[cfg(feature = "serde")]    Serde,
     #[cfg(feature = "stdio")]    Stdio,
     #[cfg(feature = "roblox")]   Roblox,
-    #[cfg(feature = "ffi")]   Ffi,
+    #[cfg(feature = "ffi")]      Ffi,
 }
 
 impl LuneStandardLibrary {
