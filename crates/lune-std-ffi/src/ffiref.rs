@@ -51,8 +51,8 @@ impl LuaUserData for FfiRef {
             let ffiref = unsafe { this.offset(offset) };
             Ok(ffiref)
         });
-        methods.add_method("ref", |_, this, offset: isize| {
-            let ffiref = unsafe { this.offset(offset) };
+        methods.add_function("ref", |lua, this: LuaAnyUserData| {
+            let ffiref = FfiRef::luaref(lua, this)?;
             Ok(ffiref)
         });
     }

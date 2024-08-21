@@ -18,27 +18,25 @@ use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 # Box
 
 - [x] ffi.box(size)
-- [ ] :zero()
-- [ ] :copy(box,size?=-1,offset?=0)
 - [x] .size
+- [x] :zero()
 - [?] :ref(offset?=0) => ref
+  - offset is not impled
+- [~] :copy(box,size?=-1,offset?=0)
+  - working on it
 
 # Ref (Unsafe)
 
 - [x] ref:deref() -> ref
 - [x] ref:offset(bytes) -> ref
-- [ ] ref:fromRef(size,offset?=0) ?? what is this
-- [ ] ref:fromBox(size,offset?=0) ?? what is this
+- [x] ref:ref() -> ref
+
+~~- [ ] ref:fromRef(size,offset?=0) ?? what is this~~
+~~- [ ] ref:fromBox(size,offset?=0) ?? what is this~~
 
 # Struct
 
-지금 사이즈가 이상함
-오프셋도 이상함
-아마도 초기화 되어지지 않은 상태의 cif 전의 오브젝트라서?
-
-pthread
-promise
-high level binding for ffi
+size, offset is strange. maybe related to cif state.
 
 # Type
 

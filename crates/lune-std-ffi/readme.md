@@ -27,16 +27,20 @@ All operation with box will boundary checked. GC will free heap well.
 일반적으로 포인터를 넘겨주기 위해서 사용됩니다. 박스의 공간은 ref 할 수 있으며. 함수를 수행한 후 루아에서 읽어볼 수 있습니다.
 
 ## :zero()
-박스를 0 으로 채워넣습니다
+박스를 0 으로 채워넣습니다. 기본적으로 박스는 초기화될 때 0 으로 채워지기 때문에 박스를 다시 0 으로 초기화하고 싶을 경우에 사용하십시오.
 
-## :copy(box,size?=-1,offset?=0)
-박스 안의 값을 다른 박스에 복사해 씁니다.
+## :copy(targetbox,size,offset?=0,targetoffset?=0)
+박스 안의 값을 다른 박스에 복사합니다. 바운더리가 확인되어지므로 안전합니다.
 
 ## .size
-size of this box
+이 박스의 크기입니다.
 
 ## :ref(offset?=0) => ref
-Box 를 ref 합니다. ref 가 살아있는 동안 box 는 수거되지 않습니다.
+이 박스를 참조합니다. 참조가 살아있는 동안 박스는 수거되지 않습니다. 일반적으로 외부의 함수에 포인터를 넘겨주기 위해서 사용됩니다.
+
+## more stuffs (not planned at this time)
+
+ref=>buffer conversion, or bit/byte related?
 
 # Ref (Unsafe)
 
