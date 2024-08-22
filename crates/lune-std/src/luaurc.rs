@@ -54,34 +54,36 @@ async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, m
     }
 }
 
-/// Searches for .luaurc recursively
-/// until an alias for the provided `RequireAlias` is found
-pub async fn resolve_require_alias<'lua>(
-    lua: &'lua mlua::Lua,
-    alias: &'lua RequireAlias,
-) -> Result<PathBuf, mlua::Error> {
-    let cwd = current_dir()?;
-    let parent = cwd.join(get_parent_path(lua)?);
-    let ancestors = parent.ancestors();
+impl Luaurc {
+    /// Searches for .luaurc recursively
+    /// until an alias for the provided `RequireAlias` is found
+    pub async fn resolve_path<'lua>(
+        lua: &'lua mlua::Lua,
+        alias: &'lua RequireAlias,
+    ) -> Result<PathBuf, mlua::Error> {
+        let cwd = current_dir()?;
+        let parent = cwd.join(get_parent_path(lua)?);
+        let ancestors = parent.ancestors();
 
-    for path in ancestors {
-        if path.starts_with(&cwd) {
-            if let Some(luaurc) = parse_luaurc(lua, &parent.join(".luaurc")).await? {
-                if let Some(aliases) = luaurc.aliases {
-                    if let Some(alias_path) = aliases.get(&alias.alias) {
-                        let resolved = path.join(alias_path.join(&alias.path));
+        for path in ancestors {
+            if path.starts_with(&cwd) {
+                if let Some(luaurc) = parse_luaurc(lua, &parent.join(".luaurc")).await? {
+                    if let Some(aliases) = luaurc.aliases {
+                        if let Some(alias_path) = aliases.get(&alias.alias) {
+                            let resolved = path.join(alias_path.join(&alias.path));
 
-                        return Ok(resolved);
+                            return Ok(resolved);
+                        }
                     }
                 }
+            } else {
+                break;
             }
-        } else {
-            break;
         }
-    }
 
-    Err(mlua::Error::runtime(format!(
-        "Coudln't find the alias '{}' in any .luaurc file",
-        alias.alias
-    )))
+        Err(mlua::Error::runtime(format!(
+            "Coudln't find the alias '{}' in any .luaurc file",
+            alias.alias
+        )))
+    }
 }
