@@ -1,7 +1,10 @@
 use crate::{library::StandardLibrary, luaurc::RequireAlias};
 use mlua::prelude::*;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
-use tokio::sync::{broadcast::Sender, Mutex};
+use tokio::{
+    fs,
+    sync::{broadcast::Sender, Mutex},
+};
 
 /// The private struct that's stored in mlua's app data container
 #[derive(Debug, Default)]
@@ -68,6 +71,26 @@ impl RequireContext {
         data.std_cache.insert(require_alias, multi_reg);
 
         Ok(multi)
+    }
+
+    pub async fn require(
+        lua: &Lua,
+        path_rel: PathBuf,
+        path_abs: PathBuf,
+    ) -> LuaResult<LuaMultiValue> {
+        if !fs::try_exists(&path_abs).await? {
+            return Err(LuaError::runtime(format!(
+                "Can not require '{}' as it does not exist",
+                path_rel.to_string_lossy()
+            )));
+        }
+
+        let content = fs::read_to_string(&path_abs).await?;
+
+        lua.load(content)
+            .set_name(path_abs.to_string_lossy())
+            .eval_async()
+            .await
     }
 
     pub fn inject_std(

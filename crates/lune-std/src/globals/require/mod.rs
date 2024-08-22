@@ -1,8 +1,35 @@
 use crate::{luaurc::path_to_alias, path::get_parent_path, LuneStandardLibrary};
 use mlua::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use tokio::fs;
 
 pub mod context;
+
+/// tries these alternatives on given path:
+///
+/// * .lua and .luau extension
+/// * path.join("init.luau") and path.join("init.lua")
+pub async fn resolve_path(path: &Path) -> LuaResult<PathBuf> {
+    let init_path = &path.join("init");
+
+    for ext in ["lua", "luau"] {
+        // try extension on given path
+        let path = append_extension(path, ext);
+
+        if fs::try_exists(&path).await? {
+            return Ok(path);
+        };
+
+        // try extension on given path's init
+        let init_path = append_extension(init_path, ext);
+
+        if fs::try_exists(&init_path).await? {
+            return Ok(init_path);
+        };
+    }
+
+    Err(LuaError::runtime("Could not resolve path"))
+}
 
 pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
     let require_path_rel = PathBuf::from(path);
@@ -19,12 +46,16 @@ pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
         }
     } else {
         let parent_path = get_parent_path(lua)?;
-        let require_path_abs = parent_path.join(&require_path_rel);
+        let require_path_abs = resolve_path(&parent_path.join(&require_path_rel))
+            .await
+            .map_err(|_| {
+                LuaError::runtime(format!(
+                    "Can not require '{}' as it does not exist",
+                    require_path_rel.to_string_lossy(),
+                ))
+            })?;
 
-        Err(LuaError::runtime(format!(
-            "Tried requiring '{}'\nbut requires are not implemented yet.",
-            require_path_abs.to_string_lossy(),
-        )))
+        context::RequireContext::require(lua, require_path_rel, require_path_abs).await
     }
 }
 
@@ -38,4 +69,14 @@ pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
     }
 
     f.into_lua(lua)
+}
+
+fn append_extension(path: impl Into<PathBuf>, ext: &'static str) -> PathBuf {
+    let mut new = path.into();
+    match new.extension() {
+        // FUTURE: There's probably a better way to do this than converting to a lossy string
+        Some(e) => new.set_extension(format!("{}.{ext}", e.to_string_lossy())),
+        None => new.set_extension(ext),
+    };
+    new
 }
