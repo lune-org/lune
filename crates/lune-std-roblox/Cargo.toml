@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-roblox"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -20,4 +20,4 @@ once_cell = "1.17"
 rbx_cookie = { version = "0.1.4", default-features = false }
 
 lune-utils = { version = "0.1.3", path = "../lune-utils" }
-lune-roblox = { version = "0.1.3", path = "../lune-roblox" }
+lune-roblox = { version = "0.1.4", path = "../lune-roblox" }
