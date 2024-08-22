@@ -6,6 +6,7 @@ mod global;
 mod globals;
 mod library;
 mod luaurc;
+mod path;
 
 pub use self::global::LuneStandardGlobal;
 pub use self::globals::version::set_global_version;
