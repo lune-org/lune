@@ -2,12 +2,7 @@ use std::str::FromStr;
 
 use mlua::prelude::*;
 
-pub trait StandardLibrary
-where
-    Self: Sized + 'static + FromStr,
-{
-    const ALL: &'static [Self];
-
+pub trait StandardLibrary {
     fn name(&self) -> &'static str;
 
     fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>>;
@@ -32,23 +27,6 @@ pub enum LuneStandardLibrary {
 }
 
 impl StandardLibrary for LuneStandardLibrary {
-    /**
-        All available standard libraries.
-    */
-    #[rustfmt::skip]
-    const ALL: &'static [Self] = &[
-        #[cfg(feature = "datetime")] Self::DateTime,
-        #[cfg(feature = "fs")]       Self::Fs,
-        #[cfg(feature = "luau")]     Self::Luau,
-        #[cfg(feature = "net")]      Self::Net,
-        #[cfg(feature = "task")]     Self::Task,
-        #[cfg(feature = "process")]  Self::Process,
-        #[cfg(feature = "regex")]    Self::Regex,
-        #[cfg(feature = "serde")]    Self::Serde,
-        #[cfg(feature = "stdio")]    Self::Stdio,
-        #[cfg(feature = "roblox")]   Self::Roblox,
-    ];
-
     /**
         Gets the name of the library, such as `datetime` or `fs`.
     */
@@ -125,12 +103,7 @@ impl FromStr for LuneStandardLibrary {
 
             _ => {
                 return Err(format!(
-                    "Unknown standard library '{low}'\nValid libraries are: {}",
-                    Self::ALL
-                        .iter()
-                        .map(Self::name)
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    "Unknown standard library '{low}'"
                 ))
             }
         })
