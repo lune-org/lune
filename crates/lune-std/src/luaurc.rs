@@ -8,10 +8,10 @@ use std::{
 };
 use tokio::fs;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct RequireAlias<'a> {
-    pub alias: &'a str,
-    pub path: &'a str,
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+pub struct RequireAlias {
+    pub alias: String,
+    pub path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -26,7 +26,7 @@ pub struct Luaurc {
 /// `@lune/task` becomes `Some({ alias: "lune", path: "task" })`
 ///
 /// `../path/script` becomes `None`
-pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias<'_>>, mlua::Error> {
+pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias>, mlua::Error> {
     if let Some(aliased_path) = path
         .to_str()
         .ok_or(mlua::Error::runtime("Couldn't turn path into string"))?
@@ -36,7 +36,10 @@ pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias<'_>>, mlua::Erro
             "Require with alias doesn't contain '/'",
         ))?;
 
-        Ok(Some(RequireAlias { alias, path }))
+        Ok(Some(RequireAlias {
+            alias: alias.to_string(),
+            path: path.to_string(),
+        }))
     } else {
         Ok(None)
     }
@@ -55,7 +58,7 @@ async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, m
 /// until an alias for the provided `RequireAlias` is found
 pub async fn resolve_require_alias<'lua>(
     lua: &'lua mlua::Lua,
-    alias: &'lua RequireAlias<'lua>,
+    alias: &'lua RequireAlias,
 ) -> Result<PathBuf, mlua::Error> {
     let cwd = current_dir()?;
     let parent = cwd.join(get_parent_path(lua)?);
@@ -65,8 +68,8 @@ pub async fn resolve_require_alias<'lua>(
         if path.starts_with(&cwd) {
             if let Some(luaurc) = parse_luaurc(lua, &parent.join(".luaurc")).await? {
                 if let Some(aliases) = luaurc.aliases {
-                    if let Some(alias_path) = aliases.get(alias.alias) {
-                        let resolved = path.join(alias_path.join(alias.path));
+                    if let Some(alias_path) = aliases.get(&alias.alias) {
+                        let resolved = path.join(alias_path.join(&alias.path));
 
                         return Ok(resolved);
                     }

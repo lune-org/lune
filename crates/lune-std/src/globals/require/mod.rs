@@ -1,4 +1,4 @@
-use crate::{luaurc::path_to_alias, path::get_parent_path};
+use crate::{luaurc::path_to_alias, path::get_parent_path, LuneStandardLibrary};
 use mlua::prelude::*;
 use std::path::PathBuf;
 
@@ -9,11 +9,8 @@ pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
     let require_alias = path_to_alias(&require_path_rel)?;
 
     if let Some(require_alias) = require_alias {
-        if require_alias.alias == "lune" {
-            Err(LuaError::runtime(format!(
-                "Tried requiring a lune library '{}'\nbut aliases are not implemented yet.",
-                require_alias.path,
-            )))
+        if storage::RequireStorage::std_exists(lua, &require_alias.alias)? {
+            storage::RequireStorage::require_std(lua, require_alias)
         } else {
             Err(LuaError::runtime(format!(
                 "Tried requiring a custom alias '{}'\nbut aliases are not implemented yet.",
@@ -22,7 +19,7 @@ pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
         }
     } else {
         let parent_path = get_parent_path(lua)?;
-        let require_path_abs = parent_path.join(require_path_rel);
+        let require_path_abs = parent_path.join(&require_path_rel);
 
         Err(LuaError::runtime(format!(
             "Tried requiring '{}'\nbut requires are not implemented yet.",
@@ -33,6 +30,12 @@ pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
 
 pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
     let f = lua.create_async_function(lua_require)?;
+
+    storage::RequireStorage::init(lua)?;
+
+    for std in LuneStandardLibrary::ALL {
+        storage::RequireStorage::inject_std(lua, "lune", *std)?;
+    }
 
     f.into_lua(lua)
 }

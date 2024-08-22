@@ -1,8 +1,11 @@
-use std::str::FromStr;
+use std::{fmt::Debug, str::FromStr};
 
 use mlua::prelude::*;
 
-pub trait StandardLibrary {
+pub trait StandardLibrary
+where
+    Self: Debug,
+{
     fn name(&self) -> &'static str;
 
     fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>>;
@@ -24,6 +27,25 @@ pub enum LuneStandardLibrary {
     #[cfg(feature = "serde")]    Serde,
     #[cfg(feature = "stdio")]    Stdio,
     #[cfg(feature = "roblox")]   Roblox,
+}
+
+impl LuneStandardLibrary {
+    /**
+        All available standard libraries.
+    */
+    #[rustfmt::skip]
+    pub const ALL: &'static [Self] = &[
+        #[cfg(feature = "datetime")] Self::DateTime,
+        #[cfg(feature = "fs")]       Self::Fs,
+        #[cfg(feature = "luau")]     Self::Luau,
+        #[cfg(feature = "net")]      Self::Net,
+        #[cfg(feature = "task")]     Self::Task,
+        #[cfg(feature = "process")]  Self::Process,
+        #[cfg(feature = "regex")]    Self::Regex,
+        #[cfg(feature = "serde")]    Self::Serde,
+        #[cfg(feature = "stdio")]    Self::Stdio,
+        #[cfg(feature = "roblox")]   Self::Roblox,
+    ];
 }
 
 impl StandardLibrary for LuneStandardLibrary {
