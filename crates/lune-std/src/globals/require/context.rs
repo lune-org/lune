@@ -1,13 +1,14 @@
 use crate::{library::StandardLibrary, luaurc::RequireAlias};
 use mlua::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
 
 /// The private struct that's stored in mlua's app data container
 #[derive(Debug, Default)]
 struct RequireContextData<'a> {
     std: HashMap<&'a str, HashMap<&'a str, Box<dyn StandardLibrary>>>,
     std_cache: HashMap<RequireAlias, LuaRegistryKey>,
-    cache: HashMap<&'a str, LuaRegistryKey>,
+    cache: Arc<Mutex<HashMap<&'a str, LuaRegistryKey>>>,
 }
 
 #[derive(Debug)]
