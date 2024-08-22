@@ -28,7 +28,7 @@ impl FfiBox {
         self.0.len()
     }
 
-    pub fn copy(&self, target: &mut FfiBox) {}
+    // pub fn copy(&self, target: &mut FfiBox) {}
 
     pub fn get_ptr(&self) -> *mut c_void {
         self.0.as_ptr() as *mut c_void

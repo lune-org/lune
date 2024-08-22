@@ -16,7 +16,9 @@ struct CArr {
 }
 
 impl CArr {
-    fn new(libffi_type: Type, length: usize) {}
+    fn new(libffi_type: Type, length: usize) {
+        Self { libffi_type }
+    }
 }
 
 impl LuaUserData for CArr {}

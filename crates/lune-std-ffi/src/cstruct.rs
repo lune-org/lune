@@ -8,7 +8,7 @@ use libffi::raw::ffi_get_struct_offsets;
 use std::vec::Vec;
 
 use crate::association::{get_association, set_association};
-use crate::ctype::libffi_types_from_table;
+use crate::ctype::{libffi_types_from_table, type_name_from_userdata};
 
 use super::ctype::CType;
 
@@ -34,6 +34,7 @@ impl CStruct {
                 libffi_type.as_raw_ptr(),
                 offsets.as_mut_ptr(),
             );
+            offsets.set_len(offsets.capacity());
         }
 
         Self {
@@ -56,12 +57,42 @@ impl CStruct {
         Ok(cstruct)
     }
 
+    // Stringify cstruct for pretty printing something like:
+    // <CStruct( u8, i32, size = 8 )>
+    pub fn stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
+        let field: LuaValue = userdata.get("inner")?;
+        if field.is_table() {
+            let table = field
+                .as_table()
+                .ok_or(LuaError::external("failed to get inner table."))?;
+
+            // iterate for field
+            let mut result = String::from(" ");
+            for i in 0..table.raw_len() {
+                let child: LuaAnyUserData = table.raw_get(i + 1)?;
+                result.push_str(format!("{}, ", type_name_from_userdata(&child)?).as_str());
+            }
+
+            // size of
+            result.push_str(format!("size = {} ", userdata.borrow::<CStruct>()?.size).as_str());
+            Ok(result)
+        } else {
+            Ok(String::from("unnamed"))
+        }
+    }
+
     pub fn get_type(&self) -> Type {
         self.libffi_type.clone()
     }
 
-    pub fn offset(&self, index: usize) -> usize {
-        self.offsets[index]
+    // Get byte offset of nth field
+    pub fn offset(&self, index: usize) -> LuaResult<usize> {
+        let offset = self
+            .offsets
+            .get(index)
+            .ok_or(LuaError::external("Out of index"))?
+            .to_owned();
+        Ok(offset)
     }
 }
 
@@ -80,10 +111,17 @@ impl LuaUserData for CStruct {
         });
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method("offset", |_, this, index: usize| Ok(this.offset(index)));
+        methods.add_method("offset", |_, this, index: usize| {
+            let offset = this.offset(index)?;
+            Ok(offset)
+        });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CType::pointer(lua, this)?;
+            let pointer = CType::pointer(lua, &this)?;
             Ok(pointer)
+        });
+        methods.add_meta_function(LuaMetaMethod::ToString, |_, this: LuaAnyUserData| {
+            let result = CStruct::stringify(&this)?;
+            Ok(result)
         });
     }
 }

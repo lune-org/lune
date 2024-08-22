@@ -40,9 +40,12 @@ use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 # Struct
 
-- [!] :offset(index)
+- [x] :offset(index)
 - [x] :ptr()
 - [x] .inner[n]
+- [!] .size
+- [ ] #
+- [x] tostring
 
 size, offset is strange. maybe related to cif state.
 
