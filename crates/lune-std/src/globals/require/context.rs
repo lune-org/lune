@@ -4,19 +4,19 @@ use std::collections::HashMap;
 
 /// The private struct that's stored in mlua's app data container
 #[derive(Debug, Default)]
-struct RequireStorageData<'a> {
+struct RequireContextData<'a> {
     std: HashMap<&'a str, HashMap<&'a str, Box<dyn StandardLibrary>>>,
     std_cache: HashMap<RequireAlias, LuaRegistryKey>,
     cache: HashMap<&'a str, LuaRegistryKey>,
 }
 
 #[derive(Debug)]
-pub struct RequireStorage {}
+pub struct RequireContext {}
 
-impl RequireStorage {
+impl RequireContext {
     pub fn init(lua: &Lua) -> LuaResult<()> {
-        if lua.set_app_data(RequireStorageData::default()).is_some() {
-            Err(LuaError::runtime("RequireStorage::init got called twice"))
+        if lua.set_app_data(RequireContextData::default()).is_some() {
+            Err(LuaError::runtime("RequireContext::init got called twice"))
         } else {
             Ok(())
         }
@@ -24,16 +24,16 @@ impl RequireStorage {
 
     pub fn std_exists(lua: &Lua, alias: &str) -> LuaResult<bool> {
         let data_ref = lua
-            .app_data_ref::<RequireStorageData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireStorageData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .app_data_ref::<RequireContextData>()
+            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
 
         Ok(data_ref.std.contains_key(alias))
     }
 
     pub fn require_std(lua: &Lua, require_alias: RequireAlias) -> LuaResult<LuaMultiValue<'_>> {
         let data_ref = lua
-            .app_data_ref::<RequireStorageData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireStorageData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .app_data_ref::<RequireContextData>()
+            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
 
         if let Some(cached) = data_ref.std_cache.get(&require_alias) {
             return cached.into_lua(lua)?.into_lua_multi(lua);
@@ -60,8 +60,8 @@ impl RequireStorage {
         let multi_reg = lua.create_registry_value(mutli_clone.into_vec())?;
 
         let mut data = lua
-        .app_data_mut::<RequireStorageData>()
-        .ok_or(LuaError::runtime("Couldn't find RequireStorageData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+        .app_data_mut::<RequireContextData>()
+        .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
 
         data.std_cache.insert(require_alias, multi_reg);
 
@@ -74,8 +74,8 @@ impl RequireStorage {
         std: impl StandardLibrary + 'static,
     ) -> LuaResult<()> {
         let mut data = lua
-            .app_data_mut::<RequireStorageData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireStorageData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .app_data_mut::<RequireContextData>()
+            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
 
         if let Some(map) = data.std.get_mut(alias) {
             map.insert(std.name(), Box::new(std));
