@@ -96,6 +96,7 @@ impl LuaUserData for CType {
     }
 }
 
+// export all default c-types
 pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
     Ok(vec![
         (
@@ -145,6 +146,7 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
     ])
 }
 
+// get Vec<libffi_type> from table(array) of c-types userdata
 pub fn libffi_types_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
     let len: usize = table.raw_len();
     let mut fields = Vec::with_capacity(len);
@@ -168,6 +170,7 @@ pub fn libffi_types_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
     Ok(fields)
 }
 
+// get libffi_type from any c-types userdata
 pub fn libffi_type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
     if userdata.is::<CStruct>() {
         Ok(userdata.borrow::<CStruct>()?.get_type())
@@ -186,6 +189,7 @@ pub fn libffi_type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
     }
 }
 
+// stringify any c-types userdata (for recursive)
 pub fn type_name_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<String> {
     if userdata.is::<CType>() {
         let name = userdata.borrow::<CType>()?.stringify();
