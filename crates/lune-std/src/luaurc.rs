@@ -26,7 +26,7 @@ pub struct Luaurc {
 /// `@lune/task` becomes `Some({ alias: "lune", path: "task" })`
 ///
 /// `../path/script` becomes `None`
-pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias>, mlua::Error> {
+pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias<'_>>, mlua::Error> {
     if let Some(aliased_path) = path
         .to_str()
         .ok_or(mlua::Error::runtime("Couldn't turn path into string"))?
