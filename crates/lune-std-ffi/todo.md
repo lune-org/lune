@@ -52,11 +52,18 @@ size, offset is strange. maybe related to cif state.
 # Type
 
 - [ ] :toBox(luavalue)
+
+Very stupid idea.
+from(box|ref|raw, offset) is better idea i think.
+
 - [ ] :fromBox(box,offset?=0)
 - [ ] :intoBox(luavalue,box,offset?=0)
 - [ ] :fromRef(ref,offset?=0)
 - [ ] :intoRef(luavalue,ref,offset?=0)
 - [ ] :fromRaw(raw,offset?=0)
+
+- [ ] :castBox(box,type) TODO
+- [ ]
 
 - [ ] :sum
 - [ ] :mul
@@ -67,7 +74,7 @@ size, offset is strange. maybe related to cif state.
 - [~] :arr(len) -> Arr
 - [x] .size
 
-- [ ] :cast(box,type) TODO
+
 
 # Ptr
 

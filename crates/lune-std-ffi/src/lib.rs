@@ -33,6 +33,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let result = TableBuilder::new(lua)?
         .with_values(ctypes)?
         .with_function("box", |_, size: usize| Ok(FfiBox::new(size)))?
+        // TODO: discuss about function name. matching with io.open is better?
         .with_function("dlopen", |_, name: String| {
             let lib = FfiLib::new(name)?;
             Ok(lib)
