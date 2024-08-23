@@ -1,5 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
+pub use globals::require::context::RequireContext;
+
 use mlua::prelude::*;
 
 mod global;

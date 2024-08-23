@@ -7,7 +7,7 @@ use mlua::prelude::*;
 use path::resolve_path;
 use std::path::PathBuf;
 
-mod context;
+pub mod context;
 mod path;
 
 pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {

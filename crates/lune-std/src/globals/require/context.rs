@@ -30,7 +30,7 @@ impl RequireContext {
         }
     }
 
-    pub fn std_exists(lua: &Lua, alias: &str) -> LuaResult<bool> {
+    pub(crate) fn std_exists(lua: &Lua, alias: &str) -> LuaResult<bool> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
             .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
@@ -38,13 +38,18 @@ impl RequireContext {
         Ok(data_ref.std.contains_key(alias))
     }
 
-    pub fn require_std(lua: &Lua, require_alias: RequireAlias) -> LuaResult<LuaMultiValue<'_>> {
+    pub(crate) fn require_std(
+        lua: &Lua,
+        require_alias: RequireAlias,
+    ) -> LuaResult<LuaMultiValue<'_>> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
             .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
 
         if let Some(cached) = data_ref.std_cache.get(&require_alias) {
-            return cached.into_lua(lua)?.into_lua_multi(lua);
+            let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
+
+            return Ok(LuaMultiValue::from_vec(multi_vec));
         }
 
         let libraries =
@@ -76,7 +81,7 @@ impl RequireContext {
         Ok(multi)
     }
 
-    pub async fn require(
+    pub(crate) async fn require(
         lua: &Lua,
         path_rel: PathBuf,
         path_abs: PathBuf,
@@ -105,7 +110,9 @@ impl RequireContext {
             let cache = data_ref.cache.lock().await;
 
             if let Some(cached) = cache.get(&path_abs) {
-                return cached.into_lua(lua).into_lua_multi(lua);
+                let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
+
+                return Ok(LuaMultiValue::from_vec(multi_vec));
             }
         }
 
