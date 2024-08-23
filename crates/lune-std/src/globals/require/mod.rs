@@ -25,6 +25,8 @@ pub enum RequireError {
     StdMemberNotFound(String, String),
     #[error("Thread result returned none")]
     ThreadReturnedNone,
+    #[error("Could not get '{0}' from cache")]
+    CacheNotFound(String),
 
     #[error("IOError: {0}")]
     IOError(#[from] std::io::Error),
