@@ -1,11 +1,11 @@
 use crate::path::get_parent_path;
-use mlua::ExternalResult;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
     env::current_dir,
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 use tokio::fs;
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
@@ -19,6 +19,23 @@ pub struct Luaurc {
     aliases: Option<HashMap<String, PathBuf>>,
 }
 
+#[derive(Debug, Error)]
+pub enum LuaurcError {
+    #[error("Require with alias doesn't contain '/'")]
+    UsedAliasWithoutSlash,
+    #[error("Failed to convert string to path")]
+    FailedStringToPathConversion,
+    #[error("Failed to find a path for alias '{0}' in .luaurc files")]
+    FailedToFindAlias(String),
+
+    #[error("IOError: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("JsonError: {0}")]
+    JsonError(#[from] serde_json::Error),
+    #[error("LuaError: {0}")]
+    LuaError(#[from] mlua::Error),
+}
+
 /// Parses path into `RequireAlias` struct
 ///
 /// ### Examples
@@ -26,15 +43,15 @@ pub struct Luaurc {
 /// `@lune/task` becomes `Some({ alias: "lune", path: "task" })`
 ///
 /// `../path/script` becomes `None`
-pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias>, mlua::Error> {
+pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias>, LuaurcError> {
     if let Some(aliased_path) = path
         .to_str()
-        .ok_or(mlua::Error::runtime("Couldn't turn path into string"))?
+        .ok_or(LuaurcError::FailedStringToPathConversion)?
         .strip_prefix('@')
     {
-        let (alias, path) = aliased_path.split_once('/').ok_or(mlua::Error::runtime(
-            "Require with alias doesn't contain '/'",
-        ))?;
+        let (alias, path) = aliased_path
+            .split_once('/')
+            .ok_or(LuaurcError::UsedAliasWithoutSlash)?;
 
         Ok(Some(RequireAlias {
             alias: alias.to_string(),
@@ -45,10 +62,12 @@ pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias>, mlua::Error> {
     }
 }
 
-async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, mlua::Error> {
+async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, LuaurcError> {
     if fs::try_exists(path).await? {
         let content = fs::read(path).await?;
-        serde_json::from_slice(&content).map(Some).into_lua_err()
+        serde_json::from_slice(&content)
+            .map(Some)
+            .map_err(|x| x.into())
     } else {
         Ok(None)
     }
@@ -60,7 +79,7 @@ impl Luaurc {
     pub async fn resolve_path<'lua>(
         lua: &'lua mlua::Lua,
         alias: &'lua RequireAlias,
-    ) -> Result<PathBuf, mlua::Error> {
+    ) -> Result<PathBuf, LuaurcError> {
         let cwd = current_dir()?;
         let parent = cwd.join(get_parent_path(lua)?);
         let ancestors = parent.ancestors();
@@ -81,9 +100,6 @@ impl Luaurc {
             }
         }
 
-        Err(mlua::Error::runtime(format!(
-            "Coudln't find the alias '{}' in any .luaurc file",
-            alias.alias
-        )))
+        Err(LuaurcError::FailedToFindAlias(alias.alias.to_string()))
     }
 }
