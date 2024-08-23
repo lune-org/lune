@@ -9,6 +9,8 @@ use tokio::{
     },
 };
 
+use super::RequireError;
+
 /// The private struct that's stored in mlua's app data container
 #[derive(Debug, Default)]
 struct RequireContextData<'a> {
@@ -29,20 +31,18 @@ impl RequireContext {
     - when `RequireContext::init` is called more than once on the same `Lua` instance
 
      */
-    pub fn init(lua: &Lua) -> LuaResult<()> {
+    pub fn init(lua: &Lua) -> Result<(), RequireError> {
         if lua.set_app_data(RequireContextData::default()).is_some() {
-            Err(LuaError::runtime(
-                "RequireContext::init got called twice on the same Lua instance",
-            ))
+            Err(RequireError::RequireContextInitCalledTwice)
         } else {
             Ok(())
         }
     }
 
-    pub(crate) fn std_exists(lua: &Lua, alias: &str) -> LuaResult<bool> {
+    pub(crate) fn std_exists(lua: &Lua, alias: &str) -> Result<bool, RequireError> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .ok_or(RequireError::RequireContextNotFound)?;
 
         Ok(data_ref.std.contains_key(alias))
     }
@@ -50,10 +50,10 @@ impl RequireContext {
     pub(crate) fn require_std(
         lua: &Lua,
         require_alias: RequireAlias,
-    ) -> LuaResult<LuaMultiValue<'_>> {
+    ) -> Result<LuaMultiValue<'_>, RequireError> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .ok_or(RequireError::RequireContextNotFound)?;
 
         if let Some(cached) = data_ref.std_cache.get(&require_alias) {
             let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
@@ -61,21 +61,17 @@ impl RequireContext {
             return Ok(LuaMultiValue::from_vec(multi_vec));
         }
 
-        let libraries =
-            data_ref
-                .std
-                .get(&require_alias.alias.as_str())
-                .ok_or(mlua::Error::runtime(format!(
-                    "Alias '{}' does not point to a built-in standard library",
-                    require_alias.alias
-                )))?;
+        let libraries = data_ref.std.get(&require_alias.alias.as_str()).ok_or(
+            RequireError::InvalidStdAlias(require_alias.alias.to_string()),
+        )?;
 
-        let std = libraries
-            .get(require_alias.path.as_str())
-            .ok_or(mlua::Error::runtime(format!(
-                "Library '{}' does not point to a member of '{}' standard libraries",
-                require_alias.path, require_alias.alias
-            )))?;
+        let std =
+            libraries
+                .get(require_alias.path.as_str())
+                .ok_or(RequireError::StdMemberNotFound(
+                    require_alias.path.to_string(),
+                    require_alias.alias.to_string(),
+                ))?;
 
         let multi = std.module(lua)?;
         let mutli_clone = multi.clone();
@@ -84,8 +80,8 @@ impl RequireContext {
         drop(data_ref);
 
         let mut data = lua
-        .app_data_mut::<RequireContextData>()
-        .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .app_data_mut::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
 
         data.std_cache.insert(require_alias, multi_reg);
 
@@ -96,18 +92,18 @@ impl RequireContext {
         lua: &Lua,
         path_rel: PathBuf,
         path_abs: PathBuf,
-    ) -> LuaResult<LuaMultiValue> {
+    ) -> Result<LuaMultiValue, RequireError> {
         // wait for module to be required
         // if its pending somewhere else
         {
             let data_ref = lua
-            .app_data_ref::<RequireContextData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+                .app_data_ref::<RequireContextData>()
+                .ok_or(RequireError::RequireContextNotFound)?;
 
-            let pending = data_ref.pending.try_lock().into_lua_err()?;
+            let pending = data_ref.pending.try_lock()?;
 
             if let Some(a) = pending.get(&path_abs) {
-                a.subscribe().recv().await.into_lua_err()?;
+                a.subscribe().recv().await?;
             }
         }
 
@@ -115,8 +111,8 @@ impl RequireContext {
         // *if* its cached
         {
             let data_ref = lua
-            .app_data_ref::<RequireContextData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+                .app_data_ref::<RequireContextData>()
+                .ok_or(RequireError::RequireContextNotFound)?;
 
             let cache = data_ref.cache.lock().await;
 
@@ -130,22 +126,21 @@ impl RequireContext {
         // create a broadcast channel
         {
             let data_ref = lua
-        .app_data_ref::<RequireContextData>()
-        .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+                .app_data_ref::<RequireContextData>()
+                .ok_or(RequireError::RequireContextNotFound)?;
 
             let (broadcast_tx, _) = broadcast::channel(1);
 
             {
-                let mut pending = data_ref.pending.try_lock().into_lua_err()?;
+                let mut pending = data_ref.pending.try_lock()?;
                 pending.insert(path_abs.clone(), broadcast_tx);
             }
         }
 
         if !fs::try_exists(&path_abs).await? {
-            return Err(LuaError::runtime(format!(
-                "Can not require '{}' as it does not exist",
-                path_rel.to_string_lossy()
-            )));
+            return Err(RequireError::InvalidRequire(
+                path_rel.to_string_lossy().to_string(),
+            ));
         }
 
         let content = fs::read_to_string(&path_abs).await?;
@@ -161,7 +156,7 @@ impl RequireContext {
 
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .ok_or(RequireError::RequireContextNotFound)?;
 
         data_ref
             .cache
@@ -205,10 +200,10 @@ impl RequireContext {
         lua: &Lua,
         alias: &'static str,
         std: impl StandardLibrary + 'static,
-    ) -> LuaResult<()> {
+    ) -> Result<(), RequireError> {
         let mut data = lua
             .app_data_mut::<RequireContextData>()
-            .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
+            .ok_or(RequireError::RequireContextNotFound)?;
 
         if let Some(map) = data.std.get_mut(alias) {
             map.insert(std.name(), Box::new(std));
