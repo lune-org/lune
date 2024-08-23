@@ -67,7 +67,7 @@ async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, L
         let content = fs::read(path).await?;
         serde_json::from_slice(&content)
             .map(Some)
-            .map_err(|x| x.into())
+            .map_err(std::convert::Into::into)
     } else {
         Ok(None)
     }
@@ -86,7 +86,7 @@ impl Luaurc {
 
         for path in ancestors {
             if path.starts_with(&cwd) {
-                if let Some(luaurc) = parse_luaurc(lua, &parent.join(".luaurc")).await? {
+                if let Some(luaurc) = parse_luaurc(lua, &path.join(".luaurc")).await? {
                     if let Some(aliases) = luaurc.aliases {
                         if let Some(alias_path) = aliases.get(&alias.alias) {
                             let resolved = path.join(alias_path.join(&alias.path));

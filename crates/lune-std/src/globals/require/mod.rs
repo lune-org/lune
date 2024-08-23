@@ -1,4 +1,8 @@
-use crate::{luaurc::path_to_alias, path::get_parent_path, LuneStandardLibrary};
+use crate::{
+    luaurc::{path_to_alias, Luaurc},
+    path::get_parent_path,
+    LuneStandardLibrary,
+};
 use mlua::prelude::*;
 use path::resolve_path;
 use std::path::PathBuf;
@@ -14,10 +18,14 @@ pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
         if context::RequireContext::std_exists(lua, &require_alias.alias)? {
             context::RequireContext::require_std(lua, require_alias)
         } else {
-            Err(LuaError::runtime(format!(
-                "Tried requiring a custom alias '{}'\nbut aliases are not implemented yet.",
-                require_alias.alias,
-            )))
+            let require_path_abs = resolve_path(
+                &Luaurc::resolve_path(lua, &require_alias)
+                    .await
+                    .into_lua_err()?,
+            )
+            .await?;
+
+            context::RequireContext::require(lua, require_path_rel, require_path_abs).await
         }
     } else {
         let parent_path = get_parent_path(lua)?;
