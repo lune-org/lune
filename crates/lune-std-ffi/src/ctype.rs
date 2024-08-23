@@ -1,12 +1,19 @@
 #![allow(clippy::cargo_common_metadata)]
 
 use std::borrow::Borrow;
+use std::ptr::{self, null_mut};
 
-use super::association::{get_association, set_association};
-use super::cstruct::CStruct;
-use libffi::middle::{Cif, Type};
+use libffi::{
+    low,
+    middle::{Cif, Type},
+    raw,
+};
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
+
+use crate::association::{get_association, set_association};
+use crate::cstruct::CStruct;
+use crate::FFI_STATUS_NAMES;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 const POINTER_INNER: &str = "__pointer_inner";
@@ -17,9 +24,6 @@ pub struct CType {
     size: usize,
     name: Option<String>,
 }
-
-// TODO: ARR
-// TODO: convert
 
 impl CType {
     pub fn new(libffi_type: Type, name: Option<String>) -> Self {
@@ -200,4 +204,27 @@ pub fn type_name_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<String> {
     } else {
         Ok(String::from("unnamed"))
     }
+}
+
+// Ensure sizeof c-type (raw::libffi_type)
+// See: http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
+pub fn libffi_type_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
+    let mut cif: low::ffi_cif = Default::default();
+    let result = unsafe {
+        raw::ffi_prep_cif(
+            ptr::from_mut(&mut cif),
+            raw::ffi_abi_FFI_DEFAULT_ABI,
+            0,
+            ffi_type,
+            null_mut(),
+        )
+    };
+
+    if result != raw::ffi_status_FFI_OK {
+        return Err(LuaError::external(format!(
+            "ffi_get_struct_offsets failed. expected result {}, got {}",
+            FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[result as usize]
+        )));
+    }
+    unsafe { Ok((*ffi_type).size) }
 }
