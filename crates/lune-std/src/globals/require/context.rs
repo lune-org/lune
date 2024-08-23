@@ -22,9 +22,18 @@ struct RequireContextData<'a> {
 pub struct RequireContext {}
 
 impl RequireContext {
+    /**
+
+    # Errors
+
+    - when `RequireContext::init` is called more than once on the same `Lua` instance
+
+     */
     pub fn init(lua: &Lua) -> LuaResult<()> {
         if lua.set_app_data(RequireContextData::default()).is_some() {
-            Err(LuaError::runtime("RequireContext::init got called twice"))
+            Err(LuaError::runtime(
+                "RequireContext::init got called twice on the same Lua instance",
+            ))
         } else {
             Ok(())
         }
@@ -172,6 +181,26 @@ impl RequireContext {
         Ok(multi)
     }
 
+    /**
+
+    add a standard library into the require function
+
+    # Example
+
+    ```rs
+    inject_std(lua, "lune", LuneStandardLibrary::Task)?;
+    ```
+
+    ```luau
+    -- luau
+    local task = require("@lune/task")
+    ```
+
+    # Errors
+
+    - when `RequireStorage::init` isn't called
+
+     */
     pub fn inject_std(
         lua: &Lua,
         alias: &'static str,
