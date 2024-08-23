@@ -1,16 +1,17 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use mlua::prelude::*;
-
-use libffi::low::ffi_abi_FFI_DEFAULT_ABI;
-use libffi::middle::{Cif, Type};
-use libffi::raw::ffi_get_struct_offsets;
 use std::vec::Vec;
 
-use crate::association::{get_association, set_association};
-use crate::ctype::{libffi_types_from_table, type_name_from_userdata};
+use libffi::{
+    low,
+    middle::{Cif, Type},
+    raw,
+};
+use mlua::prelude::*;
 
-use super::ctype::CType;
+use crate::association::{get_association, set_association};
+use crate::ctype::{libffi_types_from_table, type_name_from_userdata, CType};
+use crate::FFI_STATUS_NAMES;
 
 pub struct CStruct {
     libffi_cif: Cif,
@@ -23,35 +24,48 @@ pub struct CStruct {
 const CSTRUCT_INNER: &str = "__cstruct_inner";
 
 impl CStruct {
-    pub fn new(fields: Vec<Type>) -> Self {
+    pub fn new(fields: Vec<Type>) -> LuaResult<Self> {
         let libffi_type = Type::structure(fields.clone());
         let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
-        let size = unsafe { (*libffi_type.as_raw_ptr()).size };
+
+        // Get field offsets with ffi_get_struct_offsets
         let mut offsets = Vec::<usize>::with_capacity(fields.len());
         unsafe {
-            ffi_get_struct_offsets(
-                ffi_abi_FFI_DEFAULT_ABI,
+            let offset_result: raw::ffi_status = raw::ffi_get_struct_offsets(
+                low::ffi_abi_FFI_DEFAULT_ABI,
                 libffi_type.as_raw_ptr(),
                 offsets.as_mut_ptr(),
             );
+            if offset_result != raw::ffi_status_FFI_OK {
+                return Err(LuaError::external(format!(
+                    "ffi_get_struct_offsets failed. expected result {}, got {}",
+                    FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[offset_result as usize]
+                )));
+            }
             offsets.set_len(offsets.capacity());
         }
 
-        Self {
+        // Get tailing padded size of struct
+        // See http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
+        let size = unsafe { (*libffi_type.as_raw_ptr()).size };
+
+        Ok(Self {
             libffi_cif: libffi_cfi,
             libffi_type,
             fields,
             offsets,
             size,
-        }
+        })
     }
 
+    // Create new CStruct UserData with LuaTable.
+    // Lock and hold table for .inner ref
     pub fn from_lua_table<'lua>(
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let fields = libffi_types_from_table(&table)?;
-        let cstruct = lua.create_userdata(Self::new(fields))?;
+        let cstruct = lua.create_userdata(Self::new(fields)?)?;
         table.set_readonly(true);
         set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
         Ok(cstruct)
@@ -81,10 +95,6 @@ impl CStruct {
         }
     }
 
-    pub fn get_type(&self) -> Type {
-        self.libffi_type.clone()
-    }
-
     // Get byte offset of nth field
     pub fn offset(&self, index: usize) -> LuaResult<usize> {
         let offset = self
@@ -93,6 +103,10 @@ impl CStruct {
             .ok_or(LuaError::external("Out of index"))?
             .to_owned();
         Ok(offset)
+    }
+
+    pub fn get_type(&self) -> Type {
+        self.libffi_type.clone()
     }
 }
 

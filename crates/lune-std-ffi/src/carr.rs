@@ -1,6 +1,8 @@
 use libffi::middle::Type;
 use mlua::prelude::*;
 
+use crate::ctype::libffi_type_ensured_size;
+
 // This is a series of some type.
 // It provides the final size and the offset of the index,
 // but does not allow multidimensional arrays because of API complexity.
@@ -16,12 +18,22 @@ struct CArr {
     libffi_type: Type,
     struct_type: Type,
     length: usize,
+    field_size: usize,
     size: usize,
 }
 
 impl CArr {
-    fn new(libffi_type: Type, length: usize) {
-        Self { libffi_type }
+    fn new(libffi_type: Type, length: usize) -> LuaResult<Self> {
+        let struct_type = Type::structure(vec![libffi_type.clone(); length]);
+        let field_size = libffi_type_ensured_size(libffi_type.as_raw_ptr())?;
+
+        Ok(Self {
+            libffi_type,
+            struct_type,
+            length,
+            field_size,
+            size: field_size * length,
+        })
     }
 }
 

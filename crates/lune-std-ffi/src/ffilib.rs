@@ -1,9 +1,9 @@
 use std::ffi::c_void;
 
-use super::association::set_association;
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
+use crate::association::set_association;
 use crate::ffiref::FfiRef;
 
 pub struct FfiLib(Library);

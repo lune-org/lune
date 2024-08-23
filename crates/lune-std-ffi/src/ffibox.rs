@@ -9,11 +9,13 @@
 // rather, it creates more heap space, so it should be used appropriately
 // where necessary.
 
-use super::association::set_association;
-use super::ffiref::FfiRef;
+use std::boxed::Box;
+
 use core::ffi::c_void;
 use mlua::prelude::*;
-use std::boxed::Box;
+
+use crate::association::set_association;
+use crate::ffiref::FfiRef;
 
 const BOX_REF_INNER: &str = "__box_ref";
 

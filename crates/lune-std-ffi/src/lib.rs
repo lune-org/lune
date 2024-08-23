@@ -14,12 +14,19 @@ mod ffilib;
 mod ffiraw;
 mod ffiref;
 
-use self::association::get_table;
-use self::cfn::CFn;
-use self::cstruct::CStruct;
-use self::ctype::create_all_types;
-use self::ffibox::FfiBox;
-use self::ffilib::FfiLib;
+use crate::association::get_table;
+use crate::cfn::CFn;
+use crate::cstruct::CStruct;
+use crate::ctype::create_all_types;
+use crate::ffibox::FfiBox;
+use crate::ffilib::FfiLib;
+
+pub const FFI_STATUS_NAMES: [&str; 4] = [
+    "ffi_status_FFI_OK",
+    "ffi_status_FFI_BAD_TYPEDEF",
+    "ffi_status_FFI_BAD_ABI",
+    "ffi_status_FFI_BAD_ARGTYPE",
+];
 
 /**
     Creates the `ffi` standard library module.

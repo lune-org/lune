@@ -1,7 +1,9 @@
-use super::association::set_association;
 use core::ffi::c_void;
-use mlua::prelude::*;
 use std::ptr;
+
+use mlua::prelude::*;
+
+use crate::association::set_association;
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
