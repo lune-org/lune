@@ -9,8 +9,12 @@ use mlua::prelude::*;
 
 // See: https://stackoverflow.com/a/43525176
 
+// Padding after each field inside the struct is set to next field can follow the alignment.
+// There is no problem even if you create a struct with n fields of a single type within the struct. Array adheres to the condition that there is no additional padding between each element. Padding to a struct is padding inside the struct. Simply think of the padding byte as a trailing unnamed field.
+
 struct CArr {
     libffi_type: Type,
+    struct_type: Type,
     length: usize,
     size: usize,
 }
