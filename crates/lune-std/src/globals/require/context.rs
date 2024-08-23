@@ -72,6 +72,8 @@ impl RequireContext {
         let mutli_clone = multi.clone();
         let multi_reg = lua.create_registry_value(mutli_clone.into_vec())?;
 
+        drop(data_ref);
+
         let mut data = lua
         .app_data_mut::<RequireContextData>()
         .ok_or(LuaError::runtime("Couldn't find RequireContextData in app data container, make sure RequireStorage::init is called on this lua instance"))?;
