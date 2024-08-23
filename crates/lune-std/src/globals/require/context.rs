@@ -169,6 +169,7 @@ impl RequireContext {
             .into_lua_thread(lua)?;
 
         let thread_id = lua.push_thread_back(thread, ())?;
+        lua.track_thread(thread_id);
         lua.wait_for_thread(thread_id).await;
 
         let multi = lua
