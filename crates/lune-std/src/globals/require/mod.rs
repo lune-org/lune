@@ -58,11 +58,9 @@ pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
         let require_path_abs = resolve_path(&parent_path.join(&require_path_rel))
             .await
             .map_err(|_| {
-                LuaError::runtime(format!(
-                    "Can not require '{}' as it does not exist",
-                    require_path_rel.to_string_lossy(),
-                ))
-            })?;
+                RequireError::InvalidRequire(require_path_rel.to_string_lossy().to_string())
+            })
+            .into_lua_err()?;
 
         context::RequireContext::require(lua, require_path_rel, require_path_abs)
             .await
