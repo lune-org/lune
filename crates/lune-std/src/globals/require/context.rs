@@ -1,5 +1,6 @@
 use crate::{library::StandardLibrary, luaurc::RequireAlias};
 use mlua::prelude::*;
+use mlua_luau_scheduler::{IntoLuaThread, LuaSchedulerExt};
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use tokio::{
     fs,
@@ -149,12 +150,17 @@ impl RequireContext {
         }
 
         let content = fs::read_to_string(&path_abs).await?;
+        let thread = lua
+            .load(&content)
+            .set_name(path_abs.to_string_lossy())
+            .into_lua_thread(lua)?;
+
+        let thread_id = lua.push_thread_back(thread, ())?;
+        lua.wait_for_thread(thread_id).await;
 
         let multi = lua
-            .load(content)
-            .set_name(path_abs.to_string_lossy())
-            .eval_async::<LuaMultiValue>()
-            .await?;
+            .get_thread_result(thread_id)
+            .ok_or(RequireError::ThreadReturnedNone)??;
 
         let mutli_clone = multi.clone();
         let multi_reg = lua.create_registry_value(mutli_clone.into_vec())?;

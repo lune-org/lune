@@ -23,6 +23,8 @@ pub enum RequireError {
     InvalidStdAlias(String),
     #[error("Library '{0}' does not point to a member of '{1}' standard libraries")]
     StdMemberNotFound(String, String),
+    #[error("Thread result returned none")]
+    ThreadReturnedNone,
 
     #[error("IOError: {0}")]
     IOError(#[from] std::io::Error),
