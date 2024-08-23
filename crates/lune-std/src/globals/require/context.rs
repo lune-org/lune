@@ -102,8 +102,13 @@ impl RequireContext {
 
             let pending = data_ref.pending.try_lock()?;
 
-            if let Some(a) = pending.get(&path_abs) {
-                a.subscribe().recv().await?;
+            if let Some(sender) = pending.get(&path_abs) {
+                let mut receiver = sender.subscribe();
+
+                // unlock mutex before using async
+                drop(pending);
+
+                receiver.recv().await?;
             }
         }
 
