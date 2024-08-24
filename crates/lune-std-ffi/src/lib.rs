@@ -3,31 +3,16 @@
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
-mod association;
-mod carr;
-mod cfn;
-mod cptr;
-mod cstring;
-mod cstruct;
-mod ctype;
-mod ffibox;
-mod ffilib;
-mod ffiraw;
-mod ffiref;
+mod c;
+mod ffi;
 
-use crate::association::get_table;
-use crate::cfn::CFn;
-use crate::cstruct::CStruct;
-use crate::ctype::create_all_types;
-use crate::ffibox::FfiBox;
-use crate::ffilib::FfiLib;
-
-pub const FFI_STATUS_NAMES: [&str; 4] = [
-    "ffi_status_FFI_OK",
-    "ffi_status_FFI_BAD_TYPEDEF",
-    "ffi_status_FFI_BAD_ABI",
-    "ffi_status_FFI_BAD_ARGTYPE",
-];
+use crate::c::c_fn::CFn;
+use crate::c::c_struct::CStruct;
+use crate::c::c_type::create_all_types;
+use crate::ffi::ffi_association::get_table;
+use crate::ffi::ffi_box::FfiBox;
+use crate::ffi::ffi_lib::FfiLib;
+use crate::ffi::ffi_platform::get_platform_value;
 
 /**
     Creates the `ffi` standard library module.
@@ -40,6 +25,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let ctypes = create_all_types(lua)?;
     let result = TableBuilder::new(lua)?
         .with_values(ctypes)?
+        .with_values(get_platform_value())?
         .with_function("box", |_, size: usize| Ok(FfiBox::new(size)))?
         // TODO: discuss about function name. matching with io.open is better?
         .with_function("dlopen", |_, name: String| {

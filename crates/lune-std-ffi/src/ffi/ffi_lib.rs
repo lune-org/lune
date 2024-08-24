@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
-use crate::association::set_association;
-use crate::ffiref::FfiRef;
+use super::ffi_association::set_association;
+use super::ffi_ref::FfiRef;
 
 pub struct FfiLib(Library);
 
@@ -39,7 +39,7 @@ impl FfiLib {
                 .map_err(|err| LuaError::external(format!("{err}")))?
         };
 
-        let luasym = lua.create_userdata(FfiRef::new(*sym))?;
+        let luasym = lua.create_userdata(FfiRef::new(*sym, None))?;
 
         set_association(lua, SYM_INNER, luasym.clone(), this.clone())?;
 

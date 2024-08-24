@@ -9,13 +9,13 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use crate::ctype::{libffi_types_from_table, type_userdata_stringify, CType};
-use crate::FFI_STATUS_NAMES;
-use crate::{
-    association::{get_association, set_association},
-    ctype::type_name_from_userdata,
-};
-use crate::{carr::CArr, cptr::CPtr};
+use super::association_names::CSTRUCT_INNER;
+use super::c_arr::CArr;
+use super::c_helper::{name_from_userdata, stringify_userdata, type_list_from_table};
+use super::c_ptr::CPtr;
+use super::c_type::CType;
+use crate::ffi::ffi_association::{get_association, set_association};
+use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
 
 pub struct CStruct {
     libffi_cif: Cif,
@@ -24,8 +24,6 @@ pub struct CStruct {
     offsets: Vec<usize>,
     size: usize,
 }
-
-const CSTRUCT_INNER: &str = "__cstruct_inner";
 
 impl CStruct {
     pub fn new(fields: Vec<Type>) -> LuaResult<Self> {
@@ -68,7 +66,7 @@ impl CStruct {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = libffi_types_from_table(&table)?;
+        let fields = type_list_from_table(&table)?;
         let cstruct = lua.create_userdata(Self::new(fields)?)?;
         table.set_readonly(true);
         set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
@@ -88,13 +86,13 @@ impl CStruct {
             for i in 0..table.raw_len() {
                 let child: LuaAnyUserData = table.raw_get(i + 1)?;
                 if child.is::<CType>() {
-                    result.push_str(format!("{}, ", type_userdata_stringify(&child)?).as_str());
+                    result.push_str(format!("{}, ", stringify_userdata(&child)?).as_str());
                 } else {
                     result.push_str(
                         format!(
                             "<{}({})>, ",
-                            type_name_from_userdata(&child),
-                            type_userdata_stringify(&child)?
+                            name_from_userdata(&child),
+                            stringify_userdata(&child)?
                         )
                         .as_str(),
                     );

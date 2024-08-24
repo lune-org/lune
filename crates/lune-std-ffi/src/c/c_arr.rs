@@ -1,11 +1,13 @@
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use crate::association::{get_association, set_association};
-use crate::cptr::CPtr;
-use crate::ctype::{
-    libffi_type_ensured_size, libffi_type_from_userdata, type_userdata_stringify, CType,
+use super::association_names::CARR_INNER;
+use super::c_helper::{
+    get_ensured_size, name_from_userdata, stringify_userdata, type_from_userdata,
 };
+use super::c_ptr::CPtr;
+use super::c_type::CType;
+use crate::ffi::ffi_association::{get_association, set_association};
 
 // This is a series of some type.
 // It provides the final size and the offset of the index,
@@ -18,8 +20,6 @@ use crate::ctype::{
 // Padding after each field inside the struct is set to next field can follow the alignment.
 // There is no problem even if you create a struct with n fields of a single type within the struct. Array adheres to the condition that there is no additional padding between each element. Padding to a struct is padding inside the struct. Simply think of the padding byte as a trailing unnamed field.
 
-const CARR_INNER: &str = "__carr_inner";
-
 pub struct CArr {
     libffi_type: Type,
     struct_type: Type,
@@ -31,7 +31,7 @@ pub struct CArr {
 impl CArr {
     pub fn new(libffi_type: Type, length: usize) -> LuaResult<Self> {
         let struct_type = Type::structure(vec![libffi_type.clone(); length]);
-        let field_size = libffi_type_ensured_size(libffi_type.as_raw_ptr())?;
+        let field_size = get_ensured_size(libffi_type.as_raw_ptr())?;
 
         Ok(Self {
             libffi_type,
@@ -47,7 +47,7 @@ impl CArr {
         luatype: &LuaAnyUserData<'lua>,
         length: usize,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = libffi_type_from_userdata(luatype)?;
+        let fields = type_from_userdata(luatype)?;
         let carr = lua.create_userdata(Self::new(fields, length)?)?;
 
         set_association(lua, CARR_INNER, carr.clone(), luatype)?;
@@ -63,15 +63,26 @@ impl CArr {
     pub fn stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
         let inner: LuaValue = userdata.get("inner")?;
         let carr = userdata.borrow::<CArr>()?;
+
         if inner.is_userdata() {
             let inner = inner
                 .as_userdata()
                 .ok_or(LuaError::external("failed to get inner type userdata."))?;
-            Ok(format!(
-                " {} ; {} ",
-                type_userdata_stringify(inner)?,
-                carr.length
-            ))
+
+            if inner.is::<CType>() {
+                Ok(format!(
+                    " {} ; {} ",
+                    stringify_userdata(inner)?,
+                    carr.length
+                ))
+            } else {
+                Ok(format!(
+                    " <{}({})> ; {} ",
+                    name_from_userdata(inner),
+                    stringify_userdata(inner)?,
+                    carr.length
+                ))
+            }
         } else {
             Err(LuaError::external("failed to get inner type userdata."))
         }
