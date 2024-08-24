@@ -7,7 +7,7 @@ use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
 use crate::carr::CArr;
-use crate::ctype::{type_name_from_userdata, type_userdata_stringify};
+use crate::chelper::{name_from_userdata, stringify_userdata};
 
 const POINTER_INNER: &str = "__pointer_inner";
 
@@ -37,8 +37,8 @@ impl CPtr {
                 .ok_or(LuaError::external("failed to get inner type userdata."))?;
             Ok(format!(
                 " <{}({})> ",
-                type_name_from_userdata(inner),
-                type_userdata_stringify(inner)?,
+                name_from_userdata(inner),
+                stringify_userdata(inner)?,
             ))
         } else {
             Err(LuaError::external("failed to get inner type userdata."))

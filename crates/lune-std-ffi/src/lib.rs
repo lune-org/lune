@@ -6,6 +6,7 @@ use mlua::prelude::*;
 mod association;
 mod carr;
 mod cfn;
+mod chelper;
 mod cptr;
 mod cstring;
 mod cstruct;

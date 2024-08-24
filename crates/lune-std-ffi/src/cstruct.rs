@@ -9,12 +9,10 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use crate::ctype::{libffi_types_from_table, type_userdata_stringify, CType};
+use crate::association::{get_association, set_association};
+use crate::chelper::{name_from_userdata, stringify_userdata, type_list_from_table};
+use crate::ctype::CType;
 use crate::FFI_STATUS_NAMES;
-use crate::{
-    association::{get_association, set_association},
-    ctype::type_name_from_userdata,
-};
 use crate::{carr::CArr, cptr::CPtr};
 
 pub struct CStruct {
@@ -68,7 +66,7 @@ impl CStruct {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = libffi_types_from_table(&table)?;
+        let fields = type_list_from_table(&table)?;
         let cstruct = lua.create_userdata(Self::new(fields)?)?;
         table.set_readonly(true);
         set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
@@ -88,13 +86,13 @@ impl CStruct {
             for i in 0..table.raw_len() {
                 let child: LuaAnyUserData = table.raw_get(i + 1)?;
                 if child.is::<CType>() {
-                    result.push_str(format!("{}, ", type_userdata_stringify(&child)?).as_str());
+                    result.push_str(format!("{}, ", stringify_userdata(&child)?).as_str());
                 } else {
                     result.push_str(
                         format!(
                             "<{}({})>, ",
-                            type_name_from_userdata(&child),
-                            type_userdata_stringify(&child)?
+                            name_from_userdata(&child),
+                            stringify_userdata(&child)?
                         )
                         .as_str(),
                     );
