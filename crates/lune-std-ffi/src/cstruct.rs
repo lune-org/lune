@@ -9,9 +9,13 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use crate::association::{get_association, set_association};
-use crate::ctype::{libffi_types_from_table, type_name_from_userdata, CType};
+use crate::ctype::{libffi_types_from_table, type_userdata_stringify, CType};
 use crate::FFI_STATUS_NAMES;
+use crate::{
+    association::{get_association, set_association},
+    ctype::type_name_from_userdata,
+};
+use crate::{carr::CArr, cptr::CPtr};
 
 pub struct CStruct {
     libffi_cif: Cif,
@@ -78,20 +82,30 @@ impl CStruct {
         if field.is_table() {
             let table = field
                 .as_table()
-                .ok_or(LuaError::external("failed to get inner table."))?;
-
+                .ok_or(LuaError::external("failed to get inner type table."))?;
             // iterate for field
             let mut result = String::from(" ");
             for i in 0..table.raw_len() {
                 let child: LuaAnyUserData = table.raw_get(i + 1)?;
-                result.push_str(format!("{}, ", type_name_from_userdata(&child)?).as_str());
+                if child.is::<CType>() {
+                    result.push_str(format!("{}, ", type_userdata_stringify(&child)?).as_str());
+                } else {
+                    result.push_str(
+                        format!(
+                            "<{}({})>, ",
+                            type_name_from_userdata(&child),
+                            type_userdata_stringify(&child)?
+                        )
+                        .as_str(),
+                    );
+                }
             }
 
             // size of
             result.push_str(format!("size = {} ", userdata.borrow::<CStruct>()?.size).as_str());
             Ok(result)
         } else {
-            Ok(String::from("unnamed"))
+            Err(LuaError::external("failed to get inner type table."))
         }
     }
 
@@ -124,14 +138,19 @@ impl LuaUserData for CStruct {
             Ok(table)
         });
     }
+
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("offset", |_, this, index: usize| {
             let offset = this.offset(index)?;
             Ok(offset)
         });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CType::pointer(lua, &this)?;
+            let pointer = CPtr::from_lua_userdata(lua, &this)?;
             Ok(pointer)
+        });
+        methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
+            let carr = CArr::from_lua_userdata(lua, &this, length)?;
+            Ok(carr)
         });
         methods.add_meta_function(LuaMetaMethod::ToString, |_, this: LuaAnyUserData| {
             let result = CStruct::stringify(&this)?;
