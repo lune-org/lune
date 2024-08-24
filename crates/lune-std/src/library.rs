@@ -6,8 +6,18 @@ pub trait StandardLibrary
 where
     Self: Debug,
 {
+    /**
+        Gets the name of the library, such as `datetime` or `fs`.
+    */
     fn name(&self) -> &'static str;
 
+    /**
+        Creates the Lua module for the library.
+
+        # Errors
+
+        If the library could not be created.
+    */
     fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>>;
 }
 
@@ -49,9 +59,6 @@ impl LuneStandardLibrary {
 }
 
 impl StandardLibrary for LuneStandardLibrary {
-    /**
-        Gets the name of the library, such as `datetime` or `fs`.
-    */
     #[must_use]
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
@@ -72,13 +79,6 @@ impl StandardLibrary for LuneStandardLibrary {
         }
     }
 
-    /**
-        Creates the Lua module for the library.
-
-        # Errors
-
-        If the library could not be created.
-    */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
     fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {

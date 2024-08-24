@@ -1,7 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-pub use globals::require::context::RequireContext;
-
 use mlua::prelude::*;
 
 mod global;
@@ -11,8 +9,9 @@ mod luaurc;
 mod path;
 
 pub use self::global::LuneStandardGlobal;
+pub use self::globals::require::context::RequireContext;
 pub use self::globals::version::set_global_version;
-pub use self::library::LuneStandardLibrary;
+pub use self::library::{LuneStandardLibrary, StandardLibrary};
 
 /**
     Injects all standard globals into the given Lua state / VM.
