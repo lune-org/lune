@@ -13,6 +13,7 @@ use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
 use crate::carr::CArr;
+use crate::cptr::CPtr;
 use crate::cstruct::CStruct;
 use crate::FFI_STATUS_NAMES;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
@@ -42,26 +43,6 @@ impl CType {
         self.libffi_type.clone()
     }
 
-    // Create pointer type with '.inner' field
-    // inner can be CArr, CType or CStruct
-    pub fn pointer<'lua>(lua: &'lua Lua, inner: &LuaAnyUserData) -> LuaResult<LuaValue<'lua>> {
-        let value = Self {
-            libffi_cif: Cif::new(vec![Type::pointer()], Type::void()),
-            libffi_type: Type::pointer(),
-            size: size_of::<usize>(),
-            name: Some(format!(
-                "Ptr<{}({})>",
-                type_name_from_userdata(inner),
-                type_userdata_stringify(inner)?
-            )),
-        }
-        .into_lua(lua)?;
-
-        set_association(lua, POINTER_INNER, value.borrow(), inner)?;
-
-        Ok(value)
-    }
-
     pub fn stringify(&self) -> String {
         match &self.name {
             Some(t) => t.to_owned(),
@@ -73,18 +54,11 @@ impl CType {
 impl LuaUserData for CType {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
-        fields.add_field_function_get("inner", |lua, this| {
-            let inner = get_association(lua, POINTER_INNER, this)?;
-            match inner {
-                Some(t) => Ok(t),
-                None => Ok(LuaNil),
-            }
-        });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CType::pointer(lua, &this)?;
+            let pointer = CPtr::from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
@@ -172,7 +146,7 @@ pub fn libffi_types_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
     Ok(fields)
 }
 
-// get libffi_type from any c-types userdata
+// get libffi_type from any c-type userdata
 pub fn libffi_type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
     if userdata.is::<CStruct>() {
         Ok(userdata.borrow::<CStruct>()?.get_type())
@@ -180,6 +154,8 @@ pub fn libffi_type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
         Ok(userdata.borrow::<CType>()?.get_type())
     } else if userdata.is::<CArr>() {
         Ok(userdata.borrow::<CArr>()?.get_type())
+    } else if userdata.is::<CPtr>() {
+        Ok(CPtr::get_type())
     } else {
         Err(LuaError::external(format!(
             "Unexpected field. CStruct, CType, CString or CArr is required for element but got {}",
@@ -193,7 +169,7 @@ pub fn libffi_type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
     }
 }
 
-// stringify any c-types userdata (for recursive)
+// stringify any c-type userdata (for recursive)
 pub fn type_userdata_stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
     if userdata.is::<CType>() {
         let name = userdata.borrow::<CType>()?.stringify();
@@ -204,11 +180,15 @@ pub fn type_userdata_stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
     } else if userdata.is::<CArr>() {
         let name = CArr::stringify(userdata)?;
         Ok(name)
+    } else if userdata.is::<CPtr>() {
+        let name: String = CPtr::stringify(userdata)?;
+        Ok(name)
     } else {
         Ok(String::from("unnamed"))
     }
 }
 
+// get name tag for any c-type userdata
 pub fn type_name_from_userdata(userdata: &LuaAnyUserData) -> String {
     if userdata.is::<CStruct>() {
         String::from("CStruct")
@@ -216,6 +196,8 @@ pub fn type_name_from_userdata(userdata: &LuaAnyUserData) -> String {
         String::from("CType")
     } else if userdata.is::<CArr>() {
         String::from("CArr")
+    } else if userdata.is::<CPtr>() {
+        String::from("CPtr")
     } else {
         String::from("unnamed")
     }

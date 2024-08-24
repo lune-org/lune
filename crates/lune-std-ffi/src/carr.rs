@@ -2,6 +2,7 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
+use crate::cptr::CPtr;
 use crate::ctype::{
     libffi_type_ensured_size, libffi_type_from_userdata, type_userdata_stringify, CType,
 };
@@ -88,6 +89,7 @@ impl LuaUserData for CArr {
             Ok(inner)
         });
     }
+
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("offset", |_, this, offset: isize| {
             if this.length > (offset as usize) && offset >= 0 {
@@ -97,7 +99,7 @@ impl LuaUserData for CArr {
             }
         });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CType::pointer(lua, &this)?;
+            let pointer = CPtr::from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_meta_function(LuaMetaMethod::ToString, |_, this: LuaAnyUserData| {

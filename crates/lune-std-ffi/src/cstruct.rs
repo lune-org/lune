@@ -9,13 +9,13 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use crate::carr::CArr;
 use crate::ctype::{libffi_types_from_table, type_userdata_stringify, CType};
 use crate::FFI_STATUS_NAMES;
 use crate::{
     association::{get_association, set_association},
     ctype::type_name_from_userdata,
 };
+use crate::{carr::CArr, cptr::CPtr};
 
 pub struct CStruct {
     libffi_cif: Cif,
@@ -138,13 +138,14 @@ impl LuaUserData for CStruct {
             Ok(table)
         });
     }
+
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("offset", |_, this, index: usize| {
             let offset = this.offset(index)?;
             Ok(offset)
         });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CType::pointer(lua, &this)?;
+            let pointer = CPtr::from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
