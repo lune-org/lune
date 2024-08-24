@@ -2,6 +2,7 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
+use crate::association_names::CARR_INNER;
 use crate::chelper::{get_ensured_size, stringify_userdata, type_from_userdata};
 use crate::cptr::CPtr;
 
@@ -15,8 +16,6 @@ use crate::cptr::CPtr;
 
 // Padding after each field inside the struct is set to next field can follow the alignment.
 // There is no problem even if you create a struct with n fields of a single type within the struct. Array adheres to the condition that there is no additional padding between each element. Padding to a struct is padding inside the struct. Simply think of the padding byte as a trailing unnamed field.
-
-const CARR_INNER: &str = "__carr_inner";
 
 pub struct CArr {
     libffi_type: Type,

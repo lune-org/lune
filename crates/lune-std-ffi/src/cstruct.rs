@@ -10,6 +10,7 @@ use libffi::{
 use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
+use crate::association_names::CSTRUCT_INNER;
 use crate::chelper::{name_from_userdata, stringify_userdata, type_list_from_table};
 use crate::ctype::CType;
 use crate::FFI_STATUS_NAMES;
@@ -22,8 +23,6 @@ pub struct CStruct {
     offsets: Vec<usize>,
     size: usize,
 }
-
-const CSTRUCT_INNER: &str = "__cstruct_inner";
 
 impl CStruct {
     pub fn new(fields: Vec<Type>) -> LuaResult<Self> {

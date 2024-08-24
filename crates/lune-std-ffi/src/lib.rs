@@ -23,12 +23,19 @@ use crate::ctype::create_all_types;
 use crate::ffibox::FfiBox;
 use crate::ffilib::FfiLib;
 
+// Converts ffi status into &str
 pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_OK",
     "ffi_status_FFI_BAD_TYPEDEF",
     "ffi_status_FFI_BAD_ABI",
     "ffi_status_FFI_BAD_ARGTYPE",
 ];
+
+mod association_names {
+    pub const CPTR_INNER: &str = "__cptr_inner";
+    pub const CARR_INNER: &str = "__carr_inner";
+    pub const CSTRUCT_INNER: &str = "__cstruct_inner";
+}
 
 /**
     Creates the `ffi` standard library module.

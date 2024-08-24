@@ -6,10 +6,9 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
+use crate::association_names::CPTR_INNER;
 use crate::carr::CArr;
 use crate::chelper::{name_from_userdata, stringify_userdata};
-
-const POINTER_INNER: &str = "__pointer_inner";
 
 pub struct CPtr();
 
@@ -22,7 +21,7 @@ impl CPtr {
     ) -> LuaResult<LuaValue<'lua>> {
         let value = Self().into_lua(lua)?;
 
-        set_association(lua, POINTER_INNER, value.borrow(), inner)?;
+        set_association(lua, CPTR_INNER, value.borrow(), inner)?;
 
         Ok(value)
     }
@@ -55,7 +54,7 @@ impl LuaUserData for CPtr {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, _| Ok(size_of::<usize>()));
         fields.add_field_function_get("inner", |lua, this| {
-            let inner = get_association(lua, POINTER_INNER, this)?
+            let inner = get_association(lua, CPTR_INNER, this)?
                 .ok_or(LuaError::external("inner type not found"))?;
             Ok(inner)
         });
