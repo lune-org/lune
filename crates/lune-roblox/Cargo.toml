@@ -1,6 +1,6 @@
 [package]
 name = "lune-roblox"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -20,10 +20,10 @@ rand = "0.8"
 thiserror = "1.0"
 once_cell = "1.17"
 
-rbx_binary = "0.7.3"
-rbx_dom_weak = "2.6.0"
-rbx_reflection = "4.4.0"
-rbx_reflection_database = "0.2.9"
-rbx_xml = "0.13.2"
+rbx_binary = "0.7.7"
+rbx_dom_weak = "2.9.0"
+rbx_reflection = "4.7.0"
+rbx_reflection_database = "0.2.12"
+rbx_xml = "0.13.5"
 
 lune-utils = { version = "0.1.3", path = "../lune-utils" }

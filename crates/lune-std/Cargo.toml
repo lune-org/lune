@@ -1,6 +1,6 @@
 [package]
 name = "lune-std"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -55,7 +55,7 @@ lune-std-luau = { optional = true, version = "0.1.2", path = "../lune-std-luau" 
 lune-std-net = { optional = true, version = "0.1.2", path = "../lune-std-net" }
 lune-std-process = { optional = true, version = "0.1.3", path = "../lune-std-process" }
 lune-std-regex = { optional = true, version = "0.1.2", path = "../lune-std-regex" }
-lune-std-roblox = { optional = true, version = "0.1.3", path = "../lune-std-roblox" }
+lune-std-roblox = { optional = true, version = "0.1.4", path = "../lune-std-roblox" }
 lune-std-serde = { optional = true, version = "0.1.2", path = "../lune-std-serde" }
 lune-std-stdio = { optional = true, version = "0.1.2", path = "../lune-std-stdio" }
 lune-std-task = { optional = true, version = "0.1.2", path = "../lune-std-task" }
