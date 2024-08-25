@@ -12,6 +12,8 @@ use super::ffi_bounds::FfiRefBounds;
 // If it references an area managed by Lua,
 // the box will remain as long as this reference is alive.
 
+// Todo : how to impl ref == nullptr
+
 pub struct FfiRef {
     ptr: *mut (),
     range: Option<FfiRefBounds>,

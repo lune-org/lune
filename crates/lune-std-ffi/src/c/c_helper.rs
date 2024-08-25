@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::ptr::{self, null_mut};
 
 use libffi::{low, middle::Type, raw};
@@ -37,11 +38,11 @@ pub fn type_list_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
 // get libffi_type from any c-type userdata
 pub fn type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
     if userdata.is::<CStruct>() {
-        Ok(userdata.borrow::<CStruct>()?.get_type())
-    } else if userdata.is::<CType>() {
-        Ok(userdata.borrow::<CType>()?.get_type())
+        Ok(userdata.borrow::<CStruct>()?.get_type().to_owned())
+    } else if userdata.is::<CType<dyn Any>>() {
+        Ok(userdata.borrow::<CType<dyn Any>>()?.get_type().to_owned())
     } else if userdata.is::<CArr>() {
-        Ok(userdata.borrow::<CArr>()?.get_type())
+        Ok(userdata.borrow::<CArr>()?.get_type().to_owned())
     } else if userdata.is::<CPtr>() {
         Ok(CPtr::get_type())
     } else {
@@ -59,9 +60,10 @@ pub fn type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
 
 // stringify any c-type userdata (for recursive)
 pub fn stringify_userdata(userdata: &LuaAnyUserData) -> LuaResult<String> {
-    if userdata.is::<CType>() {
-        let name = userdata.borrow::<CType>()?.stringify();
-        Ok(name)
+    if userdata.is::<CType<dyn Any>>() {
+        Ok(String::from(
+            userdata.borrow::<CType<dyn Any>>()?.stringify(),
+        ))
     } else if userdata.is::<CStruct>() {
         let name = CStruct::stringify(userdata)?;
         Ok(name)
@@ -80,7 +82,7 @@ pub fn stringify_userdata(userdata: &LuaAnyUserData) -> LuaResult<String> {
 pub fn name_from_userdata(userdata: &LuaAnyUserData) -> String {
     if userdata.is::<CStruct>() {
         String::from("CStruct")
-    } else if userdata.is::<CType>() {
+    } else if userdata.is::<CType<dyn Any>>() {
         String::from("CType")
     } else if userdata.is::<CArr>() {
         String::from("CArr")
