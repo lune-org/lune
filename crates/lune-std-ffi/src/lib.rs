@@ -6,13 +6,10 @@ use mlua::prelude::*;
 mod c;
 mod ffi;
 
-use crate::c::c_fn::CFn;
-use crate::c::c_struct::CStruct;
-use crate::c::c_type::create_all_types;
-use crate::ffi::ffi_association::get_table;
-use crate::ffi::ffi_box::FfiBox;
-use crate::ffi::ffi_lib::FfiLib;
-use crate::ffi::ffi_platform::get_platform_value;
+use crate::c::{c_fn::CFn, c_struct::CStruct, create_all_types};
+use crate::ffi::{
+    ffi_association::get_table, ffi_box::FfiBox, ffi_lib::FfiLib, ffi_platform::get_platform_value,
+};
 
 /**
     Creates the `ffi` standard library module.
