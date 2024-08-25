@@ -1,7 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::borrow::Borrow;
-
 use libffi::middle::Type;
 use mlua::prelude::*;
 
@@ -21,7 +19,7 @@ impl CPtr {
     ) -> LuaResult<LuaValue<'lua>> {
         let value = Self().into_lua(lua)?;
 
-        set_association(lua, CPTR_INNER, value.borrow(), inner)?;
+        set_association(lua, CPTR_INNER, &value, inner)?;
 
         Ok(value)
     }

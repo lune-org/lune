@@ -21,7 +21,7 @@ use crate::ffi::ffi_association::{get_association, set_association};
 // There is no problem even if you create a struct with n fields of a single type within the struct. Array adheres to the condition that there is no additional padding between each element. Padding to a struct is padding inside the struct. Simply think of the padding byte as a trailing unnamed field.
 
 pub struct CArr {
-    libffi_type: Type,
+    element_type: Type,
     struct_type: Type,
     length: usize,
     field_size: usize,
@@ -29,12 +29,12 @@ pub struct CArr {
 }
 
 impl CArr {
-    pub fn new(libffi_type: Type, length: usize) -> LuaResult<Self> {
-        let struct_type = Type::structure(vec![libffi_type.clone(); length]);
-        let field_size = get_ensured_size(libffi_type.as_raw_ptr())?;
+    pub fn new(element_type: Type, length: usize) -> LuaResult<Self> {
+        let struct_type = Type::structure(vec![element_type.clone(); length]);
+        let field_size = get_ensured_size(element_type.as_raw_ptr())?;
 
         Ok(Self {
-            libffi_type,
+            element_type,
             struct_type,
             length,
             field_size,
@@ -50,13 +50,17 @@ impl CArr {
         let fields = type_from_userdata(luatype)?;
         let carr = lua.create_userdata(Self::new(fields, length)?)?;
 
-        set_association(lua, CARR_INNER, carr.clone(), luatype)?;
+        set_association(lua, CARR_INNER, &carr, luatype)?;
         Ok(carr)
     }
 
     pub fn get_type(&self) -> Type {
-        self.libffi_type.clone()
+        self.struct_type.clone()
     }
+
+    // pub fn get_element_type(&self) -> Type {
+    //     self.element_type.clone()
+    // }
 
     // Stringify cstruct for pretty printing something like:
     // <CStruct( u8, i32, size = 8 )>

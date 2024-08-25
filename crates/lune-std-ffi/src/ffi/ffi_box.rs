@@ -11,12 +11,11 @@
 
 use std::boxed::Box;
 
-use core::ffi::c_void;
 use mlua::prelude::*;
 
-use super::association_names::BOX_REF_INNER;
+use super::association_names::REF_INNER;
 use super::ffi_association::set_association;
-use super::ffi_ref::FfiRange;
+use super::ffi_bounds::FfiRefBounds;
 use super::ffi_ref::FfiRef;
 
 pub struct FfiBox(Box<[u8]>);
@@ -36,29 +35,10 @@ impl FfiBox {
         Self(vec_heap.into_boxed_slice())
     }
 
-    pub fn size(&self) -> usize {
-        self.0.len()
-    }
-
     // pub fn copy(&self, target: &mut FfiBox) {}
 
-    pub fn get_ptr(&self) -> *mut c_void {
-        self.0.as_ptr() as *mut c_void
-    }
-
+    // Todo: if too big, print as another format
     pub fn stringify(&self) -> String {
-        let mut buff = String::from(" ");
-        for i in &self.0 {
-            buff.push_str(i.to_string().as_str());
-            buff.push_str(", ");
-        }
-        buff.pop();
-        buff.pop();
-        buff.push(' ');
-        buff
-    }
-
-    pub fn binary_print(&self) -> String {
         let mut buff: String = String::with_capacity(self.size() * 10 - 2);
         for (pos, value) in self.0.iter().enumerate() {
             for i in 0..8 {
@@ -75,41 +55,50 @@ impl FfiBox {
         buff
     }
 
-    // bad naming. i have no idea what should i use
+    // Make FfiRef from box, with boundary checking
     pub fn luaref<'lua>(
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
         offset: Option<isize>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let target = this.borrow::<FfiBox>()?;
-        let ptr = if let Some(t) = offset {
-            if t < 0 || t >= (target.size() as isize) {
+        let mut target = this.borrow_mut::<FfiBox>()?;
+        let mut bounds = FfiRefBounds::new(0, target.size());
+        let mut ptr = target.get_ptr();
+
+        // Calculate offset
+        if let Some(t) = offset {
+            if !bounds.check(t) {
                 return Err(LuaError::external(format!(
                     "Offset is out of bounds. box.size: {}. offset got {}",
                     target.size(),
                     t
                 )));
             }
-            unsafe { target.get_ptr().offset(t) }
-        } else {
-            target.get_ptr()
-        };
+            ptr = unsafe { target.get_ptr().offset(t) };
+            bounds = bounds.offset(t);
+        }
 
-        let luaref = lua.create_userdata(FfiRef::new(
-            ptr,
-            Some(FfiRange {
-                low: 0,
-                high: target.size() as isize,
-            }),
-        ))?;
+        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), Some(bounds)))?;
 
-        set_association(lua, BOX_REF_INNER, luaref.clone(), this.clone())?;
+        // Makes box alive longer then ref
+        set_association(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
     }
 
+    // Fill every field with 0
     pub fn zero(&mut self) {
         self.0.fill(0u8);
+    }
+
+    // Get size of box
+    pub fn size(&self) -> usize {
+        self.0.len()
+    }
+
+    // Get raw ptr
+    pub fn get_ptr(&mut self) -> *mut u8 {
+        self.0.as_mut_ptr()
     }
 }
 
@@ -119,6 +108,7 @@ impl LuaUserData for FfiBox {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // For convenience, :zero returns self.
         methods.add_function_mut("zero", |_, this: LuaAnyUserData| {
             this.borrow_mut::<FfiBox>()?.zero();
             Ok(this)
@@ -130,8 +120,6 @@ impl LuaUserData for FfiBox {
                 Ok(luaref)
             },
         );
-        methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
-            Ok(this.binary_print())
-        });
+        methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| Ok(this.stringify()));
     }
 }

@@ -1,5 +1,3 @@
-use std::ffi::c_void;
-
 use mlua::prelude::*;
 
 use super::ffi_box::FfiBox;
@@ -13,12 +11,14 @@ pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_BAD_ARGTYPE",
 ];
 
+// Get raw pointer from userdata
+// TODO: boundary check
 pub unsafe fn get_ptr_from_userdata(
     userdata: &LuaAnyUserData,
     offset: Option<isize>,
-) -> LuaResult<*mut c_void> {
+) -> LuaResult<*mut ()> {
     let ptr = if userdata.is::<FfiBox>() {
-        userdata.borrow::<FfiBox>()?.get_ptr()
+        userdata.borrow_mut::<FfiBox>()?.get_ptr().cast()
     } else if userdata.is::<FfiRef>() {
         userdata.borrow::<FfiRef>()?.get_ptr()
     } else {
@@ -26,7 +26,7 @@ pub unsafe fn get_ptr_from_userdata(
     };
 
     let ptr = if let Some(t) = offset {
-        ptr.offset(t)
+        ptr.cast::<u8>().offset(t).cast()
     } else {
         ptr
     };

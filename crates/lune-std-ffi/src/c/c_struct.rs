@@ -1,6 +1,6 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::vec::Vec;
+use std::{borrow::Borrow, vec::Vec};
 
 use libffi::{
     low,
@@ -18,17 +18,17 @@ use crate::ffi::ffi_association::{get_association, set_association};
 use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
 
 pub struct CStruct {
-    libffi_cif: Cif,
-    libffi_type: Type,
+    // libffi_cif: Cif,
     fields: Vec<Type>,
+    libffi_type: Type,
     offsets: Vec<usize>,
     size: usize,
 }
 
 impl CStruct {
     pub fn new(fields: Vec<Type>) -> LuaResult<Self> {
-        let libffi_type = Type::structure(fields.clone());
-        let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
+        let libffi_type = Type::structure(fields.iter().cloned());
+        // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
 
         // Get field offsets with ffi_get_struct_offsets
         let mut offsets = Vec::<usize>::with_capacity(fields.len());
@@ -52,9 +52,9 @@ impl CStruct {
         let size = unsafe { (*libffi_type.as_raw_ptr()).size };
 
         Ok(Self {
-            libffi_cif: libffi_cfi,
-            libffi_type,
+            // libffi_cif: libffi_cfi,
             fields,
+            libffi_type,
             offsets,
             size,
         })
@@ -69,7 +69,7 @@ impl CStruct {
         let fields = type_list_from_table(&table)?;
         let cstruct = lua.create_userdata(Self::new(fields)?)?;
         table.set_readonly(true);
-        set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
+        set_association(lua, CSTRUCT_INNER, &cstruct, table)?;
         Ok(cstruct)
     }
 

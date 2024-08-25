@@ -39,9 +39,9 @@ impl FfiLib {
                 .map_err(|err| LuaError::external(format!("{err}")))?
         };
 
-        let luasym = lua.create_userdata(FfiRef::new(*sym, None))?;
+        let luasym = lua.create_userdata(FfiRef::new((*sym).cast(), None))?;
 
-        set_association(lua, SYM_INNER, luasym.clone(), this.clone())?;
+        set_association(lua, SYM_INNER, &luasym, &this)?;
 
         Ok(luasym)
     }
