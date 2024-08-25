@@ -8,11 +8,11 @@ use core::ffi::{
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
-use crate::carr::CArr;
-use crate::chelper::get_ensured_size;
-use crate::cptr::CPtr;
-use crate::ffihelper::get_ptr_from_userdata;
-use crate::platform::CHAR_IS_SIGNED;
+use crate::c_arr::CArr;
+use crate::c_helper::get_ensured_size;
+use crate::c_ptr::CPtr;
+use crate::ffi_helper::get_ptr_from_userdata;
+use crate::ffi_platform::CHAR_IS_SIGNED;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 pub struct CType {
@@ -119,6 +119,7 @@ impl LuaUserData for CType {
 }
 
 // export all default c-types
+#[allow(clippy::too_many_lines)]
 pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
     Ok(vec![
         (
@@ -143,6 +144,60 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
                 },
                 |lua: &Lua, ptr: *mut c_void| {
                     let value = unsafe { (*ptr.cast::<c_int>()).into_lua(lua)? };
+                    Ok(value)
+                },
+            )?
+            .into_lua(lua)?,
+        ),
+        (
+            "long",
+            CType::new(
+                Type::c_long(),
+                Some(String::from("long")),
+                |data, ptr| {
+                    let value = match data {
+                        LuaValue::Integer(t) => t,
+                        _ => {
+                            return Err(LuaError::external(format!(
+                                "Integer expected, got {}",
+                                data.type_name()
+                            )))
+                        }
+                    } as c_long;
+                    unsafe {
+                        *(ptr.cast::<c_long>()) = value;
+                    }
+                    Ok(())
+                },
+                |lua: &Lua, ptr: *mut c_void| {
+                    let value = unsafe { (*ptr.cast::<c_long>()).into_lua(lua)? };
+                    Ok(value)
+                },
+            )?
+            .into_lua(lua)?,
+        ),
+        (
+            "longlong",
+            CType::new(
+                Type::c_longlong(),
+                Some(String::from("longlong")),
+                |data, ptr| {
+                    let value = match data {
+                        LuaValue::Integer(t) => t,
+                        _ => {
+                            return Err(LuaError::external(format!(
+                                "Integer expected, got {}",
+                                data.type_name()
+                            )))
+                        }
+                    } as c_longlong;
+                    unsafe {
+                        *(ptr.cast::<c_longlong>()) = value;
+                    }
+                    Ok(())
+                },
+                |lua: &Lua, ptr: *mut c_void| {
+                    let value = unsafe { (*ptr.cast::<c_longlong>()).into_lua(lua)? };
                     Ok(value)
                 },
             )?

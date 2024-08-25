@@ -4,10 +4,10 @@ use libffi::{low, middle::Type, raw};
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
-use crate::carr::CArr;
-use crate::cptr::CPtr;
-use crate::cstruct::CStruct;
-use crate::ctype::CType;
+use crate::c_arr::CArr;
+use crate::c_ptr::CPtr;
+use crate::c_struct::CStruct;
+use crate::c_type::CType;
 use crate::FFI_STATUS_NAMES;
 
 // get Vec<libffi_type> from table(array) of c-types userdata

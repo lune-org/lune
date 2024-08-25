@@ -3,28 +3,28 @@
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
-mod association;
-mod carr;
-mod cfn;
-mod chelper;
-mod cptr;
-mod cstring;
-mod cstruct;
-mod ctype;
-mod ffibox;
-mod ffihelper;
-mod ffilib;
-mod ffiraw;
-mod ffiref;
-mod platform;
+mod ffi_association;
+mod c_arr;
+mod c_fn;
+mod c_helper;
+mod c_ptr;
+mod c_string;
+mod c_struct;
+mod c_type;
+mod ffi_box;
+mod ffi_helper;
+mod ffi_lib;
+mod ffi_platform;
+mod ffi_raw;
+mod ffi_ref;
 
-use crate::association::get_table;
-use crate::cfn::CFn;
-use crate::cstruct::CStruct;
-use crate::ctype::create_all_types;
-use crate::ffibox::FfiBox;
-use crate::ffilib::FfiLib;
-use crate::platform::get_platform_value;
+use crate::ffi_association::get_table;
+use crate::c_fn::CFn;
+use crate::c_struct::CStruct;
+use crate::c_type::create_all_types;
+use crate::ffi_box::FfiBox;
+use crate::ffi_lib::FfiLib;
+use crate::ffi_platform::get_platform_value;
 
 // Converts ffi status into &str
 pub const FFI_STATUS_NAMES: [&str; 4] = [

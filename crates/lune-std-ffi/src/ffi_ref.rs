@@ -3,7 +3,7 @@ use std::ptr;
 
 use mlua::prelude::*;
 
-use crate::association::set_association;
+use crate::ffi_association::set_association;
 use crate::association_names::REF_INNER;
 
 // A referenced space. It is possible to read and write through types.

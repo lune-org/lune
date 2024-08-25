@@ -2,8 +2,8 @@ use std::ffi::c_void;
 
 use mlua::prelude::*;
 
-use crate::ffibox::FfiBox;
-use crate::ffiref::FfiRef;
+use crate::ffi_box::FfiBox;
+use crate::ffi_ref::FfiRef;
 
 pub unsafe fn get_ptr_from_userdata(
     userdata: &LuaAnyUserData,
