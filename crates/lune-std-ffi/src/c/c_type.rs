@@ -1,7 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use core::ffi::c_void;
-
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
@@ -18,18 +16,18 @@ pub struct CType {
     name: Option<String>,
 
     // Write converted data from luavalue into some ptr
-    pub luavalue_into_ptr: fn(value: LuaValue, ptr: *mut c_void) -> LuaResult<()>,
+    pub luavalue_into_ptr: fn(value: LuaValue, ptr: *mut ()) -> LuaResult<()>,
 
     // Read luavalue from some ptr
-    pub ptr_into_luavalue: fn(lua: &Lua, ptr: *mut c_void) -> LuaResult<LuaValue>,
+    pub ptr_into_luavalue: fn(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue>,
 }
 
 impl CType {
     pub fn new(
         libffi_type: Type,
         name: Option<String>,
-        luavalue_into_ptr: fn(value: LuaValue, ptr: *mut c_void) -> LuaResult<()>,
-        ptr_into_luavalue: fn(lua: &Lua, ptr: *mut c_void) -> LuaResult<LuaValue>,
+        luavalue_into_ptr: fn(value: LuaValue, ptr: *mut ()) -> LuaResult<()>,
+        ptr_into_luavalue: fn(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue>,
     ) -> LuaResult<Self> {
         let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
         let size = get_ensured_size(libffi_type.as_raw_ptr())?;

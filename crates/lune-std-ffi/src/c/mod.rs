@@ -48,7 +48,7 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
                     }
                     Ok(())
                 },
-                |lua: &Lua, ptr: *mut c_void| {
+                |lua: &Lua, ptr: *mut ()| {
                     let value = unsafe { (*ptr.cast::<c_int>()).into_lua(lua)? };
                     Ok(value)
                 },
@@ -75,7 +75,7 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
                     }
                     Ok(())
                 },
-                |lua: &Lua, ptr: *mut c_void| {
+                |lua: &Lua, ptr: *mut ()| {
                     let value = unsafe { (*ptr.cast::<c_long>()).into_lua(lua)? };
                     Ok(value)
                 },
@@ -102,7 +102,7 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
                     }
                     Ok(())
                 },
-                |lua: &Lua, ptr: *mut c_void| {
+                |lua: &Lua, ptr: *mut ()| {
                     let value = unsafe { (*ptr.cast::<c_longlong>()).into_lua(lua)? };
                     Ok(value)
                 },
@@ -133,7 +133,7 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
                     }
                     Ok(())
                 },
-                |lua: &Lua, ptr: *mut c_void| {
+                |lua: &Lua, ptr: *mut ()| {
                     let value = unsafe { (*ptr.cast::<c_char>()).into_lua(lua)? };
                     Ok(value)
                 },

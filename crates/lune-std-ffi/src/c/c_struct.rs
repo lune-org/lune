@@ -69,7 +69,7 @@ impl CStruct {
         let fields = type_list_from_table(&table)?;
         let cstruct = lua.create_userdata(Self::new(fields)?)?;
         table.set_readonly(true);
-        set_association(lua, CSTRUCT_INNER, cstruct.clone(), table)?;
+        set_association(lua, CSTRUCT_INNER, &cstruct, table)?;
         Ok(cstruct)
     }
 

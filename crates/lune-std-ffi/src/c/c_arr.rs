@@ -50,7 +50,7 @@ impl CArr {
         let fields = type_from_userdata(luatype)?;
         let carr = lua.create_userdata(Self::new(fields, length)?)?;
 
-        set_association(lua, CARR_INNER, carr.clone(), luatype)?;
+        set_association(lua, CARR_INNER, &carr, luatype)?;
         Ok(carr)
     }
 

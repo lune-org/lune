@@ -1,5 +1,5 @@
-use core::ffi::c_void;
-use std::{convert, mem::transmute, ptr};
+// use core::ffi::c_void;
+// use std::{convert, mem::transmute, ptr};
 
 // This is raw data coming from outside.
 // Users must convert it to a Lua value, reference, or box to use it.
