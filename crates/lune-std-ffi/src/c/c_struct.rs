@@ -9,12 +9,13 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use crate::ffi_association::{get_association, set_association};
-use crate::association_names::CSTRUCT_INNER;
-use crate::c_helper::{name_from_userdata, stringify_userdata, type_list_from_table};
-use crate::c_type::CType;
-use crate::FFI_STATUS_NAMES;
-use crate::{c_arr::CArr, c_ptr::CPtr};
+use super::association_names::CSTRUCT_INNER;
+use super::c_arr::CArr;
+use super::c_helper::{name_from_userdata, stringify_userdata, type_list_from_table};
+use super::c_ptr::CPtr;
+use super::c_type::CType;
+use crate::ffi::ffi_association::{get_association, set_association};
+use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
 
 pub struct CStruct {
     libffi_cif: Cif,

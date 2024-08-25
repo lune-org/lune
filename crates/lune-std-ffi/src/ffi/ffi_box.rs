@@ -14,10 +14,10 @@ use std::boxed::Box;
 use core::ffi::c_void;
 use mlua::prelude::*;
 
-use crate::association_names::BOX_REF_INNER;
-use crate::ffi_association::set_association;
-use crate::ffi_ref::FfiRange;
-use crate::ffi_ref::FfiRef;
+use super::association_names::BOX_REF_INNER;
+use super::ffi_association::set_association;
+use super::ffi_ref::FfiRange;
+use super::ffi_ref::FfiRef;
 
 pub struct FfiBox(Box<[u8]>);
 

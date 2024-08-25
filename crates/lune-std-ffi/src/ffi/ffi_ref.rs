@@ -3,8 +3,8 @@ use std::ptr;
 
 use mlua::prelude::*;
 
-use crate::ffi_association::set_association;
-use crate::association_names::REF_INNER;
+use super::association_names::REF_INNER;
+use super::ffi_association::set_association;
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua

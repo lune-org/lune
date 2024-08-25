@@ -2,8 +2,16 @@ use std::ffi::c_void;
 
 use mlua::prelude::*;
 
-use crate::ffi_box::FfiBox;
-use crate::ffi_ref::FfiRef;
+use super::ffi_box::FfiBox;
+use super::ffi_ref::FfiRef;
+
+// Converts ffi status into &str
+pub const FFI_STATUS_NAMES: [&str; 4] = [
+    "ffi_status_FFI_OK",
+    "ffi_status_FFI_BAD_TYPEDEF",
+    "ffi_status_FFI_BAD_ABI",
+    "ffi_status_FFI_BAD_ARGTYPE",
+];
 
 pub unsafe fn get_ptr_from_userdata(
     userdata: &LuaAnyUserData,

@@ -5,10 +5,10 @@ use std::borrow::Borrow;
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use crate::association_names::CPTR_INNER;
-use crate::c_arr::CArr;
-use crate::c_helper::{name_from_userdata, stringify_userdata};
-use crate::ffi_association::{get_association, set_association};
+use super::association_names::CPTR_INNER;
+use super::c_arr::CArr;
+use super::c_helper::{name_from_userdata, stringify_userdata};
+use crate::ffi::ffi_association::{get_association, set_association};
 
 pub struct CPtr();
 

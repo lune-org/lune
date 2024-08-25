@@ -1,7 +1,7 @@
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
-use crate::c_helper::{type_from_userdata, type_list_from_table};
+use super::c_helper::{type_from_userdata, type_list_from_table};
 
 // cfn is a type declaration for a function.
 // Basically, when calling an external function, this type declaration

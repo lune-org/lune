@@ -1,13 +1,13 @@
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use crate::ffi_association::{get_association, set_association};
-use crate::association_names::CARR_INNER;
-use crate::c_helper::{
+use super::association_names::CARR_INNER;
+use super::c_helper::{
     get_ensured_size, name_from_userdata, stringify_userdata, type_from_userdata,
 };
-use crate::c_ptr::CPtr;
-use crate::c_type::CType;
+use super::c_ptr::CPtr;
+use super::c_type::CType;
+use crate::ffi::ffi_association::{get_association, set_association};
 
 // This is a series of some type.
 // It provides the final size and the offset of the index,

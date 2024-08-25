@@ -8,11 +8,11 @@ use core::ffi::{
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
-use crate::c_arr::CArr;
-use crate::c_helper::get_ensured_size;
-use crate::c_ptr::CPtr;
-use crate::ffi_helper::get_ptr_from_userdata;
-use crate::ffi_platform::CHAR_IS_SIGNED;
+use super::c_arr::CArr;
+use super::c_helper::get_ensured_size;
+use super::c_ptr::CPtr;
+use crate::ffi::ffi_helper::get_ptr_from_userdata;
+use crate::ffi::ffi_platform::CHAR_IS_SIGNED;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 pub struct CType {

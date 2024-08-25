@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
-use crate::ffi_association::set_association;
-use crate::ffi_ref::FfiRef;
+use super::ffi_association::set_association;
+use super::ffi_ref::FfiRef;
 
 pub struct FfiLib(Library);
 
