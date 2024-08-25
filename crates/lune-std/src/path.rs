@@ -1,5 +1,10 @@
 use std::path::PathBuf;
 
+/**
+
+return's the path of the script that called this function
+
+ */
 pub fn get_script_path(lua: &mlua::Lua) -> Result<PathBuf, mlua::Error> {
     let Some(debug) = lua.inspect_stack(2) else {
         return Err(mlua::Error::runtime("Failed to inspect stack"));
@@ -17,6 +22,11 @@ pub fn get_script_path(lua: &mlua::Lua) -> Result<PathBuf, mlua::Error> {
     }
 }
 
+/**
+
+return's the parent directory of the script that called this function
+
+ */
 pub fn get_parent_path(lua: &mlua::Lua) -> Result<PathBuf, mlua::Error> {
     let script = get_script_path(lua)?;
 
