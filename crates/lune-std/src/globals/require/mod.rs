@@ -38,7 +38,7 @@ pub enum RequireError {
     LuaError(#[from] mlua::Error),
 }
 
-pub async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
+async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
     let require_path_rel = PathBuf::from(path);
     let require_alias = path_to_alias(&require_path_rel).into_lua_err()?;
 

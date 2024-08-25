@@ -89,7 +89,7 @@ impl RequireContext {
         Ok(multi)
     }
 
-    pub(crate) async fn wait_for_pending<'lua>(
+    async fn wait_for_pending<'lua>(
         lua: &'lua Lua,
         path_abs: &'_ PathBuf,
     ) -> Result<(), RequireError> {
@@ -111,7 +111,7 @@ impl RequireContext {
         Ok(())
     }
 
-    pub(crate) async fn from_cache<'lua>(
+    async fn from_cache<'lua>(
         lua: &'lua Lua,
         path_abs: &'_ PathBuf,
     ) -> Result<Option<LuaMultiValue<'lua>>, RequireError> {
