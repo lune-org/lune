@@ -1,12 +1,9 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::{borrow::Borrow, vec::Vec};
+use std::any::Any;
+use std::vec::Vec;
 
-use libffi::{
-    low,
-    middle::{Cif, Type},
-    raw,
-};
+use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
 
 use super::association_names::CSTRUCT_INNER;
@@ -20,14 +17,14 @@ use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
 pub struct CStruct {
     // libffi_cif: Cif,
     fields: Vec<Type>,
-    libffi_type: Type,
+    struct_type: Type,
     offsets: Vec<usize>,
     size: usize,
 }
 
 impl CStruct {
     pub fn new(fields: Vec<Type>) -> LuaResult<Self> {
-        let libffi_type = Type::structure(fields.iter().cloned());
+        let struct_type = Type::structure(fields.iter().cloned());
         // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
 
         // Get field offsets with ffi_get_struct_offsets
@@ -35,7 +32,7 @@ impl CStruct {
         unsafe {
             let offset_result: raw::ffi_status = raw::ffi_get_struct_offsets(
                 low::ffi_abi_FFI_DEFAULT_ABI,
-                libffi_type.as_raw_ptr(),
+                struct_type.as_raw_ptr(),
                 offsets.as_mut_ptr(),
             );
             if offset_result != raw::ffi_status_FFI_OK {
@@ -49,12 +46,12 @@ impl CStruct {
 
         // Get tailing padded size of struct
         // See http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
-        let size = unsafe { (*libffi_type.as_raw_ptr()).size };
+        let size = unsafe { (*struct_type.as_raw_ptr()).size };
 
         Ok(Self {
             // libffi_cif: libffi_cfi,
             fields,
-            libffi_type,
+            struct_type,
             offsets,
             size,
         })
@@ -85,7 +82,7 @@ impl CStruct {
             let mut result = String::from(" ");
             for i in 0..table.raw_len() {
                 let child: LuaAnyUserData = table.raw_get(i + 1)?;
-                if child.is::<CType>() {
+                if child.is::<CType<dyn Any>>() {
                     result.push_str(format!("{}, ", stringify_userdata(&child)?).as_str());
                 } else {
                     result.push_str(
@@ -117,8 +114,12 @@ impl CStruct {
         Ok(offset)
     }
 
-    pub fn get_type(&self) -> Type {
-        self.libffi_type.clone()
+    pub fn get_fields(&self) -> &Vec<Type> {
+        &self.fields
+    }
+
+    pub fn get_type(&self) -> &Type {
+        &self.struct_type
     }
 }
 

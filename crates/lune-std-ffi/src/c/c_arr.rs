@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use libffi::middle::Type;
 use mlua::prelude::*;
 
@@ -54,13 +56,13 @@ impl CArr {
         Ok(carr)
     }
 
-    pub fn get_type(&self) -> Type {
-        self.struct_type.clone()
+    pub fn get_type(&self) -> &Type {
+        &self.struct_type
     }
 
-    // pub fn get_element_type(&self) -> Type {
-    //     self.element_type.clone()
-    // }
+    pub fn get_element_type(&self) -> &Type {
+        &self.element_type
+    }
 
     // Stringify cstruct for pretty printing something like:
     // <CStruct( u8, i32, size = 8 )>
@@ -73,7 +75,7 @@ impl CArr {
                 .as_userdata()
                 .ok_or(LuaError::external("failed to get inner type userdata."))?;
 
-            if inner.is::<CType>() {
+            if inner.is::<CType<dyn Any>>() {
                 Ok(format!(
                     " {} ; {} ",
                     stringify_userdata(inner)?,

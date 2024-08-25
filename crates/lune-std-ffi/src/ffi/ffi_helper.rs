@@ -22,7 +22,7 @@ pub unsafe fn get_ptr_from_userdata(
     } else if userdata.is::<FfiRef>() {
         userdata.borrow::<FfiRef>()?.get_ptr()
     } else {
-        return Err(LuaError::external("asdf"));
+        return Err(LuaError::external("Unexpected userdata"));
     };
 
     let ptr = if let Some(t) = offset {
