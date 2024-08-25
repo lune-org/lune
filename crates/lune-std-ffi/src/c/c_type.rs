@@ -1,16 +1,16 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use libffi::middle::{Cif, Type};
+use libffi::middle::Type;
 use mlua::prelude::*;
 
 use super::c_arr::CArr;
 use super::c_helper::get_ensured_size;
 use super::c_ptr::CPtr;
 use crate::ffi::ffi_helper::get_ptr_from_userdata;
-// use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 pub struct CType {
-    libffi_cif: Cif,
+    // for ffi_ptrarray_to_raw?
+    // libffi_cif: Cif,
     libffi_type: Type,
     size: usize,
     name: Option<String>,
@@ -29,10 +29,10 @@ impl CType {
         luavalue_into_ptr: fn(value: LuaValue, ptr: *mut ()) -> LuaResult<()>,
         ptr_into_luavalue: fn(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue>,
     ) -> LuaResult<Self> {
-        let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
+        // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
         let size = get_ensured_size(libffi_type.as_raw_ptr())?;
         Ok(Self {
-            libffi_cif: libffi_cfi,
+            // libffi_cif: libffi_cfi,
             libffi_type,
             size,
             name,

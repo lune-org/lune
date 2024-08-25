@@ -1,11 +1,3 @@
-use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
-
-// pub fn ffi_get_struct_offsets(
-// abi: ffi_abi,
-// struct_type: *mut ffi_type,
-// offsets: *mut usize,
-// ) -> ffi_status;
-
 - last thing to do
 - [ ] Add tests
 - [ ] Add docs
@@ -23,8 +15,9 @@ use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 - [x] ffi.box(size)
 - [x] .size
 - [x] :zero()
-- [?] :ref(offset?=0) => ref
-  - offset is not impled
+- [x] :ref(offset?=0) => ref
+- [x] tostring
+
 - [~] :copy(box,size?=-1,offset?=0)
   - working on it
 

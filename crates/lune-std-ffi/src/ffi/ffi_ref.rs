@@ -37,6 +37,7 @@ impl FfiRef {
             }),
         ))?;
 
+        // If the ref holds a box, make sure the new ref also holds the box
         if let Some(t) = get_association(lua, REF_INNER, &this)? {
             set_association(lua, REF_INNER, &luaref, t)?;
         }
