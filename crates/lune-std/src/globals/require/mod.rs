@@ -15,7 +15,7 @@ mod path;
 pub enum RequireError {
     #[error("failed to find RequireContextData in the app data container, make sure to call RequireContext::init first")]
     RequireContextNotFound,
-    #[error("make sure to call RequireContext::init")]
+    #[error("RequireContext::init has been called twice on the same Lua instance")]
     RequireContextInitCalledTwice,
     #[error("Can not require '{0}' as it does not exist")]
     InvalidRequire(String),
