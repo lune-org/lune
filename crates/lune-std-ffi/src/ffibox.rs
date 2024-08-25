@@ -15,15 +15,25 @@ use core::ffi::c_void;
 use mlua::prelude::*;
 
 use crate::association::set_association;
+use crate::association_names::BOX_REF_INNER;
+use crate::ffiref::FfiRange;
 use crate::ffiref::FfiRef;
-
-const BOX_REF_INNER: &str = "__box_ref";
 
 pub struct FfiBox(Box<[u8]>);
 
 impl FfiBox {
+    // For efficiency, it is initialized non-zeroed.
     pub fn new(size: usize) -> Self {
-        Self(vec![0u8; size].into_boxed_slice())
+        // Create new vector to allocate heap memory. sized with 'size'
+        let mut vec_heap = Vec::<u8>::with_capacity(size);
+
+        // It is safe to have a length equal to the capacity
+        #[allow(clippy::uninit_vec)]
+        unsafe {
+            vec_heap.set_len(size);
+        }
+
+        Self(vec_heap.into_boxed_slice())
     }
 
     pub fn size(&self) -> usize {
@@ -36,14 +46,62 @@ impl FfiBox {
         self.0.as_ptr() as *mut c_void
     }
 
+    pub fn stringify(&self) -> String {
+        let mut buff = String::from(" ");
+        for i in &self.0 {
+            buff.push_str(i.to_string().as_str());
+            buff.push_str(", ");
+        }
+        buff.pop();
+        buff.pop();
+        buff.push(' ');
+        buff
+    }
+
+    pub fn binary_print(&self) -> String {
+        let mut buff: String = String::with_capacity(self.size() * 10 - 2);
+        for (pos, value) in self.0.iter().enumerate() {
+            for i in 0..8 {
+                if (value & (1 << i)) == 0 {
+                    buff.push('0');
+                } else {
+                    buff.push('1');
+                }
+            }
+            if pos < self.size() - 1 {
+                buff.push_str(", ");
+            }
+        }
+        buff
+    }
+
     // bad naming. i have no idea what should i use
     pub fn luaref<'lua>(
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
+        offset: Option<isize>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let target = this.borrow::<FfiBox>()?;
+        let ptr = if let Some(t) = offset {
+            if t < 0 || t >= (target.size() as isize) {
+                return Err(LuaError::external(format!(
+                    "Offset is out of bounds. box.size: {}. offset got {}",
+                    target.size(),
+                    t
+                )));
+            }
+            unsafe { target.get_ptr().offset(t) }
+        } else {
+            target.get_ptr()
+        };
 
-        let luaref = lua.create_userdata(FfiRef::new(target.get_ptr()))?;
+        let luaref = lua.create_userdata(FfiRef::new(
+            ptr,
+            Some(FfiRange {
+                low: 0,
+                high: target.size() as isize,
+            }),
+        ))?;
 
         set_association(lua, BOX_REF_INNER, luaref.clone(), this.clone())?;
 
@@ -61,27 +119,19 @@ impl LuaUserData for FfiBox {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("zero", |_, this, ()| {
-            this.zero();
-            Ok(())
+        methods.add_function_mut("zero", |_, this: LuaAnyUserData| {
+            this.borrow_mut::<FfiBox>()?.zero();
+            Ok(this)
         });
-        methods.add_function("ref", |lua, this: LuaAnyUserData| {
-            let luaref = FfiBox::luaref(lua, this)?;
-            Ok(luaref)
-        });
-        methods.add_meta_method(LuaMetaMethod::Len, |_, this, ()| Ok(this.size()));
-        methods.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
-            dbg!(&this.0.len());
-            let mut buff = String::from("[ ");
-            for i in &this.0 {
-                buff.push_str(i.to_owned().to_string().as_str());
-                buff.push_str(", ");
-            }
-            buff.pop();
-            buff.pop();
-            buff.push_str(" ]");
-            let luastr = lua.create_string(buff.as_bytes())?;
-            Ok(luastr)
+        methods.add_function(
+            "ref",
+            |lua, (this, offset): (LuaAnyUserData, Option<isize>)| {
+                let luaref = FfiBox::luaref(lua, this, offset)?;
+                Ok(luaref)
+            },
+        );
+        methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| {
+            Ok(this.binary_print())
         });
     }
 }

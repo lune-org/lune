@@ -3,8 +3,11 @@ use mlua::prelude::*;
 
 use crate::association::{get_association, set_association};
 use crate::association_names::CARR_INNER;
-use crate::chelper::{get_ensured_size, stringify_userdata, type_from_userdata};
+use crate::chelper::{
+    get_ensured_size, name_from_userdata, stringify_userdata, type_from_userdata,
+};
 use crate::cptr::CPtr;
+use crate::ctype::CType;
 
 // This is a series of some type.
 // It provides the final size and the offset of the index,
@@ -60,15 +63,26 @@ impl CArr {
     pub fn stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
         let inner: LuaValue = userdata.get("inner")?;
         let carr = userdata.borrow::<CArr>()?;
+
         if inner.is_userdata() {
             let inner = inner
                 .as_userdata()
                 .ok_or(LuaError::external("failed to get inner type userdata."))?;
-            Ok(format!(
-                " {} ; {} ",
-                stringify_userdata(inner)?,
-                carr.length
-            ))
+
+            if inner.is::<CType>() {
+                Ok(format!(
+                    " {} ; {} ",
+                    stringify_userdata(inner)?,
+                    carr.length
+                ))
+            } else {
+                Ok(format!(
+                    " <{}({})> ; {} ",
+                    name_from_userdata(inner),
+                    stringify_userdata(inner)?,
+                    carr.length
+                ))
+            }
         } else {
             Err(LuaError::external("failed to get inner type userdata."))
         }

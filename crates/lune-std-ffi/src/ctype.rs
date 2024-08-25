@@ -1,11 +1,18 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use core::ffi::{
+    c_char, c_double, c_float, c_int, c_long, c_longlong, c_schar, c_short, c_uchar, c_uint,
+    c_ulong, c_ulonglong, c_ushort, c_void,
+};
+
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
 use crate::carr::CArr;
 use crate::chelper::get_ensured_size;
 use crate::cptr::CPtr;
+use crate::ffihelper::get_ptr_from_userdata;
+use crate::platform::CHAR_IS_SIGNED;
 // use libffi::raw::{ffi_cif, ffi_ptrarray_to_raw};
 
 pub struct CType {
@@ -13,10 +20,21 @@ pub struct CType {
     libffi_type: Type,
     size: usize,
     name: Option<String>,
+
+    // Write converted data from luavalue into some ptr
+    pub luavalue_into_ptr: fn(value: LuaValue, ptr: *mut c_void) -> LuaResult<()>,
+
+    // Read luavalue from some ptr
+    pub ptr_into_luavalue: fn(lua: &Lua, ptr: *mut c_void) -> LuaResult<LuaValue>,
 }
 
 impl CType {
-    pub fn new(libffi_type: Type, name: Option<String>) -> LuaResult<Self> {
+    pub fn new(
+        libffi_type: Type,
+        name: Option<String>,
+        luavalue_into_ptr: fn(value: LuaValue, ptr: *mut c_void) -> LuaResult<()>,
+        ptr_into_luavalue: fn(lua: &Lua, ptr: *mut c_void) -> LuaResult<LuaValue>,
+    ) -> LuaResult<Self> {
         let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
         let size = get_ensured_size(libffi_type.as_raw_ptr())?;
         Ok(Self {
@@ -24,6 +42,8 @@ impl CType {
             libffi_type,
             size,
             name,
+            luavalue_into_ptr,
+            ptr_into_luavalue,
         })
     }
 
@@ -37,6 +57,30 @@ impl CType {
             None => String::from("unnamed"),
         }
     }
+
+    // Read data from ptr and convert it into luavalue
+    pub unsafe fn read_ptr<'lua>(
+        &self,
+        lua: &'lua Lua,
+        userdata: LuaAnyUserData<'lua>,
+        offset: Option<isize>,
+    ) -> LuaResult<LuaValue<'lua>> {
+        let ptr = unsafe { get_ptr_from_userdata(&userdata, offset)? };
+        let value = (self.ptr_into_luavalue)(lua, ptr)?;
+        Ok(value)
+    }
+
+    // Write converted data from luavalue into ptr
+    pub unsafe fn write_ptr<'lua>(
+        &self,
+        luavalue: LuaValue<'lua>,
+        userdata: LuaAnyUserData<'lua>,
+        offset: Option<isize>,
+    ) -> LuaResult<()> {
+        let ptr = unsafe { get_ptr_from_userdata(&userdata, offset)? };
+        (self.luavalue_into_ptr)(luavalue, ptr)?;
+        Ok(())
+    }
 }
 
 impl LuaUserData for CType {
@@ -49,6 +93,20 @@ impl LuaUserData for CType {
             let pointer = CPtr::from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
+        methods.add_method(
+            "from",
+            |lua, ctype, (userdata, offset): (LuaAnyUserData, Option<isize>)| {
+                let value = unsafe { ctype.read_ptr(lua, userdata, offset)? };
+                Ok(value)
+            },
+        );
+        methods.add_method(
+            "into",
+            |_, ctype, (value, userdata, offset): (LuaValue, LuaAnyUserData, Option<isize>)| {
+                unsafe { ctype.write_ptr(value, userdata, offset)? };
+                Ok(())
+            },
+        );
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
             let carr = CArr::from_lua_userdata(lua, &this, length)?;
             Ok(carr)
@@ -64,48 +122,62 @@ impl LuaUserData for CType {
 pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
     Ok(vec![
         (
-            "u8",
-            CType::new(Type::u8(), Some(String::from("u8")))?.into_lua(lua)?,
+            "int",
+            CType::new(
+                Type::c_int(),
+                Some(String::from("int")),
+                |data, ptr| {
+                    let value = match data {
+                        LuaValue::Integer(t) => t,
+                        _ => {
+                            return Err(LuaError::external(format!(
+                                "Integer expected, got {}",
+                                data.type_name()
+                            )))
+                        }
+                    } as c_int;
+                    unsafe {
+                        *(ptr.cast::<c_int>()) = value;
+                    }
+                    Ok(())
+                },
+                |lua: &Lua, ptr: *mut c_void| {
+                    let value = unsafe { (*ptr.cast::<c_int>()).into_lua(lua)? };
+                    Ok(value)
+                },
+            )?
+            .into_lua(lua)?,
         ),
         (
-            "u16",
-            CType::new(Type::u16(), Some(String::from("u16")))?.into_lua(lua)?,
-        ),
-        (
-            "u32",
-            CType::new(Type::u32(), Some(String::from("u32")))?.into_lua(lua)?,
-        ),
-        (
-            "u64",
-            CType::new(Type::u64(), Some(String::from("u64")))?.into_lua(lua)?,
-        ),
-        (
-            "i8",
-            CType::new(Type::i8(), Some(String::from("i8")))?.into_lua(lua)?,
-        ),
-        (
-            "i16",
-            CType::new(Type::i16(), Some(String::from("i16")))?.into_lua(lua)?,
-        ),
-        (
-            "i32",
-            CType::new(Type::i32(), Some(String::from("i32")))?.into_lua(lua)?,
-        ),
-        (
-            "i64",
-            CType::new(Type::i64(), Some(String::from("i64")))?.into_lua(lua)?,
-        ),
-        (
-            "f32",
-            CType::new(Type::f32(), Some(String::from("f32")))?.into_lua(lua)?,
-        ),
-        (
-            "f64",
-            CType::new(Type::f64(), Some(String::from("f64")))?.into_lua(lua)?,
-        ),
-        (
-            "void",
-            CType::new(Type::void(), Some(String::from("void")))?.into_lua(lua)?,
+            "char",
+            CType::new(
+                if CHAR_IS_SIGNED {
+                    Type::c_schar()
+                } else {
+                    Type::c_uchar()
+                },
+                Some(String::from("char")),
+                |data, ptr| {
+                    let value = match data {
+                        LuaValue::Integer(t) => t,
+                        _ => {
+                            return Err(LuaError::external(format!(
+                                "Integer expected, got {}",
+                                data.type_name()
+                            )))
+                        }
+                    } as c_char;
+                    unsafe {
+                        *(ptr.cast::<c_char>()) = value;
+                    }
+                    Ok(())
+                },
+                |lua: &Lua, ptr: *mut c_void| {
+                    let value = unsafe { (*ptr.cast::<c_char>()).into_lua(lua)? };
+                    Ok(value)
+                },
+            )?
+            .into_lua(lua)?,
         ),
     ])
 }
