@@ -27,11 +27,11 @@ pub enum LuaurcError {
     FailedStringToPathConversion,
     #[error("Failed to find a path for alias '{0}' in .luaurc files")]
     FailedToFindAlias(String),
+    #[error("Failed to parse {0}\nParserError: {1}")]
+    FilaedToParse(PathBuf, serde_json::Error),
 
     #[error("IOError: {0}")]
     IOError(#[from] std::io::Error),
-    #[error("JsonError: {0}")]
-    JsonError(#[from] serde_json::Error),
     #[error("LuaError: {0}")]
     LuaError(#[from] mlua::Error),
 }
@@ -67,7 +67,7 @@ async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, L
         let content = fs::read(path).await?;
         serde_json::from_slice(&content)
             .map(Some)
-            .map_err(std::convert::Into::into)
+            .map_err(|err| LuaurcError::FilaedToParse(path.clone(), err))
     } else {
         Ok(None)
     }
