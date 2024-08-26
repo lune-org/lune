@@ -31,7 +31,7 @@ where
             libffi_type,
             size,
             name,
-            _phantom: PhantomData {},
+            _phantom: PhantomData,
         })
     }
 
@@ -47,7 +47,8 @@ where
     }
 }
 
-pub trait PtrHandle {
+// Handle C data, provide type conversion between luavalue and c-type
+pub trait CDataHandle {
     // Convert luavalue into data, then write into ptr
     fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()>;
 
@@ -81,10 +82,11 @@ pub trait PtrHandle {
 
 impl<T> LuaUserData for CType<T>
 where
-    Self: Sized + PtrHandle,
+    Self: CDataHandle,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
+        fields.add_meta_field(LuaMetaMethod::Type, "CType");
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -111,3 +113,37 @@ where
         });
     }
 }
+
+// trait CDataCast<T, U>
+// where
+//     T: Copy + Sized,
+//     U: From<T> + Sized,
+// {
+//     fn cast<'lua>(
+//         lua: &'lua Lua,
+//         _from_ctype: &CType<T>,
+//         into_ctype: &CType<U>,
+//         from: LuaAnyUserData<'lua>,
+//         into: Option<LuaAnyUserData<'lua>>,
+//     ) -> LuaResult<LuaAnyUserData<'lua>> {
+//         let into_userdata = match into {
+//             Some(t) => t,
+//             None => lua.create_userdata(FfiBox::new(into_ctype.size))?,
+//         };
+
+//         let ptr_from = unsafe { get_ptr_from_userdata(&from, None)?.cast::<T>() };
+//         let ptr_into = unsafe { get_ptr_from_userdata(&into_userdata, None)?.cast::<U>() };
+
+//         unsafe {
+//             *ptr_into = U::from(*ptr_from);
+//         }
+
+//         Ok(into_userdata)
+//     }
+// }
+// impl<T, U> CDataCast<T, U> for CType<T>
+// where
+//     T: Copy + Sized,
+//     U: From<T> + Sized,
+// {
+// }

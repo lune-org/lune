@@ -3,9 +3,9 @@ use core::ffi::c_int;
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use super::super::c_type::{CType, PtrHandle};
+use super::super::c_type::{CDataHandle, CType};
 
-impl PtrHandle for CType<c_int> {
+impl CDataHandle for CType<c_int> {
     fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()> {
         let value = match value {
             LuaValue::Integer(t) => t,

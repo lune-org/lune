@@ -1,4 +1,5 @@
 pub(super) mod c_arr;
+pub(super) mod c_cast;
 pub(super) mod c_fn;
 pub(super) mod c_helper;
 pub(super) mod c_ptr;

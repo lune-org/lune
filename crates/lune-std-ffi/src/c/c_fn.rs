@@ -42,4 +42,8 @@ impl CFn {
     }
 }
 
-impl LuaUserData for CFn {}
+impl LuaUserData for CFn {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // methods.add_method("from", | this,  |)
+    }
+}

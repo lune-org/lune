@@ -8,7 +8,7 @@ use mlua::prelude::*;
 
 use super::association_names::CSTRUCT_INNER;
 use super::c_arr::CArr;
-use super::c_helper::{name_from_userdata, stringify_userdata, type_list_from_table};
+use super::c_helper::{pretty_format_userdata, stringify_userdata, type_list_from_table};
 use super::c_ptr::CPtr;
 use super::c_type::CType;
 use crate::ffi::ffi_association::{get_association, set_association};
@@ -85,14 +85,7 @@ impl CStruct {
                 if child.is::<CType<dyn Any>>() {
                     result.push_str(format!("{}, ", stringify_userdata(&child)?).as_str());
                 } else {
-                    result.push_str(
-                        format!(
-                            "<{}({})>, ",
-                            name_from_userdata(&child),
-                            stringify_userdata(&child)?
-                        )
-                        .as_str(),
-                    );
+                    result.push_str(pretty_format_userdata(&child)?.as_str());
                 }
             }
 

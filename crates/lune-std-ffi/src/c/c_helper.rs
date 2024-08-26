@@ -93,6 +93,15 @@ pub fn name_from_userdata(userdata: &LuaAnyUserData) -> String {
     }
 }
 
+// emulate 'print'
+pub fn pretty_format_userdata(userdata: &LuaAnyUserData) -> LuaResult<String> {
+    Ok(format!(
+        "<{}({})>, ",
+        name_from_userdata(userdata),
+        stringify_userdata(userdata)?
+    ))
+}
+
 // Ensure sizeof c-type (raw::libffi_type)
 // See: http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
 pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {

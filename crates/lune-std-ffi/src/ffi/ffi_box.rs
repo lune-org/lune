@@ -74,7 +74,7 @@ impl FfiBox {
                     t
                 )));
             }
-            ptr = unsafe { target.get_ptr().offset(t) };
+            ptr = unsafe { target.get_ptr().byte_offset(t) };
             bounds = bounds.offset(t);
         }
 

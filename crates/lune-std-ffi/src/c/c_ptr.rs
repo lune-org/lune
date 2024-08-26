@@ -16,8 +16,8 @@ impl CPtr {
     pub fn from_lua_userdata<'lua>(
         lua: &'lua Lua,
         inner: &LuaAnyUserData,
-    ) -> LuaResult<LuaValue<'lua>> {
-        let value = Self().into_lua(lua)?;
+    ) -> LuaResult<LuaAnyUserData<'lua>> {
+        let value = lua.create_userdata(Self())?;
 
         set_association(lua, CPTR_INNER, &value, inner)?;
 

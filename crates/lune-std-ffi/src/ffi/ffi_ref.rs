@@ -66,10 +66,7 @@ impl FfiRef {
         }
         let range = self.range.as_ref().map(|t| t.offset(offset));
 
-        Ok(Self::new(
-            self.ptr.cast::<u8>().offset(offset).cast(),
-            range,
-        ))
+        Ok(Self::new(self.ptr.byte_offset(offset), range))
     }
 }
 
