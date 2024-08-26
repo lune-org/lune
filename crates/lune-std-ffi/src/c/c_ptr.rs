@@ -5,7 +5,7 @@ use mlua::prelude::*;
 
 use super::association_names::CPTR_INNER;
 use super::c_arr::CArr;
-use super::c_helper::{name_from_userdata, stringify_userdata};
+use super::c_helper::pretty_format_userdata;
 use crate::ffi::ffi_association::{get_association, set_association};
 
 pub struct CPtr();
@@ -16,8 +16,8 @@ impl CPtr {
     pub fn from_lua_userdata<'lua>(
         lua: &'lua Lua,
         inner: &LuaAnyUserData,
-    ) -> LuaResult<LuaValue<'lua>> {
-        let value = Self().into_lua(lua)?;
+    ) -> LuaResult<LuaAnyUserData<'lua>> {
+        let value = lua.create_userdata(Self())?;
 
         set_association(lua, CPTR_INNER, &value, inner)?;
 
@@ -25,18 +25,14 @@ impl CPtr {
     }
 
     // Stringify CPtr with inner ctype
-    pub fn stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
+    pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let inner: LuaValue = userdata.get("inner")?;
 
         if inner.is_userdata() {
             let inner = inner
                 .as_userdata()
                 .ok_or(LuaError::external("failed to get inner type userdata."))?;
-            Ok(format!(
-                " <{}({})> ",
-                name_from_userdata(inner),
-                stringify_userdata(inner)?,
-            ))
+            pretty_format_userdata(lua, inner)
         } else {
             Err(LuaError::external("failed to get inner type userdata."))
         }
@@ -67,8 +63,8 @@ impl LuaUserData for CPtr {
             let carr = CArr::from_lua_userdata(lua, &this, length)?;
             Ok(carr)
         });
-        methods.add_meta_function(LuaMetaMethod::ToString, |_, this: LuaAnyUserData| {
-            let name: Result<String, LuaError> = CPtr::stringify(&this);
+        methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
+            let name: Result<String, LuaError> = CPtr::stringify(lua, &this);
             Ok(name)
         });
     }

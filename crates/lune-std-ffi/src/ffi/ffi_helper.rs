@@ -11,6 +11,7 @@ pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_BAD_ARGTYPE",
 ];
 
+// TODO: using trait
 // Get raw pointer from userdata
 // TODO: boundary check
 pub unsafe fn get_ptr_from_userdata(

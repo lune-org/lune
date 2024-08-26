@@ -14,4 +14,5 @@ mod association_names {
     pub const CPTR_INNER: &str = "__cptr_inner";
     pub const CARR_INNER: &str = "__carr_inner";
     pub const CSTRUCT_INNER: &str = "__cstruct_inner";
+    pub const CTYPE_STATIC: &str = "__ctype_static";
 }

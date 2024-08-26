@@ -4,8 +4,9 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 
 use super::super::c_type::{CType, CTypeConvert, CTypeNumCast};
+use crate::ffi::ffi_platform::CHAR_IS_SIGNED;
 
-impl CTypeConvert for CType<c_int> {
+impl CTypeConvert for CType<c_char> {
     fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()> {
         let value = match value {
             LuaValue::Integer(t) => t,
@@ -15,19 +16,19 @@ impl CTypeConvert for CType<c_int> {
                     value.type_name()
                 )))
             }
-        } as c_int;
+        } as c_char;
         unsafe {
-            *(ptr.cast::<c_int>()) = value;
+            *(ptr.cast::<c_char>()) = value;
         }
         Ok(())
     }
     fn ptr_into_luavalue(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue> {
-        let value = unsafe { (*ptr.cast::<c_int>()).into_lua(lua)? };
+        let value = unsafe { (*ptr.cast::<c_char>()).into_lua(lua)? };
         Ok(value)
     }
 }
 
-impl CType<c_int> {
+impl CType<c_char> {
     fn cast(
         &self,
         into_ctype: &LuaAnyUserData,
@@ -48,16 +49,20 @@ impl CType<c_int> {
     }
 }
 
-impl CTypeNumCast<c_int> for CType<c_int> {}
+impl CTypeNumCast<c_char> for CType<c_char> {}
 
 pub fn get_export(lua: &Lua) -> LuaResult<(&'static str, LuaAnyUserData)> {
     Ok((
-        "int",
-        CType::<c_int>::new_with_libffi_type(
+        "char",
+        CType::<c_char>::new_with_libffi_type(
             lua,
-            Type::c_int(),
-            c_int::MIN.unsigned_abs() != 0,
-            Some("int"),
+            if CHAR_IS_SIGNED {
+                Type::c_schar()
+            } else {
+                Type::c_uchar()
+            },
+            CHAR_IS_SIGNED,
+            Some("char"),
         )?,
     ))
 }

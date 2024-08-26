@@ -74,11 +74,15 @@ impl FfiBox {
                     t
                 )));
             }
-            ptr = unsafe { target.get_ptr().offset(t) };
+            ptr = unsafe { target.get_ptr().byte_offset(t) };
             bounds = bounds.offset(t);
         }
 
-        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), Some(bounds)))?;
+        // Lua should not be able to deref a box that refers to a box managed by Lua.
+        // To deref a box space is to allow lua to read any space,
+        // which has security issues and is ultimately dangerous.
+        // Therefore, box:ref():deref() is not allowed.
+        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), false, Some(bounds)))?;
 
         // Makes box alive longer then ref
         set_association(lua, REF_INNER, &luaref, &this)?;

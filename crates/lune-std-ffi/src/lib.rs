@@ -33,8 +33,8 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
             let cstruct = CStruct::from_lua_table(lua, types)?;
             Ok(cstruct)
         })?
-        .with_function("fn", |_, (args, ret): (LuaTable, LuaAnyUserData)| {
-            let cfn = CFn::from_lua_table(args, ret)?;
+        .with_function("fn", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
+            let cfn = CFn::from_lua_table(lua, args, ret)?;
             Ok(cfn)
         })?;
 

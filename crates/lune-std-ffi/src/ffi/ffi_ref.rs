@@ -16,12 +16,17 @@ use super::ffi_bounds::FfiRefBounds;
 
 pub struct FfiRef {
     ptr: *mut (),
+    dereferenceable: bool,
     range: Option<FfiRefBounds>,
 }
 
 impl FfiRef {
-    pub fn new(ptr: *mut (), range: Option<FfiRefBounds>) -> Self {
-        Self { ptr, range }
+    pub fn new(ptr: *mut (), dereferenceable: bool, range: Option<FfiRefBounds>) -> Self {
+        Self {
+            ptr,
+            dereferenceable,
+            range,
+        }
     }
 
     // Make FfiRef from ref
@@ -33,16 +38,15 @@ impl FfiRef {
 
         let luaref = lua.create_userdata(FfiRef::new(
             ptr::from_ref(&target.ptr) as *mut (),
+            true,
             Some(FfiRefBounds {
                 low: 0,
                 high: size_of::<usize>(),
             }),
         ))?;
 
-        // If the ref holds a box, make sure the new ref also holds the box
-        if let Some(t) = get_association(lua, REF_INNER, &this)? {
-            set_association(lua, REF_INNER, &luaref, t)?;
-        }
+        // If the ref holds a box, make sure the new ref also holds the box by holding ref
+        set_association(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
     }
@@ -52,7 +56,8 @@ impl FfiRef {
     }
 
     pub unsafe fn deref(&self) -> Self {
-        Self::new(*self.ptr.cast::<*mut ()>(), None)
+        // FIXME
+        Self::new(*self.ptr.cast::<*mut ()>(), true, None)
     }
 
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
@@ -67,7 +72,8 @@ impl FfiRef {
         let range = self.range.as_ref().map(|t| t.offset(offset));
 
         Ok(Self::new(
-            self.ptr.cast::<u8>().offset(offset).cast(),
+            self.ptr.byte_offset(offset),
+            self.dereferenceable,
             range,
         ))
     }
@@ -81,14 +87,22 @@ impl LuaUserData for FfiRef {
             let result = lua.create_userdata(unsafe { ffiref.deref() })?;
 
             if let Some(t) = inner {
+                // if let Some(u) = get_association(lua, regname, value) {}
                 set_association(lua, REF_INNER, &result, &t)?;
             }
 
             Ok(result)
         });
-        methods.add_method("offset", |_, this, offset: isize| {
-            let ffiref = unsafe { this.offset(offset)? };
-            Ok(ffiref)
+        methods.add_function("offset", |lua, (this, offset): (LuaAnyUserData, isize)| {
+            let ffiref = unsafe { this.borrow::<FfiRef>()?.offset(offset)? };
+            let userdata = lua.create_userdata(ffiref)?;
+
+            // If the ref holds a box, make sure the new ref also holds the box
+            if let Some(t) = get_association(lua, REF_INNER, &this)? {
+                set_association(lua, REF_INNER, &userdata, t)?;
+            }
+
+            Ok(userdata)
         });
         methods.add_function("ref", |lua, this: LuaAnyUserData| {
             let ffiref = FfiRef::luaref(lua, this)?;

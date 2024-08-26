@@ -35,11 +35,15 @@ impl CFn {
         }
     }
 
-    pub fn from_lua_table(args: LuaTable, ret: LuaAnyUserData) -> LuaResult<Self> {
-        let args = type_list_from_table(&args)?;
-        let ret = type_from_userdata(&ret)?;
+    pub fn from_lua_table(lua: &Lua, args: LuaTable, ret: LuaAnyUserData) -> LuaResult<Self> {
+        let args = type_list_from_table(lua, &args)?;
+        let ret = type_from_userdata(lua, &ret)?;
         Ok(Self::new(args, ret))
     }
 }
 
-impl LuaUserData for CFn {}
+impl LuaUserData for CFn {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // methods.add_method("from", | this,  |)
+    }
+}

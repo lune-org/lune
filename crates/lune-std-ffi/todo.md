@@ -3,6 +3,8 @@
 - [ ] Add docs
 - [ ] Typing
 
+pragma pack?
+
 # Raw
 
 - [ ] Raw:toRef()

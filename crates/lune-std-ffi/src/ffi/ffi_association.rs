@@ -10,10 +10,14 @@
 // uservalue operations cannot be performed directly,
 // so this is the best solution for now.
 // If the dependency is deep, the value may be completely destroyed when
-// gc is performed multiple times. As an example, there is the following case:
+// gc is performed multiple times. To prevent this situation, FFI 'copies'
+// dependency if possible.
 //
 // ffi.i32:ptr():ptr()
+// Something like this, every pointer type will have various inner field.
+//
 // box:ref():ref()
+// But, in this case,
 //
 // Since the outermost pointer holds the definition for the pointer
 // type inside it, only the outermost type will be removed on the first gc.

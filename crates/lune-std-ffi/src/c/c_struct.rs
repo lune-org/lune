@@ -1,6 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::any::Any;
 use std::vec::Vec;
 
 use libffi::{low, middle::Type, raw};
@@ -8,9 +7,8 @@ use mlua::prelude::*;
 
 use super::association_names::CSTRUCT_INNER;
 use super::c_arr::CArr;
-use super::c_helper::{name_from_userdata, stringify_userdata, type_list_from_table};
+use super::c_helper::{pretty_format_userdata, type_list_from_table};
 use super::c_ptr::CPtr;
-use super::c_type::CType;
 use crate::ffi::ffi_association::{get_association, set_association};
 use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
 
@@ -63,7 +61,7 @@ impl CStruct {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = type_list_from_table(&table)?;
+        let fields = type_list_from_table(lua, &table)?;
         let cstruct = lua.create_userdata(Self::new(fields)?)?;
         table.set_readonly(true);
         set_association(lua, CSTRUCT_INNER, &cstruct, table)?;
@@ -72,7 +70,7 @@ impl CStruct {
 
     // Stringify cstruct for pretty printing something like:
     // <CStruct( u8, i32, size = 8 )>
-    pub fn stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
+    pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let field: LuaValue = userdata.get("inner")?;
         if field.is_table() {
             let table = field
@@ -82,18 +80,7 @@ impl CStruct {
             let mut result = String::from(" ");
             for i in 0..table.raw_len() {
                 let child: LuaAnyUserData = table.raw_get(i + 1)?;
-                if child.is::<CType<dyn Any>>() {
-                    result.push_str(format!("{}, ", stringify_userdata(&child)?).as_str());
-                } else {
-                    result.push_str(
-                        format!(
-                            "<{}({})>, ",
-                            name_from_userdata(&child),
-                            stringify_userdata(&child)?
-                        )
-                        .as_str(),
-                    );
-                }
+                result.push_str(pretty_format_userdata(lua, &child)?.as_str());
             }
 
             // size of
@@ -151,8 +138,8 @@ impl LuaUserData for CStruct {
             let carr = CArr::from_lua_userdata(lua, &this, length)?;
             Ok(carr)
         });
-        methods.add_meta_function(LuaMetaMethod::ToString, |_, this: LuaAnyUserData| {
-            let result = CStruct::stringify(&this)?;
+        methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
+            let result = CStruct::stringify(lua, &this)?;
             Ok(result)
         });
     }

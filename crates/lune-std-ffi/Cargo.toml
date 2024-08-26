@@ -15,6 +15,7 @@ workspace = true
 [dependencies]
 mlua = { version = "0.9.9", features = ["luau"] }
 mlua-sys = { version = "0.6.2", features = ["luau"] }
+num = "0.3.1"
 dlopen2 = "0.6"
 
 libffi = "3.2.0"

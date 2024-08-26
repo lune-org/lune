@@ -1,18 +1,19 @@
-use std::any::Any;
 use std::ptr::{self, null_mut};
 
 use libffi::{low, middle::Type, raw};
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
+use super::association_names::CTYPE_STATIC;
 use super::c_arr::CArr;
 use super::c_ptr::CPtr;
 use super::c_struct::CStruct;
-use super::c_type::CType;
+use super::c_type::CTypeStatic;
+use crate::ffi::ffi_association::get_association;
 use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
 
 // get Vec<libffi_type> from table(array) of c-types userdata
-pub fn type_list_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
+pub fn type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>> {
     let len: usize = table.raw_len();
     let mut fields = Vec::with_capacity(len);
 
@@ -21,7 +22,7 @@ pub fn type_list_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
         let value = table.raw_get(i + 1)?;
         match value {
             LuaValue::UserData(field_type) => {
-                fields.push(type_from_userdata(&field_type)?);
+                fields.push(type_from_userdata(lua, &field_type)?);
             }
             _ => {
                 return Err(LuaError::external(format!(
@@ -36,11 +37,17 @@ pub fn type_list_from_table(table: &LuaTable) -> LuaResult<Vec<Type>> {
 }
 
 // get libffi_type from any c-type userdata
-pub fn type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
+pub fn type_from_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<Type> {
     if userdata.is::<CStruct>() {
         Ok(userdata.borrow::<CStruct>()?.get_type().to_owned())
-    } else if userdata.is::<CType<dyn Any>>() {
-        Ok(userdata.borrow::<CType<dyn Any>>()?.get_type().to_owned())
+    } else if let Some(t) = get_association(lua, CTYPE_STATIC, userdata)? {
+        Ok(t.as_userdata()
+            .ok_or(LuaError::external(
+                "Failed to get static ctype from userdata",
+            ))?
+            .borrow::<CTypeStatic>()?
+            .libffi_type
+            .clone())
     } else if userdata.is::<CArr>() {
         Ok(userdata.borrow::<CArr>()?.get_type().to_owned())
     } else if userdata.is::<CPtr>() {
@@ -59,37 +66,61 @@ pub fn type_from_userdata(userdata: &LuaAnyUserData) -> LuaResult<Type> {
 }
 
 // stringify any c-type userdata (for recursive)
-pub fn stringify_userdata(userdata: &LuaAnyUserData) -> LuaResult<String> {
-    if userdata.is::<CType<dyn Any>>() {
-        Ok(String::from(
-            userdata.borrow::<CType<dyn Any>>()?.stringify(),
-        ))
-    } else if userdata.is::<CStruct>() {
-        let name = CStruct::stringify(userdata)?;
+pub fn stringify_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+    if userdata.is::<CStruct>() {
+        let name = CStruct::stringify(lua, userdata)?;
         Ok(name)
     } else if userdata.is::<CArr>() {
-        let name = CArr::stringify(userdata)?;
+        let name = CArr::stringify(lua, userdata)?;
         Ok(name)
     } else if userdata.is::<CPtr>() {
-        let name: String = CPtr::stringify(userdata)?;
+        let name: String = CPtr::stringify(lua, userdata)?;
         Ok(name)
+    // Get CTypeStatic from CType<Any>
+    } else if let Some(t) = get_association(lua, CTYPE_STATIC, userdata)? {
+        Ok(String::from(
+            t.as_userdata()
+                .ok_or(LuaError::external(
+                    "Failed to get static ctype from userdata",
+                ))?
+                .borrow::<CTypeStatic>()?
+                .name
+                .unwrap_or("unnamed"),
+        ))
     } else {
         Ok(String::from("unnamed"))
     }
 }
 
 // get name tag for any c-type userdata
-pub fn name_from_userdata(userdata: &LuaAnyUserData) -> String {
-    if userdata.is::<CStruct>() {
+pub fn tagname_from_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+    Ok(if userdata.is::<CStruct>() {
         String::from("CStruct")
-    } else if userdata.is::<CType<dyn Any>>() {
-        String::from("CType")
     } else if userdata.is::<CArr>() {
         String::from("CArr")
     } else if userdata.is::<CPtr>() {
         String::from("CPtr")
+    } else if userdata_is_ctype(lua, userdata)? {
+        String::from("CType")
     } else {
         String::from("unnamed")
+    })
+}
+
+pub fn userdata_is_ctype(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<bool> {
+    Ok(get_association(lua, CTYPE_STATIC, userdata)?.is_some())
+}
+
+// emulate 'print' for ctype userdata, but ctype is simplified
+pub fn pretty_format_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+    if userdata_is_ctype(lua, userdata)? {
+        stringify_userdata(lua, userdata)
+    } else {
+        Ok(format!(
+            "<{}({})>",
+            tagname_from_userdata(lua, userdata)?,
+            stringify_userdata(lua, userdata)?
+        ))
     }
 }
 
