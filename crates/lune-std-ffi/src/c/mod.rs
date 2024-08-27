@@ -1,3 +1,4 @@
+pub use types::create_all_c_types;
 pub use types::create_all_types;
 
 pub(super) mod c_arr;

@@ -8,17 +8,19 @@ use super::c_type::CType;
 
 mod f32;
 mod f64;
+mod i128;
 mod i16;
 mod i32;
 mod i64;
 mod i8;
+mod u128;
 mod u16;
 mod u32;
 mod u64;
 mod u8;
 
 // export all default c-types
-pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
+pub fn create_all_c_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
     Ok(vec![
         (
             "char",
@@ -84,5 +86,23 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserDat
             "double",
             CType::<c_double>::new_with_libffi_type(lua, Type::f64(), Some("double"))?,
         ),
+    ])
+}
+
+// export all default c-types
+pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
+    Ok(vec![
+        self::u8::create_type(lua)?,
+        self::u16::create_type(lua)?,
+        self::u32::create_type(lua)?,
+        self::u64::create_type(lua)?,
+        self::u128::create_type(lua)?,
+        self::i8::create_type(lua)?,
+        self::i16::create_type(lua)?,
+        self::i32::create_type(lua)?,
+        self::i64::create_type(lua)?,
+        self::i128::create_type(lua)?,
+        self::f64::create_type(lua)?,
+        self::f32::create_type(lua)?,
     ])
 }

@@ -1,3 +1,12 @@
+More boundary checks, cstring, cfn complate
+arr:into arr:box arr:from
+struct:into struct:box struct:from
+box: writeByte, readByte, copy etc, matches with buffer
+
+i128
+u128
+endian?
+
 - last thing to do
 - [ ] Add tests
 - [ ] Add docs

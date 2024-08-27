@@ -36,8 +36,6 @@ impl CTypeConvert for CType<i16> {
     }
 }
 
-impl CType<i16> {}
-
 impl CTypeCast for CType<i16> {
     fn cast(
         &self,
@@ -50,12 +48,21 @@ impl CTypeCast for CType<i16> {
             .or(self.try_cast_num::<i16, u16>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, u32>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, u64>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<i16, u128>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, i8>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, i16>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, i32>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, i64>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<i16, i128>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, f32>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i16, f64>(into_ctype, from, into)?)
             .ok_or_else(|| self.cast_failed_with(from_ctype, into_ctype))
     }
+}
+
+pub fn create_type(lua: &Lua) -> LuaResult<(&'static str, LuaAnyUserData)> {
+    Ok((
+        "i16",
+        CType::<i16>::new_with_libffi_type(lua, libffi::middle::Type::i16(), Some("f32"))?,
+    ))
 }

@@ -113,22 +113,24 @@ impl CStruct {
 impl LuaUserData for CStruct {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
-
-        // Simply pass in the locked table used when first creating this object.
-        // By strongly referencing the table, the types inside do not disappear
-        // and the user can read the contents as needed. (good recycling!)
-        fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
-            let table: LuaValue = get_association(lua, CSTRUCT_INNER, this)?
-                // It shouldn't happen.
-                .ok_or(LuaError::external("inner field not found"))?;
-            Ok(table)
-        });
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("offset", |_, this, index: usize| {
             let offset = this.offset(index)?;
             Ok(offset)
+        });
+        // Simply pass type in the locked table used when first creating this object.
+        // By referencing the table to struct, the types inside do not disappear
+        methods.add_function("field", |lua, (this, field): (LuaAnyUserData, usize)| {
+            if let LuaValue::Table(t) = get_association(lua, CSTRUCT_INNER, this)?
+                .ok_or(LuaError::external("Field table not found"))?
+            {
+                let value: LuaValue = t.get(field + 1)?;
+                Ok(value)
+            } else {
+                Err(LuaError::external("Failed to read field table"))
+            }
         });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
             let pointer = CPtr::from_lua_userdata(lua, &this)?;
