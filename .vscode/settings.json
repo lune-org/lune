@@ -23,9 +23,5 @@
     },
     "[rust]": {
         "editor.defaultFormatter": "rust-lang.rust-analyzer"
-    },
-    "files.associations": {
-        "*.inc": "c",
-        "random": "c"
     }
 }

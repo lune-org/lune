@@ -1,5 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use mlua::prelude::*;
+
 // This is a small library that helps you set the dependencies of data in Lua.
 // In FFI, there is often data that is dependent on other data.
 // However, if you use user_value to inform Lua of the dependency,
@@ -22,7 +24,6 @@
 // Since the outermost pointer holds the definition for the pointer
 // type inside it, only the outermost type will be removed on the first gc.
 // It doesn't matter much. But if there is a cleaner way, we should choose it
-use mlua::prelude::*;
 
 // Forces 'associated' to persist as long as 'value' is alive.
 // 'value' can only hold one value. If you want to keep something else,

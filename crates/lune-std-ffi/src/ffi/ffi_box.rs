@@ -1,5 +1,22 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use std::boxed::Box;
+use std::sync::LazyLock;
+
+use mlua::prelude::*;
+
+use super::association_names::REF_INNER;
+use super::ffi_association::set_association;
+use super::ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList};
+
+static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
+    FfiRefFlagList::new(&[
+        FfiRefFlag::Offsetable,
+        FfiRefFlag::Readable,
+        FfiRefFlag::Writable,
+    ])
+});
+
 // It is an untyped, sized memory area that Lua can manage.
 // This area is safe within Lua. Operations have their boundaries checked.
 // It is basically intended to implement passing a pointed space to the outside.
@@ -8,15 +25,6 @@
 // There is no need to enclose all data in a box;
 // rather, it creates more heap space, so it should be used appropriately
 // where necessary.
-
-use std::boxed::Box;
-
-use mlua::prelude::*;
-
-use super::association_names::REF_INNER;
-use super::ffi_association::set_association;
-use super::ffi_bounds::FfiRefBounds;
-use super::ffi_ref::FfiRef;
 
 pub struct FfiBox(Box<[u8]>);
 
@@ -73,7 +81,8 @@ impl FfiBox {
         // To deref a box space is to allow lua to read any space,
         // which has security issues and is ultimately dangerous.
         // Therefore, box:ref():deref() is not allowed.
-        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), false, Some(bounds)))?;
+        let luaref =
+            lua.create_userdata(FfiRef::new(ptr.cast(), (*BOX_REF_FLAGS).clone(), bounds))?;
 
         // Makes box alive longer then ref
         set_association(lua, REF_INNER, &luaref, &this)?;

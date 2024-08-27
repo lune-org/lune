@@ -1,13 +1,14 @@
-pub(super) mod c_arr;
-pub(super) mod c_fn;
-pub(super) mod c_helper;
-pub(super) mod c_ptr;
-pub(super) mod c_string;
-pub(super) mod c_struct;
-pub(super) mod c_type;
-pub(super) mod types;
-
+pub use types::create_all_c_types;
 pub use types::create_all_types;
+
+pub mod c_arr;
+pub mod c_fn;
+pub mod c_helper;
+pub mod c_ptr;
+pub mod c_string;
+pub mod c_struct;
+pub mod c_type;
+pub mod types;
 
 // Named registry table names
 mod association_names {

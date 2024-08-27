@@ -1,24 +1,36 @@
 // Memory range for ref or box data. For boundary checking
 pub struct FfiRefBounds {
     // Indicates how much data is above the pointer
-    pub(crate) high: usize,
+    pub(crate) above: usize,
     // Indicates how much data is below the pointer
-    pub(crate) low: usize,
+    pub(crate) below: usize,
 }
 
+pub const UNSIZED_BOUNDS: FfiRefBounds = FfiRefBounds {
+    above: usize::MAX,
+    below: usize::MAX,
+};
+
 impl FfiRefBounds {
-    pub fn new(high: usize, low: usize) -> Self {
-        Self { high, low }
+    pub fn new(above: usize, below: usize) -> Self {
+        Self { above, below }
+    }
+
+    pub fn is_unsized(&self) -> bool {
+        self.above == usize::MAX && self.below == usize::MAX
     }
 
     // Check boundary
     pub fn check(&self, offset: isize) -> bool {
+        if self.is_unsized() {
+            return true;
+        }
         let sign = offset.signum();
         let offset_abs = offset.unsigned_abs();
         if sign == -1 {
-            self.high >= offset_abs
+            self.above >= offset_abs
         } else if sign == 1 {
-            self.low >= offset_abs
+            self.below >= offset_abs
         } else {
             // sign == 0
             true
@@ -27,13 +39,16 @@ impl FfiRefBounds {
 
     // Check boundary
     pub fn check_sized(&self, offset: isize, size: usize) -> bool {
+        if self.is_unsized() {
+            return true;
+        }
         let end = offset + (size as isize) - 1;
         let sign = end.signum();
         let end_abs = end.unsigned_abs();
         if sign == -1 {
-            self.high >= end_abs
+            self.above >= end_abs
         } else if sign == 1 {
-            self.low >= end_abs
+            self.below >= end_abs
         } else {
             // sign == 0
             true
@@ -47,21 +62,24 @@ impl FfiRefBounds {
         let offset_abs = offset.unsigned_abs();
 
         let high: usize = if sign == -1 {
-            self.high - offset_abs
+            self.above - offset_abs
         } else if sign == 1 {
-            self.high + offset_abs
+            self.above + offset_abs
         } else {
-            self.high
+            self.above
         };
 
         let low: usize = if sign == -1 {
-            self.low + offset_abs
+            self.below + offset_abs
         } else if sign == 1 {
-            self.low - offset_abs
+            self.below - offset_abs
         } else {
-            self.low
+            self.below
         };
 
-        Self { high, low }
+        Self {
+            above: high,
+            below: low,
+        }
     }
 }

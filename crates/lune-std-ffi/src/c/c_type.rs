@@ -1,28 +1,19 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
-use num::cast::AsPrimitive;
 use std::marker::PhantomData;
 
 use libffi::middle::Type;
+use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
+use num::cast::AsPrimitive;
 
-use super::association_names::CTYPE_STATIC;
-use super::c_arr::CArr;
-use super::c_helper::get_ensured_size;
-use super::c_ptr::CPtr;
-use crate::ffi::ffi_association::set_association;
-use crate::ffi::ffi_helper::get_ptr_from_userdata;
-
-pub struct CType<T: ?Sized> {
-    // for ffi_ptrarray_to_raw?
-    // libffi_cif: Cif,
-    libffi_type: Type,
-    size: usize,
-    name: Option<&'static str>,
-    signedness: bool,
-    _phantom: PhantomData<T>,
-}
+use super::{
+    association_names::CTYPE_STATIC, c_arr::CArr, c_helper::get_ensured_size, c_ptr::CPtr,
+};
+use crate::ffi::{
+    ffi_association::set_association,
+    ffi_native::{NativeCast, NativeConvert},
+};
 
 // We can't get a CType<T> through mlua, something like
 // .is::<CType<dyn Any>> will fail.
@@ -35,28 +26,34 @@ pub struct CTypeStatic {
     pub name: Option<&'static str>,
     pub signedness: bool,
 }
-
 impl CTypeStatic {
-    fn new<T>(ctype: &CType<T>) -> Self {
+    fn new<T>(ctype: &CType<T>, signedness: bool) -> Self {
         Self {
             libffi_type: ctype.libffi_type.clone(),
             size: ctype.size,
             name: ctype.name,
-            signedness: ctype.signedness,
+            signedness,
         }
     }
 }
 impl LuaUserData for CTypeStatic {}
 
+pub struct CType<T: ?Sized> {
+    // for ffi_ptrarray_to_raw?
+    // libffi_cif: Cif,
+    libffi_type: Type,
+    size: usize,
+    name: Option<&'static str>,
+    _phantom: PhantomData<T>,
+}
 impl<T> CType<T>
 where
     T: 'static,
-    Self: CTypeConvert + CTypeCast,
+    Self: NativeConvert + CTypeCast + CTypeSignedness,
 {
     pub fn new_with_libffi_type<'lua>(
         lua: &'lua Lua,
         libffi_type: Type,
-        signedness: bool,
         name: Option<&'static str>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
@@ -67,10 +64,10 @@ where
             libffi_type,
             size,
             name,
-            signedness,
             _phantom: PhantomData,
         };
-        let userdata_static = lua.create_any_userdata(CTypeStatic::new::<T>(&ctype))?;
+        let userdata_static =
+            lua.create_any_userdata(CTypeStatic::new::<T>(&ctype, ctype.get_signedness()))?;
         let userdata = lua.create_userdata(ctype)?;
 
         set_association(lua, CTYPE_STATIC, &userdata, &userdata_static)?;
@@ -85,57 +82,13 @@ where
         }
     }
 }
+impl<T> NativeCast for CType<T> {}
 
-// Handle C data, provide type conversion between luavalue and c-type
-pub trait CTypeConvert {
-    // Convert luavalue into data, then write into ptr
-    fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()>;
-
-    // Read data from ptr, then convert into luavalue
-    fn ptr_into_luavalue(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue>;
-
-    // Read data from userdata (such as box or ref) and convert it into luavalue
-    unsafe fn read_userdata<'lua>(
-        &self,
-        lua: &'lua Lua,
-        userdata: LuaAnyUserData<'lua>,
-        offset: Option<isize>,
-    ) -> LuaResult<LuaValue<'lua>> {
-        let ptr = unsafe { get_ptr_from_userdata(&userdata, offset)? };
-        let value = Self::ptr_into_luavalue(lua, ptr)?;
-        Ok(value)
-    }
-
-    // Write data into userdata (such as box or ref) from luavalue
-    unsafe fn write_userdata<'lua>(
-        &self,
-        luavalue: LuaValue<'lua>,
-        userdata: LuaAnyUserData<'lua>,
-        offset: Option<isize>,
-    ) -> LuaResult<()> {
-        let ptr = unsafe { get_ptr_from_userdata(&userdata, offset)? };
-        Self::luavalue_into_ptr(luavalue, ptr)?;
-        Ok(())
-    }
-}
-
-pub trait CTypeCast {
-    // Cast T as U
-    fn cast_num<T, U>(&self, from: &LuaAnyUserData, into: &LuaAnyUserData) -> LuaResult<()>
-    where
-        T: AsPrimitive<U>,
-        U: 'static + Copy,
-    {
-        let from_ptr = unsafe { get_ptr_from_userdata(from, None)?.cast::<T>() };
-        let into_ptr = unsafe { get_ptr_from_userdata(into, None)?.cast::<U>() };
-
-        unsafe {
-            *into_ptr = (*from_ptr).as_();
-        }
-
-        Ok(())
-    }
-
+// Cast native data
+pub trait CTypeCast
+where
+    Self: NativeCast,
+{
     fn try_cast_num<T, U>(
         &self,
         ctype: &LuaAnyUserData,
@@ -154,7 +107,6 @@ pub trait CTypeCast {
         }
     }
 
-    #[allow(unused_variables)]
     fn cast(
         &self,
         from_ctype: &LuaAnyUserData,
@@ -179,31 +131,52 @@ pub trait CTypeCast {
     }
 }
 
+pub trait CTypeSignedness {
+    fn get_signedness(&self) -> bool {
+        true
+    }
+}
+
 impl<T> LuaUserData for CType<T>
 where
     T: 'static,
-    Self: CTypeConvert + CTypeCast,
+    Self: CTypeCast + CTypeSignedness + NativeCast + NativeConvert,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
         fields.add_meta_field(LuaMetaMethod::Type, "CType");
-        fields.add_field_method_get("signedness", |_, this| Ok(this.signedness));
+        fields.add_field_method_get("signedness", |_, this| Ok(this.get_signedness()));
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
             CPtr::from_lua_userdata(lua, &this)
         });
-        methods.add_method(
+        methods.add_function(
             "from",
-            |lua, ctype, (userdata, offset): (LuaAnyUserData, Option<isize>)| unsafe {
-                ctype.read_userdata(lua, userdata, offset)
+            |lua,
+             (ctype, userdata, offset): (
+                LuaAnyUserData,
+                LuaAnyUserData,
+                Option<isize>,
+            )| unsafe {
+                ctype
+                    .borrow::<CType<T>>()?
+                    .read_userdata(&ctype, lua, &userdata, offset)
             },
         );
-        methods.add_method(
+        methods.add_function(
             "into",
-            |_, ctype, (value, userdata, offset): (LuaValue, LuaAnyUserData, Option<isize>)| unsafe {
-                ctype.write_userdata(value, userdata, offset)
+            |lua,
+             (ctype, value, userdata, offset): (
+                LuaAnyUserData,
+                LuaValue,
+                LuaAnyUserData,
+                Option<isize>,
+            )| unsafe {
+                ctype
+                    .borrow::<CType<T>>()?
+                    .write_userdata(&ctype, lua, value, userdata, offset)
             },
         );
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
