@@ -60,7 +60,7 @@ impl LuaUserData for CPtr {
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
-            let carr = CArr::from_lua_userdata(lua, &this, length)?;
+            let carr = CArr::new_from_lua_userdata(lua, &this, length)?;
             Ok(carr)
         });
         methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {

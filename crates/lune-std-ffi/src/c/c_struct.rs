@@ -57,7 +57,7 @@ impl CStruct {
 
     // Create new CStruct UserData with LuaTable.
     // Lock and hold table for .inner ref
-    pub fn from_lua_table<'lua>(
+    pub fn new_from_lua_table<'lua>(
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
@@ -135,7 +135,7 @@ impl LuaUserData for CStruct {
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
-            let carr = CArr::from_lua_userdata(lua, &this, length)?;
+            let carr = CArr::new_from_lua_userdata(lua, &this, length)?;
             Ok(carr)
         });
         methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {

@@ -2,21 +2,23 @@ use core::ffi::*;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
+use num::cast::AsPrimitive;
 
-use super::super::c_type::{CType, CTypeConvert, CTypeNumCast};
+use super::super::c_type::{CType, CTypeCast, CTypeConvert};
 use crate::ffi::ffi_platform::CHAR_IS_SIGNED;
 
 impl CTypeConvert for CType<c_char> {
     fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()> {
-        let value = match value {
-            LuaValue::Integer(t) => t,
+        let value: c_char = match value {
+            LuaValue::Integer(t) => t.as_(),
+            LuaValue::String(t) => t.as_bytes().first().map_or(0, u8::to_owned).as_(),
             _ => {
                 return Err(LuaError::external(format!(
-                    "Integer expected, got {}",
+                    "Argument LuaValue expected a Integer or String, got {}",
                     value.type_name()
                 )))
             }
-        } as c_char;
+        };
         unsafe {
             *(ptr.cast::<c_char>()) = value;
         }
@@ -28,28 +30,23 @@ impl CTypeConvert for CType<c_char> {
     }
 }
 
-impl CType<c_char> {
+impl CTypeCast for CType<c_char> {
     fn cast(
         &self,
+        from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
         from: &LuaAnyUserData,
         into: &LuaAnyUserData,
     ) -> LuaResult<()> {
-        Self::cast_userdata_if_type_match::<c_float>(into_ctype, from, into)?
-            .or(Self::cast_userdata_if_type_match::<c_double>(
-                into_ctype, from, into,
-            )?)
-            .or(Self::cast_userdata_if_type_match::<c_char>(
-                into_ctype, from, into,
-            )?)
-            .or(Self::cast_userdata_if_type_match::<c_long>(
-                into_ctype, from, into,
-            )?)
-            .ok_or_else(|| self.cast_failed_with(into_ctype))
+        self.try_cast_num::<c_char, c_float>(into_ctype, from, into)?
+            .or(self.try_cast_num::<c_char, c_double>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<c_char, c_char>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<c_char, c_long>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<c_char, c_int>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<c_char, c_longlong>(into_ctype, from, into)?)
+            .ok_or_else(|| self.cast_failed_with(from_ctype, into_ctype))
     }
 }
-
-impl CTypeNumCast<c_char> for CType<c_char> {}
 
 pub fn get_export(lua: &Lua) -> LuaResult<(&'static str, LuaAnyUserData)> {
     Ok((
