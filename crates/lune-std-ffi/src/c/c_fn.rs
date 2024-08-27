@@ -35,9 +35,9 @@ impl CFn {
         }
     }
 
-    pub fn from_lua_table(args: LuaTable, ret: LuaAnyUserData) -> LuaResult<Self> {
-        let args = type_list_from_table(&args)?;
-        let ret = type_from_userdata(&ret)?;
+    pub fn from_lua_table(lua: &Lua, args: LuaTable, ret: LuaAnyUserData) -> LuaResult<Self> {
+        let args = type_list_from_table(lua, &args)?;
+        let ret = type_from_userdata(lua, &ret)?;
         Ok(Self::new(args, ret))
     }
 }

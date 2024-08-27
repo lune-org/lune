@@ -1,14 +1,9 @@
-use std::any::Any;
-
 use libffi::middle::Type;
 use mlua::prelude::*;
 
 use super::association_names::CARR_INNER;
-use super::c_helper::{
-    get_ensured_size, name_from_userdata, stringify_userdata, type_from_userdata,
-};
+use super::c_helper::{get_ensured_size, pretty_format_userdata, type_from_userdata};
 use super::c_ptr::CPtr;
-use super::c_type::CType;
 use crate::ffi::ffi_association::{get_association, set_association};
 
 // This is a series of some type.
@@ -49,7 +44,7 @@ impl CArr {
         luatype: &LuaAnyUserData<'lua>,
         length: usize,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = type_from_userdata(luatype)?;
+        let fields = type_from_userdata(lua, luatype)?;
         let carr = lua.create_userdata(Self::new(fields, length)?)?;
 
         set_association(lua, CARR_INNER, &carr, luatype)?;
@@ -66,7 +61,7 @@ impl CArr {
 
     // Stringify cstruct for pretty printing something like:
     // <CStruct( u8, i32, size = 8 )>
-    pub fn stringify(userdata: &LuaAnyUserData) -> LuaResult<String> {
+    pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let inner: LuaValue = userdata.get("inner")?;
         let carr = userdata.borrow::<CArr>()?;
 
@@ -75,20 +70,11 @@ impl CArr {
                 .as_userdata()
                 .ok_or(LuaError::external("failed to get inner type userdata."))?;
 
-            if inner.is::<CType<dyn Any>>() {
-                Ok(format!(
-                    " {} ; {} ",
-                    stringify_userdata(inner)?,
-                    carr.length
-                ))
-            } else {
-                Ok(format!(
-                    " <{}({})> ; {} ",
-                    name_from_userdata(inner),
-                    stringify_userdata(inner)?,
-                    carr.length
-                ))
-            }
+            Ok(format!(
+                "{}*{}",
+                pretty_format_userdata(lua, inner)?,
+                carr.length,
+            ))
         } else {
             Err(LuaError::external("failed to get inner type userdata."))
         }
@@ -119,8 +105,8 @@ impl LuaUserData for CArr {
             let pointer = CPtr::from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
-        methods.add_meta_function(LuaMetaMethod::ToString, |_, this: LuaAnyUserData| {
-            let result = CArr::stringify(&this)?;
+        methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
+            let result = CArr::stringify(lua, &this)?;
             Ok(result)
         });
     }
