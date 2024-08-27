@@ -5,7 +5,7 @@ use super::super::c_type::*;
 
 impl CTypeSignedness for CType<u32> {
     fn get_signedness(&self) -> bool {
-        true
+        false
     }
 }
 
