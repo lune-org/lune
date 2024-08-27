@@ -7,9 +7,7 @@ mod c;
 mod ffi;
 
 use crate::c::{c_fn::CFn, c_struct::CStruct, create_all_types};
-use crate::ffi::{
-    ffi_association::get_table, ffi_box::FfiBox, ffi_lib::FfiLib, ffi_platform::get_platform_value,
-};
+use crate::ffi::{ffi_association::get_table, ffi_box::FfiBox, ffi_lib::FfiLib};
 
 /**
     Creates the `ffi` standard library module.
@@ -22,7 +20,6 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let ctypes = create_all_types(lua)?;
     let result = TableBuilder::new(lua)?
         .with_values(ctypes)?
-        .with_values(get_platform_value())?
         .with_function("box", |_, size: usize| Ok(FfiBox::new(size)))?
         // TODO: discuss about function name. matching with io.open is better?
         .with_function("dlopen", |_, name: String| {

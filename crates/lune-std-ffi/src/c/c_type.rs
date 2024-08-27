@@ -1,10 +1,10 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use num::cast::AsPrimitive;
 use std::marker::PhantomData;
 
 use libffi::middle::Type;
+use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::association_names::CTYPE_STATIC;
@@ -20,7 +20,6 @@ pub struct CType<T: ?Sized> {
     libffi_type: Type,
     size: usize,
     name: Option<&'static str>,
-    signedness: bool,
     _phantom: PhantomData<T>,
 }
 
@@ -37,12 +36,12 @@ pub struct CTypeStatic {
 }
 
 impl CTypeStatic {
-    fn new<T>(ctype: &CType<T>) -> Self {
+    fn new<T>(ctype: &CType<T>, signedness: bool) -> Self {
         Self {
             libffi_type: ctype.libffi_type.clone(),
             size: ctype.size,
             name: ctype.name,
-            signedness: ctype.signedness,
+            signedness,
         }
     }
 }
@@ -51,12 +50,11 @@ impl LuaUserData for CTypeStatic {}
 impl<T> CType<T>
 where
     T: 'static,
-    Self: CTypeConvert + CTypeCast,
+    Self: CTypeConvert + CTypeCast + CTypeSignedness,
 {
     pub fn new_with_libffi_type<'lua>(
         lua: &'lua Lua,
         libffi_type: Type,
-        signedness: bool,
         name: Option<&'static str>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
@@ -67,10 +65,10 @@ where
             libffi_type,
             size,
             name,
-            signedness,
             _phantom: PhantomData,
         };
-        let userdata_static = lua.create_any_userdata(CTypeStatic::new::<T>(&ctype))?;
+        let userdata_static =
+            lua.create_any_userdata(CTypeStatic::new::<T>(&ctype, ctype.get_signedness()))?;
         let userdata = lua.create_userdata(ctype)?;
 
         set_association(lua, CTYPE_STATIC, &userdata, &userdata_static)?;
@@ -179,15 +177,21 @@ pub trait CTypeCast {
     }
 }
 
+pub trait CTypeSignedness {
+    fn get_signedness(&self) -> bool {
+        true
+    }
+}
+
 impl<T> LuaUserData for CType<T>
 where
     T: 'static,
-    Self: CTypeConvert + CTypeCast,
+    Self: CTypeConvert + CTypeCast + CTypeSignedness,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
         fields.add_meta_field(LuaMetaMethod::Type, "CType");
-        fields.add_field_method_get("signedness", |_, this| Ok(this.signedness));
+        fields.add_field_method_get("signedness", |_, this| Ok(this.get_signedness()));
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {

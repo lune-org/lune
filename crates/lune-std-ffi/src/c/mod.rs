@@ -1,3 +1,5 @@
+pub use types::create_all_types;
+
 pub(super) mod c_arr;
 pub(super) mod c_fn;
 pub(super) mod c_helper;
@@ -6,8 +8,6 @@ pub(super) mod c_string;
 pub(super) mod c_struct;
 pub(super) mod c_type;
 pub(super) mod types;
-
-pub use types::create_all_types;
 
 // Named registry table names
 mod association_names {
