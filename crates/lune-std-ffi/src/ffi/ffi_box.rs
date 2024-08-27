@@ -39,18 +39,9 @@ impl FfiBox {
 
     // Todo: if too big, print as another format
     pub fn stringify(&self) -> String {
-        let mut buff: String = String::with_capacity(self.size() * 10 - 2);
-        for (pos, value) in self.0.iter().enumerate() {
-            for i in 0..8 {
-                if (value & (1 << i)) == 0 {
-                    buff.push('0');
-                } else {
-                    buff.push('1');
-                }
-            }
-            if pos < self.size() - 1 {
-                buff.push_str(", ");
-            }
+        let mut buff: String = String::with_capacity(self.size() * 2);
+        for value in &self.0 {
+            buff.push_str(format!("{:x}", value.to_be()).as_str());
         }
         buff
     }

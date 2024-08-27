@@ -39,7 +39,7 @@ impl CArr {
         })
     }
 
-    pub fn from_lua_userdata<'lua>(
+    pub fn new_from_lua_userdata<'lua>(
         lua: &'lua Lua,
         luatype: &LuaAnyUserData<'lua>,
         length: usize,

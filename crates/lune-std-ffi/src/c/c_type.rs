@@ -1,7 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
-use num::cast::{AsPrimitive, NumCast};
+use num::cast::AsPrimitive;
 use std::marker::PhantomData;
 
 use libffi::middle::Type;
@@ -24,13 +24,18 @@ pub struct CType<T: ?Sized> {
     _phantom: PhantomData<T>,
 }
 
-// Static CType, for borrow, is operation
+// We can't get a CType<T> through mlua, something like
+// .is::<CType<dyn Any>> will fail.
+// So we need data that has a static type.
+// each CType<T> userdata instance stores an instance of CTypeStatic.
+#[allow(unused)]
 pub struct CTypeStatic {
     pub libffi_type: Type,
     pub size: usize,
     pub name: Option<&'static str>,
     pub signedness: bool,
 }
+
 impl CTypeStatic {
     fn new<T>(ctype: &CType<T>) -> Self {
         Self {
@@ -71,10 +76,6 @@ where
         set_association(lua, CTYPE_STATIC, &userdata, &userdata_static)?;
 
         Ok(userdata)
-    }
-
-    pub fn get_type(&self) -> &Type {
-        &self.libffi_type
     }
 
     pub fn stringify(&self) -> &str {
@@ -206,7 +207,7 @@ where
             },
         );
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
-            CArr::from_lua_userdata(lua, &this, length)
+            CArr::new_from_lua_userdata(lua, &this, length)
         });
         methods.add_function(
             "cast",

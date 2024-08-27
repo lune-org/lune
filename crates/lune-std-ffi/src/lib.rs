@@ -30,11 +30,11 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
             Ok(lib)
         })?
         .with_function("struct", |lua, types: LuaTable| {
-            let cstruct = CStruct::from_lua_table(lua, types)?;
+            let cstruct = CStruct::new_from_lua_table(lua, types)?;
             Ok(cstruct)
         })?
         .with_function("fn", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
-            let cfn = CFn::from_lua_table(lua, args, ret)?;
+            let cfn = CFn::new_from_lua_table(lua, args, ret)?;
             Ok(cfn)
         })?;
 

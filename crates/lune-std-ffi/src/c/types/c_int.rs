@@ -2,20 +2,26 @@ use core::ffi::*;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
+use num::cast::AsPrimitive;
 
 use super::super::c_type::{CType, CTypeCast, CTypeConvert};
 
 impl CTypeConvert for CType<c_int> {
     fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()> {
-        let value = match value {
-            LuaValue::Integer(t) => t,
+        let value: c_int = match value {
+            LuaValue::Integer(t) => t.as_(),
+            LuaValue::Number(t) => t.as_(),
+            LuaValue::String(t) => t
+                .to_string_lossy()
+                .parse::<i32>()
+                .map_err(LuaError::external)?,
             _ => {
                 return Err(LuaError::external(format!(
-                    "Integer expected, got {}",
+                    "Argument LuaValue expected a Integer, Number or String, got {}",
                     value.type_name()
                 )))
             }
-        } as c_int;
+        };
         unsafe {
             *(ptr.cast::<c_int>()) = value;
         }
