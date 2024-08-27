@@ -78,7 +78,7 @@ impl FfiBox {
             bounds = bounds.offset(t);
         }
 
-        // Lua should not be able to deref a box that refers to a box managed by Lua.
+        // Lua should not be able to deref a box.
         // To deref a box space is to allow lua to read any space,
         // which has security issues and is ultimately dangerous.
         // Therefore, box:ref():deref() is not allowed.

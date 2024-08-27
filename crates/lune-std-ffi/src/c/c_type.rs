@@ -45,8 +45,8 @@ impl LuaUserData for CTypeStatic {}
 
 impl<T> CType<T>
 where
-    Self: CTypeConvert,
     T: 'static,
+    Self: CTypeConvert + CTypeCast,
 {
     pub fn new_with_libffi_type<'lua>(
         lua: &'lua Lua,
@@ -83,15 +83,6 @@ where
             None => "unnamed",
         }
     }
-
-    pub fn cast_failed_with(&self, into_ctype: &LuaAnyUserData) -> LuaError {
-        let config = ValueFormatConfig::new();
-        LuaError::external(format!(
-            "Cannot cast <CType({})> to {}",
-            self.stringify(),
-            pretty_format_value(&LuaValue::UserData(into_ctype.to_owned()), &config)
-        ))
-    }
 }
 
 // Handle C data, provide type conversion between luavalue and c-type
@@ -127,12 +118,9 @@ pub trait CTypeConvert {
     }
 }
 
-pub trait CTypeNumCast<T>
-where
-    T: NumCast,
-{
+pub trait CTypeCast {
     // Cast T as U
-    fn cast_userdata<U>(from: &LuaAnyUserData, into: &LuaAnyUserData) -> LuaResult<()>
+    fn cast_num<T, U>(&self, from: &LuaAnyUserData, into: &LuaAnyUserData) -> LuaResult<()>
     where
         T: AsPrimitive<U>,
         U: 'static + Copy,
@@ -147,7 +135,8 @@ where
         Ok(())
     }
 
-    fn cast_userdata_if_type_match<U>(
+    fn try_cast_num<T, U>(
+        &self,
         ctype: &LuaAnyUserData,
         from: &LuaAnyUserData,
         into: &LuaAnyUserData,
@@ -157,18 +146,42 @@ where
         U: 'static + Copy,
     {
         if ctype.is::<CType<U>>() {
-            Self::cast_userdata(from, into)?;
+            Self::cast_num::<T, U>(self, from, into)?;
             Ok(Some(()))
         } else {
             Ok(None)
         }
     }
+
+    #[allow(unused_variables)]
+    fn cast(
+        &self,
+        from_ctype: &LuaAnyUserData,
+        into_ctype: &LuaAnyUserData,
+        from: &LuaAnyUserData,
+        into: &LuaAnyUserData,
+    ) -> LuaResult<()> {
+        Err(Self::cast_failed_with(self, from_ctype, into_ctype))
+    }
+
+    fn cast_failed_with(
+        &self,
+        from_ctype: &LuaAnyUserData,
+        into_ctype: &LuaAnyUserData,
+    ) -> LuaError {
+        let config = ValueFormatConfig::new();
+        LuaError::external(format!(
+            "Cannot cast {} to {}",
+            pretty_format_value(&LuaValue::UserData(from_ctype.to_owned()), &config),
+            pretty_format_value(&LuaValue::UserData(into_ctype.to_owned()), &config),
+        ))
+    }
 }
 
 impl<T> LuaUserData for CType<T>
 where
-    Self: CTypeConvert,
     T: 'static,
+    Self: CTypeConvert + CTypeCast,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size));
@@ -195,6 +208,20 @@ where
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
             CArr::from_lua_userdata(lua, &this, length)
         });
+        methods.add_function(
+            "cast",
+            |_,
+             (from_type, into_type, from, into): (
+                LuaAnyUserData,
+                LuaAnyUserData,
+                LuaAnyUserData,
+                LuaAnyUserData,
+            )| {
+                from_type
+                    .borrow::<Self>()?
+                    .cast(&from_type, &into_type, &from, &into)
+            },
+        );
         methods.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
             lua.create_string(this.stringify())
         });
