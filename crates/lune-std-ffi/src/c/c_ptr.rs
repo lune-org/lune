@@ -1,11 +1,7 @@
-#![allow(clippy::cargo_common_metadata)]
-
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use super::association_names::CPTR_INNER;
-use super::c_arr::CArr;
-use super::c_helper::pretty_format_userdata;
+use super::{association_names::CPTR_INNER, c_helper::pretty_format_userdata, CArr};
 use crate::ffi::ffi_association::{get_association, set_association};
 
 pub struct CPtr();
@@ -13,7 +9,7 @@ pub struct CPtr();
 impl CPtr {
     // Create pointer type with '.inner' field
     // inner can be CArr, CType or CStruct
-    pub fn from_lua_userdata<'lua>(
+    pub fn new_from_lua_userdata<'lua>(
         lua: &'lua Lua,
         inner: &LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
@@ -56,7 +52,7 @@ impl LuaUserData for CPtr {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::from_lua_userdata(lua, &this)?;
+            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {

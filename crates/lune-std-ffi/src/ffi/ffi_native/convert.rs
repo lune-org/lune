@@ -1,52 +1,29 @@
-#![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::inline_always)]
+
+use std::cell::Ref;
 
 use mlua::prelude::*;
 
-use super::super::ffi_helper::get_ptr_from_userdata;
+use super::NativeDataHandle;
 
 // Handle native data, provide type conversion between luavalue and native types
 pub trait NativeConvert {
     // Convert luavalue into data, then write into ptr
-    fn luavalue_into_ptr<'lua>(
+    unsafe fn luavalue_into<'lua>(
         &self,
-        this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
+        // type_userdata: &LuaAnyUserData<'lua>,
+        offset: isize,
+        data_handle: &Ref<dyn NativeDataHandle>,
         value: LuaValue<'lua>,
-        ptr: *mut (),
     ) -> LuaResult<()>;
 
     // Read data from ptr, then convert into luavalue
-    fn ptr_into_luavalue<'lua>(
+    unsafe fn luavalue_from<'lua>(
         &self,
-        this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
-        ptr: *mut (),
+        // type_userdata: &LuaAnyUserData<'lua>,
+        offset: isize,
+        data_handle: &Ref<dyn NativeDataHandle>,
     ) -> LuaResult<LuaValue<'lua>>;
-
-    // Read data from userdata (such as box or ref) and convert it into luavalue
-    unsafe fn read_userdata<'lua>(
-        &self,
-        this: &LuaAnyUserData<'lua>,
-        lua: &'lua Lua,
-        userdata: &LuaAnyUserData<'lua>,
-        offset: Option<isize>,
-    ) -> LuaResult<LuaValue<'lua>> {
-        let ptr = unsafe { get_ptr_from_userdata(userdata, offset)? };
-        let value = Self::ptr_into_luavalue(self, this, lua, ptr)?;
-        Ok(value)
-    }
-
-    // Write data into userdata (such as box or ref) from luavalue
-    unsafe fn write_userdata<'lua>(
-        &self,
-        this: &LuaAnyUserData<'lua>,
-        lua: &'lua Lua,
-        luavalue: LuaValue<'lua>,
-        userdata: LuaAnyUserData<'lua>,
-        offset: Option<isize>,
-    ) -> LuaResult<()> {
-        let ptr = unsafe { get_ptr_from_userdata(&userdata, offset)? };
-        Self::luavalue_into_ptr(self, this, lua, luavalue, ptr)?;
-        Ok(())
-    }
 }

@@ -1,23 +1,26 @@
+use std::cell::Ref;
+
 use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::super::c_type::{CType, CTypeSignedness};
-use crate::ffi::ffi_native::NativeConvert;
+use super::super::c_type::CType;
+use crate::ffi::{NativeConvert, NativeDataHandle, NativeSignedness};
 
-impl CTypeSignedness for CType<u32> {
+impl NativeSignedness for CType<u32> {
     fn get_signedness(&self) -> bool {
         false
     }
 }
 
 impl NativeConvert for CType<u32> {
-    fn luavalue_into_ptr<'lua>(
+    unsafe fn luavalue_into<'lua>(
         &self,
-        _this: &LuaAnyUserData<'lua>,
         _lua: &'lua Lua,
+        // _type_userdata: &LuaAnyUserData<'lua>,
+        offset: isize,
+        data_handle: &Ref<dyn NativeDataHandle>,
         value: LuaValue<'lua>,
-        ptr: *mut (),
     ) -> LuaResult<()> {
         let value: u32 = match value {
             LuaValue::Integer(t) => t.as_(),
@@ -34,17 +37,18 @@ impl NativeConvert for CType<u32> {
             }
         };
         unsafe {
-            *(ptr.cast::<u32>()) = value;
+            *(data_handle.get_pointer(offset).cast::<u32>()) = value;
         }
         Ok(())
     }
-    fn ptr_into_luavalue<'lua>(
+    unsafe fn luavalue_from<'lua>(
         &self,
-        _this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
-        ptr: *mut (),
+        // _type_userdata: &LuaAnyUserData<'lua>,
+        offset: isize,
+        data_handle: &Ref<dyn NativeDataHandle>,
     ) -> LuaResult<LuaValue<'lua>> {
-        let value = unsafe { (*ptr.cast::<u32>()).into_lua(lua)? };
+        let value = unsafe { (*data_handle.get_pointer(offset).cast::<u32>()).into_lua(lua)? };
         Ok(value)
     }
 }

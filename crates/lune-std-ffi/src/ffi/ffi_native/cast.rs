@@ -1,24 +1,29 @@
-#![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::inline_always)]
+
+use std::cell::Ref;
 
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::super::ffi_helper::get_ptr_from_userdata;
+use super::NativeDataHandle;
 
-pub trait NativeCast {
-    // Cast T as U
-    fn cast_num<T, U>(&self, from: &LuaAnyUserData, into: &LuaAnyUserData) -> LuaResult<()>
-    where
-        T: AsPrimitive<U>,
-        U: 'static + Copy,
-    {
-        let from_ptr = unsafe { get_ptr_from_userdata(from, None)?.cast::<T>() };
-        let into_ptr = unsafe { get_ptr_from_userdata(into, None)?.cast::<U>() };
+// Cast T as U
 
-        unsafe {
-            *into_ptr = (*from_ptr).as_();
-        }
+#[inline(always)]
+pub fn native_num_cast<T, U>(
+    from: &Ref<dyn NativeDataHandle>,
+    into: &Ref<dyn NativeDataHandle>,
+) -> LuaResult<()>
+where
+    T: AsPrimitive<U>,
+    U: 'static + Copy,
+{
+    let from_ptr = unsafe { from.get_pointer(0).cast::<T>() };
+    let into_ptr = unsafe { into.get_pointer(0).cast::<U>() };
 
-        Ok(())
+    unsafe {
+        *into_ptr = (*from_ptr).as_();
     }
+
+    Ok(())
 }

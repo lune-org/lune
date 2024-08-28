@@ -1,4 +1,4 @@
-use super::super::ffi_helper::bit_mask::*;
+use super::super::bit_mask::*;
 
 pub enum FfiRefFlag {
     Dereferenceable,

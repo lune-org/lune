@@ -1,32 +1,38 @@
-#![allow(clippy::cargo_common_metadata)]
-
-use std::vec::Vec;
+use std::{cell::Ref, vec::Vec};
 
 use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
 
-use super::association_names::CSTRUCT_INNER;
-use super::c_arr::CArr;
-use super::c_helper::{pretty_format_userdata, type_list_from_table};
-use super::c_ptr::CPtr;
-use crate::ffi::ffi_association::{get_association, set_association};
-use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
+use super::{
+    association_names::CSTRUCT_INNER,
+    c_helper::{get_conv_list_from_table, libffi_type_list_from_table, pretty_format_userdata},
+    CArr, CPtr,
+};
+use crate::ffi::{
+    ffi_association::{get_association, set_association},
+    FfiBox, GetNativeDataHandle, NativeConvert, NativeDataHandle, NativeSignedness, NativeSize,
+    FFI_STATUS_NAMES,
+};
 
 pub struct CStruct {
     // libffi_cif: Cif,
-    fields: Vec<Type>,
+    // fields: Vec<Type>,
     struct_type: Type,
     offsets: Vec<usize>,
     size: usize,
+    conv: Vec<*const dyn NativeConvert>,
 }
 
 impl CStruct {
-    pub fn new(fields: Vec<Type>) -> LuaResult<Self> {
-        let struct_type = Type::structure(fields.iter().cloned());
+    pub fn new(fields: Vec<Type>, conv: Vec<*const dyn NativeConvert>) -> LuaResult<Self> {
+        let len = fields.len();
+        let mut offsets = Vec::<usize>::with_capacity(len);
+        let struct_type = Type::structure(fields);
+        // let struct_type = Type::structure(fields.iter().cloned());
         // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
 
         // Get field offsets with ffi_get_struct_offsets
-        let mut offsets = Vec::<usize>::with_capacity(fields.len());
+        // let mut offsets = Vec::<usize>::with_capacity(fields.len());
         unsafe {
             let offset_result: raw::ffi_status = raw::ffi_get_struct_offsets(
                 low::ffi_abi_FFI_DEFAULT_ABI,
@@ -48,10 +54,11 @@ impl CStruct {
 
         Ok(Self {
             // libffi_cif: libffi_cfi,
-            fields,
+            // fields,
             struct_type,
             offsets,
             size,
+            conv,
         })
     }
 
@@ -61,8 +68,11 @@ impl CStruct {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = type_list_from_table(lua, &table)?;
-        let cstruct = lua.create_userdata(Self::new(fields)?)?;
+        let cstruct = lua.create_userdata(Self::new(
+            libffi_type_list_from_table(lua, &table)?,
+            unsafe { get_conv_list_from_table(&table)? },
+        )?)?;
+
         table.set_readonly(true);
         set_association(lua, CSTRUCT_INNER, &cstruct, table)?;
         Ok(cstruct)
@@ -71,15 +81,12 @@ impl CStruct {
     // Stringify cstruct for pretty printing something like:
     // <CStruct( u8, i32, size = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-        let field: LuaValue = userdata.get("inner")?;
-        if field.is_table() {
-            let table = field
-                .as_table()
-                .ok_or(LuaError::external("failed to get inner type table."))?;
-            // iterate for field
+        if let LuaValue::Table(fields) = get_association(lua, CSTRUCT_INNER, userdata)?
+            .ok_or(LuaError::external("Field table not found"))?
+        {
             let mut result = String::from(" ");
-            for i in 0..table.raw_len() {
-                let child: LuaAnyUserData = table.raw_get(i + 1)?;
+            for i in 0..fields.raw_len() {
+                let child: LuaAnyUserData = fields.raw_get(i + 1)?;
                 result.push_str(pretty_format_userdata(lua, &child)?.as_str());
             }
 
@@ -101,20 +108,72 @@ impl CStruct {
         Ok(offset)
     }
 
-    pub fn get_fields(&self) -> &Vec<Type> {
-        &self.fields
-    }
+    // pub fn get_fields(&self) -> &Vec<Type> {
+    //     &self.fields
+    // }
 
     pub fn get_type(&self) -> &Type {
         &self.struct_type
     }
 }
 
-impl LuaUserData for CStruct {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, this| Ok(this.size));
+impl NativeSize for CStruct {
+    fn get_size(&self) -> usize {
+        self.size
+    }
+}
+impl NativeSignedness for CStruct {
+    fn get_signedness(&self) -> bool {
+        false
+    }
+}
+impl NativeConvert for CStruct {
+    // FIXME: FfiBox, FfiRef support required
+    unsafe fn luavalue_into<'lua>(
+        &self,
+        lua: &'lua Lua,
+        offset: isize,
+        data_handle: &Ref<dyn NativeDataHandle>,
+        value: LuaValue<'lua>,
+    ) -> LuaResult<()> {
+        let LuaValue::Table(ref table) = value else {
+            return Err(LuaError::external("Value is not a table"));
+        };
+        for (i, conv) in self.conv.iter().enumerate() {
+            let field_offset = self.offset(i)? as isize;
+            let data: LuaValue = table.get(i + 1)?;
+
+            conv.as_ref()
+                .unwrap()
+                .luavalue_into(lua, field_offset + offset, data_handle, data)?;
+        }
+        Ok(())
     }
 
+    unsafe fn luavalue_from<'lua>(
+        &self,
+        lua: &'lua Lua,
+        offset: isize,
+        data_handle: &Ref<dyn NativeDataHandle>,
+    ) -> LuaResult<LuaValue<'lua>> {
+        let table = lua.create_table_with_capacity(self.conv.len(), 0)?;
+        for (i, conv) in self.conv.iter().enumerate() {
+            let field_offset = self.offset(i)? as isize;
+            table.set(
+                i + 1,
+                conv.as_ref()
+                    .unwrap()
+                    .luavalue_from(lua, field_offset + offset, data_handle)?,
+            )?;
+        }
+        Ok(LuaValue::Table(table))
+    }
+}
+
+impl LuaUserData for CStruct {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
+    }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("offset", |_, this, index: usize| {
             let offset = this.offset(index)?;
@@ -123,17 +182,55 @@ impl LuaUserData for CStruct {
         // Simply pass type in the locked table used when first creating this object.
         // By referencing the table to struct, the types inside do not disappear
         methods.add_function("field", |lua, (this, field): (LuaAnyUserData, usize)| {
-            if let LuaValue::Table(t) = get_association(lua, CSTRUCT_INNER, this)?
+            if let LuaValue::Table(fields) = get_association(lua, CSTRUCT_INNER, this)?
                 .ok_or(LuaError::external("Field table not found"))?
             {
-                let value: LuaValue = t.get(field + 1)?;
+                let value: LuaValue = fields.raw_get(field + 1)?;
                 Ok(value)
             } else {
                 Err(LuaError::external("Failed to read field table"))
             }
         });
+        methods.add_method("box", |lua, this, table: LuaValue| {
+            let result = lua.create_userdata(FfiBox::new(this.get_size()))?;
+
+            unsafe { this.luavalue_into(lua, 0, &result.get_data_handle()?, table)? };
+            Ok(result)
+        });
+        methods.add_method(
+            "from",
+            |lua, this, (userdata, offset): (LuaAnyUserData, Option<isize>)| {
+                let offset = offset.unwrap_or(0);
+
+                let data_handle = &userdata.get_data_handle()?;
+                if !data_handle.check_boundary(offset, this.get_size()) {
+                    return Err(LuaError::external("Out of bounds"));
+                }
+                if !data_handle.check_readable(&userdata, offset, this.get_size()) {
+                    return Err(LuaError::external("Unreadable data handle"));
+                }
+
+                unsafe { this.luavalue_from(lua, offset, data_handle) }
+            },
+        );
+        methods.add_method(
+            "into",
+            |lua, this, (userdata, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| {
+                let offset = offset.unwrap_or(0);
+
+                let data_handle = &userdata.get_data_handle()?;
+                if !data_handle.check_boundary(offset, this.size) {
+                    return Err(LuaError::external("Out of bounds"));
+                }
+                if !data_handle.checek_writable(&userdata, offset, this.size) {
+                    return Err(LuaError::external("Unwritable data handle"));
+                }
+
+                unsafe { this.luavalue_into(lua, offset, data_handle, value) }
+            },
+        );
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::from_lua_userdata(lua, &this)?;
+            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {

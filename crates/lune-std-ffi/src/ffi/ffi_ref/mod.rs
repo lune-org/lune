@@ -4,6 +4,7 @@ use mlua::prelude::*;
 
 use super::association_names::REF_INNER;
 use super::ffi_association::{get_association, set_association};
+use super::ffi_native::NativeDataHandle;
 
 mod bounds;
 mod flags;
@@ -21,8 +22,8 @@ pub use self::flags::{FfiRefFlag, FfiRefFlagList};
 
 pub struct FfiRef {
     ptr: *mut (),
-    flags: FfiRefFlagList,
-    boundary: FfiRefBounds,
+    pub flags: FfiRefFlagList,
+    pub boundary: FfiRefBounds,
 }
 
 impl FfiRef {
@@ -97,20 +98,40 @@ impl FfiRef {
             .ok_or(LuaError::external("This pointer is not offsetable."))?;
 
         // Check boundary, if exceed, return error
-        self.boundary.check(offset).then_some(()).ok_or_else(|| {
-            LuaError::external(format!(
-                "Offset is out of bounds. high: {}, low: {}. offset got {}",
-                self.boundary.above, self.boundary.below, offset
-            ))
-        })?;
+        self.boundary
+            .check_boundary(offset)
+            .then_some(())
+            .ok_or_else(|| {
+                LuaError::external(format!(
+                    "Offset is out of bounds. high: {}, low: {}. offset got {}",
+                    self.boundary.above, self.boundary.below, offset
+                ))
+            })?;
 
         let boundary = self.boundary.offset(offset);
 
+        // TODO
         Ok(Self::new(
             self.ptr.byte_offset(offset),
             self.flags.clone(),
             boundary,
         ))
+    }
+}
+
+impl NativeDataHandle for FfiRef {
+    fn check_boundary(&self, offset: isize, size: usize) -> bool {
+        self.boundary.check_sized(offset, size)
+    }
+    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+        self.flags.is_writable()
+    }
+    // TODO: if ref points box , check box too
+    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+        self.flags.is_readable()
+    }
+    unsafe fn get_pointer(&self, offset: isize) -> *mut () {
+        self.get_ptr().byte_offset(offset)
     }
 }
 

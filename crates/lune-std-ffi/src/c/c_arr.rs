@@ -2,7 +2,7 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 
 use super::association_names::CARR_INNER;
-use super::c_helper::{get_ensured_size, pretty_format_userdata, type_from_userdata};
+use super::c_helper::{get_ensured_size, libffi_type_from_userdata, pretty_format_userdata};
 use super::c_ptr::CPtr;
 use crate::ffi::ffi_association::{get_association, set_association};
 
@@ -44,11 +44,19 @@ impl CArr {
         luatype: &LuaAnyUserData<'lua>,
         length: usize,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = type_from_userdata(lua, luatype)?;
+        let fields = libffi_type_from_userdata(lua, luatype)?;
         let carr = lua.create_userdata(Self::new(fields, length)?)?;
 
         set_association(lua, CARR_INNER, &carr, luatype)?;
         Ok(carr)
+    }
+
+    pub fn get_size(&self) -> usize {
+        self.size
+    }
+
+    pub fn get_length(&self) -> usize {
+        self.length
     }
 
     pub fn get_type(&self) -> &Type {
@@ -83,8 +91,8 @@ impl CArr {
 
 impl LuaUserData for CArr {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, this| Ok(this.size));
-        fields.add_field_method_get("length", |_, this| Ok(this.length));
+        fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
+        fields.add_field_method_get("length", |_, this| Ok(this.get_length()));
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
             let inner: LuaValue = get_association(lua, CARR_INNER, this)?
                 // It shouldn't happen.
@@ -102,7 +110,7 @@ impl LuaUserData for CArr {
             }
         });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::from_lua_userdata(lua, &this)?;
+            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
