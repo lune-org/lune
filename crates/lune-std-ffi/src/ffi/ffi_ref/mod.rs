@@ -2,9 +2,13 @@ use std::ptr;
 
 use mlua::prelude::*;
 
+use self::bounds::*;
+use self::flags::*;
 use super::association_names::REF_INNER;
 use super::ffi_association::{get_association, set_association};
-use super::ffi_bounds::FfiRefBounds;
+
+pub(super) mod bounds;
+pub(super) mod flags;
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
@@ -16,16 +20,16 @@ use super::ffi_bounds::FfiRefBounds;
 
 pub struct FfiRef {
     ptr: *mut (),
-    dereferenceable: bool,
-    range: Option<FfiRefBounds>,
+    flags: FfiRefFlagList,
+    boundary: FfiRefBounds,
 }
 
 impl FfiRef {
-    pub fn new(ptr: *mut (), dereferenceable: bool, range: Option<FfiRefBounds>) -> Self {
+    pub fn new(ptr: *mut (), flags: FfiRefFlagList, range: FfiRefBounds) -> Self {
         Self {
             ptr,
-            dereferenceable,
-            range,
+            flags,
+            boundary: range,
         }
     }
 
@@ -35,14 +39,18 @@ impl FfiRef {
         this: LuaAnyUserData<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let target = this.borrow::<FfiRef>()?;
+        let mut flags = target.flags.clone();
+
+        // We cannot dereference ref which created by lua, in lua
+        flags.set_dereferenceable(false);
 
         let luaref = lua.create_userdata(FfiRef::new(
             ptr::from_ref(&target.ptr) as *mut (),
-            true,
-            Some(FfiRefBounds {
-                low: 0,
-                high: size_of::<usize>(),
-            }),
+            flags,
+            FfiRefBounds {
+                below: 0,
+                above: size_of::<usize>(),
+            },
         ))?;
 
         // If the ref holds a box, make sure the new ref also holds the box by holding ref
@@ -55,26 +63,44 @@ impl FfiRef {
         self.ptr
     }
 
-    pub unsafe fn deref(&self) -> Self {
-        // FIXME
-        Self::new(*self.ptr.cast::<*mut ()>(), true, None)
+    pub unsafe fn deref(&self) -> LuaResult<Self> {
+        self.flags
+            .is_dereferenceable()
+            .then_some(())
+            .ok_or(LuaError::external("This pointer is not dereferenceable."))?;
+
+        self.boundary
+            .check_sized(0, size_of::<usize>())
+            .then_some(())
+            .ok_or(LuaError::external(
+                "Offset is out of bounds. Dereferencing pointer requires size of usize",
+            ))?;
+
+        // FIXME flags
+        Ok(Self::new(
+            *self.ptr.cast::<*mut ()>(),
+            self.flags.clone(),
+            UNSIZED_BOUNDS,
+        ))
+    }
+
+    pub fn is_nullptr(&self) -> bool {
+        self.ptr as usize == 0
     }
 
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
-        if let Some(ref t) = self.range {
-            if !t.check(offset) {
-                return Err(LuaError::external(format!(
-                    "Offset is out of bounds. high: {}, low: {}. offset got {}",
-                    t.high, t.low, offset
-                )));
-            }
+        if !self.boundary.check(offset) {
+            return Err(LuaError::external(format!(
+                "Offset is out of bounds. high: {}, low: {}. offset got {}",
+                self.boundary.above, self.boundary.below, offset
+            )));
         }
-        let range = self.range.as_ref().map(|t| t.offset(offset));
+        let boundary = self.boundary.offset(offset);
 
         Ok(Self::new(
             self.ptr.byte_offset(offset),
-            self.dereferenceable,
-            range,
+            self.flags.clone(),
+            boundary,
         ))
     }
 }
@@ -84,7 +110,7 @@ impl LuaUserData for FfiRef {
         methods.add_function("deref", |lua, this: LuaAnyUserData| {
             let inner = get_association(lua, REF_INNER, &this)?;
             let ffiref = this.borrow::<FfiRef>()?;
-            let result = lua.create_userdata(unsafe { ffiref.deref() })?;
+            let result = lua.create_userdata(unsafe { ffiref.deref()? })?;
 
             if let Some(t) = inner {
                 // if let Some(u) = get_association(lua, regname, value) {}
@@ -108,5 +134,18 @@ impl LuaUserData for FfiRef {
             let ffiref = FfiRef::luaref(lua, this)?;
             Ok(ffiref)
         });
+        methods.add_method("isNullptr", |_, this, ()| Ok(this.is_nullptr()));
     }
+}
+
+pub fn create_nullptr(lua: &Lua) -> LuaResult<LuaAnyUserData> {
+    // https://en.cppreference.com/w/cpp/types/nullptr_t
+    lua.create_userdata(FfiRef::new(
+        ptr::null_mut::<()>().cast(),
+        FfiRefFlagList::zero(),
+        // usize::MAX means that nullptr is can be 'any' pointer type
+        // We check size of inner data. give ffi.box(1):ref() as argument which typed as i32:ptr() will fail,
+        // throw lua error
+        UNSIZED_BOUNDS,
+    ))
 }

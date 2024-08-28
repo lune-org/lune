@@ -13,11 +13,13 @@ mod i16;
 mod i32;
 mod i64;
 mod i8;
+mod isize;
 mod u128;
 mod u16;
 mod u32;
 mod u64;
 mod u8;
+mod usize;
 
 // export all default c-types
 pub fn create_all_c_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
@@ -104,5 +106,7 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserDat
         self::i128::create_type(lua)?,
         self::f64::create_type(lua)?,
         self::f32::create_type(lua)?,
+        self::usize::create_type(lua)?,
+        self::isize::create_type(lua)?,
     ])
 }

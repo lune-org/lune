@@ -7,6 +7,10 @@ i128
 u128
 endian?
 
+dynasm??? like luajit/ffi, deno. we can create some asm code in runtime with
+https://github.com/CensoredUsername/dynasm-rs
+I think we don't need to support it widely. just for aarch64 and amd64
+
 - last thing to do
 - [ ] Add tests
 - [ ] Add docs

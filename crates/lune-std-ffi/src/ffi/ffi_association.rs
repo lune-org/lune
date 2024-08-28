@@ -74,17 +74,6 @@ where
         _ => panic!(),
     }
 }
-pub fn get_association_with<'lua>(
-    lua: &'lua Lua,
-    regname: &str,
-    value: &LuaValue<'lua>,
-) -> LuaResult<Option<LuaValue<'lua>>> {
-    match lua.named_registry_value::<LuaValue>(regname)? {
-        LuaValue::Nil => Ok(None),
-        LuaValue::Table(t) => Ok(Some(t.get(value)?)),
-        _ => panic!(),
-    }
-}
 
 // Allows reading of registry tables for debugging.
 // This helps keep track of data being gc'd.

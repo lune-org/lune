@@ -57,6 +57,8 @@ impl CTypeCast for CType<i64> {
             .or(self.try_cast_num::<i64, i128>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i64, f32>(into_ctype, from, into)?)
             .or(self.try_cast_num::<i64, f64>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<i64, usize>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<i64, isize>(into_ctype, from, into)?)
             .ok_or_else(|| self.cast_failed_with(from_ctype, into_ctype))
     }
 }

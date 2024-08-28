@@ -1,5 +1,4 @@
 pub(super) mod ffi_association;
-pub(super) mod ffi_bounds;
 pub(super) mod ffi_box;
 pub(super) mod ffi_helper;
 pub(super) mod ffi_lib;
