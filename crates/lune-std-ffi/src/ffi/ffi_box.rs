@@ -1,5 +1,3 @@
-#![allow(clippy::cargo_common_metadata)]
-
 use std::boxed::Box;
 use std::sync::LazyLock;
 
@@ -43,6 +41,11 @@ impl FfiBox {
         Self(vec_heap.into_boxed_slice())
     }
 
+    // Check boundary
+    pub fn check_boundary(&self, offset: usize) -> bool {
+        self.size() > offset
+    }
+
     // pub fn copy(&self, target: &mut FfiBox) {}
 
     // Todo: if too big, print as another format
@@ -66,7 +69,7 @@ impl FfiBox {
 
         // Calculate offset
         if let Some(t) = offset {
-            if !bounds.check(t) {
+            if !bounds.check_boundary(t) {
                 return Err(LuaError::external(format!(
                     "Offset is out of bounds. box.size: {}. offset got {}",
                     target.size(),
@@ -110,7 +113,6 @@ impl LuaUserData for FfiBox {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.size()));
     }
-
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // For convenience, :zero returns self.
         methods.add_function_mut("zero", |_, this: LuaAnyUserData| {

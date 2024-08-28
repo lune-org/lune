@@ -21,7 +21,7 @@ impl FfiRefBounds {
     }
 
     // Check boundary
-    pub fn check(&self, offset: isize) -> bool {
+    pub fn check_boundary(&self, offset: isize) -> bool {
         if self.is_unsized() {
             return true;
         }
@@ -38,16 +38,20 @@ impl FfiRefBounds {
     }
 
     // Check boundary
+    // Check required here
     pub fn check_sized(&self, offset: isize, size: usize) -> bool {
         if self.is_unsized() {
             return true;
         }
+        if offset < 0 && self.above < offset.unsigned_abs() {
+            return true;
+        }
         let end = offset + (size as isize) - 1;
-        let sign = end.signum();
+        let end_sign = end.signum();
         let end_abs = end.unsigned_abs();
-        if sign == -1 {
+        if end_sign == -1 {
             self.above >= end_abs
-        } else if sign == 1 {
+        } else if end_sign == 1 {
             self.below >= end_abs
         } else {
             // sign == 0

@@ -39,7 +39,7 @@ impl NativeConvert for CType<u16> {
         }
         Ok(())
     }
-    fn ptr_into_luavalue<'lua>(
+    fn luavalue_from_ptr<'lua>(
         &self,
         _this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,

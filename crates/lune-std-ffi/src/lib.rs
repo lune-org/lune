@@ -38,6 +38,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
 
     #[cfg(debug_assertions)]
     let result = result.with_function("debug_associate", |lua, str: String| {
+        println!("WARNING: ffi.debug_associate is GC debug function, which only works for debug build. Do not use this function in production level codes.");
         crate::ffi::ffi_association::get_table(lua, str.as_ref())
     })?;
 

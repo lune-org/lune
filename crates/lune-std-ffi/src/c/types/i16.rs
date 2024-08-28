@@ -38,7 +38,7 @@ impl NativeConvert for CType<i16> {
         }
         Ok(())
     }
-    fn ptr_into_luavalue<'lua>(
+    fn luavalue_from_ptr<'lua>(
         &self,
         _this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
@@ -52,6 +52,6 @@ impl NativeConvert for CType<i16> {
 pub fn create_type(lua: &Lua) -> LuaResult<(&'static str, LuaAnyUserData)> {
     Ok((
         "i16",
-        CType::<i16>::new_with_libffi_type(lua, Type::i16(), Some("f32"))?,
+        CType::<i16>::new_with_libffi_type(lua, Type::i16(), Some("i16"))?,
     ))
 }

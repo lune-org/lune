@@ -1,3 +1,5 @@
+#![allow(clippy::inline_always)]
+
 use mlua::prelude::*;
 
 use super::ffi_box::FfiBox;
@@ -11,9 +13,8 @@ pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_BAD_ARGTYPE",
 ];
 
-// TODO: using trait
 // Get raw pointer from userdata
-// TODO: boundary check
+#[inline(always)]
 pub unsafe fn get_ptr_from_userdata(
     userdata: &LuaAnyUserData,
     offset: Option<isize>,
@@ -33,6 +34,29 @@ pub unsafe fn get_ptr_from_userdata(
     };
 
     Ok(ptr)
+}
+
+#[inline(always)]
+pub fn userdata_check_boundary(
+    userdata: &LuaAnyUserData,
+    offset: isize,
+    size: usize,
+) -> LuaResult<bool> {
+    if userdata.is::<FfiBox>() {
+        if offset < 0 {
+            return Err(LuaError::external("Out of bounds"));
+        }
+        Ok(userdata
+            .borrow::<FfiBox>()?
+            .check_boundary((offset as usize) + size))
+    } else if userdata.is::<FfiRef>() {
+        Ok(userdata
+            .borrow::<FfiRef>()?
+            .boundary
+            .check_sized(offset, size))
+    } else {
+        Err(LuaError::external("Unexpected userdata"))
+    }
 }
 
 #[allow(unused)]

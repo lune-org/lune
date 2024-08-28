@@ -1,4 +1,4 @@
-#![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::inline_always)]
 
 use mlua::prelude::*;
 
@@ -16,7 +16,7 @@ pub trait NativeConvert {
     ) -> LuaResult<()>;
 
     // Read data from ptr, then convert into luavalue
-    fn ptr_into_luavalue<'lua>(
+    fn luavalue_from_ptr<'lua>(
         &self,
         this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
@@ -24,6 +24,7 @@ pub trait NativeConvert {
     ) -> LuaResult<LuaValue<'lua>>;
 
     // Read data from userdata (such as box or ref) and convert it into luavalue
+    #[inline(always)]
     unsafe fn read_userdata<'lua>(
         &self,
         this: &LuaAnyUserData<'lua>,
@@ -32,11 +33,12 @@ pub trait NativeConvert {
         offset: Option<isize>,
     ) -> LuaResult<LuaValue<'lua>> {
         let ptr = unsafe { get_ptr_from_userdata(userdata, offset)? };
-        let value = Self::ptr_into_luavalue(self, this, lua, ptr)?;
+        let value = Self::luavalue_from_ptr(self, this, lua, ptr)?;
         Ok(value)
     }
 
     // Write data into userdata (such as box or ref) from luavalue
+    #[inline(always)]
     unsafe fn write_userdata<'lua>(
         &self,
         this: &LuaAnyUserData<'lua>,

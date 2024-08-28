@@ -1,7 +1,7 @@
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
-use super::c_helper::{type_from_userdata, type_list_from_table};
+use super::c_helper::{libffi_type_from_userdata, libffi_type_list_from_table};
 
 // cfn is a type declaration for a function.
 // Basically, when calling an external function, this type declaration
@@ -36,8 +36,8 @@ impl CFn {
     }
 
     pub fn new_from_lua_table(lua: &Lua, args: LuaTable, ret: LuaAnyUserData) -> LuaResult<Self> {
-        let args = type_list_from_table(lua, &args)?;
-        let ret = type_from_userdata(lua, &ret)?;
+        let args = libffi_type_list_from_table(lua, &args)?;
+        let ret = libffi_type_from_userdata(lua, &ret)?;
         Ok(Self::new(args, ret))
     }
 }

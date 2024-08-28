@@ -1,4 +1,4 @@
-#![allow(clippy::cargo_common_metadata)]
+#![allow(clippy::inline_always)]
 
 use std::marker::PhantomData;
 
@@ -12,6 +12,8 @@ use super::{
 };
 use crate::ffi::{
     ffi_association::set_association,
+    ffi_box::FfiBox,
+    ffi_helper::userdata_check_boundary,
     ffi_native::{NativeCast, NativeConvert},
 };
 
@@ -89,6 +91,7 @@ pub trait CTypeCast
 where
     Self: NativeCast,
 {
+    #[inline(always)]
     fn try_cast_num<T, U>(
         &self,
         ctype: &LuaAnyUserData,
@@ -107,12 +110,13 @@ where
         }
     }
 
+    #[inline(always)]
     fn cast(
         &self,
         from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
-        from: &LuaAnyUserData,
-        into: &LuaAnyUserData,
+        _from: &LuaAnyUserData,
+        _into: &LuaAnyUserData,
     ) -> LuaResult<()> {
         Err(Self::cast_failed_with(self, from_ctype, into_ctype))
     }
@@ -152,31 +156,36 @@ where
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
             CPtr::from_lua_userdata(lua, &this)
         });
+        methods.add_function("box", |lua, (this, table): (LuaAnyUserData, LuaValue)| {
+            let ctype = this.borrow::<Self>()?;
+            let mut result = FfiBox::new(ctype.size);
+            ctype.luavalue_into_ptr(&this, lua, table, result.get_ptr().cast())?;
+            Ok(result)
+        });
         methods.add_function(
             "from",
-            |lua,
-             (ctype, userdata, offset): (
-                LuaAnyUserData,
-                LuaAnyUserData,
-                Option<isize>,
-            )| unsafe {
-                ctype
-                    .borrow::<CType<T>>()?
-                    .read_userdata(&ctype, lua, &userdata, offset)
+            |lua, (ctype, userdata, offset): (LuaAnyUserData, LuaAnyUserData, Option<isize>)| {
+                let this = ctype.borrow::<Self>()?;
+                userdata_check_boundary(&userdata, offset.unwrap_or(0), this.size)?
+                    .then_some(())
+                    .ok_or(LuaError::external("Out of bounds"))?;
+                unsafe { this.read_userdata(&ctype, lua, &userdata, offset) }
             },
         );
         methods.add_function(
             "into",
             |lua,
-             (ctype, value, userdata, offset): (
+             (ctype, userdata, value, offset): (
+                LuaAnyUserData,
                 LuaAnyUserData,
                 LuaValue,
-                LuaAnyUserData,
                 Option<isize>,
-            )| unsafe {
-                ctype
-                    .borrow::<CType<T>>()?
-                    .write_userdata(&ctype, lua, value, userdata, offset)
+            )| {
+                let this = ctype.borrow::<Self>()?;
+                userdata_check_boundary(&userdata, offset.unwrap_or(0), this.size)?
+                    .then_some(())
+                    .ok_or(LuaError::external("Out of bounds"))?;
+                unsafe { this.write_userdata(&ctype, lua, value, userdata, offset) }
             },
         );
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {

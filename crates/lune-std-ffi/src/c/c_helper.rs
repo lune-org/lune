@@ -1,3 +1,5 @@
+#![allow(clippy::inline_always)]
+
 use std::ptr::{self, null_mut};
 
 use libffi::{low, middle::Type, raw};
@@ -9,11 +11,52 @@ use super::c_arr::CArr;
 use super::c_ptr::CPtr;
 use super::c_struct::CStruct;
 use super::c_type::CTypeStatic;
+use super::types::{ctype_luavalue_from_ptr, ctype_luavalue_into_ptr, ctype_size_from_userdata};
 use crate::ffi::ffi_association::get_association;
 use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
+use crate::ffi::ffi_native::NativeConvert;
+
+#[inline(always)]
+pub fn luavalue_into_ptr<'lua>(
+    this: &LuaAnyUserData<'lua>,
+    lua: &'lua Lua,
+    value: LuaValue<'lua>,
+    ptr: *mut (),
+) -> LuaResult<()> {
+    if this.is::<CStruct>() {
+        this.borrow::<CStruct>()?
+            .luavalue_into_ptr(this, lua, value, ptr)
+    } else {
+        ctype_luavalue_into_ptr(this, lua, value, ptr)
+    }
+}
+
+#[inline(always)]
+pub fn ptr_into_luavalue<'lua>(
+    this: &LuaAnyUserData<'lua>,
+    lua: &'lua Lua,
+    ptr: *mut (),
+) -> LuaResult<LuaValue<'lua>> {
+    if this.is::<CStruct>() {
+        this.borrow::<CStruct>()?.luavalue_from_ptr(this, lua, ptr)
+    } else {
+        ctype_luavalue_from_ptr(this, lua, ptr)
+    }
+}
+
+#[inline(always)]
+pub fn type_size_from_userdata(this: &LuaAnyUserData) -> LuaResult<usize> {
+    if this.is::<CStruct>() {
+        Ok(this.borrow::<CStruct>()?.get_size())
+    } else if this.is::<CArr>() {
+        Ok(this.borrow::<CArr>()?.get_size())
+    } else {
+        ctype_size_from_userdata(this)
+    }
+}
 
 // get Vec<libffi_type> from table(array) of c-types userdata
-pub fn type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>> {
+pub fn libffi_type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>> {
     let len: usize = table.raw_len();
     let mut fields = Vec::with_capacity(len);
 
@@ -22,7 +65,7 @@ pub fn type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>>
         let value = table.raw_get(i + 1)?;
         match value {
             LuaValue::UserData(field_type) => {
-                fields.push(type_from_userdata(lua, &field_type)?);
+                fields.push(libffi_type_from_userdata(lua, &field_type)?);
             }
             _ => {
                 return Err(LuaError::external(format!(
@@ -37,7 +80,7 @@ pub fn type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>>
 }
 
 // get libffi_type from any c-type userdata
-pub fn type_from_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<Type> {
+pub fn libffi_type_from_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<Type> {
     if userdata.is::<CStruct>() {
         Ok(userdata.borrow::<CStruct>()?.get_type().to_owned())
     } else if let Some(t) = get_association(lua, CTYPE_STATIC, userdata)? {

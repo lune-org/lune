@@ -1,5 +1,3 @@
-#![allow(clippy::cargo_common_metadata)]
-
 use libffi::middle::Type;
 use mlua::prelude::*;
 
