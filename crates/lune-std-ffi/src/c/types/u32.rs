@@ -2,7 +2,8 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::super::c_type::*;
+use super::super::c_type::{CType, CTypeSignedness};
+use crate::ffi::ffi_native::NativeConvert;
 
 impl CTypeSignedness for CType<u32> {
     fn get_signedness(&self) -> bool {
@@ -10,8 +11,14 @@ impl CTypeSignedness for CType<u32> {
     }
 }
 
-impl CTypeConvert for CType<u32> {
-    fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()> {
+impl NativeConvert for CType<u32> {
+    fn luavalue_into_ptr<'lua>(
+        &self,
+        _this: &LuaAnyUserData<'lua>,
+        _lua: &'lua Lua,
+        value: LuaValue<'lua>,
+        ptr: *mut (),
+    ) -> LuaResult<()> {
         let value: u32 = match value {
             LuaValue::Integer(t) => t.as_(),
             LuaValue::Number(t) => t.as_(),
@@ -31,35 +38,14 @@ impl CTypeConvert for CType<u32> {
         }
         Ok(())
     }
-    fn ptr_into_luavalue(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue> {
+    fn ptr_into_luavalue<'lua>(
+        &self,
+        _this: &LuaAnyUserData<'lua>,
+        lua: &'lua Lua,
+        ptr: *mut (),
+    ) -> LuaResult<LuaValue<'lua>> {
         let value = unsafe { (*ptr.cast::<u32>()).into_lua(lua)? };
         Ok(value)
-    }
-}
-
-impl CTypeCast for CType<u32> {
-    fn cast(
-        &self,
-        from_ctype: &LuaAnyUserData,
-        into_ctype: &LuaAnyUserData,
-        from: &LuaAnyUserData,
-        into: &LuaAnyUserData,
-    ) -> LuaResult<()> {
-        self.try_cast_num::<u32, u8>(into_ctype, from, into)?
-            .or(self.try_cast_num::<u32, u16>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, u32>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, u64>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, u128>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, i8>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, i16>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, i32>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, i64>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, i128>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, f32>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, f64>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, usize>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<u32, isize>(into_ctype, from, into)?)
-            .ok_or_else(|| self.cast_failed_with(from_ctype, into_ctype))
     }
 }
 

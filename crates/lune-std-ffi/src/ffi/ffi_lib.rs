@@ -5,11 +5,7 @@ use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
 use super::ffi_association::set_association;
-use super::ffi_ref::{
-    bounds::UNSIZED_BOUNDS,
-    flags::{FfiRefFlag, FfiRefFlagList},
-    FfiRef,
-};
+use super::ffi_ref::{FfiRef, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS};
 
 static LIB_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
     FfiRefFlagList::new(&[

@@ -7,11 +7,7 @@ use mlua::prelude::*;
 
 use super::association_names::REF_INNER;
 use super::ffi_association::set_association;
-use super::ffi_ref::{
-    bounds::FfiRefBounds,
-    flags::{FfiRefFlag, FfiRefFlagList},
-    FfiRef,
-};
+use super::ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList};
 
 static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
     FfiRefFlagList::new(&[

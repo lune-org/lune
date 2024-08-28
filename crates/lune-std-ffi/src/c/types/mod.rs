@@ -3,23 +3,67 @@ use std::any::TypeId;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
+use num::cast::AsPrimitive;
 
 use super::c_type::CType;
+use super::c_type::CTypeCast;
 
-mod f32;
-mod f64;
-mod i128;
-mod i16;
-mod i32;
-mod i64;
-mod i8;
-mod isize;
-mod u128;
-mod u16;
-mod u32;
-mod u64;
-mod u8;
-mod usize;
+pub mod f32;
+pub mod f64;
+pub mod i128;
+pub mod i16;
+pub mod i32;
+pub mod i64;
+pub mod i8;
+pub mod isize;
+pub mod u128;
+pub mod u16;
+pub mod u32;
+pub mod u64;
+pub mod u8;
+pub mod usize;
+
+impl<T> CTypeCast for CType<T>
+where
+    T: AsPrimitive<u8>
+        + AsPrimitive<u16>
+        + AsPrimitive<u32>
+        + AsPrimitive<u64>
+        + AsPrimitive<u128>
+        + AsPrimitive<i8>
+        + AsPrimitive<i16>
+        + AsPrimitive<i32>
+        + AsPrimitive<i64>
+        + AsPrimitive<i128>
+        + AsPrimitive<f32>
+        + AsPrimitive<f64>
+        + AsPrimitive<usize>
+        + AsPrimitive<isize>,
+{
+    fn cast(
+        &self,
+        from_ctype: &LuaAnyUserData,
+        into_ctype: &LuaAnyUserData,
+        from: &LuaAnyUserData,
+        into: &LuaAnyUserData,
+    ) -> LuaResult<()> {
+        self.try_cast_num::<T, u8>(into_ctype, from, into)?
+            .or(self.try_cast_num::<T, u16>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, u32>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, u64>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, u128>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, i8>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, i16>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, i32>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, i64>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, i128>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, f32>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, f64>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, usize>(into_ctype, from, into)?)
+            .or(self.try_cast_num::<T, isize>(into_ctype, from, into)?)
+            .ok_or_else(|| self.cast_failed_with(from_ctype, into_ctype))
+    }
+}
 
 // export all default c-types
 pub fn create_all_c_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {

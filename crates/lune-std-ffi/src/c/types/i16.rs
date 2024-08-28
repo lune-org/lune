@@ -1,7 +1,9 @@
+use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::super::c_type::*;
+use super::super::c_type::{CType, CTypeSignedness};
+use crate::ffi::ffi_native::NativeConvert;
 
 impl CTypeSignedness for CType<i16> {
     fn get_signedness(&self) -> bool {
@@ -9,8 +11,14 @@ impl CTypeSignedness for CType<i16> {
     }
 }
 
-impl CTypeConvert for CType<i16> {
-    fn luavalue_into_ptr(value: LuaValue, ptr: *mut ()) -> LuaResult<()> {
+impl NativeConvert for CType<i16> {
+    fn luavalue_into_ptr<'lua>(
+        &self,
+        _this: &LuaAnyUserData<'lua>,
+        _lua: &'lua Lua,
+        value: LuaValue<'lua>,
+        ptr: *mut (),
+    ) -> LuaResult<()> {
         let value: i16 = match value {
             LuaValue::Integer(t) => t.as_(),
             LuaValue::Number(t) => t.as_(),
@@ -30,41 +38,20 @@ impl CTypeConvert for CType<i16> {
         }
         Ok(())
     }
-    fn ptr_into_luavalue(lua: &Lua, ptr: *mut ()) -> LuaResult<LuaValue> {
+    fn ptr_into_luavalue<'lua>(
+        &self,
+        _this: &LuaAnyUserData<'lua>,
+        lua: &'lua Lua,
+        ptr: *mut (),
+    ) -> LuaResult<LuaValue<'lua>> {
         let value = unsafe { (*ptr.cast::<i16>()).into_lua(lua)? };
         Ok(value)
-    }
-}
-
-impl CTypeCast for CType<i16> {
-    fn cast(
-        &self,
-        from_ctype: &LuaAnyUserData,
-        into_ctype: &LuaAnyUserData,
-        from: &LuaAnyUserData,
-        into: &LuaAnyUserData,
-    ) -> LuaResult<()> {
-        self.try_cast_num::<i16, u8>(into_ctype, from, into)?
-            .or(self.try_cast_num::<i16, u16>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, u32>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, u64>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, u128>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, i8>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, i16>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, i32>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, i64>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, i128>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, f32>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, f64>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, usize>(into_ctype, from, into)?)
-            .or(self.try_cast_num::<i16, isize>(into_ctype, from, into)?)
-            .ok_or_else(|| self.cast_failed_with(from_ctype, into_ctype))
     }
 }
 
 pub fn create_type(lua: &Lua) -> LuaResult<(&'static str, LuaAnyUserData)> {
     Ok((
         "i16",
-        CType::<i16>::new_with_libffi_type(lua, libffi::middle::Type::i16(), Some("f32"))?,
+        CType::<i16>::new_with_libffi_type(lua, Type::i16(), Some("f32"))?,
     ))
 }

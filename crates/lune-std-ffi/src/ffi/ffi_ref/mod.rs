@@ -2,13 +2,14 @@ use std::ptr;
 
 use mlua::prelude::*;
 
-use self::bounds::*;
-use self::flags::*;
 use super::association_names::REF_INNER;
 use super::ffi_association::{get_association, set_association};
 
-pub(super) mod bounds;
-pub(super) mod flags;
+mod bounds;
+mod flags;
+
+pub use self::bounds::{FfiRefBounds, UNSIZED_BOUNDS};
+pub use self::flags::{FfiRefFlag, FfiRefFlagList};
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
@@ -41,6 +42,7 @@ impl FfiRef {
         let target = this.borrow::<FfiRef>()?;
         let mut flags = target.flags.clone();
 
+        // FIXME:
         // We cannot dereference ref which created by lua, in lua
         flags.set_dereferenceable(false);
 
@@ -89,12 +91,19 @@ impl FfiRef {
     }
 
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
-        if !self.boundary.check(offset) {
-            return Err(LuaError::external(format!(
+        self.flags
+            .is_offsetable()
+            .then_some(())
+            .ok_or(LuaError::external("This pointer is not offsetable."))?;
+
+        // Check boundary, if exceed, return error
+        self.boundary.check(offset).then_some(()).ok_or_else(|| {
+            LuaError::external(format!(
                 "Offset is out of bounds. high: {}, low: {}. offset got {}",
                 self.boundary.above, self.boundary.below, offset
-            )));
-        }
+            ))
+        })?;
+
         let boundary = self.boundary.offset(offset);
 
         Ok(Self::new(
