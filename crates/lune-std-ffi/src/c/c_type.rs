@@ -19,6 +19,7 @@ use crate::ffi::{
 // .is::<CType<dyn Any>> will fail.
 // So we need data that has a static type.
 // each CType<T> userdata instance stores an instance of CTypeStatic.
+#[allow(unused)]
 pub struct CTypeStatic {
     pub libffi_type: Type,
     pub size: usize,
