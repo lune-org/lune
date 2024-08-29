@@ -1,15 +1,15 @@
 #![allow(clippy::inline_always)]
 
 use core::ffi::*;
-use std::any::TypeId;
 use std::cell::Ref;
+use std::{any::TypeId, ops::Deref};
 
 use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
 use super::{CType, CTypeCast};
-use crate::ffi::{NativeConvert, NativeDataHandle};
+use crate::ffi::{NativeConvert, NativeDataHandle, NativeSignedness};
 
 pub mod f32;
 pub mod f64;
@@ -151,10 +151,10 @@ macro_rules! define_ctype_luavalue_into_ptr {
     ($lua:ident, $this:ident, $offset:ident, $data_handle:ident, $value:ident, $f:ty, $( $c:ty ),*) => {
         if $this.is::<CType<$f>>() {
             let ctype = $this.borrow::<CType<$f>>()?;
-            ctype.luavalue_into($lua, $this, $offset, $data_handle, $value)
+            ctype.luavalue_into($lua, $offset, $data_handle, $value)
         }$( else if $this.is::<CType<$c>>() {
             let ctype = $this.borrow::<CType<$c>>()?;
-            ctype.luavalue_into($lua, $this, $offset, $data_handle, $value)
+            ctype.luavalue_into($lua, $offset, $data_handle, $value)
         })* else {
             Err(LuaError::external("Unexpected type"))
         }
@@ -192,9 +192,9 @@ pub unsafe fn ctype_luavalue_into_ptr<'lua>(
 macro_rules! define_ctype_luavalue_from_ptr {
     ($lua:ident, $this:ident, $offset:ident, $data_handle:ident, $f:ty, $( $c:ty ),*) => {
         if $this.is::<CType<$f>>() {
-            $this.borrow::<CType<$f>>()?.luavalue_from($lua, $this, $offset, $data_handle)
+            $this.borrow::<CType<$f>>()?.luavalue_from($lua, $offset, $data_handle)
         }$( else if $this.is::<CType<$c>>() {
-            $this.borrow::<CType<$c>>()?.luavalue_from($lua, $this, $offset, $data_handle)
+            $this.borrow::<CType<$c>>()?.luavalue_from($lua, $offset, $data_handle)
         })* else {
             Err(LuaError::external("Unexpected type"))
         }
@@ -225,4 +225,35 @@ pub unsafe fn ctype_luavalue_from_ptr<'lua>(
         f32,
         f64
     )
+}
+
+// struct CastCache<'a> {
+//     conv: &'a [for<'lua> fn(lua: &'lua Lua)],
+//     ud: Box<[*const dyn NativeConvert]>,
+// }
+
+// fn test<'a>(ud: &'a LuaAnyUserData) -> LuaResult<Box<CastCache<'a>>> {
+// Box::new([(ud.to_pointer() as *const CType<u8>) as *const dyn NativeConvert])
+// let ff: for<'lua> unsafe fn(
+//     lua: &'lua Lua,
+//     type_userdata: &LuaAnyUserData<'lua>,
+//     offset: isize,
+//     data_handle: &Ref<dyn NativeDataHandle>,
+//     value: LuaValue<'lua>,
+// ) -> LuaResult<()> = || CType::<f32>::luavalue_into;
+// }
+
+macro_rules! define_get_ctype_conv {
+    ($userdata:ident, $f:ty, $( $c:ty ),*) => {
+        if $userdata.is::<CType<$f>>() {
+            Ok($userdata.to_pointer().cast::<CType<$f>>() as *const dyn NativeConvert)
+        }$( else if $userdata.is::<CType<$c>>() {
+            Ok($userdata.to_pointer().cast::<CType<$c>>() as *const dyn NativeConvert)
+        })* else {
+            Err(LuaError::external("Unexpected type"))
+        }
+    };
+}
+pub unsafe fn get_ctype_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {
+    define_get_ctype_conv!(userdata, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64)
 }

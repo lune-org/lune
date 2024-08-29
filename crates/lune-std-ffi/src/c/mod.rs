@@ -12,7 +12,7 @@ pub use self::{
     c_fn::CFn,
     c_ptr::CPtr,
     c_struct::CStruct,
-    c_type::{CType, CTypeCast, CTypeSignedness},
+    c_type::{CType, CTypeCast},
 };
 
 pub use types::create_all_c_types;

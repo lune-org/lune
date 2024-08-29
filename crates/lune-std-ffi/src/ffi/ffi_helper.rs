@@ -1,13 +1,5 @@
 #![allow(clippy::inline_always)]
 
-use std::cell::Ref;
-
-use mlua::prelude::*;
-
-use super::ffi_box::FfiBox;
-use super::ffi_raw::FfiRaw;
-use super::ffi_ref::FfiRef;
-
 // Converts ffi status into &str
 pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_OK",

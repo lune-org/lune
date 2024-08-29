@@ -1,9 +1,18 @@
 mod cast;
 mod convert;
 mod readwrite;
-mod sized;
+
+pub trait NativeSize {
+    fn get_size(&self) -> usize;
+}
+
+pub trait NativeSignedness {
+    fn get_signedness(&self) -> bool {
+        false
+    }
+}
 
 pub use self::{
-    cast::NativeCast, convert::NativeConvert, readwrite::GetNativeDataHandle,
-    readwrite::NativeDataHandle, sized::NativeSized,
+    cast::native_num_cast, convert::NativeConvert, readwrite::GetNativeDataHandle,
+    readwrite::NativeDataHandle,
 };

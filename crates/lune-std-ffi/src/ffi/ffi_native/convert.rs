@@ -12,7 +12,7 @@ pub trait NativeConvert {
     unsafe fn luavalue_into<'lua>(
         &self,
         lua: &'lua Lua,
-        this: &LuaAnyUserData<'lua>,
+        // type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn NativeDataHandle>,
         value: LuaValue<'lua>,
@@ -22,7 +22,7 @@ pub trait NativeConvert {
     unsafe fn luavalue_from<'lua>(
         &self,
         lua: &'lua Lua,
-        this: &LuaAnyUserData<'lua>,
+        // type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn NativeDataHandle>,
     ) -> LuaResult<LuaValue<'lua>>;

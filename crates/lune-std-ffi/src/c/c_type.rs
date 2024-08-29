@@ -9,8 +9,8 @@ use num::cast::AsPrimitive;
 
 use super::{association_names::CTYPE_STATIC, c_helper::get_ensured_size, CArr, CPtr};
 use crate::ffi::{
-    ffi_association::set_association, FfiBox, GetNativeDataHandle, NativeCast, NativeConvert,
-    NativeDataHandle, NativeSized,
+    ffi_association::set_association, native_num_cast, FfiBox, GetNativeDataHandle, NativeConvert,
+    NativeDataHandle, NativeSignedness, NativeSize,
 };
 
 // We can't get a CType<T> through mlua, something like
@@ -36,7 +36,53 @@ impl CTypeStatic {
 }
 impl LuaUserData for CTypeStatic {}
 
-impl<T> NativeSized for CType<T> {
+// Cast native data
+pub trait CTypeCast {
+    #[inline(always)]
+    fn try_cast_num<T, U>(
+        &self,
+        ctype: &LuaAnyUserData,
+        from: &Ref<dyn NativeDataHandle>,
+        into: &Ref<dyn NativeDataHandle>,
+    ) -> LuaResult<Option<()>>
+    where
+        T: AsPrimitive<U>,
+        U: 'static + Copy,
+    {
+        if ctype.is::<CType<U>>() {
+            native_num_cast::<T, U>(from, into)?;
+            Ok(Some(()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    #[inline(always)]
+    fn cast(
+        &self,
+        from_ctype: &LuaAnyUserData,
+        into_ctype: &LuaAnyUserData,
+        _from: &Ref<dyn NativeDataHandle>,
+        _into: &Ref<dyn NativeDataHandle>,
+    ) -> LuaResult<()> {
+        Err(Self::cast_failed_with(self, from_ctype, into_ctype))
+    }
+
+    fn cast_failed_with(
+        &self,
+        from_ctype: &LuaAnyUserData,
+        into_ctype: &LuaAnyUserData,
+    ) -> LuaError {
+        let config = ValueFormatConfig::new();
+        LuaError::external(format!(
+            "Cannot cast {} to {}",
+            pretty_format_value(&LuaValue::UserData(from_ctype.to_owned()), &config),
+            pretty_format_value(&LuaValue::UserData(into_ctype.to_owned()), &config),
+        ))
+    }
+}
+
+impl<T> NativeSize for CType<T> {
     fn get_size(&self) -> usize {
         self.size
     }
@@ -53,7 +99,7 @@ pub struct CType<T: ?Sized> {
 impl<T> CType<T>
 where
     T: 'static,
-    Self: CTypeCast + CTypeSignedness + NativeCast + NativeConvert + NativeSized,
+    Self: CTypeCast + NativeSignedness + NativeConvert,
 {
     pub fn new_with_libffi_type<'lua>(
         lua: &'lua Lua,
@@ -86,67 +132,11 @@ where
         }
     }
 }
-impl<T> NativeCast for CType<T> {}
-
-// Cast native data
-pub trait CTypeCast
-where
-    Self: NativeCast,
-{
-    #[inline(always)]
-    fn try_cast_num<T, U>(
-        &self,
-        ctype: &LuaAnyUserData,
-        from: &Ref<dyn NativeDataHandle>,
-        into: &Ref<dyn NativeDataHandle>,
-    ) -> LuaResult<Option<()>>
-    where
-        T: AsPrimitive<U>,
-        U: 'static + Copy,
-    {
-        if ctype.is::<CType<U>>() {
-            Self::cast_num::<T, U>(self, from, into)?;
-            Ok(Some(()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    #[inline(always)]
-    fn cast(
-        &self,
-        from_ctype: &LuaAnyUserData,
-        into_ctype: &LuaAnyUserData,
-        _from: &Ref<dyn NativeDataHandle>,
-        _into: &Ref<dyn NativeDataHandle>,
-    ) -> LuaResult<()> {
-        Err(Self::cast_failed_with(self, from_ctype, into_ctype))
-    }
-
-    fn cast_failed_with(
-        &self,
-        from_ctype: &LuaAnyUserData,
-        into_ctype: &LuaAnyUserData,
-    ) -> LuaError {
-        let config = ValueFormatConfig::new();
-        LuaError::external(format!(
-            "Cannot cast {} to {}",
-            pretty_format_value(&LuaValue::UserData(from_ctype.to_owned()), &config),
-            pretty_format_value(&LuaValue::UserData(into_ctype.to_owned()), &config),
-        ))
-    }
-}
-
-pub trait CTypeSignedness {
-    fn get_signedness(&self) -> bool {
-        true
-    }
-}
 
 impl<T> LuaUserData for CType<T>
 where
     T: 'static,
-    Self: CTypeCast + CTypeSignedness + NativeCast + NativeConvert + NativeSized,
+    Self: CTypeCast + NativeSignedness + NativeConvert,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
@@ -158,12 +148,10 @@ where
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
             CPtr::new_from_lua_userdata(lua, &this)
         });
-        methods.add_function("box", |lua, (this, table): (LuaAnyUserData, LuaValue)| {
-            let ctype = this.borrow::<Self>()?;
-            let result = FfiBox::new(ctype.size);
-            let result = lua.create_userdata(result)?;
+        methods.add_method("box", |lua, this, value: LuaValue| {
+            let result = lua.create_userdata(FfiBox::new(this.get_size()))?;
 
-            unsafe { ctype.luavalue_into(lua, &this, 0, &result.get_data_handle()?, table)? };
+            unsafe { this.luavalue_into(lua, 0, &result.get_data_handle()?, value)? };
             Ok(result)
         });
         methods.add_function(
@@ -173,14 +161,14 @@ where
                 let offset = offset.unwrap_or(0);
 
                 let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, ctype.size) {
+                if !data_handle.check_boundary(offset, ctype.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.check_readable(&userdata, offset, ctype.size) {
+                if !data_handle.check_readable(&userdata, offset, ctype.get_size()) {
                     return Err(LuaError::external("Unreadable data handle"));
                 }
 
-                unsafe { ctype.luavalue_from(lua, &this, offset, data_handle) }
+                unsafe { ctype.luavalue_from(lua, offset, data_handle) }
             },
         );
         methods.add_function(
@@ -196,14 +184,14 @@ where
                 let offset = offset.unwrap_or(0);
 
                 let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, ctype.size) {
+                if !data_handle.check_boundary(offset, ctype.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.checek_writable(&userdata, offset, ctype.size) {
+                if !data_handle.checek_writable(&userdata, offset, ctype.get_size()) {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 
-                unsafe { ctype.luavalue_into(lua, &this, offset, data_handle, value) }
+                unsafe { ctype.luavalue_into(lua, offset, data_handle, value) }
             },
         );
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {

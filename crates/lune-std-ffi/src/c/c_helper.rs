@@ -8,52 +8,53 @@ use mlua::prelude::*;
 
 use super::association_names::CTYPE_STATIC;
 use super::c_type::CTypeStatic;
-use super::types::{ctype_luavalue_from_ptr, ctype_luavalue_into_ptr, ctype_size_from_userdata};
+use super::types::get_ctype_conv;
 use super::{CArr, CPtr, CStruct};
-use crate::ffi::{ffi_association::get_association, ffi_helper::FFI_STATUS_NAMES, NativeConvert};
+use crate::ffi::{ffi_association::get_association, NativeConvert, FFI_STATUS_NAMES};
 
-#[inline(always)]
-pub fn luavalue_into_ptr<'lua>(
-    this: &LuaAnyUserData<'lua>,
-    lua: &'lua Lua,
-    value: LuaValue<'lua>,
-    ptr: *mut (),
-) -> LuaResult<()> {
-    if this.is::<CStruct>() {
-        this.borrow::<CStruct>()?
-            .luavalue_into(this, lua, value, ptr)
+// Get the NativeConvert handle from the type UserData
+// this is intended to avoid constant table lookups. (eg: struct)
+// userdata must live longer than the NativeConvert handle.
+// However, c_struct is a strong reference to each field, so this is not a problem.
+pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {
+    if userdata.is::<CStruct>() {
+        Ok(userdata.to_pointer().cast::<CStruct>() as *const dyn NativeConvert)
     } else {
-        ctype_luavalue_into_ptr(this, lua, value, ptr)
+        unsafe { get_ctype_conv(userdata) }
     }
 }
+pub unsafe fn get_conv_list_from_table(
+    table: &LuaTable,
+) -> LuaResult<Vec<*const dyn NativeConvert>> {
+    let len: usize = table.raw_len();
+    let mut conv_list = Vec::<*const dyn NativeConvert>::with_capacity(len);
 
-#[inline(always)]
-pub fn ptr_into_luavalue<'lua>(
-    this: &LuaAnyUserData<'lua>,
-    lua: &'lua Lua,
-    ptr: *mut (),
-) -> LuaResult<LuaValue<'lua>> {
-    if this.is::<CStruct>() {
-        this.borrow::<CStruct>()?.luavalue_from(this, lua, ptr)
-    } else if this.is::<CPtr>() {
-        this.borrow::<CPtr>()?.luavalue_from_ptr(this, lua, ptr)
-    } else if this.is::<CArr>() {
-        this.borrow::<CArr>()?.luavalue_from_ptr(this, lua, ptr)
-    } else {
-        ctype_luavalue_from_ptr(this, lua, ptr)
+    for i in 0..len {
+        let value: LuaValue = table.raw_get(i + 1)?;
+
+        if let LuaValue::UserData(field_type) = value {
+            conv_list.push(get_conv(&field_type)?);
+        } else {
+            return Err(LuaError::external(format!(
+                "Unexpected field. CStruct, CType or CArr is required for element but got {}",
+                pretty_format_value(&value, &ValueFormatConfig::new())
+            )));
+        }
     }
+
+    Ok(conv_list)
 }
 
-#[inline(always)]
-pub fn type_size_from_userdata(this: &LuaAnyUserData) -> LuaResult<usize> {
-    if this.is::<CStruct>() {
-        Ok(this.borrow::<CStruct>()?.get_size())
-    } else if this.is::<CArr>() {
-        Ok(this.borrow::<CArr>()?.get_size())
-    } else {
-        ctype_size_from_userdata(this)
-    }
-}
+// #[inline(always)]
+// pub fn type_size_from_userdata(this: &LuaAnyUserData) -> LuaResult<usize> {
+//     if this.is::<CStruct>() {
+//         Ok(this.borrow::<CStruct>()?.get_size())
+//     } else if this.is::<CArr>() {
+//         Ok(this.borrow::<CArr>()?.get_size())
+//     } else {
+//         ctype_size_from_userdata(this)
+//     }
+// }
 
 // get Vec<libffi_type> from table(array) of c-types userdata
 pub fn libffi_type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>> {
@@ -63,16 +64,13 @@ pub fn libffi_type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec
     for i in 0..len {
         // Test required
         let value = table.raw_get(i + 1)?;
-        match value {
-            LuaValue::UserData(field_type) => {
-                fields.push(libffi_type_from_userdata(lua, &field_type)?);
-            }
-            _ => {
-                return Err(LuaError::external(format!(
-                    "Unexpected field. CStruct, CType or CArr is required for element but got {}",
-                    pretty_format_value(&value, &ValueFormatConfig::new())
-                )));
-            }
+        if let LuaValue::UserData(field_type) = value {
+            fields.push(libffi_type_from_userdata(lua, &field_type)?);
+        } else {
+            return Err(LuaError::external(format!(
+                "Unexpected field. CStruct, CType or CArr is required for element but got {}",
+                value.type_name()
+            )));
         }
     }
 

@@ -4,10 +4,10 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::super::c_type::{CType, CTypeSignedness};
-use crate::ffi::{NativeConvert, NativeDataHandle};
+use super::super::c_type::CType;
+use crate::ffi::{NativeConvert, NativeDataHandle, NativeSignedness};
 
-impl CTypeSignedness for CType<u8> {
+impl NativeSignedness for CType<u8> {
     fn get_signedness(&self) -> bool {
         false
     }
@@ -18,7 +18,7 @@ impl NativeConvert for CType<u8> {
     unsafe fn luavalue_into<'lua>(
         &self,
         _lua: &'lua Lua,
-        _this: &LuaAnyUserData<'lua>,
+        // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn NativeDataHandle>,
         value: LuaValue<'lua>,
@@ -43,7 +43,7 @@ impl NativeConvert for CType<u8> {
     unsafe fn luavalue_from<'lua>(
         &self,
         lua: &'lua Lua,
-        _this: &LuaAnyUserData<'lua>,
+        // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn NativeDataHandle>,
     ) -> LuaResult<LuaValue<'lua>> {
