@@ -2,13 +2,14 @@
 
 use core::ffi::*;
 use std::any::TypeId;
+use std::cell::Ref;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
 use super::{CType, CTypeCast};
-use crate::ffi::NativeConvert;
+use crate::ffi::{NativeConvert, NativeDataHandle};
 
 pub mod f32;
 pub mod f64;
@@ -54,8 +55,8 @@ where
         &self,
         from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
-        from: &LuaAnyUserData,
-        into: &LuaAnyUserData,
+        from: &Ref<dyn NativeDataHandle>,
+        into: &Ref<dyn NativeDataHandle>,
     ) -> LuaResult<()> {
         cast_nums!(
             T, self, into_ctype, from_ctype, from, into, u8, u16, u32, u64, u128, i8, i16, i128,
@@ -147,50 +148,81 @@ pub fn ctype_size_from_userdata(this: &LuaAnyUserData) -> LuaResult<usize> {
 }
 
 macro_rules! define_ctype_luavalue_into_ptr {
-    ($this:ident, $lua:ident, $value:ident, $ptr:ident, $f:ty, $( $c:ty ),*) => {
+    ($lua:ident, $this:ident, $offset:ident, $data_handle:ident, $value:ident, $f:ty, $( $c:ty ),*) => {
         if $this.is::<CType<$f>>() {
             let ctype = $this.borrow::<CType<$f>>()?;
-            ctype.luavalue_into_ptr($this, $lua, $value, $ptr)
+            ctype.luavalue_into($lua, $this, $offset, $data_handle, $value)
         }$( else if $this.is::<CType<$c>>() {
             let ctype = $this.borrow::<CType<$c>>()?;
-            ctype.luavalue_into_ptr($this, $lua, $value, $ptr)
+            ctype.luavalue_into($lua, $this, $offset, $data_handle, $value)
         })* else {
             Err(LuaError::external("Unexpected type"))
         }
     };
 }
 #[inline(always)]
-pub fn ctype_luavalue_into_ptr<'lua>(
-    this: &LuaAnyUserData<'lua>,
+pub unsafe fn ctype_luavalue_into_ptr<'lua>(
     lua: &'lua Lua,
+    this: &LuaAnyUserData<'lua>,
+    offset: isize,
+    data_handle: &Ref<dyn NativeDataHandle>,
     value: LuaValue<'lua>,
-    ptr: *mut (),
 ) -> LuaResult<()> {
     define_ctype_luavalue_into_ptr!(
-        this, lua, value, ptr, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64
+        lua,
+        this,
+        offset,
+        data_handle,
+        value,
+        u8,
+        u16,
+        u32,
+        u64,
+        u128,
+        i8,
+        i16,
+        i32,
+        i64,
+        i128,
+        f32,
+        f64
     )
 }
 
 macro_rules! define_ctype_luavalue_from_ptr {
-    ($this:ident, $lua:ident, $ptr:ident, $f:ty, $( $c:ty ),*) => {
+    ($lua:ident, $this:ident, $offset:ident, $data_handle:ident, $f:ty, $( $c:ty ),*) => {
         if $this.is::<CType<$f>>() {
-            let ctype = $this.borrow::<CType<$f>>()?;
-            ctype.luavalue_from_ptr($this, $lua, $ptr)
+            $this.borrow::<CType<$f>>()?.luavalue_from($lua, $this, $offset, $data_handle)
         }$( else if $this.is::<CType<$c>>() {
-            let ctype = $this.borrow::<CType<$c>>()?;
-            ctype.luavalue_from_ptr($this, $lua, $ptr)
+            $this.borrow::<CType<$c>>()?.luavalue_from($lua, $this, $offset, $data_handle)
         })* else {
             Err(LuaError::external("Unexpected type"))
         }
     };
 }
 #[inline(always)]
-pub fn ctype_luavalue_from_ptr<'lua>(
-    this: &LuaAnyUserData<'lua>,
+pub unsafe fn ctype_luavalue_from_ptr<'lua>(
     lua: &'lua Lua,
-    ptr: *mut (),
+    this: &LuaAnyUserData<'lua>,
+    offset: isize,
+    data_handle: &Ref<dyn NativeDataHandle>,
 ) -> LuaResult<LuaValue<'lua>> {
     define_ctype_luavalue_from_ptr!(
-        this, lua, ptr, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64
+        lua,
+        this,
+        offset,
+        data_handle,
+        u8,
+        u16,
+        u32,
+        u64,
+        u128,
+        i8,
+        i16,
+        i32,
+        i64,
+        i128,
+        f32,
+        f64
     )
 }

@@ -5,7 +5,7 @@ use mlua::prelude::*;
 
 use super::association_names::REF_INNER;
 use super::ffi_association::set_association;
-use super::ffi_native::ReadWriteHandle;
+use super::ffi_native::NativeDataHandle;
 use super::ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList};
 
 static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
@@ -111,19 +111,26 @@ impl FfiBox {
     }
 
     // Get raw ptr
-    pub fn get_ptr(&mut self) -> *mut u8 {
-        self.data.as_mut_ptr()
+    pub fn get_ptr(&self) -> *mut u8 {
+        self.data.as_ptr() as *mut u8
     }
 }
 
-impl ReadWriteHandle for FfiBox {
+impl NativeDataHandle for FfiBox {
     fn check_boundary(&self, offset: isize, size: usize) -> bool {
         if offset < 0 {
             return false;
         }
         self.size() > ((offset as usize) + size)
     }
-    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {}
+    // FIXME
+    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+        true
+    }
+    // FIXME
+    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+        true
+    }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
         self.get_ptr().byte_offset(offset) as *mut ()
     }

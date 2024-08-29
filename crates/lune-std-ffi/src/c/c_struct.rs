@@ -1,4 +1,4 @@
-use std::vec::Vec;
+use std::{cell::Ref, vec::Vec};
 
 use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
@@ -14,7 +14,7 @@ use super::{
 use crate::ffi::{
     ffi_association::{get_association, set_association},
     ffi_helper::FFI_STATUS_NAMES,
-    FfiBox, FfiRef, NativeConvert, ReadWriteHandle,
+    FfiBox, FfiRef, NativeConvert, NativeDataHandle, NativeSized,
 };
 
 pub struct CStruct {
@@ -112,18 +112,22 @@ impl CStruct {
     pub fn get_type(&self) -> &Type {
         &self.struct_type
     }
+}
 
-    pub fn get_size(&self) -> usize {
+impl NativeSized for CStruct {
+    fn get_size(&self) -> usize {
         self.size
     }
 }
 
 impl NativeConvert for CStruct {
     // Convert luavalue into data, then write into ptr
-    fn luavalue_into<'lua>(
+    unsafe fn luavalue_into<'lua>(
         &self,
-        this: impl ReadWriteHandle,
         lua: &'lua Lua,
+        this: &LuaAnyUserData<'lua>,
+        offset: isize,
+        data_handle: Ref<dyn NativeDataHandle>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
         let inner = get_association(lua, CSTRUCT_INNER, this)?
@@ -187,11 +191,12 @@ impl NativeConvert for CStruct {
     }
 
     // Read data from ptr, then convert into luavalue
-    fn luavalue_from<'lua>(
+    unsafe fn luavalue_from<'lua>(
         &self,
-        this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
-        ptr: *mut (),
+        this: &LuaAnyUserData<'lua>,
+        offset: isize,
+        data_handle: Ref<dyn NativeDataHandle>,
     ) -> LuaResult<LuaValue<'lua>> {
         let inner = get_association(lua, CSTRUCT_INNER, this)?
             .ok_or(LuaError::external("Field table not found"))?;
@@ -216,7 +221,7 @@ impl NativeConvert for CStruct {
 
 impl LuaUserData for CStruct {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, this| Ok(this.size));
+        fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("offset", |_, this, index: usize| {

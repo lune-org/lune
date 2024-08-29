@@ -4,7 +4,7 @@ use mlua::prelude::*;
 
 use super::association_names::REF_INNER;
 use super::ffi_association::{get_association, set_association};
-use super::ffi_native::ReadWriteHandle;
+use super::ffi_native::NativeDataHandle;
 
 mod bounds;
 mod flags;
@@ -119,16 +119,18 @@ impl FfiRef {
     }
 }
 
-impl ReadWriteHandle for FfiRef {
+impl NativeDataHandle for FfiRef {
     fn check_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
-
+    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+        self.flags.is_writable()
+    }
     // TODO: if ref points box , check box too
     fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
         self.flags.is_readable()
     }
-    unsafe fn get_pointer(&mut self, offset: isize) -> *mut () {
+    unsafe fn get_pointer(&self, offset: isize) -> *mut () {
         self.get_ptr().byte_offset(offset)
     }
 }

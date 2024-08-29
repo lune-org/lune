@@ -1,32 +1,34 @@
-use std::cell::Ref;
+use std::{cell::Ref, ops::Deref};
 
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::super::{FfiBox, FfiRef};
 
-pub trait ReadWriteHandle {
+pub trait NativeDataHandle {
     fn check_boundary(&self, offset: isize, size: usize) -> bool;
     fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool;
+    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool;
     unsafe fn get_pointer(&self, offset: isize) -> *mut ();
 }
 
-pub trait GetReadWriteHandle {
-    fn get_data_handle<'a>(&'a self) -> LuaResult<Ref<'a, dyn ReadWriteHandle>>;
+pub trait GetNativeDataHandle {
+    fn get_data_handle<'a>(&'a self) -> LuaResult<Ref<'a, dyn NativeDataHandle>>;
 }
-impl GetReadWriteHandle for LuaAnyUserData<'_> {
-    fn get_data_handle<'a>(&'a self) -> LuaResult<Ref<'a, dyn ReadWriteHandle>> {
+impl GetNativeDataHandle for LuaAnyUserData<'_> {
+    fn get_data_handle<'a>(&'a self) -> LuaResult<Ref<'a, dyn NativeDataHandle>> {
         if self.is::<FfiBox>() {
-            Ok(self.borrow::<FfiBox>()? as Ref<dyn ReadWriteHandle>)
+            Ok(self.borrow::<FfiBox>()? as Ref<dyn NativeDataHandle>)
         } else if self.is::<FfiRef>() {
-            Ok(self.borrow::<FfiRef>()? as Ref<dyn ReadWriteHandle>)
+            Ok(self.borrow::<FfiRef>()? as Ref<dyn NativeDataHandle>)
         // } else if self.is::<FfiRaw>() {
         //     Ok(self.borrow::<FfiRaw>()? as Ref<dyn ReadWriteHandle>)
         } else {
             let config = ValueFormatConfig::new();
             Err(LuaError::external(format!(
                 "Expected FfiBox, FfiRef or FfiRaw. got {}",
-                pretty_format_value(&LuaValue::UserData(self.to_owned()), &config)
+                // what?
+                pretty_format_value(&LuaValue::UserData(self.deref().to_owned()), &config)
             )))
         }
     }

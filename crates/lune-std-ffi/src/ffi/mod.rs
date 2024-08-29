@@ -9,7 +9,7 @@ mod ffi_ref;
 pub use self::{
     ffi_box::FfiBox,
     ffi_lib::FfiLib,
-    ffi_native::{GetReadWriteHandle, NativeCast, NativeConvert, ReadWriteHandle},
+    ffi_native::{GetNativeDataHandle, NativeCast, NativeConvert, NativeDataHandle, NativeSized},
     ffi_ref::{create_nullptr, FfiRef},
 };
 
