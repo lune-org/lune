@@ -5,6 +5,7 @@ use mlua::prelude::*;
 
 use super::association_names::REF_INNER;
 use super::ffi_association::set_association;
+use super::ffi_native::ReadWriteHandle;
 use super::ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList};
 
 static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
@@ -24,7 +25,15 @@ static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
 // rather, it creates more heap space, so it should be used appropriately
 // where necessary.
 
-pub struct FfiBox(Box<[u8]>);
+struct RefData {
+    address: usize,
+    offset: usize,
+}
+
+pub struct FfiBox {
+    data: Box<[u8]>,
+    refs: Vec<RefData>,
+}
 
 impl FfiBox {
     // For efficiency, it is initialized non-zeroed.
@@ -38,12 +47,10 @@ impl FfiBox {
             vec_heap.set_len(size);
         }
 
-        Self(vec_heap.into_boxed_slice())
-    }
-
-    // Check boundary
-    pub fn check_boundary(&self, offset: usize) -> bool {
-        self.size() > offset
+        Self {
+            data: vec_heap.into_boxed_slice(),
+            refs: vec![],
+        }
     }
 
     // pub fn copy(&self, target: &mut FfiBox) {}
@@ -51,7 +58,7 @@ impl FfiBox {
     // Todo: if too big, print as another format
     pub fn stringify(&self) -> String {
         let mut buff: String = String::with_capacity(self.size() * 2);
-        for value in &self.0 {
+        for value in &self.data {
             buff.push_str(format!("{:x}", value.to_be()).as_str());
         }
         buff
@@ -95,17 +102,30 @@ impl FfiBox {
 
     // Fill every field with 0
     pub fn zero(&mut self) {
-        self.0.fill(0u8);
+        self.data.fill(0u8);
     }
 
     // Get size of box
     pub fn size(&self) -> usize {
-        self.0.len()
+        self.data.len()
     }
 
     // Get raw ptr
     pub fn get_ptr(&mut self) -> *mut u8 {
-        self.0.as_mut_ptr()
+        self.data.as_mut_ptr()
+    }
+}
+
+impl ReadWriteHandle for FfiBox {
+    fn check_boundary(&self, offset: isize, size: usize) -> bool {
+        if offset < 0 {
+            return false;
+        }
+        self.size() > ((offset as usize) + size)
+    }
+    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {}
+    unsafe fn get_pointer(&self, offset: isize) -> *mut () {
+        self.get_ptr().byte_offset(offset) as *mut ()
     }
 }
 

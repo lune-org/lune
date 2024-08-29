@@ -7,14 +7,10 @@ use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::association_names::CTYPE_STATIC;
-use super::c_arr::CArr;
-use super::c_ptr::CPtr;
-use super::c_struct::CStruct;
 use super::c_type::CTypeStatic;
 use super::types::{ctype_luavalue_from_ptr, ctype_luavalue_into_ptr, ctype_size_from_userdata};
-use crate::ffi::ffi_association::get_association;
-use crate::ffi::ffi_helper::FFI_STATUS_NAMES;
-use crate::ffi::ffi_native::NativeConvert;
+use super::{CArr, CPtr, CStruct};
+use crate::ffi::{ffi_association::get_association, ffi_helper::FFI_STATUS_NAMES, NativeConvert};
 
 #[inline(always)]
 pub fn luavalue_into_ptr<'lua>(
@@ -25,7 +21,7 @@ pub fn luavalue_into_ptr<'lua>(
 ) -> LuaResult<()> {
     if this.is::<CStruct>() {
         this.borrow::<CStruct>()?
-            .luavalue_into_ptr(this, lua, value, ptr)
+            .luavalue_into(this, lua, value, ptr)
     } else {
         ctype_luavalue_into_ptr(this, lua, value, ptr)
     }
@@ -38,7 +34,11 @@ pub fn ptr_into_luavalue<'lua>(
     ptr: *mut (),
 ) -> LuaResult<LuaValue<'lua>> {
     if this.is::<CStruct>() {
-        this.borrow::<CStruct>()?.luavalue_from_ptr(this, lua, ptr)
+        this.borrow::<CStruct>()?.luavalue_from(this, lua, ptr)
+    } else if this.is::<CPtr>() {
+        this.borrow::<CPtr>()?.luavalue_from_ptr(this, lua, ptr)
+    } else if this.is::<CArr>() {
+        this.borrow::<CArr>()?.luavalue_from_ptr(this, lua, ptr)
     } else {
         ctype_luavalue_from_ptr(this, lua, ptr)
     }

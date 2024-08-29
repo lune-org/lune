@@ -3,18 +3,19 @@ use std::vec::Vec;
 use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
 
-use super::association_names::CSTRUCT_INNER;
-use super::c_arr::CArr;
-use super::c_helper::{
-    libffi_type_list_from_table, luavalue_into_ptr, pretty_format_userdata, ptr_into_luavalue,
-    type_size_from_userdata,
+use super::{
+    association_names::CSTRUCT_INNER,
+    c_helper::{
+        libffi_type_list_from_table, luavalue_into_ptr, pretty_format_userdata, ptr_into_luavalue,
+        type_size_from_userdata,
+    },
+    CArr, CPtr,
 };
-use super::c_ptr::CPtr;
-use crate::ffi::ffi_association::{get_association, set_association};
-use crate::ffi::ffi_box::FfiBox;
-use crate::ffi::ffi_helper::{userdata_check_boundary, FFI_STATUS_NAMES};
-use crate::ffi::ffi_native::NativeConvert;
-use crate::ffi::ffi_ref::FfiRef;
+use crate::ffi::{
+    ffi_association::{get_association, set_association},
+    ffi_helper::FFI_STATUS_NAMES,
+    FfiBox, FfiRef, NativeConvert, ReadWriteHandle,
+};
 
 pub struct CStruct {
     // libffi_cif: Cif,
@@ -119,12 +120,11 @@ impl CStruct {
 
 impl NativeConvert for CStruct {
     // Convert luavalue into data, then write into ptr
-    fn luavalue_into_ptr<'lua>(
+    fn luavalue_into<'lua>(
         &self,
-        this: &LuaAnyUserData<'lua>,
+        this: impl ReadWriteHandle,
         lua: &'lua Lua,
         value: LuaValue<'lua>,
-        ptr: *mut (),
     ) -> LuaResult<()> {
         let inner = get_association(lua, CSTRUCT_INNER, this)?
             .ok_or(LuaError::external("Field table not found"))?;
@@ -187,7 +187,7 @@ impl NativeConvert for CStruct {
     }
 
     // Read data from ptr, then convert into luavalue
-    fn luavalue_from_ptr<'lua>(
+    fn luavalue_from<'lua>(
         &self,
         this: &LuaAnyUserData<'lua>,
         lua: &'lua Lua,
@@ -238,7 +238,7 @@ impl LuaUserData for CStruct {
         methods.add_function("box", |lua, (this, table): (LuaAnyUserData, LuaValue)| {
             let cstruct = this.borrow::<CStruct>()?;
             let mut result = FfiBox::new(cstruct.size);
-            cstruct.luavalue_into_ptr(&this, lua, table, result.get_ptr().cast())?;
+            cstruct.luavalue_into(&this, lua, table, result.get_ptr().cast())?;
             Ok(result)
         });
         methods.add_function(
@@ -268,7 +268,7 @@ impl LuaUserData for CStruct {
             },
         );
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::from_lua_userdata(lua, &this)?;
+            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {

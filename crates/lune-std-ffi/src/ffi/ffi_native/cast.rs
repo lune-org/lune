@@ -3,19 +3,23 @@
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::super::ffi_helper::get_ptr_from_userdata;
+use super::ReadWriteHandle;
 
 pub trait NativeCast {
     // Cast T as U
 
     #[inline(always)]
-    fn cast_num<T, U>(&self, from: &LuaAnyUserData, into: &LuaAnyUserData) -> LuaResult<()>
+    fn cast_num<T, U>(
+        &self,
+        from: impl ReadWriteHandle,
+        into: impl ReadWriteHandle,
+    ) -> LuaResult<()>
     where
         T: AsPrimitive<U>,
         U: 'static + Copy,
     {
-        let from_ptr = unsafe { get_ptr_from_userdata(from, None)?.cast::<T>() };
-        let into_ptr = unsafe { get_ptr_from_userdata(into, None)?.cast::<U>() };
+        let from_ptr = unsafe { from.get_pointer(0)?.cast::<T>() };
+        let into_ptr = unsafe { into.get_pointer(0)?.cast::<U>() };
 
         unsafe {
             *into_ptr = (*from_ptr).as_();

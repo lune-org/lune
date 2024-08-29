@@ -7,15 +7,8 @@ use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::{
-    association_names::CTYPE_STATIC, c_arr::CArr, c_helper::get_ensured_size, c_ptr::CPtr,
-};
-use crate::ffi::{
-    ffi_association::set_association,
-    ffi_box::FfiBox,
-    ffi_helper::userdata_check_boundary,
-    ffi_native::{NativeCast, NativeConvert},
-};
+use super::{association_names::CTYPE_STATIC, c_helper::get_ensured_size, CArr, CPtr};
+use crate::ffi::{ffi_association::set_association, FfiBox, NativeCast, NativeConvert};
 
 // We can't get a CType<T> through mlua, something like
 // .is::<CType<dyn Any>> will fail.
@@ -154,12 +147,12 @@ where
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            CPtr::from_lua_userdata(lua, &this)
+            CPtr::new_from_lua_userdata(lua, &this)
         });
         methods.add_function("box", |lua, (this, table): (LuaAnyUserData, LuaValue)| {
             let ctype = this.borrow::<Self>()?;
             let mut result = FfiBox::new(ctype.size);
-            ctype.luavalue_into_ptr(&this, lua, table, result.get_ptr().cast())?;
+            ctype.luavalue_into(&this, lua, table, result.get_ptr().cast())?;
             Ok(result)
         });
         methods.add_function(

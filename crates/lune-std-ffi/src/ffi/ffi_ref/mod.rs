@@ -4,6 +4,7 @@ use mlua::prelude::*;
 
 use super::association_names::REF_INNER;
 use super::ffi_association::{get_association, set_association};
+use super::ffi_native::ReadWriteHandle;
 
 mod bounds;
 mod flags;
@@ -21,7 +22,7 @@ pub use self::flags::{FfiRefFlag, FfiRefFlagList};
 
 pub struct FfiRef {
     ptr: *mut (),
-    flags: FfiRefFlagList,
+    pub flags: FfiRefFlagList,
     pub boundary: FfiRefBounds,
 }
 
@@ -109,11 +110,26 @@ impl FfiRef {
 
         let boundary = self.boundary.offset(offset);
 
+        // TODO
         Ok(Self::new(
             self.ptr.byte_offset(offset),
             self.flags.clone(),
             boundary,
         ))
+    }
+}
+
+impl ReadWriteHandle for FfiRef {
+    fn check_boundary(&self, offset: isize, size: usize) -> bool {
+        self.boundary.check_sized(offset, size)
+    }
+
+    // TODO: if ref points box , check box too
+    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+        self.flags.is_readable()
+    }
+    unsafe fn get_pointer(&mut self, offset: isize) -> *mut () {
+        self.get_ptr().byte_offset(offset)
     }
 }
 

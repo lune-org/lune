@@ -1,10 +1,17 @@
 pub mod ffi_association;
-pub mod ffi_box;
+mod ffi_box;
 pub mod ffi_helper;
-pub mod ffi_lib;
-pub mod ffi_native;
-pub mod ffi_raw;
-pub mod ffi_ref;
+mod ffi_lib;
+mod ffi_native;
+mod ffi_raw;
+mod ffi_ref;
+
+pub use self::{
+    ffi_box::FfiBox,
+    ffi_lib::FfiLib,
+    ffi_native::{GetReadWriteHandle, NativeCast, NativeConvert, ReadWriteHandle},
+    ffi_ref::{create_nullptr, FfiRef},
+};
 
 // Named registry table names
 mod association_names {

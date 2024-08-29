@@ -1,8 +1,11 @@
 #![allow(clippy::inline_always)]
 
+use std::cell::Ref;
+
 use mlua::prelude::*;
 
 use super::ffi_box::FfiBox;
+use super::ffi_raw::FfiRaw;
 use super::ffi_ref::FfiRef;
 
 // Converts ffi status into &str
@@ -12,52 +15,6 @@ pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_BAD_ABI",
     "ffi_status_FFI_BAD_ARGTYPE",
 ];
-
-// Get raw pointer from userdata
-#[inline(always)]
-pub unsafe fn get_ptr_from_userdata(
-    userdata: &LuaAnyUserData,
-    offset: Option<isize>,
-) -> LuaResult<*mut ()> {
-    let ptr = if userdata.is::<FfiBox>() {
-        userdata.borrow_mut::<FfiBox>()?.get_ptr().cast()
-    } else if userdata.is::<FfiRef>() {
-        userdata.borrow::<FfiRef>()?.get_ptr()
-    } else {
-        return Err(LuaError::external("Unexpected userdata"));
-    };
-
-    let ptr = if let Some(t) = offset {
-        ptr.cast::<u8>().offset(t).cast()
-    } else {
-        ptr
-    };
-
-    Ok(ptr)
-}
-
-#[inline(always)]
-pub fn userdata_check_boundary(
-    userdata: &LuaAnyUserData,
-    offset: isize,
-    size: usize,
-) -> LuaResult<bool> {
-    if userdata.is::<FfiBox>() {
-        if offset < 0 {
-            return Err(LuaError::external("Out of bounds"));
-        }
-        Ok(userdata
-            .borrow::<FfiBox>()?
-            .check_boundary((offset as usize) + size))
-    } else if userdata.is::<FfiRef>() {
-        Ok(userdata
-            .borrow::<FfiRef>()?
-            .boundary
-            .check_sized(offset, size))
-    } else {
-        Err(LuaError::external("Unexpected userdata"))
-    }
-}
 
 #[allow(unused)]
 pub mod bit_mask {

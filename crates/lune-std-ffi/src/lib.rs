@@ -3,11 +3,13 @@
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
-use crate::c::{c_fn::CFn, c_struct::CStruct, create_all_c_types, create_all_types};
-use crate::ffi::{ffi_box::FfiBox, ffi_lib::FfiLib, ffi_ref::create_nullptr};
-
 mod c;
 mod ffi;
+
+use crate::{
+    c::{create_all_c_types, create_all_types, CFn, CStruct},
+    ffi::{create_nullptr, FfiBox, FfiLib},
+};
 
 /**
     Creates the `ffi` standard library module.

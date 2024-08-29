@@ -7,9 +7,8 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::c_type::CType;
-use super::c_type::CTypeCast;
-use crate::ffi::ffi_native::NativeConvert;
+use super::{CType, CTypeCast};
+use crate::ffi::NativeConvert;
 
 pub mod f32;
 pub mod f64;

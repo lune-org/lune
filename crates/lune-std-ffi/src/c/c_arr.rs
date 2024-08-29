@@ -110,7 +110,7 @@ impl LuaUserData for CArr {
             }
         });
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::from_lua_userdata(lua, &this)?;
+            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
             Ok(pointer)
         });
         methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
