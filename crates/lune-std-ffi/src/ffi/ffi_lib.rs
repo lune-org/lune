@@ -4,8 +4,11 @@ use std::sync::LazyLock;
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
 
-use super::ffi_association::set_association;
-use super::ffi_ref::{FfiRef, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS};
+use super::{
+    association_names::SYM_INNER,
+    ffi_association::set_association,
+    ffi_ref::{FfiRef, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS},
+};
 
 static LIB_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
     FfiRefFlagList::new(&[
@@ -17,8 +20,6 @@ static LIB_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
 });
 
 pub struct FfiLib(Library);
-
-const SYM_INNER: &str = "__syn_inner";
 
 // COMMENT HERE
 // For convenience, it would be nice to provide a way to get

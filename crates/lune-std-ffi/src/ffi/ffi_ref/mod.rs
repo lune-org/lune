@@ -2,23 +2,25 @@ use std::ptr;
 
 use mlua::prelude::*;
 
-use super::association_names::REF_INNER;
-use super::ffi_association::{get_association, set_association};
-use super::ffi_native::NativeDataHandle;
+use super::{
+    association_names::REF_INNER,
+    ffi_association::{get_association, set_association},
+    NativeDataHandle,
+};
 
 mod bounds;
 mod flags;
 
-pub use self::bounds::{FfiRefBounds, UNSIZED_BOUNDS};
-pub use self::flags::{FfiRefFlag, FfiRefFlagList};
+pub use self::{
+    bounds::{FfiRefBounds, UNSIZED_BOUNDS},
+    flags::{FfiRefFlag, FfiRefFlagList},
+};
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
 // if use it incorrectly.
 // If it references an area managed by Lua,
 // the box will remain as long as this reference is alive.
-
-// Todo : how to impl ref == nullptr
 
 pub struct FfiRef {
     ptr: *mut (),

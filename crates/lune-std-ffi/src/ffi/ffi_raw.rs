@@ -10,4 +10,4 @@
 // relatively insecure operations, and help ensure that as little
 // data copy as possible occurs, while allowing you to do little restrictions.
 
-pub struct FfiRaw();
+pub struct FfiRaw(*const ());

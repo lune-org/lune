@@ -18,6 +18,7 @@ pub use self::{
 // Named registry table names
 mod association_names {
     pub const REF_INNER: &str = "__ref_inner";
+    pub const SYM_INNER: &str = "__syn_inner";
 }
 
 // Converts ffi status into &str
