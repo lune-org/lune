@@ -32,7 +32,7 @@ impl RequireContext {
     - when `RequireContext::init` is called more than once on the same `Lua` instance
 
      */
-    pub fn init(lua: &Lua) -> Result<(), RequireError> {
+    pub(crate) fn init(lua: &Lua) -> Result<(), RequireError> {
         if lua.set_app_data(RequireContextData::default()).is_some() {
             Err(RequireError::RequireContextInitCalledTwice)
         } else {
