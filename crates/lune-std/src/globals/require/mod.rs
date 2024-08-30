@@ -1,5 +1,5 @@
 use crate::{
-    luaurc::{path_to_alias, Luaurc},
+    luaurc::{Luaurc, RequireAlias},
     path::get_parent_path,
     LuneStandardLibrary,
 };
@@ -40,7 +40,7 @@ pub enum RequireError {
 
 async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
     let require_path_rel = PathBuf::from(path);
-    let require_alias = path_to_alias(&require_path_rel).into_lua_err()?;
+    let require_alias = RequireAlias::from_path(&require_path_rel).into_lua_err()?;
 
     if let Some(require_alias) = require_alias {
         if context::RequireContext::std_exists(lua, &require_alias.alias).into_lua_err()? {

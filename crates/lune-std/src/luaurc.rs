@@ -36,29 +36,31 @@ pub enum LuaurcError {
     LuaError(#[from] mlua::Error),
 }
 
-/// Parses path into `RequireAlias` struct
-///
-/// ### Examples
-///
-/// `@lune/task` becomes `Some({ alias: "lune", path: "task" })`
-///
-/// `../path/script` becomes `None`
-pub fn path_to_alias(path: &Path) -> Result<Option<RequireAlias>, LuaurcError> {
-    if let Some(aliased_path) = path
-        .to_str()
-        .ok_or(LuaurcError::FailedStringToPathConversion)?
-        .strip_prefix('@')
-    {
-        let (alias, path) = aliased_path
-            .split_once('/')
-            .ok_or(LuaurcError::UsedAliasWithoutSlash)?;
+impl RequireAlias {
+    /// Parses path into `RequireAlias` struct
+    ///
+    /// ### Examples
+    ///
+    /// `@lune/task` becomes `Some({ alias: "lune", path: "task" })`
+    ///
+    /// `../path/script` becomes `None`
+    pub fn from_path(path: &Path) -> Result<Option<Self>, LuaurcError> {
+        if let Some(aliased_path) = path
+            .to_str()
+            .ok_or(LuaurcError::FailedStringToPathConversion)?
+            .strip_prefix('@')
+        {
+            let (alias, path) = aliased_path
+                .split_once('/')
+                .ok_or(LuaurcError::UsedAliasWithoutSlash)?;
 
-        Ok(Some(RequireAlias {
-            alias: alias.to_string(),
-            path: path.to_string(),
-        }))
-    } else {
-        Ok(None)
+            Ok(Some(RequireAlias {
+                alias: alias.to_string(),
+                path: path.to_string(),
+            }))
+        } else {
+            Ok(None)
+        }
     }
 }
 
