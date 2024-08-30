@@ -88,7 +88,7 @@ impl<T> NativeSize for CType<T> {
     }
 }
 
-pub struct CType<T: ?Sized> {
+pub struct CType<T> {
     // for ffi_ptrarray_to_raw?
     // libffi_cif: Cif,
     libffi_type: Type,

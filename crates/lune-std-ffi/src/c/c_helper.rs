@@ -6,10 +6,9 @@ use libffi::{low, middle::Type, raw};
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
-use super::association_names::CTYPE_STATIC;
-use super::c_type::CTypeStatic;
-use super::types::get_ctype_conv;
-use super::{CArr, CPtr, CStruct};
+use super::{
+    association_names::CTYPE_STATIC, types::get_ctype_conv, CArr, CPtr, CStruct, CTypeStatic,
+};
 use crate::ffi::{ffi_association::get_association, NativeConvert, FFI_STATUS_NAMES};
 
 // Get the NativeConvert handle from the type UserData

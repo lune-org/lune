@@ -3,10 +3,12 @@ use std::sync::LazyLock;
 
 use mlua::prelude::*;
 
-use super::association_names::REF_INNER;
-use super::ffi_association::set_association;
-use super::ffi_native::NativeDataHandle;
-use super::ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList};
+use super::{
+    association_names::REF_INNER,
+    ffi_association::set_association,
+    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList},
+    NativeDataHandle,
+};
 
 static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
     FfiRefFlagList::new(&[
