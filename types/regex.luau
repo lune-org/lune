@@ -11,75 +11,90 @@
 	- `len` -- The length of the text that was matched.
 ]=]
 local RegexMatch = {
-	start = 0,
-	finish = 0,
-	text = "",
-	len = 0,
+	start = 0;
+	finish = 0;
+	text = "";
+	len = 0;
 }
 
 type RegexMatch = typeof(RegexMatch)
+
+local RegexCaptures = {}
+
+function RegexCaptures.get(self: RegexCaptures, index: number): RegexMatch?
+	return nil :: any
+end
+
+function RegexCaptures.group(self: RegexCaptures, group: string): RegexMatch?
+	return nil :: any
+end
+
+function RegexCaptures.format(self: RegexCaptures, format: string): string
+	return nil :: any
+end
 
 --[=[
 	@class RegexCaptures
 
 	Captures from a regular expression.
 ]=]
-local RegexCaptures = {}
+export type RegexCaptures = typeof(setmetatable(
+	{} :: {
+		--[=[
+			@within RegexCaptures
+			@tag Method
+			@method get
 
---[=[
-	@within RegexCaptures
-	@tag Method
+			Returns the match at the given index, if one exists.
 
-	Returns the match at the given index, if one exists.
+			@param index -- The index of the match to get
+			@return RegexMatch -- The match, if one exists
+		]=]
 
-	@param index -- The index of the match to get
-	@return RegexMatch -- The match, if one exists
-]=]
-function RegexCaptures.get(self: RegexCaptures, index: number): RegexMatch?
-	return nil :: any
-end
+		get: (self: RegexCaptures, index: number) -> RegexMatch?,
 
---[=[
-	@within RegexCaptures
-	@tag Method
+		--[=[
+			@within RegexCaptures
+			@tag Method
+			@method group
 
-	Returns the match for the given named match group, if one exists.
+			Returns the match for the given named match group, if one exists.
 
-	@param group -- The name of the group to get
-	@return RegexMatch -- The match, if one exists
-]=]
-function RegexCaptures.group(self: RegexCaptures, group: string): RegexMatch?
-	return nil :: any
-end
+			@param group -- The name of the group to get
+			@return RegexMatch -- The match, if one exists
+		]=]
+		group: (self: RegexCaptures, group: string) -> RegexMatch?,
 
---[=[
-	@within RegexCaptures
-	@tag Method
+		--[=[
+			@within RegexCaptures
+			@tag Method
+			@method format
 
-	Formats the captures using the given format string.
+			Formats the captures using the given format string.
 
-	### Example usage
+			### Example usage
 
-	```lua
-	local regex = require("@lune/regex")
+			```lua
+			local regex = require("@lune/regex")
 
-	local re = regex.new("(?<day>[0-9]{2})-(?<month>[0-9]{2})-(?<year>[0-9]{4})")
+			local re = regex.new("(?<day>[0-9]{2})-(?<month>[0-9]{2})-(?<year>[0-9]{4})")
 
-	local caps = re:captures("On 14-03-2010, I became a Tenneessee lamb.");
-	assert(caps ~= nil, "Example pattern should match example text")
+			local caps = re:captures("On 14-03-2010, I became a Tenneessee lamb.");
+			assert(caps ~= nil, "Example pattern should match example text")
 
-	local formatted = caps:format("year=$year, month=$month, day=$day")
-	print(formatted) -- "year=2010, month=03, day=14"
-	```
+			local formatted = caps:format("year=$year, month=$month, day=$day")
+			print(formatted) -- "year=2010, month=03, day=14"
+			```
 
-	@param format -- The format string to use
-	@return string -- The formatted string
-]=]
-function RegexCaptures.format(self: RegexCaptures, format: string): string
-	return nil :: any
-end
-
-export type RegexCaptures = typeof(RegexCaptures)
+			@param format -- The format string to use
+			@return string -- The formatted string
+		]=]
+		format: (self: RegexCaptures, format: string) -> string,
+	},
+	{} :: {
+		__len: (self: RegexCaptures) -> number,
+	}
+))
 
 local Regex = {}
 
@@ -138,7 +153,7 @@ end
 	@param text -- The text to split
 	@return { string } -- The split text
 ]=]
-function Regex.split(self: Regex, text: string): { string }
+function Regex.split(self: Regex, text: string): {string}
 	return nil :: any
 end
 
