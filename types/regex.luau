@@ -11,10 +11,10 @@
 	- `len` -- The length of the text that was matched.
 ]=]
 local RegexMatch = {
-	start = 0;
-	finish = 0;
-	text = "";
-	len = 0;
+	start = 0,
+	finish = 0,
+	text = "",
+	len = 0,
 }
 
 type RegexMatch = typeof(RegexMatch)
@@ -153,7 +153,7 @@ end
 	@param text -- The text to split
 	@return { string } -- The split text
 ]=]
-function Regex.split(self: Regex, text: string): {string}
+function Regex.split(self: Regex, text: string): { string }
 	return nil :: any
 end
 
