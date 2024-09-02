@@ -64,7 +64,7 @@ impl FfiLib {
 
 impl LuaUserData for FfiLib {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("dlsym", |lua, (this, name): (LuaAnyUserData, String)| {
+        methods.add_function("find", |lua, (this, name): (LuaAnyUserData, String)| {
             let luasym = FfiLib::get_sym(lua, this, name)?;
             Ok(luasym)
         });

@@ -1,5 +1,5 @@
 use std::boxed::Box;
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 use mlua::prelude::*;
 
@@ -10,13 +10,18 @@ use super::{
     NativeDataHandle,
 };
 
-static BOX_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
-    FfiRefFlagList::new(&[
-        FfiRefFlag::Offsetable,
-        FfiRefFlag::Readable,
-        FfiRefFlag::Writable,
-    ])
-});
+static BOX_REF_FLAGS: OnceLock<FfiRefFlagList> = OnceLock::new();
+fn get_box_ref_flags() -> FfiRefFlagList {
+    BOX_REF_FLAGS
+        .get_or_init(|| {
+            FfiRefFlagList::new(&[
+                FfiRefFlag::Offsetable,
+                FfiRefFlag::Readable,
+                FfiRefFlag::Writable,
+            ])
+        })
+        .to_owned()
+}
 
 // It is an untyped, sized memory area that Lua can manage.
 // This area is safe within Lua. Operations have their boundaries checked.
@@ -93,8 +98,7 @@ impl FfiBox {
         // To deref a box space is to allow lua to read any space,
         // which has security issues and is ultimately dangerous.
         // Therefore, box:ref():deref() is not allowed.
-        let luaref =
-            lua.create_userdata(FfiRef::new(ptr.cast(), (*BOX_REF_FLAGS).clone(), bounds))?;
+        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), get_box_ref_flags(), bounds))?;
 
         // Makes box alive longer then ref
         set_association(lua, REF_INNER, &luaref, &this)?;
@@ -114,7 +118,7 @@ impl FfiBox {
 
     // Get raw ptr
     pub fn get_ptr(&self) -> *mut u8 {
-        self.data.as_ptr() as *mut u8
+        self.data.as_ptr().cast_mut()
     }
 }
 
@@ -134,7 +138,7 @@ impl NativeDataHandle for FfiBox {
         true
     }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
-        self.get_ptr().byte_offset(offset) as *mut ()
+        self.get_ptr().byte_offset(offset).cast::<()>()
     }
 }
 
