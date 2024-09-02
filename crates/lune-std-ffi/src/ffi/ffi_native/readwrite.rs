@@ -7,8 +7,9 @@ use super::super::{FfiBox, FfiRef};
 
 pub trait NativeDataHandle {
     fn check_boundary(&self, offset: isize, size: usize) -> bool;
-    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool;
-    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool;
+    fn check_readable(&self, offset: isize, size: usize) -> bool;
+    fn checek_writable(&self, offset: isize, size: usize) -> bool;
+    fn mark_ref(&self, userdata: &LuaAnyUserData, offset: isize, ptr: usize) -> LuaResult<()>;
     unsafe fn get_pointer(&self, offset: isize) -> *mut ();
 }
 

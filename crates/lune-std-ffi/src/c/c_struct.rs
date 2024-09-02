@@ -50,6 +50,7 @@ impl CStruct {
 
         // Get tailing padded size of struct
         // See http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
+        // In here, using get_ensured_size is waste
         let size = unsafe { (*struct_type.as_raw_ptr()).size };
 
         Ok(Self {
@@ -91,7 +92,8 @@ impl CStruct {
             }
 
             // size of
-            result.push_str(format!("size = {} ", userdata.borrow::<CStruct>()?.size).as_str());
+            result
+                .push_str(format!("size = {} ", userdata.borrow::<CStruct>()?.get_size()).as_str());
             Ok(result)
         } else {
             Err(LuaError::external("failed to get inner type table."))
@@ -206,7 +208,7 @@ impl LuaUserData for CStruct {
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.check_readable(&userdata, offset, this.get_size()) {
+                if !data_handle.check_readable(offset, this.get_size()) {
                     return Err(LuaError::external("Unreadable data handle"));
                 }
 
@@ -219,10 +221,10 @@ impl LuaUserData for CStruct {
                 let offset = offset.unwrap_or(0);
 
                 let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, this.size) {
+                if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.checek_writable(&userdata, offset, this.size) {
+                if !data_handle.checek_writable(offset, this.get_size()) {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 

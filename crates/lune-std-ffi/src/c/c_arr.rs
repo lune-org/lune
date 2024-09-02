@@ -10,7 +10,7 @@ use super::{
 };
 use crate::ffi::{
     ffi_association::{get_association, set_association},
-    FfiBox, GetNativeDataHandle, NativeConvert, NativeDataHandle, NativeSignedness, NativeSize,
+    FfiBox, GetNativeDataHandle, NativeConvert, NativeDataHandle, NativeSize,
 };
 
 // This is a series of some type.
@@ -104,11 +104,6 @@ impl NativeSize for CArr {
         self.size
     }
 }
-impl NativeSignedness for CArr {
-    fn get_signedness(&self) -> bool {
-        false
-    }
-}
 impl NativeConvert for CArr {
     // FIXME: FfiBox, FfiRef support required
     unsafe fn luavalue_into<'lua>(
@@ -192,7 +187,7 @@ impl LuaUserData for CArr {
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.check_readable(&userdata, offset, this.get_size()) {
+                if !data_handle.check_readable(offset, this.get_size()) {
                     return Err(LuaError::external("Unreadable data handle"));
                 }
 
@@ -208,7 +203,7 @@ impl LuaUserData for CArr {
                 if !data_handle.check_boundary(offset, this.size) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.checek_writable(&userdata, offset, this.size) {
+                if !data_handle.checek_writable(offset, this.size) {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 
