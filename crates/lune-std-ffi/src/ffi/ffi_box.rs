@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use super::{
     association_names::REF_INNER,
     ffi_association::set_association,
-    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList},
+    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS},
     NativeDataHandle,
 };
 
@@ -68,7 +68,7 @@ impl FfiBox {
         this: LuaAnyUserData<'lua>,
         offset: Option<isize>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let mut target = this.borrow_mut::<FfiBox>()?;
+        let target = this.borrow::<FfiBox>()?;
         let mut bounds = FfiRefBounds::new(0, target.size());
         let mut ptr = target.get_ptr();
 
@@ -95,6 +95,27 @@ impl FfiBox {
         set_association(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
+    }
+
+    // Make FfiRef from box, without any safe features
+    pub fn luaref_unsafe<'lua>(
+        lua: &'lua Lua,
+        this: LuaAnyUserData<'lua>,
+        offset: Option<isize>,
+    ) -> LuaResult<LuaAnyUserData<'lua>> {
+        let target = this.borrow::<FfiBox>()?;
+        let mut ptr = target.get_ptr();
+
+        // Calculate offset
+        if let Some(t) = offset {
+            ptr = unsafe { target.get_ptr().byte_offset(t) };
+        }
+
+        lua.create_userdata(FfiRef::new(
+            ptr.cast(),
+            FfiRefFlagList::all(),
+            UNSIZED_BOUNDS,
+        ))
     }
 
     // Fill every field with 0
@@ -149,8 +170,13 @@ impl LuaUserData for FfiBox {
         methods.add_function(
             "ref",
             |lua, (this, offset): (LuaAnyUserData, Option<isize>)| {
-                let luaref = FfiBox::luaref(lua, this, offset)?;
-                Ok(luaref)
+                FfiBox::luaref(lua, this, offset)
+            },
+        );
+        methods.add_function(
+            "unsafeRef",
+            |lua, (this, offset): (LuaAnyUserData, Option<isize>)| {
+                FfiBox::luaref_unsafe(lua, this, offset)
             },
         );
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| Ok(this.stringify()));

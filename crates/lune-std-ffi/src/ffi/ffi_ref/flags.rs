@@ -28,6 +28,15 @@ impl FfiRefFlagList {
     pub const fn new(flags: u8) -> Self {
         Self(flags)
     }
+    pub const fn all() -> Self {
+        Self(
+            FfiRefFlag::Dereferenceable.value()
+                | FfiRefFlag::Readable.value()
+                | FfiRefFlag::Writable.value()
+                | FfiRefFlag::Offsetable.value()
+                | FfiRefFlag::Function.value(),
+        )
+    }
     fn set(&mut self, value: bool, mask: u8) {
         if value {
             self.0 |= mask;
