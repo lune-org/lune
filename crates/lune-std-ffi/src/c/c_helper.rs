@@ -12,7 +12,7 @@ use super::{
 use crate::ffi::{ffi_association::get_association, NativeConvert, FFI_STATUS_NAMES};
 
 // Get the NativeConvert handle from the type UserData
-// this is intended to avoid constant table lookups. (eg: struct)
+// this is intended to avoid lookup userdata and lua table every time. (eg: struct)
 // userdata must live longer than the NativeConvert handle.
 // However, c_struct is a strong reference to each field, so this is not a problem.
 pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {

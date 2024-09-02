@@ -5,6 +5,8 @@ mod ffi_native;
 mod ffi_raw;
 mod ffi_ref;
 
+use mlua::prelude::*;
+
 pub use self::{
     ffi_box::FfiBox,
     ffi_lib::FfiLib,
@@ -47,4 +49,8 @@ pub mod bit_mask {
     }
 
     pub(crate) use U8_TEST;
+}
+
+pub fn is_integer(num: LuaValue) -> bool {
+    num.is_integer()
 }

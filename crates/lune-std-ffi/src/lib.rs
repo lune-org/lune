@@ -8,7 +8,7 @@ mod ffi;
 
 use crate::{
     c::{create_all_c_types, create_all_types, CFn, CStruct},
-    ffi::{create_nullptr, FfiBox, FfiLib},
+    ffi::{create_nullptr, is_integer, FfiBox, FfiLib},
 };
 
 /**
@@ -25,7 +25,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_value("nullptr", create_nullptr(lua)?)?
         .with_function("box", |_, size: usize| Ok(FfiBox::new(size)))?
         // TODO: discuss about function name. matching with io.open is better?
-        .with_function("dlopen", |_, name: String| {
+        .with_function("open", |_, name: String| {
             let lib = FfiLib::new(name)?;
             Ok(lib)
         })?
@@ -33,6 +33,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
             let cstruct = CStruct::new_from_lua_table(lua, types)?;
             Ok(cstruct)
         })?
+        .with_function("isInteger", |_lua, num: LuaValue| Ok(is_integer(num)))?
         .with_function("fn", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
             let cfn = CFn::new_from_lua_table(lua, args, ret)?;
             Ok(cfn)
