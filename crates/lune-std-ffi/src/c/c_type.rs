@@ -164,7 +164,7 @@ where
                 if !data_handle.check_boundary(offset, ctype.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.check_readable(&userdata, offset, ctype.get_size()) {
+                if !data_handle.check_readable(offset, ctype.get_size()) {
                     return Err(LuaError::external("Unreadable data handle"));
                 }
 
@@ -187,7 +187,7 @@ where
                 if !data_handle.check_boundary(offset, ctype.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.checek_writable(&userdata, offset, ctype.get_size()) {
+                if !data_handle.checek_writable(offset, ctype.get_size()) {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 

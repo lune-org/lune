@@ -26,6 +26,8 @@ pub struct FfiRef {
     ptr: *mut (),
     pub flags: FfiRefFlagList,
     pub boundary: FfiRefBounds,
+    // Save lua ffibox pointer
+    pub inner: Option<*const dyn NativeDataHandle>,
 }
 
 impl FfiRef {
@@ -34,6 +36,7 @@ impl FfiRef {
             ptr,
             flags,
             boundary: range,
+            inner: None,
         }
     }
 
@@ -125,12 +128,34 @@ impl NativeDataHandle for FfiRef {
     fn check_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
-    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
-        self.flags.is_writable()
+    fn checek_writable(&self, offset: isize, size: usize) -> bool {
+        // If unreadable ref
+        if !self.flags.is_writable() {
+            return false;
+        }
+
+        // If ref have inner luabox
+        if let Some(inner) = self.inner {
+            return unsafe { inner.as_ref().unwrap().checek_writable(offset, size) };
+        }
+
+        true
     }
-    // TODO: if ref points box , check box too
-    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
-        self.flags.is_readable()
+    fn check_readable(&self, offset: isize, size: usize) -> bool {
+        // If unreadable ref
+        if !self.flags.is_readable() {
+            return false;
+        }
+
+        // If ref have inner luabox
+        if let Some(inner) = self.inner {
+            return unsafe { inner.as_ref().unwrap().check_readable(offset, size) };
+        }
+
+        true
+    }
+    fn mark_ref(&self, userdata: &LuaAnyUserData, offset: isize, ptr: usize) -> LuaResult<()> {
+        Ok(())
     }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
         self.get_ptr().byte_offset(offset)

@@ -1,27 +1,17 @@
 use std::boxed::Box;
-use std::sync::OnceLock;
 
 use mlua::prelude::*;
 
 use super::{
     association_names::REF_INNER,
     ffi_association::set_association,
-    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList},
+    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS},
     NativeDataHandle,
 };
 
-static BOX_REF_FLAGS: OnceLock<FfiRefFlagList> = OnceLock::new();
-fn get_box_ref_flags() -> FfiRefFlagList {
-    BOX_REF_FLAGS
-        .get_or_init(|| {
-            FfiRefFlagList::new(&[
-                FfiRefFlag::Offsetable,
-                FfiRefFlag::Readable,
-                FfiRefFlag::Writable,
-            ])
-        })
-        .to_owned()
-}
+const BOX_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::new(
+    FfiRefFlag::Offsetable.value() | FfiRefFlag::Readable.value() | FfiRefFlag::Writable.value(),
+);
 
 // It is an untyped, sized memory area that Lua can manage.
 // This area is safe within Lua. Operations have their boundaries checked.
@@ -35,6 +25,7 @@ fn get_box_ref_flags() -> FfiRefFlagList {
 struct RefData {
     address: usize,
     offset: usize,
+    lua_inner_id: i32,
 }
 
 pub struct FfiBox {
@@ -77,7 +68,7 @@ impl FfiBox {
         this: LuaAnyUserData<'lua>,
         offset: Option<isize>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let mut target = this.borrow_mut::<FfiBox>()?;
+        let target = this.borrow::<FfiBox>()?;
         let mut bounds = FfiRefBounds::new(0, target.size());
         let mut ptr = target.get_ptr();
 
@@ -98,12 +89,33 @@ impl FfiBox {
         // To deref a box space is to allow lua to read any space,
         // which has security issues and is ultimately dangerous.
         // Therefore, box:ref():deref() is not allowed.
-        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), get_box_ref_flags(), bounds))?;
+        let luaref = lua.create_userdata(FfiRef::new(ptr.cast(), BOX_REF_FLAGS, bounds))?;
 
         // Makes box alive longer then ref
         set_association(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
+    }
+
+    // Make FfiRef from box, without any safe features
+    pub fn luaref_unsafe<'lua>(
+        lua: &'lua Lua,
+        this: LuaAnyUserData<'lua>,
+        offset: Option<isize>,
+    ) -> LuaResult<LuaAnyUserData<'lua>> {
+        let target = this.borrow::<FfiBox>()?;
+        let mut ptr = target.get_ptr();
+
+        // Calculate offset
+        if let Some(t) = offset {
+            ptr = unsafe { target.get_ptr().byte_offset(t) };
+        }
+
+        lua.create_userdata(FfiRef::new(
+            ptr.cast(),
+            FfiRefFlagList::all(),
+            UNSIZED_BOUNDS,
+        ))
     }
 
     // Fill every field with 0
@@ -130,12 +142,15 @@ impl NativeDataHandle for FfiBox {
         self.size() > ((offset as usize) + size)
     }
     // FIXME
-    fn checek_writable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+    fn checek_writable(&self, offset: isize, size: usize) -> bool {
         true
     }
     // FIXME
-    fn check_readable(&self, userdata: &LuaAnyUserData, offset: isize, size: usize) -> bool {
+    fn check_readable(&self, offset: isize, size: usize) -> bool {
         true
+    }
+    fn mark_ref(&self, userdata: &LuaAnyUserData, offset: isize, ptr: usize) -> LuaResult<()> {
+        Ok(())
     }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
         self.get_ptr().byte_offset(offset).cast::<()>()
@@ -155,8 +170,13 @@ impl LuaUserData for FfiBox {
         methods.add_function(
             "ref",
             |lua, (this, offset): (LuaAnyUserData, Option<isize>)| {
-                let luaref = FfiBox::luaref(lua, this, offset)?;
-                Ok(luaref)
+                FfiBox::luaref(lua, this, offset)
+            },
+        );
+        methods.add_function(
+            "unsafeRef",
+            |lua, (this, offset): (LuaAnyUserData, Option<isize>)| {
+                FfiBox::luaref_unsafe(lua, this, offset)
             },
         );
         methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| Ok(this.stringify()));

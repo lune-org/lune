@@ -1,5 +1,4 @@
-use std::ffi::c_void;
-use std::sync::LazyLock;
+use core::ffi::c_void;
 
 use dlopen2::symbor::Library;
 use mlua::prelude::*;
@@ -10,14 +9,12 @@ use super::{
     ffi_ref::{FfiRef, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS},
 };
 
-static LIB_REF_FLAGS: LazyLock<FfiRefFlagList> = LazyLock::new(|| {
-    FfiRefFlagList::new(&[
-        FfiRefFlag::Offsetable,
-        FfiRefFlag::Readable,
-        FfiRefFlag::Dereferenceable,
-        FfiRefFlag::Function,
-    ])
-});
+const LIB_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::new(
+    FfiRefFlag::Offsetable.value()
+        | FfiRefFlag::Readable.value()
+        | FfiRefFlag::Dereferenceable.value()
+        | FfiRefFlag::Function.value(),
+);
 
 pub struct FfiLib(Library);
 
@@ -50,11 +47,8 @@ impl FfiLib {
                 .map_err(|err| LuaError::external(format!("{err}")))?
         };
 
-        let luasym = lua.create_userdata(FfiRef::new(
-            (*sym).cast(),
-            (*LIB_REF_FLAGS).clone(),
-            UNSIZED_BOUNDS,
-        ))?;
+        let luasym =
+            lua.create_userdata(FfiRef::new((*sym).cast(), LIB_REF_FLAGS, UNSIZED_BOUNDS))?;
 
         set_association(lua, SYM_INNER, &luasym, &this)?;
 

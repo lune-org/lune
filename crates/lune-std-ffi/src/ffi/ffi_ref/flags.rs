@@ -25,12 +25,17 @@ impl FfiRefFlagList {
     pub fn zero() -> Self {
         Self(0)
     }
-    pub fn new(flags: &[FfiRefFlag]) -> Self {
-        let mut value = 0;
-        for i in flags {
-            value |= i.value();
-        }
-        Self(value)
+    pub const fn new(flags: u8) -> Self {
+        Self(flags)
+    }
+    pub const fn all() -> Self {
+        Self(
+            FfiRefFlag::Dereferenceable.value()
+                | FfiRefFlag::Readable.value()
+                | FfiRefFlag::Writable.value()
+                | FfiRefFlag::Offsetable.value()
+                | FfiRefFlag::Function.value(),
+        )
     }
     fn set(&mut self, value: bool, mask: u8) {
         if value {
