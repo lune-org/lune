@@ -170,7 +170,7 @@ impl Instance {
 
         ### See Also
         * [`Clone`](https://create.roblox.com/docs/reference/engine/classes/Instance#Clone)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     #[must_use]
     pub fn clone_instance(&self) -> Self {
@@ -194,7 +194,7 @@ impl Instance {
 
         ### See Also
         * [`Destroy`](https://create.roblox.com/docs/reference/engine/classes/Instance#Destroy)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn destroy(&mut self) -> bool {
         if self.is_destroyed() {
@@ -221,7 +221,7 @@ impl Instance {
         ### See Also
         * [`Instance::Destroy`] for more info about what happens when an instance gets destroyed
         * [`ClearAllChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClearAllChildren)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn clear_all_children(&mut self) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -241,7 +241,7 @@ impl Instance {
 
         ### See Also
         * [`IsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsA)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn is_a(&self, class_name: impl AsRef<str>) -> bool {
         class_is_a(&self.class_name, class_name).unwrap_or(false)
@@ -254,7 +254,7 @@ impl Instance {
 
         ### See Also
         * [`ClassName`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClassName)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     #[must_use]
     pub fn get_class_name(&self) -> &str {
@@ -266,7 +266,7 @@ impl Instance {
 
         ### See Also
         * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_name(&self) -> String {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -282,7 +282,7 @@ impl Instance {
 
         ### See Also
         * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn set_name(&self, name: impl Into<String>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -297,7 +297,7 @@ impl Instance {
 
         ### See Also
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_parent(&self) -> Option<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -324,7 +324,7 @@ impl Instance {
 
         ### See Also
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn set_parent(&self, parent: Option<Instance>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -369,7 +369,7 @@ impl Instance {
 
         ### See Also
         * [`GetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttribute)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -390,7 +390,7 @@ impl Instance {
 
         ### See Also
         * [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -411,7 +411,7 @@ impl Instance {
 
         ### See Also
         * [`SetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#SetAttribute)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -466,7 +466,7 @@ impl Instance {
 
         ### See Also
         * [`AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn add_tag(&self, name: impl AsRef<str>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -488,7 +488,7 @@ impl Instance {
 
         ### See Also
         * [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_tags(&self) -> Vec<String> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -507,7 +507,7 @@ impl Instance {
 
         ### See Also
         * [`HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn has_tag(&self, name: impl AsRef<str>) -> bool {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -527,7 +527,7 @@ impl Instance {
 
         ### See Also
         * [`RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn remove_tag(&self, name: impl AsRef<str>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -553,7 +553,7 @@ impl Instance {
 
         ### See Also
         * [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_children(&self) -> Vec<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -576,7 +576,7 @@ impl Instance {
 
         ### See Also
         * [`GetDescendants`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetDescendants)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_descendants(&self) -> Vec<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -610,7 +610,7 @@ impl Instance {
 
         ### See Also
         * [`GetFullName`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetFullName)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_full_name(&self) -> String {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -700,7 +700,7 @@ impl Instance {
 
         ### See Also
         * [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant)
-        on the Roblox Developer Hub
+            on the Roblox Developer Hub
     */
     pub fn find_descendant<F>(&self, predicate: F) -> Option<Instance>
     where

@@ -40,7 +40,7 @@ fn get_or_create_material_colors(instance: &Instance) -> MaterialColors {
 
     ### See Also
     * [`GetMaterialColor`](https://create.roblox.com/docs/reference/engine/classes/Terrain#GetMaterialColor)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn terrain_get_material_color(_: &Lua, this: &Instance, material: EnumItem) -> LuaResult<Color3> {
     let material_colors = get_or_create_material_colors(this);
@@ -65,7 +65,7 @@ fn terrain_get_material_color(_: &Lua, this: &Instance, material: EnumItem) -> L
 
     ### See Also
     * [`SetMaterialColor`](https://create.roblox.com/docs/reference/engine/classes/Terrain#SetMaterialColor)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn terrain_set_material_color(
     _: &Lua,
