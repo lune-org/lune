@@ -22,7 +22,7 @@ impl FfiRefFlag {
 pub struct FfiRefFlagList(u8);
 #[allow(unused)]
 impl FfiRefFlagList {
-    pub fn zero() -> Self {
+    pub const fn zero() -> Self {
         Self(0)
     }
     pub const fn new(flags: u8) -> Self {
