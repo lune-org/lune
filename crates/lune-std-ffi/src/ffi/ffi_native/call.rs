@@ -2,7 +2,7 @@ use std::cell::Ref;
 
 use mlua::prelude::*;
 
-use super::NativeDataHandle;
+use super::NativeData;
 
 // Handle native data, provide type conversion between luavalue and native types
 pub trait NativeCall {
@@ -11,7 +11,7 @@ pub trait NativeCall {
         &self,
         lua: &Lua,
         arg: LuaMultiValue,
-        ret: &Ref<dyn NativeDataHandle>,
+        ret: &Ref<dyn NativeData>,
     ) -> LuaResult<()>;
 
     // Call lua closure

@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
 use super::super::c_type::CType;
-use crate::ffi::{NativeConvert, NativeDataHandle, NativeSignedness};
+use crate::ffi::{NativeConvert, NativeData, NativeSignedness};
 
 impl NativeSignedness for CType<u16> {
     fn get_signedness(&self) -> bool {
@@ -20,7 +20,7 @@ impl NativeConvert for CType<u16> {
         _lua: &'lua Lua,
         // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
         let value: u16 = match value {
@@ -47,7 +47,7 @@ impl NativeConvert for CType<u16> {
         lua: &'lua Lua,
         // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
     ) -> LuaResult<LuaValue<'lua>> {
         let value = unsafe { (*data_handle.get_pointer(offset).cast::<u16>()).into_lua(lua)? };
         Ok(value)

@@ -5,14 +5,14 @@ use std::cell::Ref;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::NativeDataHandle;
+use super::NativeData;
 
 // Cast T as U
 
 #[inline(always)]
 pub fn native_num_cast<T, U>(
-    from: &Ref<dyn NativeDataHandle>,
-    into: &Ref<dyn NativeDataHandle>,
+    from: &Ref<dyn NativeData>,
+    into: &Ref<dyn NativeData>,
 ) -> LuaResult<()>
 where
     T: AsPrimitive<U>,

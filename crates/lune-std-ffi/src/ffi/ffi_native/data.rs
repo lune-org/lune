@@ -5,28 +5,25 @@ use mlua::prelude::*;
 
 use super::super::{FfiBox, FfiRef};
 
-pub trait NativeDataHandle {
+pub trait NativeData {
     fn check_boundary(&self, offset: isize, size: usize) -> bool;
-    fn check_readable(&self, offset: isize, size: usize) -> bool;
-    fn checek_writable(&self, offset: isize, size: usize) -> bool;
-    fn mark_ref(&self, userdata: &LuaAnyUserData, offset: isize, ptr: usize) -> LuaResult<()>;
     unsafe fn get_pointer(&self, offset: isize) -> *mut ();
 }
 
-pub trait GetNativeDataHandle {
-    fn get_data_handle(&self) -> LuaResult<Ref<dyn NativeDataHandle>>;
+pub trait GetNativeData {
+    fn get_data_handle(&self) -> LuaResult<Ref<dyn NativeData>>;
 }
 
 // I tried to remove dyn (which have little bit costs)
 // But, maybe this is best option for now.
 // If remove dyn, we must spam self.is::<>() / self.borrow::<>()?
 // more costly....
-impl GetNativeDataHandle for LuaAnyUserData<'_> {
-    fn get_data_handle(&self) -> LuaResult<Ref<dyn NativeDataHandle>> {
+impl GetNativeData for LuaAnyUserData<'_> {
+    fn get_data_handle(&self) -> LuaResult<Ref<dyn NativeData>> {
         if self.is::<FfiBox>() {
-            Ok(self.borrow::<FfiBox>()? as Ref<dyn NativeDataHandle>)
+            Ok(self.borrow::<FfiBox>()? as Ref<dyn NativeData>)
         } else if self.is::<FfiRef>() {
-            Ok(self.borrow::<FfiRef>()? as Ref<dyn NativeDataHandle>)
+            Ok(self.borrow::<FfiRef>()? as Ref<dyn NativeData>)
         // } else if self.is::<FfiRaw>() {
         // Ok(self.borrow::<FfiRaw>()? as Ref<dyn ReadWriteHandle>)
         } else {

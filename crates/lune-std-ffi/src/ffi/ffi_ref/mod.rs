@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use super::{
     association_names::REF_INNER,
     ffi_association::{get_association, set_association},
-    NativeDataHandle,
+    NativeData,
 };
 
 mod bounds;
@@ -29,17 +29,14 @@ pub struct FfiRef {
     ptr: *mut (),
     pub flags: FfiRefFlagList,
     pub boundary: FfiRefBounds,
-    // Save lua ffibox pointer
-    pub inner: Option<*const dyn NativeDataHandle>,
 }
 
 impl FfiRef {
-    pub fn new(ptr: *mut (), flags: FfiRefFlagList, range: FfiRefBounds) -> Self {
+    pub fn new(ptr: *mut (), flags: FfiRefFlagList, boundary: FfiRefBounds) -> Self {
         Self {
             ptr,
             flags,
-            boundary: range,
-            inner: None,
+            boundary,
         }
     }
 
@@ -63,10 +60,6 @@ impl FfiRef {
         set_association(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
-    }
-
-    pub fn get_ptr(&self) -> *mut () {
-        self.ptr
     }
 
     pub unsafe fn deref(&self) -> LuaResult<Self> {
@@ -122,41 +115,12 @@ impl FfiRef {
     }
 }
 
-impl NativeDataHandle for FfiRef {
+impl NativeData for FfiRef {
     fn check_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
-    fn checek_writable(&self, offset: isize, size: usize) -> bool {
-        // If unreadable ref
-        if !self.flags.is_writable() {
-            return false;
-        }
-
-        // If ref have inner luabox
-        if let Some(inner) = self.inner {
-            return unsafe { inner.as_ref().unwrap().checek_writable(offset, size) };
-        }
-
-        true
-    }
-    fn check_readable(&self, offset: isize, size: usize) -> bool {
-        // If unreadable ref
-        if !self.flags.is_readable() {
-            return false;
-        }
-
-        // If ref have inner luabox
-        if let Some(inner) = self.inner {
-            return unsafe { inner.as_ref().unwrap().check_readable(offset, size) };
-        }
-
-        true
-    }
-    fn mark_ref(&self, userdata: &LuaAnyUserData, offset: isize, ptr: usize) -> LuaResult<()> {
-        Ok(())
-    }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
-        self.get_ptr().byte_offset(offset)
+        self.ptr.byte_offset(offset)
     }
 }
 

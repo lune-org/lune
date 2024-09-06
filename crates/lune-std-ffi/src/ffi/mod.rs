@@ -11,8 +11,7 @@ pub use self::{
     ffi_box::FfiBox,
     ffi_lib::FfiLib,
     ffi_native::{
-        native_num_cast, GetNativeDataHandle, NativeConvert, NativeDataHandle, NativeSignedness,
-        NativeSize,
+        native_num_cast, GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize,
     },
     ffi_ref::{create_nullptr, FfiRef},
 };
@@ -42,13 +41,21 @@ pub mod bit_mask {
     pub const U8_MASK7: u8 = 64;
     pub const U8_MASK8: u8 = 128;
 
-    macro_rules! U8_TEST {
-        ($val:expr, $mask:ident) => {
-            ($val & $mask != 0)
-        };
+    pub fn u8_test(bits: u8, mask: u8) -> bool {
+        bits & mask != 0
     }
 
-    pub(crate) use U8_TEST;
+    pub fn u8_test_not(bits: u8, mask: u8) -> bool {
+        bits & mask == 0
+    }
+
+    pub fn u8_set(bits: u8, mask: u8, val: bool) -> u8 {
+        if val {
+            bits | mask
+        } else {
+            bits & !mask
+        }
+    }
 }
 
 pub fn is_integer(num: LuaValue) -> bool {

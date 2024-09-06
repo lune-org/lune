@@ -8,7 +8,7 @@ use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
 use super::{CType, CTypeCast};
-use crate::ffi::{NativeConvert, NativeDataHandle};
+use crate::ffi::{NativeConvert, NativeData};
 
 pub mod f32;
 pub mod f64;
@@ -54,8 +54,8 @@ where
         &self,
         from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
-        from: &Ref<dyn NativeDataHandle>,
-        into: &Ref<dyn NativeDataHandle>,
+        from: &Ref<dyn NativeData>,
+        into: &Ref<dyn NativeData>,
     ) -> LuaResult<()> {
         cast_nums!(
             T, self, into_ctype, from_ctype, from, into, u8, u16, u32, u64, u128, i8, i16, i128,
@@ -128,106 +128,8 @@ pub fn create_all_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserDat
     ])
 }
 
-// macro_rules! define_ctype_size_from_userdata {
-//     ($t:ident, $f:ty, $( $c:ty ),*) => {
-//         if $t.is::<CType<$f>>() {
-//             Ok(size_of::<$f>())
-//         }$( else if $t.is::<CType<$c>>() {
-//             Ok(size_of::<$c>())
-//         })* else {
-//             Err(LuaError::external("Unexpected type"))
-//         }
-//     };
-// }
-// #[inline(always)]
-// pub fn ctype_size_from_userdata(this: &LuaAnyUserData) -> LuaResult<usize> {
-//     define_ctype_size_from_userdata!(
-//         this, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64
-//     )
-// }
-
-// macro_rules! define_ctype_luavalue_into_ptr {
-//     ($lua:ident, $this:ident, $offset:ident, $data_handle:ident, $value:ident, $f:ty, $( $c:ty ),*) => {
-//         if $this.is::<CType<$f>>() {
-//             let ctype = $this.borrow::<CType<$f>>()?;
-//             ctype.luavalue_into($lua, $offset, $data_handle, $value)
-//         }$( else if $this.is::<CType<$c>>() {
-//             let ctype = $this.borrow::<CType<$c>>()?;
-//             ctype.luavalue_into($lua, $offset, $data_handle, $value)
-//         })* else {
-//             Err(LuaError::external("Unexpected type"))
-//         }
-//     };
-// }
-// #[inline(always)]
-// pub unsafe fn ctype_luavalue_into_ptr<'lua>(
-//     lua: &'lua Lua,
-//     this: &LuaAnyUserData<'lua>,
-//     offset: isize,
-//     data_handle: &Ref<dyn NativeDataHandle>,
-//     value: LuaValue<'lua>,
-// ) -> LuaResult<()> {
-//     define_ctype_luavalue_into_ptr!(
-//         lua,
-//         this,
-//         offset,
-//         data_handle,
-//         value,
-//         u8,
-//         u16,
-//         u32,
-//         u64,
-//         u128,
-//         i8,
-//         i16,
-//         i32,
-//         i64,
-//         i128,
-//         f32,
-//         f64
-//     )
-// }
-
-// macro_rules! define_ctype_luavalue_from_ptr {
-//     ($lua:ident, $this:ident, $offset:ident, $data_handle:ident, $f:ty, $( $c:ty ),*) => {
-//         if $this.is::<CType<$f>>() {
-//             $this.borrow::<CType<$f>>()?.luavalue_from($lua, $offset, $data_handle)
-//         }$( else if $this.is::<CType<$c>>() {
-//             $this.borrow::<CType<$c>>()?.luavalue_from($lua, $offset, $data_handle)
-//         })* else {
-//             Err(LuaError::external("Unexpected type"))
-//         }
-//     };
-// }
-// #[inline(always)]
-// pub unsafe fn ctype_luavalue_from_ptr<'lua>(
-//     lua: &'lua Lua,
-//     this: &LuaAnyUserData<'lua>,
-//     offset: isize,
-//     data_handle: &Ref<dyn NativeDataHandle>,
-// ) -> LuaResult<LuaValue<'lua>> {
-//     define_ctype_luavalue_from_ptr!(
-//         lua,
-//         this,
-//         offset,
-//         data_handle,
-//         u8,
-//         u16,
-//         u32,
-//         u64,
-//         u128,
-//         i8,
-//         i16,
-//         i32,
-//         i64,
-//         i128,
-//         f32,
-//         f64
-//     )
-// }
-
-// Use UB method, but safe. because we use ffi_association to ensure children alive
-// Much faster then get NativeConvert handle everytime from lua table
+// Use UB method, but safe. because we use ffi_association to ensure children keep alive
+// Much faster then get NativeConvert handle every time from lua table
 // it's spam of table.get(), if ud.is::<T>() { ud.borrow::<T>()? ... }
 macro_rules! define_get_ctype_conv {
     ($userdata:ident, $f:ty, $( $c:ty ),*) => {

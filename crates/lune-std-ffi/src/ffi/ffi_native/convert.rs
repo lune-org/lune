@@ -4,7 +4,7 @@ use std::cell::Ref;
 
 use mlua::prelude::*;
 
-use super::NativeDataHandle;
+use super::NativeData;
 
 // Handle native data, provide type conversion between luavalue and native types
 pub trait NativeConvert {
@@ -14,7 +14,7 @@ pub trait NativeConvert {
         lua: &'lua Lua,
         // type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()>;
 
@@ -24,6 +24,6 @@ pub trait NativeConvert {
         lua: &'lua Lua,
         // type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
     ) -> LuaResult<LuaValue<'lua>>;
 }

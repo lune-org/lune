@@ -9,8 +9,8 @@ use num::cast::AsPrimitive;
 
 use super::{association_names::CTYPE_STATIC, c_helper::get_ensured_size, CArr, CPtr};
 use crate::ffi::{
-    ffi_association::set_association, native_num_cast, FfiBox, GetNativeDataHandle, NativeConvert,
-    NativeDataHandle, NativeSignedness, NativeSize,
+    ffi_association::set_association, native_num_cast, FfiBox, GetNativeData, NativeConvert,
+    NativeData, NativeSignedness, NativeSize,
 };
 
 // We can't get a CType<T> through mlua, something like
@@ -42,8 +42,8 @@ pub trait CTypeCast {
     fn try_cast_num<T, U>(
         &self,
         ctype: &LuaAnyUserData,
-        from: &Ref<dyn NativeDataHandle>,
-        into: &Ref<dyn NativeDataHandle>,
+        from: &Ref<dyn NativeData>,
+        into: &Ref<dyn NativeData>,
     ) -> LuaResult<Option<()>>
     where
         T: AsPrimitive<U>,
@@ -62,8 +62,8 @@ pub trait CTypeCast {
         &self,
         from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
-        _from: &Ref<dyn NativeDataHandle>,
-        _into: &Ref<dyn NativeDataHandle>,
+        _from: &Ref<dyn NativeData>,
+        _into: &Ref<dyn NativeData>,
     ) -> LuaResult<()> {
         Err(Self::cast_failed_with(self, from_ctype, into_ctype))
     }

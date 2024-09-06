@@ -10,7 +10,7 @@ use super::{
 };
 use crate::ffi::{
     ffi_association::{get_association, set_association},
-    FfiBox, GetNativeDataHandle, NativeConvert, NativeDataHandle, NativeSize,
+    FfiBox, GetNativeData, NativeConvert, NativeData, NativeSize,
 };
 
 // This is a series of some type.
@@ -110,7 +110,7 @@ impl NativeConvert for CArr {
         &self,
         lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
         let LuaValue::Table(ref table) = value else {
@@ -134,7 +134,7 @@ impl NativeConvert for CArr {
         &self,
         lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
     ) -> LuaResult<LuaValue<'lua>> {
         let table = lua.create_table_with_capacity(self.length, 0)?;
         for i in 0..self.length {
@@ -187,9 +187,6 @@ impl LuaUserData for CArr {
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.check_readable(offset, this.get_size()) {
-                    return Err(LuaError::external("Unreadable data handle"));
-                }
 
                 unsafe { this.luavalue_from(lua, offset, data_handle) }
             },
@@ -203,7 +200,7 @@ impl LuaUserData for CArr {
                 if !data_handle.check_boundary(offset, this.size) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.checek_writable(offset, this.size) {
+                if !data_handle.is_writable() {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 

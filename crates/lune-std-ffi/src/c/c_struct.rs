@@ -10,7 +10,7 @@ use super::{
 };
 use crate::ffi::{
     ffi_association::{get_association, set_association},
-    FfiBox, GetNativeDataHandle, NativeConvert, NativeDataHandle, NativeSignedness, NativeSize,
+    FfiBox, GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize,
     FFI_STATUS_NAMES,
 };
 
@@ -135,7 +135,7 @@ impl NativeConvert for CStruct {
         &self,
         lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
         let LuaValue::Table(ref table) = value else {
@@ -156,7 +156,7 @@ impl NativeConvert for CStruct {
         &self,
         lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeDataHandle>,
+        data_handle: &Ref<dyn NativeData>,
     ) -> LuaResult<LuaValue<'lua>> {
         let table = lua.create_table_with_capacity(self.conv.len(), 0)?;
         for (i, conv) in self.conv.iter().enumerate() {
