@@ -16,6 +16,9 @@ pub use self::{
     flags::{FfiRefFlag, FfiRefFlagList},
 };
 
+// Box:ref():ref() should not be able to modify, Only for external
+const BOX_REF_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::zero();
+
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
 // if use it incorrectly.
@@ -46,15 +49,10 @@ impl FfiRef {
         this: LuaAnyUserData<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let target = this.borrow::<FfiRef>()?;
-        let mut flags = target.flags.clone();
-
-        // FIXME:
-        // We cannot dereference ref which created by lua, in lua
-        flags.set_dereferenceable(false);
 
         let luaref = lua.create_userdata(FfiRef::new(
             ptr::from_ref(&target.ptr) as *mut (),
-            flags,
+            BOX_REF_REF_FLAGS,
             FfiRefBounds {
                 below: 0,
                 above: size_of::<usize>(),
