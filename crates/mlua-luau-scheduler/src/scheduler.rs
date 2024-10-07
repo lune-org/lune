@@ -12,7 +12,7 @@ use futures_lite::prelude::*;
 use mlua::prelude::*;
 
 use async_executor::{Executor, LocalExecutor};
-use tracing::{debug, instrument, trace, trace_span, Instrument};
+use tracing::{debug, instrument, trace, trace_span};
 
 use crate::{
     error_callback::ThreadErrorCallback,
@@ -367,24 +367,14 @@ impl<'lua> Scheduler<'lua> {
                 let fut_defer = self.queue_defer.wait_for_item(); // 3
                 let fut_futs = fut_queue.wait_for_item(); // 4
 
-                // 5
-                let mut num_processed = 0;
-                let span_tick = trace_span!("Scheduler::tick");
-                let fut_tick = async {
-                    local_exec.tick().await;
-                    // NOTE: Try to do as much work as possible instead of just a single tick()
-                    num_processed += 1;
-                    while local_exec.try_tick() {
-                        num_processed += 1;
-                    }
-                };
-
-                // 1 + 2 + 3 + 4 + 5
-                fut_exit
-                    .or(fut_spawn)
-                    .or(fut_defer)
-                    .or(fut_futs)
-                    .or(fut_tick.instrument(span_tick.or_current()))
+                local_exec
+                    .run(
+                        fut_exit
+                            .race(fut_spawn)
+                            .race(fut_defer)
+                            .race(fut_futs)
+                            .race(local_exec.tick()),
+                    )
                     .await;
 
                 // Check if we should exit
@@ -424,13 +414,15 @@ impl<'lua> Scheduler<'lua> {
                 let completed = local_exec.is_empty()
                     && self.queue_spawn.is_empty()
                     && self.queue_defer.is_empty();
+
                 trace!(
                     futures_spawned = num_futures,
-                    futures_processed = num_processed,
+                    // futures_processed = num_processed,
                     lua_threads_spawned = num_spawned,
                     lua_threads_deferred = num_deferred,
                     "loop"
                 );
+
                 if completed {
                     break;
                 }
