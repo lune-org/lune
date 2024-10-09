@@ -1,289 +1,249 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-
+use crate::{library::StandardLibrary, luaurc::RequireAlias};
 use mlua::prelude::*;
-use mlua_luau_scheduler::LuaSchedulerExt;
-
+use mlua_luau_scheduler::{IntoLuaThread, LuaSchedulerExt};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use tokio::{
-    fs::read,
+    fs,
     sync::{
         broadcast::{self, Sender},
-        Mutex as AsyncMutex,
+        Mutex,
     },
 };
 
-use lune_utils::path::{clean_path, clean_path_and_make_absolute};
+use super::RequireError;
 
-use crate::library::LuneStandardLibrary;
-
-/**
-    Context containing cached results for all `require` operations.
-
-    The cache uses absolute paths, so any given relative
-    path will first be transformed into an absolute path.
-*/
-#[derive(Debug, Clone)]
-pub(super) struct RequireContext {
-    libraries: Arc<AsyncMutex<HashMap<LuneStandardLibrary, LuaResult<LuaRegistryKey>>>>,
-    results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
-    pending: Arc<AsyncMutex<HashMap<PathBuf, Sender<()>>>>,
+/// The private struct that's stored in mlua's app data container
+#[derive(Debug, Default)]
+struct RequireContextData<'a> {
+    std: HashMap<&'a str, HashMap<&'a str, Box<dyn StandardLibrary>>>,
+    std_cache: HashMap<RequireAlias, LuaRegistryKey>,
+    cache: Arc<Mutex<HashMap<PathBuf, LuaRegistryKey>>>,
+    pending: Arc<Mutex<HashMap<PathBuf, Sender<()>>>>,
 }
+
+#[derive(Debug)]
+pub struct RequireContext {}
 
 impl RequireContext {
     /**
-        Creates a new require context for the given [`Lua`] struct.
 
-        Note that this require context is global and only one require
-        context should be created per [`Lua`] struct, creating more
-        than one context may lead to undefined require-behavior.
-    */
-    pub fn new() -> Self {
-        Self {
-            libraries: Arc::new(AsyncMutex::new(HashMap::new())),
-            results: Arc::new(AsyncMutex::new(HashMap::new())),
-            pending: Arc::new(AsyncMutex::new(HashMap::new())),
+    # Errors
+
+    - when `RequireContext::init` is called more than once on the same `Lua` instance
+
+     */
+    pub(crate) fn init(lua: &Lua) -> Result<(), RequireError> {
+        if lua.set_app_data(RequireContextData::default()).is_some() {
+            Err(RequireError::RequireContextInitCalledTwice)
+        } else {
+            Ok(())
         }
     }
 
-    /**
-        Resolves the given `source` and `path` into require paths
-        to use, based on the current require context settings.
+    pub(crate) fn std_exists(lua: &Lua, alias: &str) -> Result<bool, RequireError> {
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
 
-        This will resolve path segments such as `./`, `../`, ..., and
-        if the resolved path is not an absolute path, will create an
-        absolute path by prepending the current working directory.
-    */
-    pub fn resolve_paths(
-        source: impl AsRef<str>,
-        path: impl AsRef<str>,
-    ) -> LuaResult<(PathBuf, PathBuf)> {
-        let path = PathBuf::from(source.as_ref())
-            .parent()
-            .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
-            .join(path.as_ref());
-
-        let abs_path = clean_path_and_make_absolute(&path);
-        let rel_path = clean_path(path);
-
-        Ok((abs_path, rel_path))
+        Ok(data_ref.std.contains_key(alias))
     }
 
-    /**
-        Checks if the given path has a cached require result.
-    */
-    pub fn is_cached(&self, abs_path: impl AsRef<Path>) -> LuaResult<bool> {
-        let is_cached = self
-            .results
-            .try_lock()
-            .expect("RequireContext may not be used from multiple threads")
-            .contains_key(abs_path.as_ref());
-        Ok(is_cached)
+    pub(crate) fn require_std(
+        lua: &Lua,
+        require_alias: RequireAlias,
+    ) -> Result<LuaMultiValue<'_>, RequireError> {
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
+
+        if let Some(cached) = data_ref.std_cache.get(&require_alias) {
+            let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
+
+            return Ok(LuaMultiValue::from_vec(multi_vec));
+        }
+
+        let libraries = data_ref.std.get(&require_alias.alias.as_str()).ok_or(
+            RequireError::InvalidStdAlias(require_alias.alias.to_string()),
+        )?;
+
+        let std =
+            libraries
+                .get(require_alias.path.as_str())
+                .ok_or(RequireError::StdMemberNotFound(
+                    require_alias.path.to_string(),
+                    require_alias.alias.to_string(),
+                ))?;
+
+        let multi = std.module(lua)?;
+        let mutli_clone = multi.clone();
+        let multi_reg = lua.create_registry_value(mutli_clone.into_vec())?;
+
+        drop(data_ref);
+
+        let mut data = lua
+            .app_data_mut::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
+
+        data.std_cache.insert(require_alias, multi_reg);
+
+        Ok(multi)
     }
 
-    /**
-        Checks if the given path is currently being used in `require`.
-    */
-    pub fn is_pending(&self, abs_path: impl AsRef<Path>) -> LuaResult<bool> {
-        let is_pending = self
-            .pending
-            .try_lock()
-            .expect("RequireContext may not be used from multiple threads")
-            .contains_key(abs_path.as_ref());
-        Ok(is_pending)
-    }
-
-    /**
-        Gets the resulting value from the require cache.
-
-        Will panic if the path has not been cached, use [`is_cached`] first.
-    */
-    pub fn get_from_cache<'lua>(
-        &self,
+    async fn wait_for_pending<'lua>(
         lua: &'lua Lua,
-        abs_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
-        let results = self
-            .results
-            .try_lock()
-            .expect("RequireContext may not be used from multiple threads");
+        path_abs: &'_ PathBuf,
+    ) -> Result<(), RequireError> {
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
 
-        let cached = results
-            .get(abs_path.as_ref())
-            .expect("Path does not exist in results cache");
-        match cached {
-            Err(e) => Err(e.clone()),
-            Ok(k) => {
-                let multi_vec = lua
-                    .registry_value::<Vec<LuaValue>>(k)
-                    .expect("Missing require result in lua registry");
-                Ok(LuaMultiValue::from_vec(multi_vec))
+        let pending = data_ref.pending.try_lock()?;
+
+        if let Some(sender) = pending.get(path_abs) {
+            let mut receiver = sender.subscribe();
+
+            // unlock mutex before using async
+            drop(pending);
+
+            receiver.recv().await?;
+        }
+
+        Ok(())
+    }
+
+    async fn from_cache<'lua>(
+        lua: &'lua Lua,
+        path_abs: &'_ PathBuf,
+    ) -> Result<Option<LuaMultiValue<'lua>>, RequireError> {
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
+
+        let cache = data_ref.cache.lock().await;
+
+        match cache.get(path_abs) {
+            Some(cached) => {
+                let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
+
+                Ok(Some(LuaMultiValue::from_vec(multi_vec)))
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub(crate) async fn require(
+        lua: &Lua,
+        path_rel: PathBuf,
+        path_abs: PathBuf,
+    ) -> Result<LuaMultiValue, RequireError> {
+        Self::wait_for_pending(lua, &path_abs).await?;
+
+        if let Some(cached) = Self::from_cache(lua, &path_abs).await? {
+            return Ok(cached);
+        }
+
+        // create a broadcast channel
+        {
+            let data_ref = lua
+                .app_data_ref::<RequireContextData>()
+                .ok_or(RequireError::RequireContextNotFound)?;
+
+            let broadcast_tx = broadcast::Sender::new(1);
+
+            {
+                let mut pending = data_ref.pending.try_lock()?;
+                pending.insert(path_abs.clone(), broadcast_tx);
             }
         }
-    }
 
-    /**
-        Waits for the resulting value from the require cache.
+        if !fs::try_exists(&path_abs).await? {
+            return Err(RequireError::InvalidRequire(
+                path_rel.to_string_lossy().to_string(),
+            ));
+        }
 
-        Will panic if the path has not been cached, use [`is_cached`] first.
-    */
-    pub async fn wait_for_cache<'lua>(
-        &self,
-        lua: &'lua Lua,
-        abs_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
-        let mut thread_recv = {
-            let pending = self
-                .pending
-                .try_lock()
-                .expect("RequireContext may not be used from multiple threads");
-            let thread_id = pending
-                .get(abs_path.as_ref())
-                .expect("Path is not currently pending require");
-            thread_id.subscribe()
-        };
+        let content = fs::read_to_string(&path_abs).await?;
+        let thread = lua
+            .load(&content)
+            .set_name(path_abs.to_string_lossy())
+            .into_lua_thread(lua)?;
 
-        thread_recv.recv().await.into_lua_err()?;
-
-        self.get_from_cache(lua, abs_path.as_ref())
-    }
-
-    async fn load<'lua>(
-        &self,
-        lua: &'lua Lua,
-        abs_path: impl AsRef<Path>,
-        rel_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaRegistryKey> {
-        let abs_path = abs_path.as_ref();
-        let rel_path = rel_path.as_ref();
-
-        // Read the file at the given path, try to parse and
-        // load it into a new lua thread that we can schedule
-        let file_contents = read(&abs_path).await?;
-        let file_thread = lua
-            .load(file_contents)
-            .set_name(rel_path.to_string_lossy().to_string());
-
-        // Schedule the thread to run, wait for it to finish running
-        let thread_id = lua.push_thread_back(file_thread, ())?;
+        let thread_id = lua.push_thread_back(thread, ())?;
         lua.track_thread(thread_id);
         lua.wait_for_thread(thread_id).await;
-        let thread_res = lua.get_thread_result(thread_id).unwrap();
 
-        // Return the result of the thread, storing any lua value(s) in the registry
-        match thread_res {
-            Err(e) => Err(e),
-            Ok(v) => {
-                let multi_vec = v.into_vec();
-                let multi_key = lua
-                    .create_registry_value(multi_vec)
-                    .expect("Failed to store require result in registry - out of memory");
-                Ok(multi_key)
-            }
+        let multi = lua
+            .get_thread_result(thread_id)
+            .ok_or(RequireError::ThreadReturnedNone)??;
+
+        let multi_reg = lua.create_registry_value(multi.into_vec())?;
+
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
+
+        data_ref
+            .cache
+            .lock()
+            .await
+            .insert(path_abs.clone(), multi_reg);
+
+        let broadcast_tx = data_ref
+            .pending
+            .lock()
+            .await
+            .remove(&path_abs)
+            .expect("Pending require broadcaster was unexpectedly removed");
+
+        broadcast_tx.send(()).ok();
+
+        match Self::from_cache(lua, &path_abs).await? {
+            Some(cached) => Ok(cached),
+            None => Err(RequireError::CacheNotFound(
+                path_rel.to_string_lossy().to_string(),
+            )),
         }
     }
 
     /**
-        Loads (requires) the file at the given path.
-    */
-    pub async fn load_with_caching<'lua>(
-        &self,
-        lua: &'lua Lua,
-        abs_path: impl AsRef<Path>,
-        rel_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
-        let abs_path = abs_path.as_ref();
-        let rel_path = rel_path.as_ref();
 
-        // Set this abs path as currently pending
-        let (broadcast_tx, _) = broadcast::channel(1);
-        self.pending
-            .try_lock()
-            .expect("RequireContext may not be used from multiple threads")
-            .insert(abs_path.to_path_buf(), broadcast_tx);
+    add a standard library into the require function
 
-        // Try to load at this abs path
-        let load_res = self.load(lua, abs_path, rel_path).await;
-        let load_val = match &load_res {
-            Err(e) => Err(e.clone()),
-            Ok(k) => {
-                let multi_vec = lua
-                    .registry_value::<Vec<LuaValue>>(k)
-                    .expect("Failed to fetch require result from registry");
-                Ok(LuaMultiValue::from_vec(multi_vec))
-            }
+    # Example
+
+    ```rs
+    inject_std(lua, "lune", LuneStandardLibrary::Task)?;
+    ```
+
+    ```luau
+    -- luau
+    local task = require("@lune/task")
+    ```
+
+    # Errors
+
+    - when `RequireStorage::init` isn't called
+
+     */
+    pub fn inject_std(
+        lua: &Lua,
+        alias: &'static str,
+        std: impl StandardLibrary + 'static,
+    ) -> Result<(), RequireError> {
+        let mut data = lua
+            .app_data_mut::<RequireContextData>()
+            .ok_or(RequireError::RequireContextNotFound)?;
+
+        if let Some(map) = data.std.get_mut(alias) {
+            map.insert(std.name(), Box::new(std));
+        } else {
+            let mut map: HashMap<&str, Box<dyn StandardLibrary>> = HashMap::new();
+
+            map.insert(std.name(), Box::new(std));
+
+            data.std.insert(alias, map);
         };
 
-        // NOTE: We use the async lock and not try_lock here because
-        // some other thread may be wanting to insert into the require
-        // cache at the same time, and that's not an actual error case
-        self.results
-            .lock()
-            .await
-            .insert(abs_path.to_path_buf(), load_res);
-
-        // Remove the pending thread id from the require context,
-        // broadcast a message to let any listeners know that this
-        // path has now finished the require process and is cached
-        let broadcast_tx = self
-            .pending
-            .try_lock()
-            .expect("RequireContext may not be used from multiple threads")
-            .remove(abs_path)
-            .expect("Pending require broadcaster was unexpectedly removed");
-        broadcast_tx.send(()).ok();
-
-        load_val
-    }
-
-    /**
-        Loads (requires) the library with the given name.
-    */
-    pub fn load_library<'lua>(
-        &self,
-        lua: &'lua Lua,
-        name: impl AsRef<str>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
-        let library: LuneStandardLibrary = match name.as_ref().parse() {
-            Err(e) => return Err(LuaError::runtime(e)),
-            Ok(b) => b,
-        };
-
-        let mut cache = self
-            .libraries
-            .try_lock()
-            .expect("RequireContext may not be used from multiple threads");
-
-        if let Some(res) = cache.get(&library) {
-            return match res {
-                Err(e) => return Err(e.clone()),
-                Ok(key) => {
-                    let multi_vec = lua
-                        .registry_value::<Vec<LuaValue>>(key)
-                        .expect("Missing library result in lua registry");
-                    Ok(LuaMultiValue::from_vec(multi_vec))
-                }
-            };
-        };
-
-        let result = library.module(lua);
-
-        cache.insert(
-            library,
-            match result.clone() {
-                Err(e) => Err(e),
-                Ok(multi) => {
-                    let multi_vec = multi.into_vec();
-                    let multi_key = lua
-                        .create_registry_value(multi_vec)
-                        .expect("Failed to store require result in registry - out of memory");
-                    Ok(multi_key)
-                }
-            },
-        );
-
-        result
+        Ok(())
     }
 }
