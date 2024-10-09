@@ -109,7 +109,7 @@ assertContains(
 
 local _, errorMessage = pcall(function()
 	local function innerInnerFn()
-		process.spawn("PROGRAM_THAT_DOES_NOT_EXIST")
+		process.exec("PROGRAM_THAT_DOES_NOT_EXIST")
 	end
 	local function innerFn()
 		innerInnerFn()
