@@ -1,10 +1,13 @@
+use libffi::low::ffi_cif;
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
 use super::c_helper::{
     get_conv, get_conv_list_from_table, libffi_type_from_userdata, libffi_type_list_from_table,
 };
-use crate::ffi::NativeConvert;
+use crate::ffi::{
+    FfiClosure, NativeArgInfo, NativeArgType, NativeConvert, NativeResultInfo, NativeResultType,
+};
 
 // cfn is a type declaration for a function.
 // Basically, when calling an external function, this type declaration
@@ -23,41 +26,52 @@ use crate::ffi::NativeConvert;
 // moved to a Lua function or vice versa.
 
 pub struct CFn {
-    libffi_cif: Cif,
-    args_conv: Vec<*const dyn NativeConvert>,
-    ret_conv: *const dyn NativeConvert,
+    cif: *mut ffi_cif,
+    arg_info_list: Vec<NativeArgInfo>,
+    result_info: NativeResultInfo,
 }
+
+// support: Cfn as function pointer
 
 impl CFn {
     pub fn new(
         args: Vec<Type>,
         ret: Type,
-        args_conv: Vec<*const dyn NativeConvert>,
-        ret_conv: *const dyn NativeConvert,
+        arg_info_list: Vec<NativeArgInfo>,
+        result_info: NativeResultInfo,
     ) -> Self {
-        let libffi_cif: Cif = Cif::new(args.clone(), ret.clone());
         Self {
-            libffi_cif,
-            args_conv,
-            ret_conv,
+            cif: Cif::new(args.clone(), ret.clone()).as_raw_ptr(),
+            arg_info_list,
+            result_info,
         }
     }
 
     pub fn new_from_lua_table(lua: &Lua, args: LuaTable, ret: LuaAnyUserData) -> LuaResult<Self> {
-        let args_type = libffi_type_list_from_table(lua, &args)?;
+        let args_types = libffi_type_list_from_table(lua, &args)?;
         let ret_type = libffi_type_from_userdata(lua, &ret)?;
 
-        Ok(Self::new(
-            args_type,
-            ret_type,
-            unsafe { get_conv_list_from_table(&args)? },
-            unsafe { get_conv(&ret)? },
-        ))
+        let len = args.raw_len();
+        let mut arg_info_list = Vec::<NativeArgInfo>::with_capacity(len);
+
+        for conv in unsafe { get_conv_list_from_table(&args)? } {
+            arg_info_list.push(NativeArgInfo { conv })
+        }
+
+        // get_conv_list_from_table(&args)?.iter().map(|conv| {
+        //     conv.to_owned()
+        // }).collect()
+
+        Ok(Self::new(args_types, ret_type, unsafe {}, unsafe {
+            get_conv(&ret)?
+        }))
     }
 }
 
 impl LuaUserData for CFn {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        // methods.add_method("from", | this,  |)
+        methods.add_method("closure", |lua, this, func: LuaFunction| {
+            lua.create_userdata(FfiClosure::new(this.cif, userdata))
+        })
     }
 }

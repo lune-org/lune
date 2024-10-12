@@ -1,5 +1,6 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use ffi::FfiRef;
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
@@ -23,20 +24,15 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_values(create_all_types(lua)?)?
         .with_values(create_all_c_types(lua)?)?
         .with_value("nullptr", create_nullptr(lua)?)?
-        .with_function("box", |_, size: usize| Ok(FfiBox::new(size)))?
-        // TODO: discuss about function name. matching with io.open is better?
-        .with_function("open", |_, name: String| {
-            let lib = FfiLib::new(name)?;
-            Ok(lib)
-        })?
+        .with_function("box", |_lua, size: usize| Ok(FfiBox::new(size)))?
+        .with_function("open", |_lua, name: String| FfiLib::new(name))?
         .with_function("struct", |lua, types: LuaTable| {
-            let cstruct = CStruct::new_from_lua_table(lua, types)?;
-            Ok(cstruct)
+            CStruct::new_from_lua_table(lua, types)
         })?
+        .with_function("ref", |_lua, ()| Ok(FfiRef::new_uninit()))?
         .with_function("isInteger", |_lua, num: LuaValue| Ok(is_integer(num)))?
         .with_function("fn", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
-            let cfn = CFn::new_from_lua_table(lua, args, ret)?;
-            Ok(cfn)
+            CFn::new_from_lua_table(lua, args, ret)
         })?;
 
     #[cfg(debug_assertions)]

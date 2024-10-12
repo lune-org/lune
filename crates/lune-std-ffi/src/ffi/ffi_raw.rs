@@ -1,5 +1,4 @@
-// use core::ffi::c_void;
-// use std::{convert, mem::transmute, ptr};
+use mlua::prelude::*;
 
 // This is raw data coming from outside.
 // Users must convert it to a Lua value, reference, or box to use it.
@@ -11,3 +10,11 @@
 // data copy as possible occurs, while allowing you to do little restrictions.
 
 pub struct FfiRaw(*const ());
+
+impl FfiRaw {
+    pub fn new(pointer: *const ()) -> Self {
+        Self(pointer)
+    }
+}
+
+impl LuaUserData for FfiRaw {}

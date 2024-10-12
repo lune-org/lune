@@ -4,20 +4,21 @@ use mlua::prelude::*;
 
 use super::{
     association_names::REF_INNER,
+    bit_mask::u8_test,
     ffi_association::{get_association, set_association},
     NativeData,
 };
 
 mod bounds;
-mod flags;
+mod flag;
 
 pub use self::{
     bounds::{FfiRefBounds, UNSIZED_BOUNDS},
-    flags::{FfiRefFlag, FfiRefFlagList},
+    flag::FfiRefFlag,
 };
 
 // Box:ref():ref() should not be able to modify, Only for external
-const BOX_REF_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::zero();
+const BOX_REF_REF_FLAGS: u8 = 0;
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
@@ -27,16 +28,24 @@ const BOX_REF_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::zero();
 
 pub struct FfiRef {
     ptr: *mut (),
-    pub flags: FfiRefFlagList,
+    pub flags: u8,
     pub boundary: FfiRefBounds,
 }
 
 impl FfiRef {
-    pub fn new(ptr: *mut (), flags: FfiRefFlagList, boundary: FfiRefBounds) -> Self {
+    pub fn new(ptr: *mut (), flags: u8, boundary: FfiRefBounds) -> Self {
         Self {
             ptr,
             flags,
             boundary,
+        }
+    }
+
+    pub fn new_uninit() -> Self {
+        Self {
+            ptr: ptr::null_mut(),
+            flags: FfiRefFlag::Uninit.value(),
+            boundary: UNSIZED_BOUNDS,
         }
     }
 
@@ -63,8 +72,7 @@ impl FfiRef {
     }
 
     pub unsafe fn deref(&self) -> LuaResult<Self> {
-        self.flags
-            .is_dereferenceable()
+        u8_test(self.flags, FfiRefFlag::Dereferenceable.value())
             .then_some(())
             .ok_or(LuaError::external("This pointer is not dereferenceable."))?;
 
@@ -78,7 +86,7 @@ impl FfiRef {
         // FIXME flags
         Ok(Self::new(
             *self.ptr.cast::<*mut ()>(),
-            self.flags.clone(),
+            self.flags,
             UNSIZED_BOUNDS,
         ))
     }
@@ -88,8 +96,7 @@ impl FfiRef {
     }
 
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
-        self.flags
-            .is_offsetable()
+        u8_test(self.flags, FfiRefFlag::Offsetable.value())
             .then_some(())
             .ok_or(LuaError::external("This pointer is not offsetable."))?;
 
@@ -109,7 +116,7 @@ impl FfiRef {
         // TODO
         Ok(Self::new(
             self.ptr.byte_offset(offset),
-            self.flags.clone(),
+            self.flags,
             boundary,
         ))
     }
@@ -121,6 +128,12 @@ impl NativeData for FfiRef {
     }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
         self.ptr.byte_offset(offset)
+    }
+    fn is_readable(&self) -> bool {
+        u8_test(self.flags, FfiRefFlag::Readable.value())
+    }
+    fn is_writable(&self) -> bool {
+        u8_test(self.flags, FfiRefFlag::Writable.value())
     }
 }
 
@@ -161,7 +174,7 @@ pub fn create_nullptr(lua: &Lua) -> LuaResult<LuaAnyUserData> {
     // https://en.cppreference.com/w/cpp/types/nullptr_t
     lua.create_userdata(FfiRef::new(
         ptr::null_mut::<()>().cast(),
-        FfiRefFlagList::zero(),
+        0,
         // usize::MAX means that nullptr is can be 'any' pointer type
         // We check size of inner data. give ffi.box(1):ref() as argument which typed as i32:ptr() will fail,
         // throw lua error

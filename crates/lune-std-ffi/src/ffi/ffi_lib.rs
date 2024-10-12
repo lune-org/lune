@@ -6,15 +6,13 @@ use mlua::prelude::*;
 use super::{
     association_names::SYM_INNER,
     ffi_association::set_association,
-    ffi_ref::{FfiRef, FfiRefFlag, FfiRefFlagList, UNSIZED_BOUNDS},
+    ffi_ref::{FfiRef, FfiRefFlag, UNSIZED_BOUNDS},
 };
 
-const LIB_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::new(
-    FfiRefFlag::Offsetable.value()
-        | FfiRefFlag::Readable.value()
-        | FfiRefFlag::Dereferenceable.value()
-        | FfiRefFlag::Function.value(),
-);
+const LIB_REF_FLAGS: u8 = FfiRefFlag::Offsetable.value()
+    | FfiRefFlag::Readable.value()
+    | FfiRefFlag::Dereferenceable.value()
+    | FfiRefFlag::Function.value();
 
 pub struct FfiLib(Library);
 

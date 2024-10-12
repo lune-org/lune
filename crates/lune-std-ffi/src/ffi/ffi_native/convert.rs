@@ -4,15 +4,17 @@ use std::cell::Ref;
 
 use mlua::prelude::*;
 
-use super::NativeData;
+use super::{NativeData, NativeSize};
 
 // Handle native data, provide type conversion between luavalue and native types
-pub trait NativeConvert {
+pub trait NativeConvert
+where
+    Self: NativeSize,
+{
     // Convert luavalue into data, then write into ptr
     unsafe fn luavalue_into<'lua>(
         &self,
         lua: &'lua Lua,
-        // type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn NativeData>,
         value: LuaValue<'lua>,
@@ -22,7 +24,6 @@ pub trait NativeConvert {
     unsafe fn luavalue_from<'lua>(
         &self,
         lua: &'lua Lua,
-        // type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn NativeData>,
     ) -> LuaResult<LuaValue<'lua>>;

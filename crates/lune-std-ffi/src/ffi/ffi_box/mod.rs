@@ -6,7 +6,7 @@ use super::{
     association_names::REF_INNER,
     bit_mask::*,
     ffi_association::set_association,
-    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag, FfiRefFlagList},
+    ffi_ref::{FfiRef, FfiRefBounds, FfiRefFlag},
     NativeData,
 };
 
@@ -14,15 +14,9 @@ mod flag;
 
 pub use self::flag::FfiBoxFlag;
 
-const BOX_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::new(
-    FfiRefFlag::Offsetable.value() | FfiRefFlag::Readable.value() | FfiRefFlag::Writable.value(),
-);
-const BOX_MUT_REF_FLAGS: FfiRefFlagList = FfiRefFlagList::new(
-    FfiRefFlag::Offsetable.value()
-        | FfiRefFlag::Readable.value()
-        | FfiRefFlag::Writable.value()
-        | FfiRefFlag::Mutable.value(),
-);
+// Ref which created by lua should not be dereferenceable,
+const BOX_REF_FLAGS: u8 =
+    FfiRefFlag::Readable.value() | FfiRefFlag::Writable.value() | FfiRefFlag::Offsetable.value();
 
 // It is an untyped, sized memory area that Lua can manage.
 // This area is safe within Lua. Operations have their boundaries checked.
@@ -142,6 +136,12 @@ impl NativeData for FfiBox {
             .byte_offset(offset)
             .cast_mut()
             .cast::<()>()
+    }
+    fn is_readable(&self) -> bool {
+        true
+    }
+    fn is_writable(&self) -> bool {
+        true
     }
 }
 

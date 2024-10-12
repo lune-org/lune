@@ -9,7 +9,9 @@ use mlua::prelude::*;
 use super::{
     association_names::CTYPE_STATIC, types::get_ctype_conv, CArr, CPtr, CStruct, CTypeStatic,
 };
-use crate::ffi::{ffi_association::get_association, NativeConvert, FFI_STATUS_NAMES};
+use crate::ffi::{
+    ffi_association::get_association, NativeConvert, NativeSignedness, NativeSize, FFI_STATUS_NAMES,
+};
 
 // Get the NativeConvert handle from the type UserData
 // this is intended to avoid lookup userdata and lua table every time. (eg: struct)
@@ -22,6 +24,7 @@ pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn Native
         unsafe { get_ctype_conv(userdata) }
     }
 }
+
 pub unsafe fn get_conv_list_from_table(
     table: &LuaTable,
 ) -> LuaResult<Vec<*const dyn NativeConvert>> {
@@ -55,7 +58,7 @@ pub unsafe fn get_conv_list_from_table(
 //     }
 // }
 
-// get Vec<libffi_type> from table(array) of c-types userdata
+// get Vec<libffi_type> from table(array) of c-type userdata
 pub fn libffi_type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>> {
     let len: usize = table.raw_len();
     let mut fields = Vec::with_capacity(len);
@@ -82,9 +85,7 @@ pub fn libffi_type_from_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaRes
         Ok(userdata.borrow::<CStruct>()?.get_type().to_owned())
     } else if let Some(t) = get_association(lua, CTYPE_STATIC, userdata)? {
         Ok(t.as_userdata()
-            .ok_or(LuaError::external(
-                "Failed to get static ctype from userdata",
-            ))?
+            .ok_or_else(|| LuaError::external("Failed to get static ctype from userdata"))?
             .borrow::<CTypeStatic>()?
             .libffi_type
             .clone())
@@ -120,9 +121,7 @@ pub fn stringify_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<Str
     } else if let Some(t) = get_association(lua, CTYPE_STATIC, userdata)? {
         Ok(String::from(
             t.as_userdata()
-                .ok_or(LuaError::external(
-                    "Failed to get static ctype from userdata",
-                ))?
+                .ok_or_else(|| LuaError::external("Failed to get static ctype from userdata"))?
                 .borrow::<CTypeStatic>()?
                 .name
                 .unwrap_or("unnamed"),

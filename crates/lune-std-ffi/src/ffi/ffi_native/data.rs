@@ -8,6 +8,8 @@ use super::super::{FfiBox, FfiRef};
 pub trait NativeData {
     fn check_boundary(&self, offset: isize, size: usize) -> bool;
     unsafe fn get_pointer(&self, offset: isize) -> *mut ();
+    fn is_writable(&self) -> bool;
+    fn is_readable(&self) -> bool;
 }
 
 pub trait GetNativeData {

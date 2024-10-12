@@ -1,3 +1,5 @@
+use std::clone;
+
 // Memory range for ref or box data. For boundary checking
 pub struct FfiRefBounds {
     // Indicates how much data is above the pointer
@@ -84,6 +86,15 @@ impl FfiRefBounds {
         Self {
             above: high,
             below: low,
+        }
+    }
+}
+
+impl Clone for FfiRefBounds {
+    fn clone(&self) -> Self {
+        Self {
+            above: self.above,
+            below: self.below,
         }
     }
 }

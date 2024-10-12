@@ -208,7 +208,7 @@ impl LuaUserData for CStruct {
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.check_readable(offset, this.get_size()) {
+                if !data_handle.is_readable() {
                     return Err(LuaError::external("Unreadable data handle"));
                 }
 
@@ -224,7 +224,7 @@ impl LuaUserData for CStruct {
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
-                if !data_handle.checek_writable(offset, this.get_size()) {
+                if !data_handle.is_writable() {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 
