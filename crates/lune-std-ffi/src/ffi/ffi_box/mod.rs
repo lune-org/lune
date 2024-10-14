@@ -128,7 +128,7 @@ impl NativeData for FfiBox {
         if offset < 0 {
             return false;
         }
-        self.size() > ((offset as usize) + size)
+        self.size() - (offset as usize) >= size
     }
     unsafe fn get_pointer(&self, offset: isize) -> *mut () {
         self.data

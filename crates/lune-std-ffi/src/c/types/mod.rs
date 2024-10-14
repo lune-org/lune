@@ -8,7 +8,7 @@ use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
 use super::{CType, CTypeCast};
-use crate::ffi::{NativeConvert, NativeData};
+use crate::ffi::{NativeConvert, NativeData, NativeSize};
 
 pub mod f32;
 pub mod f64;
@@ -144,4 +144,19 @@ macro_rules! define_get_ctype_conv {
 }
 pub unsafe fn get_ctype_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {
     define_get_ctype_conv!(userdata, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64)
+}
+
+macro_rules! define_get_ctype_size {
+    ($userdata:ident, $f:ty, $( $c:ty ),*) => {
+        if $userdata.is::<CType<$f>>() {
+            Ok($userdata.borrow::<CType<$f>>()?.get_size())
+        }$( else if $userdata.is::<CType<$c>>() {
+            Ok($userdata.borrow::<CType<$c>>()?.get_size())
+        })* else {
+            Err(LuaError::external("Unexpected type"))
+        }
+    };
+}
+pub fn get_ctype_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
+    define_get_ctype_size!(userdata, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64)
 }

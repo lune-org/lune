@@ -7,5 +7,6 @@ use super::NativeConvert;
 
 pub struct NativeResultInfo {
     pub conv: *const dyn NativeConvert,
+    pub size: usize,
     // kind: NativeResultType,
 }

@@ -15,10 +15,9 @@ pub use self::{
     ffi_closure::FfiClosure,
     ffi_lib::FfiLib,
     ffi_native::{
-        native_num_cast, FfiArgRefOption, GetNativeData, NativeArgInfo, NativeArgType,
-        NativeConvert, NativeData, NativeResultInfo, NativeSignedness, NativeSize,
+        native_num_cast, GetNativeData, NativeArgInfo, NativeConvert, NativeData, NativeResultInfo,
+        NativeSignedness, NativeSize,
     },
-    ffi_raw::FfiRaw,
     ffi_ref::{create_nullptr, FfiRef, FfiRefFlag},
 };
 

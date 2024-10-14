@@ -4,3 +4,5 @@
 // but separated it for clarity.
 // This also allows operations such as ffi.string:intoBox().
 // (Write a string to an already existing box)
+
+// FIXME: use buffer instead?

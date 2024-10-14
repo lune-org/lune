@@ -1,17 +1,26 @@
 #![allow(clippy::inline_always)]
 
-use std::ptr::{self, null_mut};
-
-use libffi::{low, middle::Type, raw};
+use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::{
-    association_names::CTYPE_STATIC, types::get_ctype_conv, CArr, CPtr, CStruct, CTypeStatic,
+    association_names::CTYPE_STATIC,
+    types::{get_ctype_conv, get_ctype_size},
+    CArr, CPtr, CStruct, CTypeStatic,
 };
-use crate::ffi::{
-    ffi_association::get_association, NativeConvert, NativeSignedness, NativeSize, FFI_STATUS_NAMES,
-};
+use crate::ffi::{ffi_association::get_association, NativeConvert, NativeSize};
+
+pub fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
+    if let LuaValue::UserData(field_type) = value {
+        Ok(field_type)
+    } else {
+        Err(LuaError::external(format!(
+            "Unexpected field. CStruct, CType or CArr is required for element but got {}",
+            pretty_format_value(&value, &ValueFormatConfig::new())
+        )))
+    }
+}
 
 // Get the NativeConvert handle from the type UserData
 // this is intended to avoid lookup userdata and lua table every time. (eg: struct)
@@ -33,30 +42,21 @@ pub unsafe fn get_conv_list_from_table(
 
     for i in 0..len {
         let value: LuaValue = table.raw_get(i + 1)?;
-
-        if let LuaValue::UserData(field_type) = value {
-            conv_list.push(get_conv(&field_type)?);
-        } else {
-            return Err(LuaError::external(format!(
-                "Unexpected field. CStruct, CType or CArr is required for element but got {}",
-                pretty_format_value(&value, &ValueFormatConfig::new())
-            )));
-        }
+        conv_list.push(get_conv(&get_userdata(value)?)?);
     }
 
     Ok(conv_list)
 }
 
-// #[inline(always)]
-// pub fn type_size_from_userdata(this: &LuaAnyUserData) -> LuaResult<usize> {
-//     if this.is::<CStruct>() {
-//         Ok(this.borrow::<CStruct>()?.get_size())
-//     } else if this.is::<CArr>() {
-//         Ok(this.borrow::<CArr>()?.get_size())
-//     } else {
-//         ctype_size_from_userdata(this)
-//     }
-// }
+pub fn get_size(this: &LuaAnyUserData) -> LuaResult<usize> {
+    if this.is::<CStruct>() {
+        Ok(this.borrow::<CStruct>()?.get_size())
+    } else if this.is::<CArr>() {
+        Ok(this.borrow::<CArr>()?.get_size())
+    } else {
+        get_ctype_size(this)
+    }
+}
 
 // get Vec<libffi_type> from table(array) of c-type userdata
 pub fn libffi_type_list_from_table(lua: &Lua, table: &LuaTable) -> LuaResult<Vec<Type>> {
@@ -161,27 +161,4 @@ pub fn pretty_format_userdata(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult
             stringify_userdata(lua, userdata)?
         ))
     }
-}
-
-// Ensure sizeof c-type (raw::libffi_type)
-// See: http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
-pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
-    let mut cif = low::ffi_cif::default();
-    let result = unsafe {
-        raw::ffi_prep_cif(
-            ptr::from_mut(&mut cif),
-            raw::ffi_abi_FFI_DEFAULT_ABI,
-            0,
-            ffi_type,
-            null_mut(),
-        )
-    };
-
-    if result != raw::ffi_status_FFI_OK {
-        return Err(LuaError::external(format!(
-            "ffi_get_struct_offsets failed. expected result {}, got {}",
-            FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[result as usize]
-        )));
-    }
-    unsafe { Ok((*ffi_type).size) }
 }

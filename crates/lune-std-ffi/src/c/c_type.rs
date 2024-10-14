@@ -7,11 +7,12 @@ use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::{association_names::CTYPE_STATIC, c_helper::get_ensured_size, CArr, CPtr};
+use super::{association_names::CTYPE_STATIC, CArr, CPtr};
 use crate::ffi::{
     ffi_association::set_association, native_num_cast, FfiBox, GetNativeData, NativeConvert,
     NativeData, NativeSignedness, NativeSize,
 };
+use crate::libffi_helper::get_ensured_size;
 
 // We can't get a CType<T> through mlua, something like
 // .is::<CType<dyn Any>> will fail.
@@ -106,11 +107,9 @@ where
         libffi_type: Type,
         name: Option<&'static str>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        // let libffi_cfi = Cif::new(vec![libffi_type.clone()], Type::void());
         let size = get_ensured_size(libffi_type.as_raw_ptr())?;
 
         let ctype = Self {
-            // libffi_cif: libffi_cfi,
             libffi_type,
             size,
             name,

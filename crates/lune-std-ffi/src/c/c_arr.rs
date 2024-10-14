@@ -5,13 +5,14 @@ use mlua::prelude::*;
 
 use super::{
     association_names::CARR_INNER,
-    c_helper::{get_conv, get_ensured_size, libffi_type_from_userdata, pretty_format_userdata},
+    c_helper::{get_conv, libffi_type_from_userdata, pretty_format_userdata},
     CPtr,
 };
 use crate::ffi::{
     ffi_association::{get_association, set_association},
     FfiBox, GetNativeData, NativeConvert, NativeData, NativeSize,
 };
+use crate::libffi_helper::get_ensured_size;
 
 // This is a series of some type.
 // It provides the final size and the offset of the index,

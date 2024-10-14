@@ -6,6 +6,7 @@ use mlua::prelude::*;
 
 mod c;
 mod ffi;
+mod libffi_helper;
 
 use crate::{
     c::{create_all_c_types, create_all_types, CFn, CStruct},

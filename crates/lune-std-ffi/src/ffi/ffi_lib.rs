@@ -1,6 +1,6 @@
 use core::ffi::c_void;
 
-use dlopen2::symbor::Library;
+use dlopen2::raw::Library;
 use mlua::prelude::*;
 
 use super::{
@@ -41,12 +41,17 @@ impl FfiLib {
         let lib = this.borrow::<FfiLib>()?;
         let sym = unsafe {
             lib.0
-                .symbol::<*mut c_void>(name.as_str())
+                .symbol::<*const c_void>(name.as_str())
                 .map_err(|err| LuaError::external(format!("{err}")))?
         };
+        let ptr = sym.cast::<()>().cast_mut();
 
-        let luasym =
-            lua.create_userdata(FfiRef::new((*sym).cast(), LIB_REF_FLAGS, UNSIZED_BOUNDS))?;
+        // unsafe {
+        //     let f = transmute::<*mut (), unsafe extern "C" fn(i32, i32) -> i32>(ptr);
+        //     dbg!(f(1, 2));
+        // }
+
+        let luasym = lua.create_userdata(FfiRef::new(ptr, LIB_REF_FLAGS, UNSIZED_BOUNDS))?;
 
         set_association(lua, SYM_INNER, &luasym, &this)?;
 
@@ -57,8 +62,7 @@ impl FfiLib {
 impl LuaUserData for FfiLib {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("find", |lua, (this, name): (LuaAnyUserData, String)| {
-            let luasym = FfiLib::get_sym(lua, this, name)?;
-            Ok(luasym)
+            FfiLib::get_sym(lua, this, name)
         });
     }
 }

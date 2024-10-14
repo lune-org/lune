@@ -15,9 +15,7 @@ pub trait NativeSignedness {
 }
 
 pub use self::{
-    arg::FfiArgRefOption,
     arg::NativeArgInfo,
-    arg::NativeArgType,
     cast::native_num_cast,
     convert::NativeConvert,
     data::GetNativeData,
