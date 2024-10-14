@@ -1,10 +1,10 @@
-use std::ptr;
+use std::{mem::ManuallyDrop, ptr};
 
 use mlua::prelude::*;
 
 use super::{
     association_names::REF_INNER,
-    bit_mask::u8_test,
+    bit_mask::{u8_test, u8_test_not},
     ffi_association::{get_association, set_association},
     NativeData,
 };
@@ -19,6 +19,12 @@ pub use self::{
 
 // Box:ref():ref() should not be able to modify, Only for external
 const BOX_REF_REF_FLAGS: u8 = 0;
+const UNINIT_REF_FLAGS: u8 = FfiRefFlag::Uninit.value()
+    | FfiRefFlag::Writable.value()
+    | FfiRefFlag::Readable.value()
+    | FfiRefFlag::Dereferenceable.value()
+    | FfiRefFlag::Offsetable.value()
+    | FfiRefFlag::Function.value();
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
@@ -27,7 +33,7 @@ const BOX_REF_REF_FLAGS: u8 = 0;
 // the box will remain as long as this reference is alive.
 
 pub struct FfiRef {
-    ptr: *mut (),
+    ptr: ManuallyDrop<Box<*mut ()>>,
     pub flags: u8,
     pub boundary: FfiRefBounds,
 }
@@ -35,7 +41,7 @@ pub struct FfiRef {
 impl FfiRef {
     pub fn new(ptr: *mut (), flags: u8, boundary: FfiRefBounds) -> Self {
         Self {
-            ptr,
+            ptr: ManuallyDrop::new(Box::new(ptr)),
             flags,
             boundary,
         }
@@ -43,8 +49,8 @@ impl FfiRef {
 
     pub fn new_uninit() -> Self {
         Self {
-            ptr: ptr::null_mut(),
-            flags: FfiRefFlag::Uninit.value(),
+            ptr: ManuallyDrop::new(Box::new(ptr::null_mut())),
+            flags: UNINIT_REF_FLAGS,
             boundary: UNSIZED_BOUNDS,
         }
     }
@@ -92,7 +98,9 @@ impl FfiRef {
     }
 
     pub fn is_nullptr(&self) -> bool {
-        self.ptr as usize == 0
+        // * ManuallyDrop wrapper
+        // * Box wrapper
+        (**self.ptr) as usize == 0
     }
 
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
@@ -119,6 +127,14 @@ impl FfiRef {
             self.flags,
             boundary,
         ))
+    }
+}
+
+impl Drop for FfiRef {
+    fn drop(&mut self) {
+        if u8_test_not(self.flags, FfiRefFlag::Leaked.value()) {
+            unsafe { ManuallyDrop::drop(&mut self.ptr) };
+        }
     }
 }
 

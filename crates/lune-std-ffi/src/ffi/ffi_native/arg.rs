@@ -11,5 +11,5 @@ pub enum NativeArgType {
 
 pub struct NativeArgInfo {
     pub conv: *const dyn NativeConvert,
-    pub kind: NativeArgType,
+    // pub kind: NativeArgType,
 }

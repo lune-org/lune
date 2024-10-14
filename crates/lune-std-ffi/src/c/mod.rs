@@ -24,4 +24,8 @@ mod association_names {
     pub const CARR_INNER: &str = "__carr_inner";
     pub const CSTRUCT_INNER: &str = "__cstruct_inner";
     pub const CTYPE_STATIC: &str = "__ctype_static";
+    pub const CFN_RESULT: &str = "__cfn_result";
+    pub const CFN_ARGS: &str = "__cfn_args";
+    pub const CALLABLE_REF: &str = "__callable_ref";
+    pub const CALLABLE_CFN: &str = "__callable_cfn";
 }
