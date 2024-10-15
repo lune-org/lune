@@ -132,6 +132,15 @@ impl Runtime {
     }
 
     /**
+        Enables or disables JIT compilation.
+    */
+    #[must_use]
+    pub fn with_jit(self, enabled: bool) -> Self {
+        self.inner.lua().enable_jit(enabled);
+        self
+    }
+
+    /**
         Runs a Lune script inside of the current runtime.
 
         This will preserve any modifications to global values / context.
