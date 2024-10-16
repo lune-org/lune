@@ -1,15 +1,33 @@
-export type CType<T> = {
+local CType = {}
+-- NOTE: T is a unique identifier for the `CType` and R is the closest Lua type.
+export type CType<T, R> = typeof(CType) & {
     size: number,
     signedness: boolean,
-
-    ptr: <K>(self:  CType<T>) -> CPtr<K>,
-    box: <K>(self: CType<T>, val: K) -> Box,
-    from: <K>(self: CType<T>, ud: any, offset: number?) -> K,
-    into: <K>(self: CType<T>, ud: any, value: K, offset: number?) -> (),
-    arr: <K>(self: CType<T>, len: number) -> CArr<K>,
-    -- FIXME: intoType is of type `CTypes`, but that leads to recursive types
-    cast: <F, I>(self: CType<T>, intoType: any, from: F, into: I) -> ()
 } & { ["__phantom"]: T }
+
+function CType.ptr<T, R>(self: CType<T, R>): CPtr<R>
+    return nil :: any
+end
+
+function CType.box<T, R>(self: CType<T, R>, val: R): Box
+    return nil :: any
+end
+
+function CType.from<T, R>(self: CType<T, R>, ud: CTypes, offset: number?): R
+    return nil :: any
+end
+
+function CType.into<T, R>(self: CType<T, R>, ud: CTypes, value: R, offset: number?)
+    return nil :: any
+end
+
+function CType.arr<T, R>(self: CType<T, R>, len: number): CArr<R>
+    return nil :: any
+end
+
+function CType.cast<T, R, F, I>(self: CType<T, R>, intoType: CTypes, from: F, into: I)
+    return nil :: any
+end
 
 export type CPtr<T> = {
     size: number,
@@ -28,36 +46,39 @@ export type CArr<T> = {
     into: <K>(self: CArr<T>, ud: any, value: { K }, offset: number?) -> (),
 }
 
--- Numeric types --
-export type u8 = CType<"u8">
-export type u16 = CType<"u16">
-export type u32 = CType<"u32">
-export type u64 = CType<"u64">
-export type u128 = CType<"u128">
-export type i8 = CType<"i8">
-export type i16 = CType<"i16">
-export type i32 = CType<"i32">
-export type i64 = CType<"i64">
-export type i128 = CType<"i128">
-export type f32 = CType<"f32">
-export type f64 = CType<"f64">
-export type usize = CType<"usize">
-export type isize = CType<"isize">
+type NumCType<T> = CType<T, number>
 
--- C types --
-export type char = CType<"char">
-export type float = CType<"float">
-export type double = CType<"double">
-export type uchar = CType<"uchar">
-export type schar = CType<"schar">
-export type short = CType<"short">
-export type ushort = CType<"ushort">
-export type int = CType<"int">
-export type uint = CType<"uint">
-export type long = CType<"long">
-export type ulong = CType<"ulong">
-export type longlong = CType<"longlong">
-export type ulonglong = CType<"ulonglong">
+-- Fixed size Rust-style types --
+export type u8 = NumCType<"u8">
+export type u16 = NumCType<"u16">
+export type u32 = NumCType<"u32">
+export type u64 = NumCType<"u64">
+export type u128 = NumCType<"u128">
+export type i8 = NumCType<"i8">
+export type i16 = NumCType<"i16">
+export type i32 = NumCType<"i32">
+export type i64 = NumCType<"i64">
+export type i128 = NumCType<"i128">
+export type f32 = NumCType<"f32">
+export type f64 = NumCType<"f64">
+export type usize = NumCType<"usize">
+export type isize = NumCType<"isize">
+
+-- Variable C-style types --
+export type char = NumCType<"char">
+export type float = NumCType<"float">
+export type double = NumCType<"double">
+export type uchar = NumCType<"uchar">
+export type schar = NumCType<"schar">
+export type short = NumCType<"short">
+export type ushort = NumCType<"ushort">
+export type int = NumCType<"int">
+export type uint = NumCType<"uint">
+export type long = NumCType<"long">
+export type ulong = NumCType<"ulong">
+export type longlong = NumCType<"longlong">
+export type ulonglong = NumCType<"ulonglong">
+
 export type CFn = {
     caller: () -> Callable
 }
