@@ -7,8 +7,9 @@ use tokio::{
     io::{stdin, AsyncReadExt as _},
 };
 
-use super::utils::files::{discover_script_path_including_lune_dirs, strip_shebang};
 use lune::Runtime;
+
+use super::utils::files::{discover_script_path_including_lune_dirs, strip_shebang};
 
 /// Run a script
 #[derive(Debug, Clone, Parser)]
@@ -39,11 +40,13 @@ impl RunCommand {
             (file_display_name, file_contents)
         };
 
-        // Create a new lune object with all globals & run the script
-        let mut runtime = Runtime::new().with_args(self.script_args);
-        let result = runtime
+        // Create a new lune runtime with all globals & run the script
+        let mut rt = Runtime::new().with_args(self.script_args);
+
+        let result = rt
             .run(&script_display_name, strip_shebang(script_contents))
             .await;
+
         Ok(match result {
             Err(err) => {
                 eprintln!("{err}");

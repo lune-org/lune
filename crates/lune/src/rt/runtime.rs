@@ -144,7 +144,6 @@ impl Runtime {
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
     ) -> RuntimeResult<(u8, Vec<LuaValue>)> {
-        // Create a new scheduler for this run
         let lua = self.inner.lua();
         let sched = self.inner.scheduler();
 
@@ -165,17 +164,16 @@ impl Runtime {
         let main_thread_id = sched.push_thread_back(main, ())?;
         sched.run().await;
 
-        let thread_res = match sched.get_thread_result(main_thread_id) {
+        let main_thread_res = match sched.get_thread_result(main_thread_id) {
             Some(res) => res,
             None => LuaValue::Nil.into_lua_multi(lua),
-        }?
-        .into_vec();
+        }?;
 
         Ok((
             sched
                 .get_exit_code()
                 .unwrap_or(u8::from(got_any_error.load(Ordering::SeqCst))),
-            thread_res,
+            main_thread_res.into_vec(),
         ))
     }
 }

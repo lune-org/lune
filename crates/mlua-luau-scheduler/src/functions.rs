@@ -1,7 +1,4 @@
-#![allow(unused_imports)]
 #![allow(clippy::too_many_lines)]
-
-use std::process::{ExitCode, ExitStatus};
 
 use mlua::prelude::*;
 
@@ -9,7 +6,6 @@ use crate::{
     error_callback::ThreadErrorCallback,
     queue::{DeferredThreadQueue, SpawnedThreadQueue},
     result_map::ThreadResultMap,
-    scheduler::Scheduler,
     thread_id::ThreadId,
     traits::LuaSchedulerExt,
     util::{is_poll_pending, LuaThreadOrFunction, ThreadResult},
