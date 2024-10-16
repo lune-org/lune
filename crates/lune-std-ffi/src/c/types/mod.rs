@@ -25,6 +25,7 @@ pub mod u64;
 pub mod u8;
 pub mod usize;
 
+// create CType userdata and export
 macro_rules! create_ctypes {
     ($lua:ident, $(( $name:expr, $rust_type:ty, $libffi_type:expr ),)* ) => {
         Ok(vec![$((
@@ -33,8 +34,6 @@ macro_rules! create_ctypes {
         ),)*])
     };
 }
-
-// create CType userdata and export
 pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
     create_ctypes!(
         lua,
@@ -56,10 +55,6 @@ pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>
         ("ulong", c_ulong, Type::c_ulong()),
         ("longlong", c_longlong, Type::c_longlong()),
         ("ulonglong", c_ulonglong, Type::c_ulonglong()),
-        // TODO: c_float and c_double sometime can be half and single,
-        // TODO: but libffi-rs doesn't support it. need work-around or drop support
-        ("float", f32, Type::f32()),
-        ("double", f64, Type::f64()),
         // Export Source-time known c-types (fixed)
         ("u8", u8, Type::u8()),
         ("u16", u16, Type::u16()),
@@ -75,25 +70,16 @@ pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>
         ("f32", f32, Type::f32()),
         ("usize", usize, Type::usize()),
         ("isize", isize, Type::isize()),
+        // TODO: c_float and c_double sometime can be half and single,
+        // TODO: but libffi-rs doesn't support it. need work-around or drop support
+        ("float", f32, Type::f32()),
+        ("double", f64, Type::f64()),
     )
 }
 
-macro_rules! define {
-    (@get_conv $userdata:ident, $( $rust_type:ty )*) => {
-        $( if $userdata.is::<CType<$rust_type>>() {
-            Ok($userdata.to_pointer().cast::<CType<$rust_type>>() as *const dyn NativeConvert)
-        } else )* {
-            Err(LuaError::external("Unexpected type"))
-        }
-    };
-    (@get_size $userdata:ident, $( $rust_type:ty )*) => {
-        $( if $userdata.is::<CType<$rust_type>>() {
-            Ok($userdata.borrow::<CType<$rust_type>>()?.get_size())
-        } else )* {
-            Err(LuaError::external("Unexpected type"))
-        }
-    };
-    (@cast_num $from_rust_type:ident, $self:ident, $from_ctype:ident, $into_ctype:ident, $from:ident, $into:ident, $($into_rust_type:ty)*) => {
+// Implement type-casting for numeric ctypes
+macro_rules! define_cast_num {
+    ($from_rust_type:ident, $self:ident, $from_ctype:ident, $into_ctype:ident, $from:ident, $into:ident, $($into_rust_type:ty)*) => {
         $( if $into_ctype.is::<CType<$into_rust_type>>() {
             native_num_cast::<$from_rust_type, $into_rust_type>($from, $into)
         } else )* {
@@ -101,10 +87,9 @@ macro_rules! define {
         }
     };
 }
-
-impl<T> CTypeCast for CType<T>
+impl<From> CTypeCast for CType<From>
 where
-    T: AsPrimitive<u8>
+    From: AsPrimitive<u8>
         + AsPrimitive<u16>
         + AsPrimitive<u32>
         + AsPrimitive<u64>
@@ -126,17 +111,65 @@ where
         from: &Ref<dyn NativeData>,
         into: &Ref<dyn NativeData>,
     ) -> LuaResult<()> {
-        define!(
-            @cast_num T, self, into_ctype, from_ctype, from, into,
+        define_cast_num!(
+            From, self, into_ctype, from_ctype, from, into,
             u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize
         )
     }
 }
 
 // To prevent drop NativeConvert, we must use ffi_association to ensure children keep alive
+macro_rules! define_get_conv {
+    ($userdata:ident, $( $rust_type:ty )*) => {
+        $( if $userdata.is::<CType<$rust_type>>() {
+            Ok($userdata.to_pointer().cast::<CType<$rust_type>>() as *const dyn NativeConvert)
+        } else )* {
+            Err(LuaError::external("Unexpected type"))
+        }
+    };
+}
 pub fn get_ctype_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {
-    define!(@get_conv userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+    define_get_conv!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+}
+
+// Get size of ctype (not includes struct, arr, ... only CType<*>)
+macro_rules! define_get_size {
+    ($userdata:ident, $( $rust_type:ty )*) => {
+        $( if $userdata.is::<CType<$rust_type>>() {
+            Ok($userdata.borrow::<CType<$rust_type>>()?.get_size())
+        } else )* {
+            Err(LuaError::external("Unexpected type"))
+        }
+    };
 }
 pub fn get_ctype_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
-    define!(@get_size userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+    define_get_size!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+}
+
+// Get name of ctype
+macro_rules! define_get_name {
+    ($userdata:ident, $( $rust_type:ty )*) => {
+        $( if $userdata.is::<CType<$rust_type>>() {
+            Ok($userdata.borrow::<CType<$rust_type>>()?.stringify())
+        } else )* {
+            Err(LuaError::external("Unexpected type"))
+        }
+    };
+}
+pub fn get_ctype_name(userdata: &LuaAnyUserData) -> LuaResult<&str> {
+    define_get_name!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+}
+
+// Get libffi_type of ctype
+macro_rules! define_get_libffi_type {
+    ($userdata:ident, $( $rust_type:ty )*) => {
+        $( if $userdata.is::<CType<$rust_type>>() {
+            Ok($userdata.borrow::<CType<$rust_type>>()?.get_size())
+        } else )* {
+            Err(LuaError::external("Unexpected type"))
+        }
+    };
+}
+pub fn get_ctype_libffi_type(userdata: &LuaAnyUserData) -> LuaResult<usize> {
+    define_get_libffi_type!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
 }

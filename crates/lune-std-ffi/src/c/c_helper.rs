@@ -5,9 +5,8 @@ use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::{
-    association_names::CTYPE_STATIC,
     types::{get_ctype_conv, get_ctype_size},
-    CArr, CPtr, CStruct, CTypeStatic,
+    CArr, CPtr, CStruct,
 };
 use crate::ffi::{ffi_association::get_association, NativeConvert, NativeSize};
 

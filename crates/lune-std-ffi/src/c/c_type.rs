@@ -6,35 +6,9 @@ use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
-use super::{association_names::CTYPE_STATIC, CArr, CPtr};
-use crate::ffi::{
-    ffi_association::set_association, FfiBox, GetNativeData, NativeConvert, NativeData,
-    NativeSignedness, NativeSize,
-};
+use super::{CArr, CPtr};
+use crate::ffi::{FfiBox, GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize};
 use crate::libffi_helper::get_ensured_size;
-
-// We can't get a CType<T> through mlua, something like
-// .is::<CType<dyn Any>> will fail.
-// So we need data that has a static type.
-// each CType<T> userdata instance stores an instance of CTypeStatic.
-#[allow(unused)]
-pub struct CTypeStatic {
-    pub libffi_type: Type,
-    pub size: usize,
-    pub name: Option<&'static str>,
-    pub signedness: bool,
-}
-impl CTypeStatic {
-    fn new<T>(ctype: &CType<T>, signedness: bool) -> Self {
-        Self {
-            libffi_type: ctype.libffi_type.clone(),
-            size: ctype.size,
-            name: ctype.name,
-            signedness,
-        }
-    }
-}
-impl LuaUserData for CTypeStatic {}
 
 // Cast native data
 pub trait CTypeCast {
@@ -96,11 +70,7 @@ where
             name,
             _phantom: PhantomData,
         };
-        let userdata_static =
-            lua.create_any_userdata(CTypeStatic::new::<T>(&ctype, ctype.get_signedness()))?;
         let userdata = lua.create_userdata(ctype)?;
-
-        set_association(lua, CTYPE_STATIC, &userdata, &userdata_static)?;
 
         Ok(userdata)
     }

@@ -12,7 +12,7 @@ pub use self::{
     c_fn::CFn,
     c_ptr::CPtr,
     c_struct::CStruct,
-    c_type::{CType, CTypeCast, CTypeStatic},
+    c_type::{CType, CTypeCast},
 };
 
 pub use types::export_ctypes;
@@ -22,7 +22,6 @@ mod association_names {
     pub const CPTR_INNER: &str = "__cptr_inner";
     pub const CARR_INNER: &str = "__carr_inner";
     pub const CSTRUCT_INNER: &str = "__cstruct_inner";
-    pub const CTYPE_STATIC: &str = "__ctype_static";
     pub const CFN_RESULT: &str = "__cfn_result";
     pub const CFN_ARGS: &str = "__cfn_args";
     pub const CALLABLE_REF: &str = "__callable_ref";
