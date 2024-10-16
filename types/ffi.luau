@@ -40,10 +40,10 @@ export type CArr<T> = {
     inner: {T}?,
 
     offset: (self: CArr<T>, offset: number) -> number,
-    ptr: <K>(self: CArr<T>) -> CPtr<K>,
-    box: <K>(self: CArr<T>, table: { K }) -> Box,
-    from: <K>(self: CArr<T>, ud: any, offset: number?) -> { K },
-    into: <K>(self: CArr<T>, ud: any, value: { K }, offset: number?) -> (),
+    ptr: (self: CArr<T>) -> CPtr<{T}>,
+    box: (self: CArr<T>, table: { T }) -> Box,
+    from: (self: CArr<T>, ud: CTypes, offset: number?) -> { T },
+    into: (self: CArr<T>, ud: CTypes, value: { T }, offset: number?) -> (),
 }
 
 type NumCType<T> = CType<T, number>
@@ -64,7 +64,7 @@ export type f64 = NumCType<"f64">
 export type usize = NumCType<"usize">
 export type isize = NumCType<"isize">
 
--- Variable C-style types --
+-- Variable size C-style types --
 export type char = NumCType<"char">
 export type float = NumCType<"float">
 export type double = NumCType<"double">
