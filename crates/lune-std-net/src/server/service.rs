@@ -40,13 +40,13 @@ impl Service<Request<Incoming>> for Svc {
                 lua.spawn_local(async move {
                     let sock = sock.await.unwrap();
                     let lua_sock = NetWebSocket::new(sock);
-                    let lua_tab = lua_sock.into_lua_table(&lua_inner).unwrap();
+                    let lua_val = lua_sock.into_lua(&lua_inner).unwrap();
 
                     let handler_websocket: LuaFunction =
                         keys.websocket_handler(&lua_inner).unwrap().unwrap();
 
                     lua_inner
-                        .push_thread_back(handler_websocket, lua_tab)
+                        .push_thread_back(handler_websocket, lua_val)
                         .unwrap();
                 });
 

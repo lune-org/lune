@@ -23,29 +23,6 @@ use hyper_tungstenite::{
     WebSocketStream,
 };
 
-use lune_utils::TableBuilder;
-
-// Wrapper implementation for compatibility and changing colon syntax to dot syntax
-const WEB_SOCKET_IMPL_LUA: &str = r#"
-return freeze(setmetatable({
-	close = function(...)
-		return websocket:close(...)
-	end,
-	send = function(...)
-		return websocket:send(...)
-	end,
-	next = function(...)
-		return websocket:next(...)
-	end,
-}, {
-	__index = function(self, key)
-		if key == "closeCode" then
-			return websocket.closeCode
-		end
-	end,
-}))
-"#;
-
 #[derive(Debug)]
 pub struct NetWebSocket<T> {
     close_code_exists: Arc<AtomicBool>,
@@ -124,25 +101,6 @@ where
 
         let mut ws = self.write_stream.lock().await;
         ws.close().await.into_lua_err()
-    }
-
-    pub fn into_lua_table(self, lua: &Lua) -> LuaResult<LuaTable> {
-        let setmetatable = lua.globals().get::<_, LuaFunction>("setmetatable")?;
-        let table_freeze = lua
-            .globals()
-            .get::<_, LuaTable>("table")?
-            .get::<_, LuaFunction>("freeze")?;
-
-        let env = TableBuilder::new(lua)?
-            .with_value("websocket", self.clone())?
-            .with_value("setmetatable", setmetatable)?
-            .with_value("freeze", table_freeze)?
-            .build_readonly()?;
-
-        lua.load(WEB_SOCKET_IMPL_LUA)
-            .set_name("websocket")
-            .set_environment(env)
-            .eval()
     }
 }
 
