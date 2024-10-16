@@ -31,7 +31,7 @@ if not runLocaleTests then
 	return
 end
 
-local dateCmd = process.spawn("bash", { "-c", "date +\"%A, %d %B %Y\" --date='@1693068988'" }, {
+local dateCmd = process.exec("bash", { "-c", "date +\"%A, %d %B %Y\" --date='@1693068988'" }, {
 	env = {
 		LC_ALL = "fr_FR.UTF-8 ",
 	},

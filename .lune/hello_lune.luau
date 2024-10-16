@@ -129,7 +129,7 @@ end
 ]]
 
 print("Sending 4 pings to google 🌏")
-local result = process.spawn("ping", {
+local result = process.exec("ping", {
 	"google.com",
 	"-c 4",
 })
