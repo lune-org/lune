@@ -14,16 +14,16 @@ use crate::ffi::{
 };
 use crate::libffi_helper::get_ensured_size;
 
+// FIXME: unsized array
+
 // This is a series of some type.
 // It provides the final size and the offset of the index,
 // but does not allow multidimensional arrays because of API complexity.
 // However, multidimensional arrays are not impossible to implement
-// because they are a series of transcribed one-dimensional arrays.
+// because they are a series of transcribed one-dimensional arrays. (flatten)
 
+// We can simply provide array type with struct.
 // See: https://stackoverflow.com/a/43525176
-
-// Padding after each field inside the struct is set to next field can follow the alignment.
-// There is no problem even if you create a struct with n fields of a single type within the struct. Array adheres to the condition that there is no additional padding between each element. Padding to a struct is padding inside the struct. Simply think of the padding byte as a trailing unnamed field.
 
 pub struct CArr {
     // element_type: Type,

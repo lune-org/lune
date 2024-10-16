@@ -5,12 +5,11 @@ use std::{cell::Ref, marker::PhantomData};
 use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
-use num::cast::AsPrimitive;
 
 use super::{association_names::CTYPE_STATIC, CArr, CPtr};
 use crate::ffi::{
-    ffi_association::set_association, native_num_cast, FfiBox, GetNativeData, NativeConvert,
-    NativeData, NativeSignedness, NativeSize,
+    ffi_association::set_association, FfiBox, GetNativeData, NativeConvert, NativeData,
+    NativeSignedness, NativeSize,
 };
 use crate::libffi_helper::get_ensured_size;
 
@@ -40,25 +39,6 @@ impl LuaUserData for CTypeStatic {}
 // Cast native data
 pub trait CTypeCast {
     #[inline(always)]
-    fn try_cast_num<T, U>(
-        &self,
-        ctype: &LuaAnyUserData,
-        from: &Ref<dyn NativeData>,
-        into: &Ref<dyn NativeData>,
-    ) -> LuaResult<Option<()>>
-    where
-        T: AsPrimitive<U>,
-        U: 'static + Copy,
-    {
-        if ctype.is::<CType<U>>() {
-            native_num_cast::<T, U>(from, into)?;
-            Ok(Some(()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    #[inline(always)]
     fn cast(
         &self,
         from_ctype: &LuaAnyUserData,
@@ -66,6 +46,7 @@ pub trait CTypeCast {
         _from: &Ref<dyn NativeData>,
         _into: &Ref<dyn NativeData>,
     ) -> LuaResult<()> {
+        // Show error if have no cast implement
         Err(Self::cast_failed_with(self, from_ctype, into_ctype))
     }
 

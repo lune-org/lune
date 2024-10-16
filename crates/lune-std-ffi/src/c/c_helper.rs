@@ -30,7 +30,7 @@ pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn Native
     if userdata.is::<CStruct>() {
         Ok(userdata.to_pointer().cast::<CStruct>() as *const dyn NativeConvert)
     } else {
-        unsafe { get_ctype_conv(userdata) }
+        get_ctype_conv(userdata)
     }
 }
 

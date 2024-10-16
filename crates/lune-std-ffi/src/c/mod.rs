@@ -15,8 +15,7 @@ pub use self::{
     c_type::{CType, CTypeCast, CTypeStatic},
 };
 
-pub use types::create_all_c_types;
-pub use types::create_all_types;
+pub use types::export_ctypes;
 
 // Named registry table names
 mod association_names {

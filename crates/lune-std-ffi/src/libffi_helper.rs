@@ -5,7 +5,7 @@ use mlua::prelude::*;
 
 use crate::ffi::FFI_STATUS_NAMES;
 
-// Ensure sizeof c-type (raw::libffi_type)
+// Get ensured size of c-type (raw::libffi_type)
 // See: http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
 pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
     let mut cif = low::ffi_cif::default();

@@ -1,6 +1,5 @@
 use std::cell::Ref;
 
-use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
@@ -51,11 +50,4 @@ impl NativeConvert for CType<f64> {
         let value = unsafe { (*data_handle.get_pointer(offset).cast::<f64>()).into_lua(lua)? };
         Ok(value)
     }
-}
-
-pub fn create_type(lua: &Lua) -> LuaResult<(&'static str, LuaAnyUserData)> {
-    Ok((
-        "f64",
-        CType::<f64>::new_with_libffi_type(lua, Type::f64(), Some("f64"))?,
-    ))
 }

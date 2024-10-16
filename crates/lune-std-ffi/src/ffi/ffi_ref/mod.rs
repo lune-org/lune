@@ -155,6 +155,7 @@ impl NativeData for FfiRef {
 
 impl LuaUserData for FfiRef {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // FIXME:
         methods.add_function("deref", |lua, this: LuaAnyUserData| {
             let inner = get_association(lua, REF_INNER, &this)?;
             let ffiref = this.borrow::<FfiRef>()?;
@@ -178,6 +179,7 @@ impl LuaUserData for FfiRef {
 
             Ok(userdata)
         });
+        // FIXME:
         methods.add_function("ref", |lua, this: LuaAnyUserData| {
             let ffiref = FfiRef::luaref(lua, this)?;
             Ok(ffiref)
