@@ -87,10 +87,19 @@ export type DateTimeValueArguments = DateTimeValues & OptionalMillisecond
 ]=]
 export type DateTimeValueReturns = DateTimeValues & Millisecond
 
+--[=[
+	@prop unixTimestamp number
+	@within DateTime
+	Number of seconds passed since the UNIX epoch.
+]=]
+
+--[=[
+	@prop unixTimestampMillis number
+	@within DateTime
+	Number of milliseconds passed since the UNIX epoch.
+]=]
 local DateTime = {
-	--- Number of seconds passed since the UNIX epoch.
 	unixTimestamp = (nil :: any) :: number,
-	--- Number of milliseconds passed since the UNIX epoch.
 	unixTimestampMillis = (nil :: any) :: number,
 }
 
