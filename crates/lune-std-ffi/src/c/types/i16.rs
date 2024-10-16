@@ -36,7 +36,7 @@ impl NativeConvert for CType<i16> {
             }
         };
         unsafe {
-            *(data_handle.get_pointer(offset).cast::<i16>()) = value;
+            *(data_handle.get_pointer().byte_offset(offset).cast::<i16>()) = value;
         }
         Ok(())
     }
@@ -47,7 +47,7 @@ impl NativeConvert for CType<i16> {
         offset: isize,
         data_handle: &Ref<dyn NativeData>,
     ) -> LuaResult<LuaValue<'lua>> {
-        let value = unsafe { (*data_handle.get_pointer(offset).cast::<i16>()).into_lua(lua)? };
+        let value = unsafe { (*data_handle.get_pointer().byte_offset(offset).cast::<i16>()).into_lua(lua)? };
         Ok(value)
     }
 }

@@ -19,12 +19,12 @@ pub use self::{
 
 // Box:ref():ref() should not be able to modify, Only for external
 const BOX_REF_REF_FLAGS: u8 = 0;
-const UNINIT_REF_FLAGS: u8 = FfiRefFlag::Uninit.value()
-    | FfiRefFlag::Writable.value()
-    | FfiRefFlag::Readable.value()
-    | FfiRefFlag::Dereferenceable.value()
-    | FfiRefFlag::Offsetable.value()
-    | FfiRefFlag::Function.value();
+const UNINIT_REF_FLAGS: u8 = FfiRefFlag::Uninit.value();
+// | FfiRefFlag::Writable.value()
+// | FfiRefFlag::Readable.value()
+// | FfiRefFlag::Dereferenceable.value()
+// | FfiRefFlag::Offsetable.value()
+// | FfiRefFlag::Function.value();
 
 // A referenced space. It is possible to read and write through types.
 // This operation is not safe. This may cause a memory error in Lua
@@ -80,14 +80,16 @@ impl FfiRef {
     pub unsafe fn deref(&self) -> LuaResult<Self> {
         u8_test(self.flags, FfiRefFlag::Dereferenceable.value())
             .then_some(())
-            .ok_or(LuaError::external("This pointer is not dereferenceable."))?;
+            .ok_or_else(|| LuaError::external("This pointer is not dereferenceable."))?;
 
         self.boundary
             .check_sized(0, size_of::<usize>())
             .then_some(())
-            .ok_or(LuaError::external(
-                "Offset is out of bounds. Dereferencing pointer requires size of usize",
-            ))?;
+            .ok_or_else(|| {
+                LuaError::external(
+                    "Offset is out of bounds. Dereferencing pointer requires size of usize",
+                )
+            })?;
 
         // FIXME flags
         Ok(Self::new(
@@ -106,7 +108,7 @@ impl FfiRef {
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
         u8_test(self.flags, FfiRefFlag::Offsetable.value())
             .then_some(())
-            .ok_or(LuaError::external("This pointer is not offsetable."))?;
+            .ok_or_else(|| LuaError::external("This pointer is not offsetable."))?;
 
         // Check boundary, if exceed, return error
         self.boundary
@@ -142,8 +144,8 @@ impl NativeData for FfiRef {
     fn check_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
-    unsafe fn get_pointer(&self, offset: isize) -> *mut () {
-        self.ptr.byte_offset(offset)
+    unsafe fn get_pointer(&self) -> *mut () {
+        **self.ptr
     }
     fn is_readable(&self) -> bool {
         u8_test(self.flags, FfiRefFlag::Readable.value())

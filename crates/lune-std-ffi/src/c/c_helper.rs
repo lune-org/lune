@@ -48,6 +48,9 @@ pub mod method_provider {
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
+                if !data_handle.is_readable() {
+                    return Err(LuaError::external("Unreadable data handle"));
+                }
 
                 unsafe { this.luavalue_from(lua, offset, data_handle) }
             },
@@ -65,6 +68,7 @@ pub mod method_provider {
                 let offset = offset.unwrap_or(0);
 
                 let data_handle = &userdata.get_data_handle()?;
+                // use or functions
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }

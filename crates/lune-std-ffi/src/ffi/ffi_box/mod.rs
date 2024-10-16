@@ -77,7 +77,7 @@ impl FfiBox {
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let target = this.borrow::<FfiBox>()?;
         let mut bounds = FfiRefBounds::new(0, target.size());
-        let mut ptr = unsafe { target.get_pointer(0) };
+        let mut ptr = unsafe { target.get_pointer() };
 
         // Calculate offset
         if let Some(t) = offset {
@@ -88,7 +88,7 @@ impl FfiBox {
                     t
                 )));
             }
-            ptr = unsafe { target.get_pointer(t) };
+            ptr = unsafe { ptr.byte_offset(t) };
             bounds = bounds.offset(t);
         }
 
@@ -130,12 +130,8 @@ impl NativeData for FfiBox {
         }
         self.size() - (offset as usize) >= size
     }
-    unsafe fn get_pointer(&self, offset: isize) -> *mut () {
-        self.data
-            .as_ptr()
-            .byte_offset(offset)
-            .cast_mut()
-            .cast::<()>()
+    unsafe fn get_pointer(&self) -> *mut () {
+        self.data.as_ptr().cast_mut().cast::<()>()
     }
     fn is_readable(&self) -> bool {
         true

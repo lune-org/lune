@@ -145,7 +145,7 @@ impl LuaUserData for CArr {
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
             let inner: LuaValue = get_association(lua, CARR_INNER, this)?
                 // It shouldn't happen.
-                .ok_or(LuaError::external("inner field not found"))?;
+                .ok_or_else(|| LuaError::external("inner field not found"))?;
             Ok(inner)
         });
     }

@@ -27,3 +27,5 @@ pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
     }
     unsafe { Ok((*ffi_type).size) }
 }
+
+pub const SIEE_OF_POINTER: usize = size_of::<*mut ()>();

@@ -27,7 +27,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("box", |_lua, size: usize| Ok(FfiBox::new(size)))?
         .with_function("open", |_lua, name: String| FfiLib::new(name))?
         .with_function("structInfo", |lua, types: LuaTable| {
-            CStruct::new_from_table(lua, types)
+            CStruct::from_table(lua, types)
         })?
         .with_function("uninitRef", |_lua, ()| Ok(FfiRef::new_uninit()))?
         .with_function("isInteger", |_lua, num: LuaValue| Ok(is_integer(num)))?

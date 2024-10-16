@@ -18,8 +18,8 @@ where
     T: AsPrimitive<U>,
     U: 'static + Copy,
 {
-    let from_ptr = unsafe { from.get_pointer(0).cast::<T>() };
-    let into_ptr = unsafe { into.get_pointer(0).cast::<U>() };
+    let from_ptr = unsafe { from.get_pointer().cast::<T>() };
+    let into_ptr = unsafe { into.get_pointer().cast::<U>() };
 
     unsafe {
         *into_ptr = (*from_ptr).as_();

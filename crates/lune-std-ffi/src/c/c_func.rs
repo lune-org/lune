@@ -158,7 +158,7 @@ impl LuaUserData for CFunc {
                         this.cif.as_raw_ptr(),
                         ptr::from_ref(&this.arg_info_list),
                         ptr::from_ref(&this.result_info),
-                        ffi_ref.get_pointer(0),
+                        ffi_ref.get_pointer(),
                     )
                 })?;
 

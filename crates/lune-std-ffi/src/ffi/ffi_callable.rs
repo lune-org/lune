@@ -31,6 +31,8 @@ impl FfiCallable {
         }
     }
 
+    // TODO? async call: if have no lua closure in arguments, fficallble can be called with async way
+
     pub unsafe fn call(&self, result: &Ref<dyn NativeData>, args: LuaMultiValue) -> LuaResult<()> {
         result
             .check_boundary(0, self.result_info.as_ref().unwrap().size)
@@ -54,7 +56,7 @@ impl FfiCallable {
                     .ok_or_else(|| {
                         LuaError::external(format!("argument {index} boundary check failed"))
                     })?;
-                data_handle.get_pointer(0)
+                data_handle.get_pointer()
             } else {
                 return Err(LuaError::external("unimpl"));
             };
@@ -64,7 +66,7 @@ impl FfiCallable {
         ffi_call(
             self.cif,
             Some(*self.code.as_safe_fun()),
-            result.get_pointer(0).cast::<c_void>(),
+            result.get_pointer().cast::<c_void>(),
             arg_list.as_mut_ptr(),
         );
 

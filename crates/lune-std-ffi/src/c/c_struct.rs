@@ -3,7 +3,7 @@ use std::{cell::Ref, vec::Vec};
 use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
 
-use super::{association_names::CSTRUCT_INNER, c_helper, method_provider, CArr, CPtr};
+use super::{association_names::CSTRUCT_INNER, c_helper, method_provider};
 use crate::ffi::{
     ffi_association::{get_association, set_association},
     NativeConvert, NativeData, NativeSignedness, NativeSize, FFI_STATUS_NAMES,
@@ -56,7 +56,7 @@ impl CStruct {
 
     // Create new CStruct UserData with LuaTable.
     // Lock and hold table for .inner ref
-    pub fn new_from_table<'lua>(
+    pub fn from_table<'lua>(
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
@@ -74,7 +74,7 @@ impl CStruct {
     // <CStruct( u8, i32, size = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         if let LuaValue::Table(fields) = get_association(lua, CSTRUCT_INNER, userdata)?
-            .ok_or(LuaError::external("Field table not found"))?
+            .ok_or_else(|| LuaError::external("Field table not found"))?
         {
             let mut result = String::from(" ");
             for i in 0..fields.raw_len() {
@@ -97,7 +97,7 @@ impl CStruct {
         let offset = self
             .inner_offset_list
             .get(index)
-            .ok_or(LuaError::external("Out of index"))?
+            .ok_or_else(|| LuaError::external("Out of index"))?
             .to_owned();
         Ok(offset)
     }
@@ -185,7 +185,7 @@ impl LuaUserData for CStruct {
         // By referencing the table to struct, the types inside do not disappear
         methods.add_function("field", |lua, (this, field): (LuaAnyUserData, usize)| {
             if let LuaValue::Table(fields) = get_association(lua, CSTRUCT_INNER, this)?
-                .ok_or(LuaError::external("Field table not found"))?
+                .ok_or_else(|| LuaError::external("Field table not found"))?
             {
                 let value: LuaValue = fields.raw_get(field + 1)?;
                 Ok(value)

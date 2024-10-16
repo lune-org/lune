@@ -6,7 +6,6 @@ use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
-use super::{CArr, CPtr};
 use crate::{
     c::method_provider,
     ffi::{GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize},
