@@ -45,38 +45,26 @@ impl Instance {
         Creates a new `Instance` from an existing dom object ref.
 
         Panics if the instance does not exist in the internal dom,
-        or if the given dom object ref points to the dom root.
+        or if the given dom object ref points to the internal dom root.
 
         **WARNING:** Creating a new instance requires locking the internal dom,
         any existing lock must first be released to prevent any deadlocking.
     */
-    pub(crate) fn new(dom_ref: DomRef) -> Self {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let instance = dom
-            .get_by_ref(dom_ref)
-            .expect("Failed to find instance in document");
-
-        assert!(
-            !(instance.referent() == dom.root_ref()),
-            "Instances can not be created from dom roots"
-        );
-
-        Self {
-            dom_ref,
-            class_name: instance.class.clone(),
-        }
+    #[must_use]
+    pub fn new(dom_ref: DomRef) -> Self {
+        Self::new_opt(dom_ref).expect("Failed to find instance in document")
     }
 
     /**
         Creates a new `Instance` from a dom object ref, if the instance exists.
 
-        Panics if the given dom object ref points to the dom root.
+        Panics if the given dom object ref points to the internal dom root.
 
         **WARNING:** Creating a new instance requires locking the internal dom,
         any existing lock must first be released to prevent any deadlocking.
     */
-    pub(crate) fn new_opt(dom_ref: DomRef) -> Option<Self> {
+    #[must_use]
+    pub fn new_opt(dom_ref: DomRef) -> Option<Self> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         if let Some(instance) = dom.get_by_ref(dom_ref) {
@@ -97,12 +85,13 @@ impl Instance {
     /**
         Creates a new orphaned `Instance` with a given class name.
 
-        An orphaned instance is an instance at the root of a weak dom.
+        An orphaned instance is an instance at the root of Lune's internal weak dom.
 
         **WARNING:** Creating a new instance requires locking the internal dom,
         any existing lock must first be released to prevent any deadlocking.
     */
-    pub(crate) fn new_orphaned(class_name: impl AsRef<str>) -> Self {
+    #[must_use]
+    pub fn new_orphaned(class_name: impl AsRef<str>) -> Self {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
         let class_name = class_name.as_ref();
@@ -122,10 +111,11 @@ impl Instance {
         Creates a new orphaned `Instance` by transferring
         it from an external weak dom to the internal one.
 
-        An orphaned instance is an instance at the root of a weak dom.
+        An orphaned instance is an instance at the root of Lune's internal weak dom.
 
         Panics if the given dom ref is the root dom ref of the external weak dom.
     */
+    #[must_use]
     pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
         let dom_root = dom.root_ref();
@@ -151,6 +141,12 @@ impl Instance {
         cloned
     }
 
+    /**
+        Clones multiple instances to an external weak dom.
+
+        This will place the instances as children of the
+        root of the weak dom, and return their referents.
+    */
     pub fn clone_multiple_into_external_dom(
         referents: &[DomRef],
         external_dom: &mut WeakDom,
@@ -174,7 +170,7 @@ impl Instance {
 
         ### See Also
         * [`Clone`](https://create.roblox.com/docs/reference/engine/classes/Instance#Clone)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     #[must_use]
     pub fn clone_instance(&self) -> Self {
@@ -198,7 +194,7 @@ impl Instance {
 
         ### See Also
         * [`Destroy`](https://create.roblox.com/docs/reference/engine/classes/Instance#Destroy)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn destroy(&mut self) -> bool {
         if self.is_destroyed() {
@@ -225,7 +221,7 @@ impl Instance {
         ### See Also
         * [`Instance::Destroy`] for more info about what happens when an instance gets destroyed
         * [`ClearAllChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClearAllChildren)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn clear_all_children(&mut self) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -245,7 +241,7 @@ impl Instance {
 
         ### See Also
         * [`IsA`](https://create.roblox.com/docs/reference/engine/classes/Instance#IsA)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn is_a(&self, class_name: impl AsRef<str>) -> bool {
         class_is_a(&self.class_name, class_name).unwrap_or(false)
@@ -258,7 +254,7 @@ impl Instance {
 
         ### See Also
         * [`ClassName`](https://create.roblox.com/docs/reference/engine/classes/Instance#ClassName)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     #[must_use]
     pub fn get_class_name(&self) -> &str {
@@ -270,7 +266,7 @@ impl Instance {
 
         ### See Also
         * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_name(&self) -> String {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -286,7 +282,7 @@ impl Instance {
 
         ### See Also
         * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn set_name(&self, name: impl Into<String>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -301,7 +297,7 @@ impl Instance {
 
         ### See Also
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_parent(&self) -> Option<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -324,11 +320,11 @@ impl Instance {
 
         If the provided parent is [`None`] the instance will become orphaned.
 
-        An orphaned instance is an instance at the root of a weak dom.
+        An orphaned instance is an instance at the root of Lune's internal weak dom.
 
         ### See Also
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn set_parent(&self, parent: Option<Instance>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -373,7 +369,7 @@ impl Instance {
 
         ### See Also
         * [`GetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttribute)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -394,7 +390,7 @@ impl Instance {
 
         ### See Also
         * [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -415,7 +411,7 @@ impl Instance {
 
         ### See Also
         * [`SetAttribute`](https://create.roblox.com/docs/reference/engine/classes/Instance#SetAttribute)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -470,7 +466,7 @@ impl Instance {
 
         ### See Also
         * [`AddTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#AddTag)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn add_tag(&self, name: impl AsRef<str>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -492,7 +488,7 @@ impl Instance {
 
         ### See Also
         * [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_tags(&self) -> Vec<String> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -511,7 +507,7 @@ impl Instance {
 
         ### See Also
         * [`HasTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#HasTag)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn has_tag(&self, name: impl AsRef<str>) -> bool {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -531,7 +527,7 @@ impl Instance {
 
         ### See Also
         * [`RemoveTag`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#RemoveTag)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn remove_tag(&self, name: impl AsRef<str>) {
         let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -557,7 +553,7 @@ impl Instance {
 
         ### See Also
         * [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_children(&self) -> Vec<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -580,7 +576,7 @@ impl Instance {
 
         ### See Also
         * [`GetDescendants`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetDescendants)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_descendants(&self) -> Vec<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -614,7 +610,7 @@ impl Instance {
 
         ### See Also
         * [`GetFullName`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetFullName)
-        on the Roblox Developer Hub
+          on the Roblox Developer Hub
     */
     pub fn get_full_name(&self) -> String {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
@@ -704,7 +700,7 @@ impl Instance {
 
         ### See Also
         * [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant)
-        on the Roblox Developer Hub
+            on the Roblox Developer Hub
     */
     pub fn find_descendant<F>(&self, predicate: F) -> Option<Instance>
     where

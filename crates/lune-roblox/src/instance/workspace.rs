@@ -16,7 +16,7 @@ pub fn add_fields<'lua, F: LuaUserDataFields<'lua, Instance>>(f: &mut F) {
 
     ### See Also
     * [`Terrain`](https://create.roblox.com/docs/reference/engine/classes/Workspace#Terrain)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn workspace_get_terrain(_: &Lua, this: &Instance) -> LuaResult<Instance> {
     get_or_create_property_ref_instance(this, "Terrain", "Terrain")
@@ -27,7 +27,7 @@ fn workspace_get_terrain(_: &Lua, this: &Instance) -> LuaResult<Instance> {
 
     ### See Also
     * [`CurrentCamera`](https://create.roblox.com/docs/reference/engine/classes/Workspace#CurrentCamera)
-    on the Roblox Developer Hub
+      on the Roblox Developer Hub
 */
 fn workspace_get_camera(_: &Lua, this: &Instance) -> LuaResult<Instance> {
     get_or_create_property_ref_instance(this, "CurrentCamera", "Camera")

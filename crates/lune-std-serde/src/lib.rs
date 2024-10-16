@@ -46,9 +46,9 @@ fn serde_decode(lua: &Lua, (format, bs): (EncodeDecodeFormat, BString)) -> LuaRe
 
 async fn serde_compress(
     lua: &Lua,
-    (format, bs): (CompressDecompressFormat, BString),
+    (format, bs, level): (CompressDecompressFormat, BString, Option<i32>),
 ) -> LuaResult<LuaString> {
-    let bytes = compress(bs, format).await?;
+    let bytes = compress(bs, format, level).await?;
     lua.create_string(bytes)
 }
 

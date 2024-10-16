@@ -23,11 +23,8 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Install Just
-        uses: extractions/setup-just@v2
-
       - name: Install Tooling
-        uses: ok-nick/setup-aftman@v0.4.2
+        uses: CompeyDev/setup-rokit@v0.1.0
 
       - name: Check Formatting
         run: just fmt-check
@@ -40,11 +37,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Just
-        uses: extractions/setup-just@v2
-
       - name: Install Tooling
-        uses: ok-nick/setup-aftman@v0.4.2
+        uses: CompeyDev/setup-rokit@v0.1.0
 
       - name: Analyze
         run: just analyze

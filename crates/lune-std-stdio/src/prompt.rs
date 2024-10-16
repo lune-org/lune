@@ -194,14 +194,14 @@ pub fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
                 prompt = prompt.default(b);
             };
             let result = prompt
-                .with_prompt(&options.text.expect("Missing text in prompt options"))
+                .with_prompt(options.text.expect("Missing text in prompt options"))
                 .interact()
                 .into_lua_err()?;
             Ok(PromptResult::Boolean(result))
         }
         PromptKind::Select => {
             let chosen = Select::with_theme(&theme)
-                .with_prompt(&options.text.unwrap_or_default())
+                .with_prompt(options.text.unwrap_or_default())
                 .items(&options.options.expect("Missing options in prompt options"))
                 .interact_opt()
                 .into_lua_err()?;
@@ -212,7 +212,7 @@ pub fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
         }
         PromptKind::MultiSelect => {
             let chosen = MultiSelect::with_theme(&theme)
-                .with_prompt(&options.text.unwrap_or_default())
+                .with_prompt(options.text.unwrap_or_default())
                 .items(&options.options.expect("Missing options in prompt options"))
                 .interact_opt()
                 .into_lua_err()?;
