@@ -42,8 +42,8 @@ macro_rules! create_tests {
 				.trim_end_matches(".luau")
 				.trim_end_matches(".lua")
 				.to_string();
-            let exit_code = lune.run(&script_name, &script).await?;
-            Ok(exit_code)
+            let (exit_code, _) = lune.run(&script_name, &script).await?;
+            Ok(ExitCode::from(exit_code))
         }
     )* }
 }

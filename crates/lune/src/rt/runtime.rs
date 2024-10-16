@@ -1,7 +1,6 @@
 #![allow(clippy::missing_panics_doc)]
 
 use std::{
-    process::ExitCode,
     rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -144,7 +143,8 @@ impl Runtime {
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-    ) -> RuntimeResult<ExitCode> {
+    ) -> RuntimeResult<(u8, Vec<LuaValue>)> {
+        // Create a new scheduler for this run
         let lua = self.inner.lua();
         let sched = self.inner.scheduler();
 
@@ -162,18 +162,20 @@ impl Runtime {
             .set_name(script_name.as_ref());
 
         // Run it on our scheduler until it and any other spawned threads complete
-        sched.push_thread_back(main, ())?;
+        let main_thread_id = sched.push_thread_back(main, ())?;
         sched.run().await;
 
-        // Return the exit code - default to FAILURE if we got any errors
-        let exit_code = sched.get_exit_code().unwrap_or({
-            if got_any_error.load(Ordering::SeqCst) {
-                ExitCode::FAILURE
-            } else {
-                ExitCode::SUCCESS
-            }
-        });
+        let thread_res = match sched.get_thread_result(main_thread_id) {
+            Some(res) => res,
+            None => LuaValue::Nil.into_lua_multi(lua),
+        }?
+        .into_vec();
 
-        Ok(exit_code)
+        Ok((
+            sched
+                .get_exit_code()
+                .unwrap_or(u8::from(got_any_error.load(Ordering::SeqCst))),
+            thread_res,
+        ))
     }
 }

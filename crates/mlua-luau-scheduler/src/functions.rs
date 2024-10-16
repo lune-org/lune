@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 #![allow(clippy::too_many_lines)]
 
-use std::process::ExitCode;
+use std::process::{ExitCode, ExitStatus};
 
 use mlua::prelude::*;
 
@@ -232,7 +232,7 @@ impl<'lua> Functions<'lua> {
                 "exit",
                 lua.create_function(|lua, code: Option<u8>| {
                     let _span = tracing::trace_span!("Scheduler::fn_exit").entered();
-                    let code = code.map(ExitCode::from).unwrap_or_default();
+                    let code = code.unwrap_or_default();
                     lua.set_exit_code(code);
                     Ok(())
                 })?,
