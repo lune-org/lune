@@ -69,7 +69,7 @@ export type CFn = {
 }
 
 export type CTypes =
-	u8
+	| u8
 	| u16
 	| u32
 	| u64
