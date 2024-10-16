@@ -1,5 +1,3 @@
-use core::ffi::c_void;
-
 use dlopen2::raw::Library;
 use mlua::prelude::*;
 
@@ -15,15 +13,6 @@ const LIB_REF_FLAGS: u8 = FfiRefFlag::Offsetable.value()
     | FfiRefFlag::Function.value();
 
 pub struct FfiLib(Library);
-
-// COMMENT HERE
-// For convenience, it would be nice to provide a way to get
-// symbols from a table with type and field names specified.
-// But right now, we are starting from the lowest level, so we will make it later.
-
-// I wanted to provide something like cdef,
-// but that is beyond the scope of lune's support.
-// Higher-level bindings for convenience are much preferable written in Lua.
 
 impl FfiLib {
     pub fn new(libname: String) -> LuaResult<Self> {
@@ -41,21 +30,16 @@ impl FfiLib {
         let lib = this.borrow::<FfiLib>()?;
         let sym = unsafe {
             lib.0
-                .symbol::<*const c_void>(name.as_str())
+                .symbol::<*const ()>(name.as_str())
                 .map_err(|err| LuaError::external(format!("{err}")))?
         };
-        let ptr = sym.cast::<()>().cast_mut();
 
-        // unsafe {
-        //     let f = transmute::<*mut (), unsafe extern "C" fn(i32, i32) -> i32>(ptr);
-        //     dbg!(f(1, 2));
-        // }
+        let ffi_ref =
+            lua.create_userdata(FfiRef::new(sym.cast_mut(), LIB_REF_FLAGS, UNSIZED_BOUNDS))?;
 
-        let luasym = lua.create_userdata(FfiRef::new(ptr, LIB_REF_FLAGS, UNSIZED_BOUNDS))?;
+        set_association(lua, SYM_INNER, &ffi_ref, &this)?;
 
-        set_association(lua, SYM_INNER, &luasym, &this)?;
-
-        Ok(luasym)
+        Ok(ffi_ref)
     }
 }
 

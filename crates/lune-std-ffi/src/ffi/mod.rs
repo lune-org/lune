@@ -4,7 +4,6 @@ mod ffi_callable;
 mod ffi_closure;
 mod ffi_lib;
 mod ffi_native;
-mod ffi_raw;
 mod ffi_ref;
 
 use mlua::prelude::*;

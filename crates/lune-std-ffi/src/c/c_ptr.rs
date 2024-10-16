@@ -1,15 +1,53 @@
+use std::cell::Ref;
+
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use super::{association_names::CPTR_INNER, c_helper::pretty_format_userdata, CArr};
-use crate::ffi::ffi_association::{get_association, set_association};
+use super::{association_names::CPTR_INNER, c_helper, c_type_helper, method_provider};
+use crate::ffi::{
+    ffi_association::{get_association, set_association},
+    NativeConvert, NativeData, NativeSignedness, NativeSize,
+};
 
 pub struct CPtr();
+
+impl NativeSignedness for CPtr {
+    fn get_signedness(&self) -> bool {
+        false
+    }
+}
+impl NativeSize for CPtr {
+    fn get_size(&self) -> usize {
+        size_of::<*mut ()>()
+    }
+}
+impl NativeConvert for CPtr {
+    // Convert luavalue into data, then write into ptr
+    unsafe fn luavalue_into<'lua>(
+        &self,
+        _lua: &'lua Lua,
+        _offset: isize,
+        _data_handle: &Ref<dyn NativeData>,
+        _value: LuaValue<'lua>,
+    ) -> LuaResult<()> {
+        Err(LuaError::external("Conversion of pointer is not allowed"))
+    }
+
+    // Read data from ptr, then convert into luavalue
+    unsafe fn luavalue_from<'lua>(
+        &self,
+        _lua: &'lua Lua,
+        _offset: isize,
+        _data_handle: &Ref<dyn NativeData>,
+    ) -> LuaResult<LuaValue<'lua>> {
+        Err(LuaError::external("Conversion of pointer is not allowed"))
+    }
+}
 
 impl CPtr {
     // Create pointer type with '.inner' field
     // inner can be CArr, CType or CStruct
-    pub fn new_from_lua_userdata<'lua>(
+    pub fn from_userdata<'lua>(
         lua: &'lua Lua,
         inner: &LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
@@ -22,13 +60,13 @@ impl CPtr {
 
     // Stringify CPtr with inner ctype
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-        let inner: LuaValue = userdata.get("inner")?;
-
-        if inner.is_userdata() {
-            let inner = inner
-                .as_userdata()
-                .ok_or(LuaError::external("failed to get inner type userdata."))?;
-            pretty_format_userdata(lua, inner)
+        if let LuaValue::UserData(inner_userdata) = userdata.get("inner")? {
+            let pretty_formatted = c_helper::pretty_format(lua, &inner_userdata)?;
+            Ok(if c_type_helper::is_ctype(&inner_userdata) {
+                pretty_formatted
+            } else {
+                format!(" {pretty_formatted} ")
+            })
         } else {
             Err(LuaError::external("failed to get inner type userdata."))
         }
@@ -51,17 +89,11 @@ impl LuaUserData for CPtr {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
-            Ok(pointer)
-        });
-        methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
-            let carr = CArr::new_from_lua_userdata(lua, &this, length)?;
-            Ok(carr)
-        });
-        methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
-            let name: Result<String, LuaError> = CPtr::stringify(lua, &this);
-            Ok(name)
-        });
+        // Subtype
+        method_provider::provide_ptr(methods);
+        method_provider::provide_arr(methods);
+
+        // ToString
+        method_provider::provide_to_string(methods);
     }
 }

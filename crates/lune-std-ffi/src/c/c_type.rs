@@ -7,8 +7,11 @@ use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::{CArr, CPtr};
-use crate::ffi::{FfiBox, GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize};
-use crate::libffi_helper::get_ensured_size;
+use crate::{
+    c::method_provider,
+    ffi::{GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize},
+    libffi_helper::get_ensured_size,
+};
 
 // Cast native data
 pub trait CTypeCast {
@@ -38,34 +41,33 @@ pub trait CTypeCast {
     }
 }
 
+pub struct CType<T> {
+    middle_type: Type,
+    size: usize,
+    name: &'static str,
+    _phantom: PhantomData<T>,
+}
+
 impl<T> NativeSize for CType<T> {
     fn get_size(&self) -> usize {
         self.size
     }
 }
 
-pub struct CType<T> {
-    // for ffi_ptrarray_to_raw?
-    // libffi_cif: Cif,
-    libffi_type: Type,
-    size: usize,
-    name: Option<&'static str>,
-    _phantom: PhantomData<T>,
-}
 impl<T> CType<T>
 where
     T: 'static,
-    Self: CTypeCast + NativeSignedness + NativeConvert,
+    Self: CTypeCast + NativeSignedness + NativeConvert + NativeSize,
 {
     pub fn new_with_libffi_type<'lua>(
         lua: &'lua Lua,
         libffi_type: Type,
-        name: Option<&'static str>,
+        name: &'static str,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let size = get_ensured_size(libffi_type.as_raw_ptr())?;
 
         let ctype = Self {
-            libffi_type,
+            middle_type: libffi_type,
             size,
             name,
             _phantom: PhantomData,
@@ -75,18 +77,19 @@ where
         Ok(userdata)
     }
 
-    pub fn stringify(&self) -> &str {
-        match self.name {
-            Some(t) => t,
-            None => "unnamed",
-        }
+    pub fn get_name(&self) -> &'static str {
+        self.name
+    }
+
+    pub fn get_type(&self) -> Type {
+        self.middle_type.clone()
     }
 }
 
 impl<T> LuaUserData for CType<T>
 where
     T: 'static,
-    Self: CTypeCast + NativeSignedness + NativeConvert,
+    Self: CTypeCast + NativeSignedness + NativeConvert + NativeSize,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
@@ -95,58 +98,18 @@ where
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            CPtr::new_from_lua_userdata(lua, &this)
-        });
-        methods.add_method("box", |lua, this, value: LuaValue| {
-            let result = lua.create_userdata(FfiBox::new(this.get_size()))?;
+        // Subtype
+        method_provider::provide_ptr(methods);
+        method_provider::provide_arr(methods);
 
-            unsafe { this.luavalue_into(lua, 0, &result.get_data_handle()?, value)? };
-            Ok(result)
-        });
-        methods.add_function(
-            "from",
-            |lua, (this, userdata, offset): (LuaAnyUserData, LuaAnyUserData, Option<isize>)| {
-                let ctype = this.borrow::<Self>()?;
-                let offset = offset.unwrap_or(0);
+        // ToString
+        method_provider::provide_to_string(methods);
 
-                let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, ctype.get_size()) {
-                    return Err(LuaError::external("Out of bounds"));
-                }
-                if !data_handle.is_readable() {
-                    return Err(LuaError::external("Unreadable data handle"));
-                }
+        // Realize
+        method_provider::provide_box(methods);
+        method_provider::provide_from(methods);
+        method_provider::provide_into(methods);
 
-                unsafe { ctype.luavalue_from(lua, offset, data_handle) }
-            },
-        );
-        methods.add_function(
-            "into",
-            |lua,
-             (this, userdata, value, offset): (
-                LuaAnyUserData,
-                LuaAnyUserData,
-                LuaValue,
-                Option<isize>,
-            )| {
-                let ctype = this.borrow::<Self>()?;
-                let offset = offset.unwrap_or(0);
-
-                let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, ctype.get_size()) {
-                    return Err(LuaError::external("Out of bounds"));
-                }
-                if !data_handle.is_writable() {
-                    return Err(LuaError::external("Unwritable data handle"));
-                }
-
-                unsafe { ctype.luavalue_into(lua, offset, data_handle, value) }
-            },
-        );
-        methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
-            CArr::new_from_lua_userdata(lua, &this, length)
-        });
         methods.add_function(
             "cast",
             |_,
@@ -164,8 +127,5 @@ where
                 )
             },
         );
-        methods.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
-            lua.create_string(this.stringify())
-        });
     }
 }

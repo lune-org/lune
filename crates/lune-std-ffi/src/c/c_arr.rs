@@ -3,18 +3,12 @@ use std::cell::Ref;
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use super::{
-    association_names::CARR_INNER,
-    c_helper::{get_conv, libffi_type_from_userdata, pretty_format_userdata},
-    CPtr,
-};
+use super::{association_names::CARR_INNER, c_helper, method_provider};
 use crate::ffi::{
     ffi_association::{get_association, set_association},
-    FfiBox, GetNativeData, NativeConvert, NativeData, NativeSize,
+    NativeConvert, NativeData, NativeSize,
 };
 use crate::libffi_helper::get_ensured_size;
-
-// FIXME: unsized array
 
 // This is a series of some type.
 // It provides the final size and the offset of the index,
@@ -26,43 +20,42 @@ use crate::libffi_helper::get_ensured_size;
 // See: https://stackoverflow.com/a/43525176
 
 pub struct CArr {
-    // element_type: Type,
     struct_type: Type,
     length: usize,
-    field_size: usize,
     size: usize,
-    conv: *const dyn NativeConvert,
+    inner_size: usize,
+    inner_conv: *const dyn NativeConvert,
 }
 
 impl CArr {
     pub fn new(
         element_type: Type,
         length: usize,
-        conv: *const dyn NativeConvert,
+        inner_conv: *const dyn NativeConvert,
     ) -> LuaResult<Self> {
-        let field_size = get_ensured_size(element_type.as_raw_ptr())?;
+        let inner_size = get_ensured_size(element_type.as_raw_ptr())?;
         let struct_type = Type::structure(vec![element_type.clone(); length]);
 
         Ok(Self {
             // element_type,
             struct_type,
             length,
-            field_size,
-            size: field_size * length,
-            conv,
+            size: inner_size * length,
+            inner_size,
+            inner_conv,
         })
     }
 
-    pub fn new_from_lua_userdata<'lua>(
+    pub fn from_userdata<'lua>(
         lua: &'lua Lua,
-        luatype: &LuaAnyUserData<'lua>,
+        type_userdata: &LuaAnyUserData<'lua>,
         length: usize,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let fields = libffi_type_from_userdata(lua, luatype)?;
-        let conv = unsafe { get_conv(luatype)? };
+        let fields = c_helper::get_middle_type(type_userdata)?;
+        let conv = unsafe { c_helper::get_conv(type_userdata)? };
         let carr = lua.create_userdata(Self::new(fields, length, conv)?)?;
 
-        set_association(lua, CARR_INNER, &carr, luatype)?;
+        set_association(lua, CARR_INNER, &carr, type_userdata)?;
         Ok(carr)
     }
 
@@ -70,29 +63,21 @@ impl CArr {
         self.length
     }
 
-    pub fn get_type(&self) -> &Type {
-        &self.struct_type
+    pub fn get_type(&self) -> Type {
+        self.struct_type.clone()
     }
 
-    // pub fn get_element_type(&self) -> &Type {
-    //     &self.element_type
-    // }
-
-    // Stringify cstruct for pretty printing something like:
-    // <CStruct( u8, i32, size = 8 )>
+    // Stringify for pretty printing like:
+    // <CArr( u8, length = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-        let inner: LuaValue = userdata.get("inner")?;
-        let carr = userdata.borrow::<CArr>()?;
-
-        if inner.is_userdata() {
-            let inner = inner
-                .as_userdata()
-                .ok_or(LuaError::external("failed to get inner type userdata."))?;
-
+        let this = userdata.borrow::<CArr>()?;
+        if let Some(LuaValue::UserData(inner_userdata)) =
+            get_association(lua, CARR_INNER, userdata)?
+        {
             Ok(format!(
-                "{}*{}",
-                pretty_format_userdata(lua, inner)?,
-                carr.length,
+                " {}, length = {} ",
+                c_helper::pretty_format(lua, &inner_userdata)?,
+                this.length,
             ))
         } else {
             Err(LuaError::external("failed to get inner type userdata."))
@@ -118,10 +103,10 @@ impl NativeConvert for CArr {
             return Err(LuaError::external("Value is not a table"));
         };
         for i in 0..self.length {
-            let field_offset = (i * self.field_size) as isize;
+            let field_offset = (i * self.inner_size) as isize;
             let data: LuaValue = table.get(i + 1)?;
 
-            self.conv.as_ref().unwrap().luavalue_into(
+            self.inner_conv.as_ref().unwrap().luavalue_into(
                 lua,
                 field_offset + offset,
                 data_handle,
@@ -139,10 +124,10 @@ impl NativeConvert for CArr {
     ) -> LuaResult<LuaValue<'lua>> {
         let table = lua.create_table_with_capacity(self.length, 0)?;
         for i in 0..self.length {
-            let field_offset = (i * self.field_size) as isize;
+            let field_offset = (i * self.inner_size) as isize;
             table.set(
                 i + 1,
-                self.conv.as_ref().unwrap().luavalue_from(
+                self.inner_conv.as_ref().unwrap().luavalue_from(
                     lua,
                     field_offset + offset,
                     data_handle,
@@ -166,55 +151,23 @@ impl LuaUserData for CArr {
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // Subtype
+        method_provider::provide_ptr(methods);
+
+        // ToString
+        method_provider::provide_to_string(methods);
+
+        // Realize
+        method_provider::provide_box(methods);
+        method_provider::provide_from(methods);
+        method_provider::provide_into(methods);
+
         methods.add_method("offset", |_, this, offset: isize| {
             if this.length > (offset as usize) && offset >= 0 {
-                Ok(this.field_size * (offset as usize))
+                Ok(this.inner_size * (offset as usize))
             } else {
                 Err(LuaError::external("Out of index"))
             }
-        });
-        methods.add_method("box", |lua, this, table: LuaValue| {
-            let result = lua.create_userdata(FfiBox::new(this.get_size()))?;
-
-            unsafe { this.luavalue_into(lua, 0, &result.get_data_handle()?, table)? };
-            Ok(result)
-        });
-        methods.add_method(
-            "from",
-            |lua, this, (userdata, offset): (LuaAnyUserData, Option<isize>)| {
-                let offset = offset.unwrap_or(0);
-
-                let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, this.get_size()) {
-                    return Err(LuaError::external("Out of bounds"));
-                }
-
-                unsafe { this.luavalue_from(lua, offset, data_handle) }
-            },
-        );
-        methods.add_method(
-            "into",
-            |lua, this, (userdata, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| {
-                let offset = offset.unwrap_or(0);
-
-                let data_handle = &userdata.get_data_handle()?;
-                if !data_handle.check_boundary(offset, this.size) {
-                    return Err(LuaError::external("Out of bounds"));
-                }
-                if !data_handle.is_writable() {
-                    return Err(LuaError::external("Unwritable data handle"));
-                }
-
-                unsafe { this.luavalue_into(lua, offset, data_handle, value) }
-            },
-        );
-        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
-            let pointer = CPtr::new_from_lua_userdata(lua, &this)?;
-            Ok(pointer)
-        });
-        methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
-            let result = CArr::stringify(lua, &this)?;
-            Ok(result)
         });
     }
 }

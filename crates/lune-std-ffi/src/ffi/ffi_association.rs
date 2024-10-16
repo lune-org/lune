@@ -1,5 +1,3 @@
-#![allow(clippy::inline_always)]
-
 use mlua::prelude::*;
 
 // This is a small library that helps you set the dependencies of data in Lua.
@@ -30,7 +28,7 @@ use mlua::prelude::*;
 // use a table with a different name.
 // You can delete the relationship by changing 'associated' to nil
 
-#[inline(always)]
+#[inline]
 pub fn set_association<'lua, T, U>(
     lua: &'lua Lua,
     regname: &str,
@@ -62,7 +60,7 @@ where
 // returns the Lua value that 'value' keeps.
 // If there is no table in registry, it returns None.
 // If there is no value in table, it returns LuaNil.
-#[inline(always)]
+#[inline]
 pub fn get_association<'lua, T>(
     lua: &'lua Lua,
     regname: &str,
@@ -81,7 +79,7 @@ where
 // Allows reading of registry tables for debugging.
 // This helps keep track of data being gc'd.
 // However, for security and safety reasons,
-// this will not be allowed unless it is a debug build.
+// this will not be allowed unless debug build.
 #[cfg(debug_assertions)]
 pub fn get_table<'lua>(lua: &'lua Lua, regname: &str) -> LuaResult<Option<LuaTable<'lua>>> {
     match lua.named_registry_value::<LuaValue>(regname)? {

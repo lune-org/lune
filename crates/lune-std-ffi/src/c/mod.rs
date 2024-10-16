@@ -1,5 +1,5 @@
 mod c_arr;
-mod c_fn;
+mod c_func;
 pub mod c_helper;
 mod c_ptr;
 mod c_string;
@@ -9,13 +9,13 @@ mod types;
 
 pub use self::{
     c_arr::CArr,
-    c_fn::CFn,
+    c_func::CFunc,
+    c_helper::method_provider,
     c_ptr::CPtr,
     c_struct::CStruct,
     c_type::{CType, CTypeCast},
+    types::{c_type_helper, export_ctypes},
 };
-
-pub use types::export_ctypes;
 
 // Named registry table names
 mod association_names {

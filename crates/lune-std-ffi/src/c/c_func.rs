@@ -3,14 +3,15 @@ use std::ptr;
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
-use super::c_helper::{get_size, get_userdata};
 use super::{
     association_names::{CALLABLE_CFN, CALLABLE_REF, CFN_ARGS, CFN_RESULT},
-    c_helper::{get_conv, libffi_type_from_userdata, libffi_type_list_from_table},
+    c_helper, method_provider,
 };
 use crate::ffi::{
-    bit_mask::u8_test_not, ffi_association::set_association, FfiCallable, FfiRef, FfiRefFlag,
-    NativeArgInfo, NativeData, NativeResultInfo,
+    bit_mask::u8_test_not,
+    ffi_association::{get_association, set_association},
+    FfiCallable, FfiRef, FfiRefFlag, NativeArgInfo, NativeData, NativeResultInfo, NativeSignedness,
+    NativeSize,
 };
 
 // cfn is a type declaration for a function.
@@ -29,15 +30,24 @@ use crate::ffi::{
 // The name cfn is intentional. This is because any *c_void is
 // moved to a Lua function or vice versa.
 
-pub struct CFn {
+pub struct CFunc {
     cif: Cif,
     arg_info_list: Vec<NativeArgInfo>,
     result_info: NativeResultInfo,
 }
 
-// support: Cfn as function pointer
+impl NativeSignedness for CFunc {
+    fn get_signedness(&self) -> bool {
+        false
+    }
+}
+impl NativeSize for CFunc {
+    fn get_size(&self) -> usize {
+        size_of::<*mut ()>()
+    }
+}
 
-impl CFn {
+impl CFunc {
     pub fn new(
         args: Vec<Type>,
         ret: Type,
@@ -53,26 +63,26 @@ impl CFn {
         })
     }
 
-    pub fn new_from_lua_table<'lua>(
+    pub fn new_from_table<'lua>(
         lua: &'lua Lua,
         arg_table: LuaTable,
         ret: LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let args_types = libffi_type_list_from_table(lua, &arg_table)?;
-        let ret_type = libffi_type_from_userdata(lua, &ret)?;
+        let args_types = c_helper::get_middle_type_list(&arg_table)?;
+        let ret_type = c_helper::get_middle_type(&ret)?;
 
         let arg_len = arg_table.raw_len();
         let mut arg_info_list = Vec::<NativeArgInfo>::with_capacity(arg_len);
         for index in 0..arg_len {
-            let userdata = get_userdata(arg_table.raw_get(index + 1)?)?;
+            let userdata = c_helper::get_userdata(arg_table.raw_get(index + 1)?)?;
             arg_info_list.push(NativeArgInfo {
-                conv: unsafe { get_conv(&userdata)? },
-                size: get_size(&userdata)?,
+                conv: unsafe { c_helper::get_conv(&userdata)? },
+                size: c_helper::get_size(&userdata)?,
             });
         }
         let result_info = NativeResultInfo {
-            conv: unsafe { get_conv(&ret)? },
-            size: get_size(&ret)?,
+            conv: unsafe { c_helper::get_conv(&ret)? },
+            size: c_helper::get_size(&ret)?,
         };
 
         let cfn =
@@ -84,17 +94,55 @@ impl CFn {
 
         Ok(cfn)
     }
+
+    // Stringify for pretty printing like:
+    // <CFunc( (u8, i32) -> u8 )>
+    pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+        let mut result = String::from(" (");
+        if let (Some(LuaValue::Table(arg_table)), Some(LuaValue::UserData(result_userdata))) = (
+            get_association(lua, CFN_ARGS, userdata)?,
+            get_association(lua, CFN_RESULT, userdata)?,
+        ) {
+            let len = arg_table.raw_len();
+            for arg_index in 1..=len {
+                let arg_userdata: LuaAnyUserData = arg_table.raw_get(arg_index)?;
+                let pretty_formatted = c_helper::pretty_format(lua, &arg_userdata)?;
+                result.push_str(
+                    (if len == arg_index {
+                        pretty_formatted
+                    } else {
+                        format!("{pretty_formatted}, ")
+                    })
+                    .as_str(),
+                );
+            }
+            result.push_str(
+                format!(") -> {} ", c_helper::pretty_format(lua, &result_userdata)?,).as_str(),
+            );
+            Ok(result)
+        } else {
+            Err(LuaError::external("failed to get inner type userdata."))
+        }
+    }
 }
 
-impl LuaUserData for CFn {
+impl LuaUserData for CFunc {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // Subtype
+        method_provider::provide_ptr(methods);
+        method_provider::provide_arr(methods);
+
+        // ToString
+        method_provider::provide_to_string(methods);
+
+        // Realize
         // methods.add_method("closure", |lua, this, func: LuaFunction| {
         //     lua.create_userdata(FfiClosure::new(this.cif, userdata))
         // })
         methods.add_function(
-            "caller",
+            "callable",
             |lua, (cfn, function_ref): (LuaAnyUserData, LuaAnyUserData)| {
-                let this = cfn.borrow::<CFn>()?;
+                let this = cfn.borrow::<CFunc>()?;
 
                 if !function_ref.is::<FfiRef>() {
                     return Err(LuaError::external("argument 0 must be ffiref"));
