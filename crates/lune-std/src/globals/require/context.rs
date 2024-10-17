@@ -43,7 +43,7 @@ impl RequireContext {
     pub(crate) fn std_exists(lua: &Lua, alias: &str) -> Result<bool, RequireError> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         Ok(data_ref.std.contains_key(alias))
     }
@@ -54,7 +54,7 @@ impl RequireContext {
     ) -> Result<LuaMultiValue<'_>, RequireError> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         if let Some(cached) = data_ref.std_cache.get(&require_alias) {
             let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
@@ -62,17 +62,17 @@ impl RequireContext {
             return Ok(LuaMultiValue::from_vec(multi_vec));
         }
 
-        let libraries = data_ref.std.get(&require_alias.alias.as_str()).ok_or(
-            RequireError::InvalidStdAlias(require_alias.alias.to_string()),
-        )?;
+        let libraries = data_ref
+            .std
+            .get(&require_alias.alias.as_str())
+            .ok_or_else(|| RequireError::InvalidStdAlias(require_alias.alias.to_string()))?;
 
-        let std =
-            libraries
-                .get(require_alias.path.as_str())
-                .ok_or(RequireError::StdMemberNotFound(
-                    require_alias.path.to_string(),
-                    require_alias.alias.to_string(),
-                ))?;
+        let std = libraries.get(require_alias.path.as_str()).ok_or_else(|| {
+            RequireError::StdMemberNotFound(
+                require_alias.path.to_string(),
+                require_alias.alias.to_string(),
+            )
+        })?;
 
         let multi = std.module(lua)?;
         let mutli_clone = multi.clone();
@@ -82,7 +82,7 @@ impl RequireContext {
 
         let mut data = lua
             .app_data_mut::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         data.std_cache.insert(require_alias, multi_reg);
 
@@ -95,7 +95,7 @@ impl RequireContext {
     ) -> Result<(), RequireError> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         let pending = data_ref.pending.try_lock()?;
 
@@ -111,13 +111,33 @@ impl RequireContext {
         Ok(())
     }
 
+    fn is_pending(lua: &Lua, path_abs: &PathBuf) -> Result<bool, RequireError> {
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
+
+        let pending = data_ref.pending.try_lock()?;
+
+        Ok(pending.get(path_abs).is_some())
+    }
+
+    fn is_cached(lua: &Lua, path_abs: &PathBuf) -> Result<bool, RequireError> {
+        let data_ref = lua
+            .app_data_ref::<RequireContextData>()
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
+
+        let cache = data_ref.cache.try_lock()?;
+
+        Ok(cache.get(path_abs).is_some())
+    }
+
     async fn from_cache<'lua>(
         lua: &'lua Lua,
         path_abs: &'_ PathBuf,
-    ) -> Result<Option<LuaMultiValue<'lua>>, RequireError> {
+    ) -> Result<LuaMultiValue<'lua>, RequireError> {
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         let cache = data_ref.cache.lock().await;
 
@@ -125,28 +145,32 @@ impl RequireContext {
             Some(cached) => {
                 let multi_vec = lua.registry_value::<Vec<LuaValue>>(cached)?;
 
-                Ok(Some(LuaMultiValue::from_vec(multi_vec)))
+                Ok(LuaMultiValue::from_vec(multi_vec))
             }
-            None => Ok(None),
+            None => Err(RequireError::CacheNotFound(
+                path_abs.to_string_lossy().to_string(),
+            )),
         }
     }
 
     pub(crate) async fn require(
         lua: &Lua,
-        path_rel: PathBuf,
         path_abs: PathBuf,
     ) -> Result<LuaMultiValue, RequireError> {
-        Self::wait_for_pending(lua, &path_abs).await?;
-
-        if let Some(cached) = Self::from_cache(lua, &path_abs).await? {
-            return Ok(cached);
+        if Self::is_pending(lua, &path_abs)? {
+            Self::wait_for_pending(lua, &path_abs).await?;
+            return Self::from_cache(lua, &path_abs).await;
+        } else if Self::is_cached(lua, &path_abs)? {
+            return Self::from_cache(lua, &path_abs).await;
         }
+
+        let content = fs::read_to_string(&path_abs).await?;
 
         // create a broadcast channel
         {
             let data_ref = lua
                 .app_data_ref::<RequireContextData>()
-                .ok_or(RequireError::RequireContextNotFound)?;
+                .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
             let broadcast_tx = broadcast::Sender::new(1);
 
@@ -156,7 +180,6 @@ impl RequireContext {
             }
         }
 
-        let content = fs::read_to_string(&path_abs).await?;
         let thread = lua
             .load(&content)
             .set_name(path_abs.to_string_lossy())
@@ -168,13 +191,13 @@ impl RequireContext {
 
         let multi = lua
             .get_thread_result(thread_id)
-            .ok_or(RequireError::ThreadReturnedNone)??;
+            .ok_or_else(|| RequireError::ThreadReturnedNone)??;
 
         let multi_reg = lua.create_registry_value(multi.into_vec())?;
 
         let data_ref = lua
             .app_data_ref::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         data_ref
             .cache
@@ -191,12 +214,7 @@ impl RequireContext {
 
         broadcast_tx.send(()).ok();
 
-        match Self::from_cache(lua, &path_abs).await? {
-            Some(cached) => Ok(cached),
-            None => Err(RequireError::CacheNotFound(
-                path_rel.to_string_lossy().to_string(),
-            )),
-        }
+        Self::from_cache(lua, &path_abs).await
     }
 
     /**
@@ -226,7 +244,7 @@ impl RequireContext {
     ) -> Result<(), RequireError> {
         let mut data = lua
             .app_data_mut::<RequireContextData>()
-            .ok_or(RequireError::RequireContextNotFound)?;
+            .ok_or_else(|| RequireError::RequireContextNotFound)?;
 
         if let Some(map) = data.std.get_mut(alias) {
             map.insert(std.name(), Box::new(std));

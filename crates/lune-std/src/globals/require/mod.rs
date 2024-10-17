@@ -3,8 +3,9 @@ use crate::{
     path::get_parent_path,
     LuneStandardLibrary,
 };
+use lune_utils::path::clean_path_and_make_absolute;
 use mlua::prelude::*;
-use path::resolve_path;
+use path::append_extension;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -38,6 +39,44 @@ pub enum RequireError {
     LuaError(#[from] mlua::Error),
 }
 
+/**
+tries different extensions on the path and if all alternatives fail, we'll try to look for an init file
+ */
+async fn try_alternatives(lua: &Lua, require_path_abs: PathBuf) -> LuaResult<LuaMultiValue> {
+    for ext in ["lua", "luau"] {
+        // try the path with ext
+        let ext_path = append_extension(&require_path_abs, ext);
+
+        match context::RequireContext::require(lua, ext_path).await {
+            Ok(res) => return Ok(res),
+            Err(err) => {
+                if !matches!(err, RequireError::IOError(_)) {
+                    return Err(err).into_lua_err();
+                };
+            }
+        };
+    }
+
+    for ext in ["lua", "luau"] {
+        // append init to path and try it with ext
+        let ext_path = append_extension(require_path_abs.join("init"), ext);
+
+        match context::RequireContext::require(lua, ext_path).await {
+            Ok(res) => return Ok(res),
+            Err(err) => {
+                if !matches!(err, RequireError::IOError(_)) {
+                    return Err(err).into_lua_err();
+                };
+            }
+        };
+    }
+
+    Err(RequireError::InvalidRequire(
+        require_path_abs.to_string_lossy().to_string(),
+    ))
+    .into_lua_err()
+}
+
 async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
     let require_path_rel = PathBuf::from(path);
     let require_alias = RequireAlias::from_path(&require_path_rel).into_lua_err()?;
@@ -46,29 +85,19 @@ async fn lua_require(lua: &Lua, path: String) -> LuaResult<LuaMultiValue> {
         if context::RequireContext::std_exists(lua, &require_alias.alias).into_lua_err()? {
             context::RequireContext::require_std(lua, require_alias).into_lua_err()
         } else {
-            let require_path_abs = resolve_path(
-                &Luaurc::resolve_path(lua, &require_alias)
+            let require_path_abs = clean_path_and_make_absolute(
+                Luaurc::resolve_path(lua, &require_alias)
                     .await
                     .into_lua_err()?,
-            )
-            .await?;
+            );
 
-            context::RequireContext::require(lua, require_path_rel, require_path_abs)
-                .await
-                .into_lua_err()
+            try_alternatives(lua, require_path_abs).await
         }
     } else {
         let parent_path = get_parent_path(lua)?;
-        let require_path_abs = resolve_path(&parent_path.join(&require_path_rel))
-            .await
-            .map_err(|_| {
-                RequireError::InvalidRequire(require_path_rel.to_string_lossy().to_string())
-            })
-            .into_lua_err()?;
+        let require_path_abs = clean_path_and_make_absolute(parent_path.join(&require_path_rel));
 
-        context::RequireContext::require(lua, require_path_rel, require_path_abs)
-            .await
-            .into_lua_err()
+        try_alternatives(lua, require_path_abs).await
     }
 }
 
