@@ -8,6 +8,7 @@ use std::{
     },
 };
 
+use lune_utils::jit::JitStatus;
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
 use self_cell::self_cell;
@@ -100,6 +101,7 @@ impl RuntimeInner {
 */
 pub struct Runtime {
     inner: RuntimeInner,
+    jit_status: JitStatus,
 }
 
 impl Runtime {
@@ -113,6 +115,7 @@ impl Runtime {
     pub fn new() -> Self {
         Self {
             inner: RuntimeInner::create().expect("Failed to create runtime"),
+            jit_status: JitStatus::default(),
         }
     }
 
@@ -134,8 +137,8 @@ impl Runtime {
         Enables or disables JIT compilation.
     */
     #[must_use]
-    pub fn with_jit(self, enabled: bool) -> Self {
-        self.inner.lua().enable_jit(enabled);
+    pub fn with_jit(mut self, jit_status: impl Into<JitStatus>) -> Self {
+        self.jit_status = jit_status.into();
         self
     }
 
@@ -163,6 +166,10 @@ impl Runtime {
             got_any_inner.store(true, Ordering::SeqCst);
             eprintln!("{}", RuntimeError::from(e));
         });
+
+        // Enable / disable the JIT as requested and store the current status as AppData
+        lua.set_app_data(self.jit_status);
+        lua.enable_jit(self.jit_status.enabled());
 
         // Load our "main" thread
         let main = lua
