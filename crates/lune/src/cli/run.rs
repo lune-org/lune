@@ -39,9 +39,9 @@ impl RunCommand {
             let file_display_name = file_path.with_extension("").display().to_string();
             (file_display_name, file_contents)
         };
-
-        // Create a new lune object with all globals & run the script
-        let result = Runtime::new()
+      
+        // Create a new lune runtime with all globals & run the script
+        let mut rt = Runtime::new()
             .with_args(self.script_args)
             // Enable JIT compilation unless it was requested to be disabled
             .with_jit(
@@ -49,15 +49,18 @@ impl RunCommand {
                     env::var("LUNE_LUAU_JIT").ok(), 
                     Some(jit_enabled) if jit_enabled == "0" || jit_enabled == "false" || jit_enabled == "off"
                 )
-            )
+             );
+
+        let result = rt
             .run(&script_display_name, strip_shebang(script_contents))
             .await;
+
         Ok(match result {
             Err(err) => {
                 eprintln!("{err}");
                 ExitCode::FAILURE
             }
-            Ok(code) => code,
+            Ok((code, _)) => ExitCode::from(code),
         })
     }
 }

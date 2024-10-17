@@ -173,9 +173,9 @@ export type ServeHandle = {
 ]=]
 export type WebSocket = {
 	closeCode: number?,
-	close: (code: number?) -> (),
-	send: (message: (string | buffer)?, asBinaryMessage: boolean?) -> (),
-	next: () -> string?,
+	close: (self: WebSocket, code: number?) -> (),
+	send: (self: WebSocket, message: (string | buffer)?, asBinaryMessage: boolean?) -> (),
+	next: (self: WebSocket) -> string?,
 }
 
 --[=[

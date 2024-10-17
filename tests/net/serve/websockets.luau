@@ -24,10 +24,10 @@ local handle = net.serve(PORT, {
 		return "unreachable"
 	end,
 	handleWebSocket = function(socket)
-		local socketMessage = socket.next()
+		local socketMessage = socket:next()
 		assert(socketMessage == REQUEST, "Invalid web socket request from client")
-		socket.send(RESPONSE)
-		socket.close()
+		socket:send(RESPONSE)
+		socket:close()
 	end,
 })
 
@@ -43,19 +43,19 @@ end)
 
 local socket = net.socket(WS_URL)
 
-socket.send(REQUEST)
+socket:send(REQUEST)
 
-local socketMessage = socket.next()
+local socketMessage = socket:next()
 assert(socketMessage ~= nil, "Got no web socket response from server")
 assert(socketMessage == RESPONSE, "Invalid web socket response from server")
 
-socket.close()
+socket:close()
 
 task.cancel(thread2)
 
 -- Wait for the socket to close and make sure we can't send messages afterwards
 task.wait()
-local success3, err2 = (pcall :: any)(socket.send, "")
+local success3, err2 = (pcall :: any)(socket.send, socket, "")
 assert(not success3, "Sending messages after the socket has been closed should error")
 local message2 = tostring(err2)
 assert(

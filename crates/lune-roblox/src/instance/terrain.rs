@@ -27,9 +27,8 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(methods: &mut M)
 }
 
 fn get_or_create_material_colors(instance: &Instance) -> MaterialColors {
-    if let Some(Variant::MaterialColors(material_colors)) = instance.get_property("MaterialColors")
-    {
-        material_colors
+    if let Some(Variant::MaterialColors(inner)) = instance.get_property("MaterialColors") {
+        inner
     } else {
         MaterialColors::default()
     }

@@ -8,17 +8,17 @@ assert(type(socket.send) == "function", "send must be a function")
 assert(type(socket.close) == "function", "close must be a function")
 
 -- Request to close the socket
-socket.close()
+socket:close()
 
 -- Drain remaining messages, until we got our close message
-while socket.next() do
+while socket:next() do
 end
 
 assert(type(socket.closeCode) == "number", "closeCode should exist after closing")
 assert(socket.closeCode == 1000, "closeCode should be 1000 after closing")
 
 local success, message = pcall(function()
-	socket.send("Hello, world!")
+	socket:send("Hello, world!")
 end)
 
 assert(not success, "send should fail after closing")

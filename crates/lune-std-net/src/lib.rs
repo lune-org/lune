@@ -65,9 +65,9 @@ async fn net_request(lua: &Lua, config: RequestConfig) -> LuaResult<LuaTable> {
     res.await?.into_lua_table(lua)
 }
 
-async fn net_socket(lua: &Lua, url: String) -> LuaResult<LuaTable> {
+async fn net_socket(lua: &Lua, url: String) -> LuaResult<LuaValue> {
     let (ws, _) = tokio_tungstenite::connect_async(url).await.into_lua_err()?;
-    NetWebSocket::new(ws).into_lua_table(lua)
+    NetWebSocket::new(ws).into_lua(lua)
 }
 
 async fn net_serve<'lua>(

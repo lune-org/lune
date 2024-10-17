@@ -1,7 +1,4 @@
-#![allow(unused_imports)]
 #![allow(clippy::too_many_lines)]
-
-use std::process::ExitCode;
 
 use mlua::prelude::*;
 
@@ -9,7 +6,6 @@ use crate::{
     error_callback::ThreadErrorCallback,
     queue::{DeferredThreadQueue, SpawnedThreadQueue},
     result_map::ThreadResultMap,
-    scheduler::Scheduler,
     thread_id::ThreadId,
     traits::LuaSchedulerExt,
     util::{is_poll_pending, LuaThreadOrFunction, ThreadResult},
@@ -232,7 +228,7 @@ impl<'lua> Functions<'lua> {
                 "exit",
                 lua.create_function(|lua, code: Option<u8>| {
                     let _span = tracing::trace_span!("Scheduler::fn_exit").entered();
-                    let code = code.map(ExitCode::from).unwrap_or_default();
+                    let code = code.unwrap_or_default();
                     lua.set_exit_code(code);
                     Ok(())
                 })?,
