@@ -8,7 +8,7 @@ local task = require("@lune/task")
 local socket = net.socket("wss://gateway.discord.gg/?v=10&encoding=json")
 
 while not socket.closeCode do
-	local response = socket.next()
+	local response = socket:next()
 
 	if response then
 		local decodeSuccess, decodeMessage = pcall(serde.decode, "json" :: "json", response)
@@ -23,6 +23,6 @@ while not socket.closeCode do
 
 		-- Close the connection after a second with the success close code
 		task.wait(1)
-		socket.close(1000)
+		socket:close(1000)
 	end
 end

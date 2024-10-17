@@ -32,7 +32,7 @@ pub fn main() -> LuaResult<()> {
 
     // Verify that we got a correct exit code
     let code = sched.get_exit_code().unwrap_or_default();
-    assert!(format!("{code:?}").contains("(1)"));
+    assert_eq!(code, 1);
 
     Ok(())
 }

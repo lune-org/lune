@@ -40,17 +40,19 @@ impl RunCommand {
             (file_display_name, file_contents)
         };
 
-        // Create a new lune object with all globals & run the script
-        let result = Runtime::new()
-            .with_args(self.script_args)
+        // Create a new lune runtime with all globals & run the script
+        let mut rt = Runtime::new().with_args(self.script_args);
+
+        let result = rt
             .run(&script_display_name, strip_shebang(script_contents))
             .await;
+
         Ok(match result {
             Err(err) => {
                 eprintln!("{err}");
                 ExitCode::FAILURE
             }
-            Ok(code) => code,
+            Ok((code, _)) => ExitCode::from(code),
         })
     }
 }

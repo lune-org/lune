@@ -10,7 +10,7 @@ local socket = net.socket("wss://gateway.discord.gg/?v=10&encoding=json")
 
 local spawnedThread = task.spawn(function()
 	while not socket.closeCode do
-		socket.next()
+		socket:next()
 	end
 end)
 
@@ -23,9 +23,9 @@ end)
 task.wait(1)
 
 local payload = '{"op":1,"d":null}'
-socket.send(payload)
-socket.send(buffer.fromstring(payload))
-socket.close(1000)
+socket:send(payload)
+socket:send(buffer.fromstring(payload))
+socket:close(1000)
 
 task.cancel(delayedThread)
 task.cancel(spawnedThread)
