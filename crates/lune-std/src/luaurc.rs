@@ -1,5 +1,6 @@
 use crate::path::get_parent_path;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::{
     collections::HashMap,
     env::current_dir,
@@ -14,8 +15,27 @@ pub struct RequireAlias {
     pub path: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum LuauLanguageMode {
+    NoCheck,
+    NonStrict,
+    Strict,
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Luaurc {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    language_mode: Option<LuauLanguageMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lint: Option<HashMap<String, JsonValue>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lint_errors: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    type_errors: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    globals: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     aliases: Option<HashMap<String, PathBuf>>,
 }
 
