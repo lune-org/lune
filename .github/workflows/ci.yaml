@@ -24,7 +24,7 @@ jobs:
           components: rustfmt
 
       - name: Install Tooling
-        uses: CompeyDev/setup-rokit@v0.1.0
+        uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Check Formatting
         run: just fmt-check
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Tooling
-        uses: CompeyDev/setup-rokit@v0.1.0
+        uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Analyze
         run: just analyze
