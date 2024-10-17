@@ -28,8 +28,8 @@ end)
 
 for _ = 1, 5 do
 	local start = os.clock()
-	socket.send(tostring(1))
-	local response = socket.next()
+	socket:send(tostring(1))
+	local response = socket:next()
 	local elapsed = os.clock() - start
 	print(`Got response '{response}' in {elapsed * 1_000} milliseconds`)
 	task.wait(1 - elapsed)
@@ -38,7 +38,7 @@ end
 -- Everything went well, and we are done with the socket, so we can close it
 
 print("Closing web socket...")
-socket.close()
+socket:close()
 
 task.cancel(forceExit)
 print("Done! 🌙")

@@ -15,9 +15,9 @@ local handle = net.serve(PORT, {
 	handleWebSocket = function(socket)
 		print("Got new web socket connection!")
 		repeat
-			local message = socket.next()
+			local message = socket:next()
 			if message ~= nil then
-				socket.send("Echo - " .. message)
+				socket:send("Echo - " .. message)
 			end
 		until message == nil
 		print("Web socket disconnected.")
