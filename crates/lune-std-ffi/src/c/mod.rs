@@ -25,4 +25,6 @@ mod association_names {
     pub const CFN_ARGS: &str = "__cfn_args";
     pub const CALLABLE_REF: &str = "__callable_ref";
     pub const CALLABLE_CFN: &str = "__callable_cfn";
+    pub const CLOSURE_FUNC: &str = "__closure_func";
+    pub const CLOSURE_CFN: &str = "__closure_cfn";
 }

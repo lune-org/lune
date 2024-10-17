@@ -8,7 +8,7 @@ use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
 use super::{CTypeCast, CTypeInfo};
-use crate::data::{num_cast, FfiConvert, FfiData, FfiSize};
+use crate::ffi::{num_cast, FfiConvert, FfiData, FfiSize};
 
 pub mod f32;
 pub mod f64;

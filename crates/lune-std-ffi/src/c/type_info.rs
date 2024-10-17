@@ -8,8 +8,8 @@ use mlua::prelude::*;
 
 use super::method_provider;
 use crate::{
-    data::{FfiConvert, FfiData, FfiSignedness, FfiSize, GetFfiData},
-    ffi::libffi_helper::get_ensured_size,
+    data::GetFfiData,
+    ffi::{libffi_helper::get_ensured_size, FfiConvert, FfiData, FfiSignedness, FfiSize},
 };
 
 // Cast native data

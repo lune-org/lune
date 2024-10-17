@@ -26,7 +26,7 @@ pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
     unsafe { Ok((*ffi_type).size) }
 }
 
-pub const SIEE_OF_POINTER: usize = size_of::<*mut ()>();
+pub const SIZE_OF_POINTER: usize = size_of::<*mut ()>();
 
 // Converts ffi status into &str
 pub const FFI_STATUS_NAMES: [&str; 4] = [

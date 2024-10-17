@@ -3,17 +3,17 @@ use std::{alloc, alloc::Layout, boxed::Box, mem::ManuallyDrop, ptr};
 use mlua::prelude::*;
 
 use crate::{
-    data::{association_names::REF_INNER, RefData, RefDataBounds, RefDataFlag},
+    data::{association_names::REF_INNER, RefBounds, RefData, RefFlag},
     ffi::{association, bit_mask::*, FfiData},
 };
 
 mod flag;
 
-pub use self::flag::BoxDataFlag;
+pub use self::flag::BoxFlag;
 
 // Ref which created by lua should not be dereferenceable,
 const BOX_REF_FLAGS: u8 =
-    RefDataFlag::Readable.value() | RefDataFlag::Writable.value() | RefDataFlag::Offsetable.value();
+    RefFlag::Readable.value() | RefFlag::Writable.value() | RefFlag::Offsetable.value();
 
 // It is an untyped, sized memory area that Lua can manage.
 // This area is safe within Lua. Operations have their boundaries checked.
@@ -63,7 +63,7 @@ impl BoxData {
     }
 
     pub fn leak(&mut self) {
-        self.flags = u8_set(self.flags, BoxDataFlag::Leaked.value(), true);
+        self.flags = u8_set(self.flags, BoxFlag::Leaked.value(), true);
     }
 
     // Make FfiRef from box, with boundary checking
@@ -73,7 +73,7 @@ impl BoxData {
         offset: Option<isize>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let target = this.borrow::<BoxData>()?;
-        let mut bounds = RefDataBounds::new(0, target.size());
+        let mut bounds = RefBounds::new(0, target.size());
         let mut ptr = unsafe { target.get_pointer() };
 
         // Calculate offset
@@ -114,7 +114,7 @@ impl BoxData {
 
 impl Drop for BoxData {
     fn drop(&mut self) {
-        if u8_test_not(self.flags, BoxDataFlag::Leaked.value()) {
+        if u8_test_not(self.flags, BoxFlag::Leaked.value()) {
             unsafe { self.drop() };
         }
     }

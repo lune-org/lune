@@ -7,20 +7,21 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use super::{FfiArgInfo, FfiData, FfiResultInfo, GetFfiData};
+use super::{FfiData, GetFfiData};
+use crate::ffi::{FfiArg, FfiResult};
 
 pub struct CallableData {
     cif: *mut ffi_cif,
-    arg_info_list: *const Vec<FfiArgInfo>,
-    result_info: *const FfiResultInfo,
+    arg_info_list: Vec<FfiArg>,
+    result_info: FfiResult,
     code: CodePtr,
 }
 
 impl CallableData {
     pub unsafe fn new(
         cif: *mut ffi_cif,
-        arg_info_list: *const Vec<FfiArgInfo>,
-        result_info: *const FfiResultInfo,
+        arg_info_list: Vec<FfiArg>,
+        result_info: FfiResult,
         function_pointer: *const (),
     ) -> Self {
         Self {
@@ -35,16 +36,15 @@ impl CallableData {
 
     pub unsafe fn call(&self, result: &Ref<dyn FfiData>, args: LuaMultiValue) -> LuaResult<()> {
         result
-            .check_boundary(0, self.result_info.as_ref().unwrap().size)
+            .check_boundary(0, self.result_info.size)
             .then_some(())
             .ok_or_else(|| LuaError::external("result boundary check failed"))?;
 
         // cache Vec => unable to create async call but no allocation
-        let arg_info_list = self.arg_info_list.as_ref().unwrap();
-        let mut arg_list = Vec::<*mut c_void>::with_capacity(arg_info_list.len());
+        let mut arg_list = Vec::<*mut c_void>::with_capacity(self.arg_info_list.len());
 
-        for index in 0..arg_info_list.len() {
-            let arg_info = arg_info_list.get(index).unwrap();
+        for index in 0..self.arg_info_list.len() {
+            let arg_info = self.arg_info_list.get(index).unwrap();
             let arg = args
                 .get(index)
                 .ok_or_else(|| LuaError::external(format!("argument {index} required")))?;

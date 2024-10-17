@@ -5,8 +5,10 @@ use mlua::prelude::*;
 
 use super::{association_names::CPTR_INNER, ctype_helper, helper, method_provider};
 use crate::{
-    data::{FfiConvert, FfiData, FfiSignedness, FfiSize, RefData},
-    ffi::{association, libffi_helper::SIEE_OF_POINTER},
+    data::RefData,
+    ffi::{
+        association, libffi_helper::SIZE_OF_POINTER, FfiConvert, FfiData, FfiSignedness, FfiSize,
+    },
 };
 
 pub struct CPtrInfo {
@@ -20,7 +22,7 @@ impl FfiSignedness for CPtrInfo {
 }
 impl FfiSize for CPtrInfo {
     fn get_size(&self) -> usize {
-        SIEE_OF_POINTER
+        SIZE_OF_POINTER
     }
 }
 impl FfiConvert for CPtrInfo {

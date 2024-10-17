@@ -9,7 +9,7 @@ Define C-ABI type information and provide conversion and casting
 - [**Struct ` CArrInfo`:**](./src/c/struct_info.rs) Represents C Array type
 - [**Struct ` CPtrInfo`:**](./src/c/ptr_info.rs) Represents C Pointer type
 - [**Struct ` CFnInfo`:**](./src/c/fn_info.rs) Represents C Function signature
-  provide CallableData and ClosureData creation
+  > provide CallableData and ClosureData creation
 - [**Struct ` CStructInfo`:**](./src/c/struct_info.rs) Represents C Struct type
 - [**Struct ` CTypeInfo<T>`:**](./src/c/type_info.rs) Represents C type, extended in `/c/types`
 
@@ -55,6 +55,11 @@ Implememt type-casting for all CTypes
 - **Trait `FfiSignedness`**
 - **Trait `FfiConvert`:** Provide read LuaValue from FfiData or write LuaValue into FfiData
 
+**Traits:** Provide call information trait
+
+- **Trait `FfiArg`:** Used for argument boundary checking and callback argument ref flag
+- **Trait `FfiResult`:** Used for result boundary checking
+
 **Trait `FfiData`:** Provide common data handle, including methods below
 
 - **Method `check_boundary`:** check boundary with offset and size
@@ -66,14 +71,22 @@ Implememt type-casting for all CTypes
 
 **Mods:** Provide common helper functions
 
-- **`association.rs`:** GC utility, used for inner, ret and arg type holding in subtype
-- **`bit_mask.rs`:** u8 bitfield helper
-- **`cast.rs`:** library
+- [**Mod `association.rs`:**](./src/ffi/association.rs) GC utility, used for inner, ret and arg type holding in subtype
+- [**Mod `bit_mask.rs`:**](./src/ffi/bit_mask.rs) u8 bitfield helper
+- [**Mod `cast.rs`:**](./src/ffi/cast.rs) library
   - **Function `num_cast<From, Into>(from: FfiData, from: FfiData)`:**
     Cast number type value inno another number type
-- **`libffi_helper.rs`:**
+- [**Mod `libffi_helper.rs`:**](./src/ffi/libffi_helper.rs)
   - **Const `FFI_STATUS_NAMES`:** Used for ffi_status stringify
   - **Function `get_ensured_size`:** Returns ensured ffi_type size
   - **Const `SIEE_OF_POINTER`:** Platform specific pointer size (Compile time known)
 
 ## TODO
+
+Add `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow` for math operation.
+
+> Luau cannot handle i64 or i128
+
+Add bor band and such bit-related operation
+
+> Luau only supports 32bit bit operations

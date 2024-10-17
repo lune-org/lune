@@ -1,17 +1,17 @@
 // Memory range for ref or box data. For boundary checking
-pub struct RefDataBounds {
+pub struct RefBounds {
     // Indicates how much data is above the pointer
     pub(crate) above: usize,
     // Indicates how much data is below the pointer
     pub(crate) below: usize,
 }
 
-pub const UNSIZED_BOUNDS: RefDataBounds = RefDataBounds {
+pub const UNSIZED_BOUNDS: RefBounds = RefBounds {
     above: usize::MAX,
     below: usize::MAX,
 };
 
-impl RefDataBounds {
+impl RefBounds {
     pub fn new(above: usize, below: usize) -> Self {
         Self { above, below }
     }
@@ -88,7 +88,7 @@ impl RefDataBounds {
     }
 }
 
-impl Clone for RefDataBounds {
+impl Clone for RefBounds {
     fn clone(&self) -> Self {
         Self {
             above: self.above,

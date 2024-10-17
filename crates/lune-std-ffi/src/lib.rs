@@ -32,7 +32,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("uninitRef", |_lua, ()| Ok(RefData::new_uninit()))?
         .with_function("isInteger", |_lua, num: LuaValue| Ok(num.is_integer()))?
         .with_function("fnInfo", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
-            CFnInfo::new_from_table(lua, args, ret)
+            CFnInfo::from_table(lua, args, ret)
         })?;
 
     #[cfg(debug_assertions)]

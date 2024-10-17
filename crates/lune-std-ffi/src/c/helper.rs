@@ -3,7 +3,10 @@ use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
 use super::{ctype_helper, CArrInfo, CFnInfo, CPtrInfo, CStructInfo};
-use crate::data::{BoxData, FfiConvert, FfiSize, GetFfiData};
+use crate::{
+    data::{BoxData, GetFfiData},
+    ffi::{FfiConvert, FfiSize},
+};
 
 pub mod method_provider {
     use super::*;

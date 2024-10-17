@@ -11,13 +11,13 @@ mod bounds;
 mod flag;
 
 pub use self::{
-    bounds::{RefDataBounds, UNSIZED_BOUNDS},
-    flag::RefDataFlag,
+    bounds::{RefBounds, UNSIZED_BOUNDS},
+    flag::RefFlag,
 };
 
 // Box:ref():ref() should not be able to modify, Only for external
 const BOX_REF_REF_FLAGS: u8 = 0;
-const UNINIT_REF_FLAGS: u8 = RefDataFlag::Uninit.value();
+const UNINIT_REF_FLAGS: u8 = RefFlag::Uninit.value();
 // | FfiRefFlag::Writable.value()
 // | FfiRefFlag::Readable.value()
 // | FfiRefFlag::Dereferenceable.value()
@@ -33,11 +33,11 @@ const UNINIT_REF_FLAGS: u8 = RefDataFlag::Uninit.value();
 pub struct RefData {
     ptr: ManuallyDrop<Box<*mut ()>>,
     pub flags: u8,
-    pub boundary: RefDataBounds,
+    pub boundary: RefBounds,
 }
 
 impl RefData {
-    pub fn new(ptr: *mut (), flags: u8, boundary: RefDataBounds) -> Self {
+    pub fn new(ptr: *mut (), flags: u8, boundary: RefBounds) -> Self {
         Self {
             ptr: ManuallyDrop::new(Box::new(ptr)),
             flags,
@@ -63,7 +63,7 @@ impl RefData {
         let luaref = lua.create_userdata(RefData::new(
             ptr::from_ref(&target.ptr) as *mut (),
             BOX_REF_REF_FLAGS,
-            RefDataBounds {
+            RefBounds {
                 below: 0,
                 above: size_of::<usize>(),
             },
@@ -76,7 +76,7 @@ impl RefData {
     }
 
     pub unsafe fn deref(&self) -> LuaResult<Self> {
-        u8_test(self.flags, RefDataFlag::Dereferenceable.value())
+        u8_test(self.flags, RefFlag::Dereferenceable.value())
             .then_some(())
             .ok_or_else(|| LuaError::external("This pointer is not dereferenceable."))?;
 
@@ -104,7 +104,7 @@ impl RefData {
     }
 
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
-        u8_test(self.flags, RefDataFlag::Offsetable.value())
+        u8_test(self.flags, RefFlag::Offsetable.value())
             .then_some(())
             .ok_or_else(|| LuaError::external("This pointer is not offsetable."))?;
 
@@ -132,7 +132,7 @@ impl RefData {
 
 impl Drop for RefData {
     fn drop(&mut self) {
-        if u8_test_not(self.flags, RefDataFlag::Leaked.value()) {
+        if u8_test_not(self.flags, RefFlag::Leaked.value()) {
             unsafe { ManuallyDrop::drop(&mut self.ptr) };
         }
     }
@@ -146,10 +146,10 @@ impl FfiData for RefData {
         **self.ptr
     }
     fn is_readable(&self) -> bool {
-        u8_test(self.flags, RefDataFlag::Readable.value())
+        u8_test(self.flags, RefFlag::Readable.value())
     }
     fn is_writable(&self) -> bool {
-        u8_test(self.flags, RefDataFlag::Writable.value())
+        u8_test(self.flags, RefFlag::Writable.value())
     }
 }
 

@@ -5,7 +5,7 @@ use num::cast::AsPrimitive;
 
 use crate::{
     c::type_info::CTypeInfo,
-    data::{FfiConvert, FfiData, FfiSignedness},
+    ffi::{FfiConvert, FfiData, FfiSignedness},
 };
 
 impl FfiSignedness for CTypeInfo<u16> {

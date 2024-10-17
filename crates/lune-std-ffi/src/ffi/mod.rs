@@ -2,12 +2,12 @@ use std::cell::Ref;
 
 use mlua::prelude::*;
 
-mod arg;
 pub mod association;
 pub mod bit_mask;
 mod cast;
 pub mod libffi_helper;
-mod result;
+
+pub use self::cast::num_cast;
 
 pub trait FfiSize {
     fn get_size(&self) -> usize;
@@ -46,4 +46,26 @@ pub trait FfiData {
     fn is_readable(&self) -> bool;
 }
 
-pub use self::{arg::FfiArgInfo, cast::num_cast, result::FfiResultInfo};
+pub struct FfiArg {
+    pub size: usize,
+    pub callback_ref_flag: u8,
+}
+
+impl Clone for FfiArg {
+    fn clone(&self) -> Self {
+        Self {
+            size: self.size,
+            callback_ref_flag: self.callback_ref_flag,
+        }
+    }
+}
+
+pub struct FfiResult {
+    pub size: usize,
+}
+
+impl Clone for FfiResult {
+    fn clone(&self) -> Self {
+        Self { size: self.size }
+    }
+}

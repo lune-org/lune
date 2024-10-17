@@ -2,15 +2,15 @@ use dlopen2::raw::Library;
 use mlua::prelude::*;
 
 use super::{
-    association,
     association_names::SYM_INNER,
-    ref_data::{RefData, RefDataFlag, UNSIZED_BOUNDS},
+    ref_data::{RefData, RefFlag, UNSIZED_BOUNDS},
 };
+use crate::ffi::association;
 
-const LIB_REF_FLAGS: u8 = RefDataFlag::Offsetable.value()
-    | RefDataFlag::Readable.value()
-    | RefDataFlag::Dereferenceable.value()
-    | RefDataFlag::Function.value();
+const LIB_REF_FLAGS: u8 = RefFlag::Offsetable.value()
+    | RefFlag::Readable.value()
+    | RefFlag::Dereferenceable.value()
+    | RefFlag::Function.value();
 
 pub struct LibData(Library);
 

@@ -4,9 +4,8 @@ use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
 
 use super::{association_names::CSTRUCT_INNER, helper, method_provider};
-use crate::{
-    data::{FfiConvert, FfiData, FfiSignedness, FfiSize},
-    ffi::{association, libffi_helper::FFI_STATUS_NAMES},
+use crate::ffi::{
+    association, libffi_helper::FFI_STATUS_NAMES, FfiConvert, FfiData, FfiSignedness, FfiSize,
 };
 
 pub struct CStructInfo {
