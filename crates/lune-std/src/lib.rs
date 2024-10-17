@@ -6,10 +6,12 @@ mod global;
 mod globals;
 mod library;
 mod luaurc;
+mod path;
 
 pub use self::global::LuneStandardGlobal;
+pub use self::globals::require::context::RequireContext;
 pub use self::globals::version::set_global_version;
-pub use self::library::LuneStandardLibrary;
+pub use self::library::{LuneStandardLibrary, StandardLibrary};
 
 /**
     Injects all standard globals into the given Lua state / VM.

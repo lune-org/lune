@@ -1,6 +1,25 @@
-use std::str::FromStr;
+use std::{fmt::Debug, str::FromStr};
 
 use mlua::prelude::*;
+
+pub trait StandardLibrary
+where
+    Self: Debug,
+{
+    /**
+        Gets the name of the library, such as `datetime` or `fs`.
+    */
+    fn name(&self) -> &'static str;
+
+    /**
+        Creates the Lua module for the library.
+
+        # Errors
+
+        If the library could not be created.
+    */
+    fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>>;
+}
 
 /**
     A standard library provided by Lune.
@@ -37,14 +56,13 @@ impl LuneStandardLibrary {
         #[cfg(feature = "stdio")]    Self::Stdio,
         #[cfg(feature = "roblox")]   Self::Roblox,
     ];
+}
 
-    /**
-        Gets the name of the library, such as `datetime` or `fs`.
-    */
+impl StandardLibrary for LuneStandardLibrary {
     #[must_use]
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
-    pub fn name(&self) -> &'static str {
+    fn name(&self) -> &'static str {
         match self {
             #[cfg(feature = "datetime")] Self::DateTime => "datetime",
             #[cfg(feature = "fs")]       Self::Fs       => "fs",
@@ -61,16 +79,9 @@ impl LuneStandardLibrary {
         }
     }
 
-    /**
-        Creates the Lua module for the library.
-
-        # Errors
-
-        If the library could not be created.
-    */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
-    pub fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
+    fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
         let res: LuaResult<LuaTable> = match self {
             #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(lua),
             #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::module(lua),
@@ -114,12 +125,7 @@ impl FromStr for LuneStandardLibrary {
 
             _ => {
                 return Err(format!(
-                    "Unknown standard library '{low}'\nValid libraries are: {}",
-                    Self::ALL
-                        .iter()
-                        .map(Self::name)
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    "Unknown standard library '{low}'"
                 ))
             }
         })
