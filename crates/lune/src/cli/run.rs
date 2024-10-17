@@ -39,7 +39,7 @@ impl RunCommand {
             let file_display_name = file_path.with_extension("").display().to_string();
             (file_display_name, file_contents)
         };
-      
+
         // Create a new lune runtime with all globals & run the script
         let mut rt = Runtime::new()
             .with_args(self.script_args)
