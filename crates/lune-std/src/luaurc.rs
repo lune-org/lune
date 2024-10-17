@@ -84,9 +84,14 @@ impl RequireAlias {
     }
 }
 
+/**
+# Errors
+
+* when `serde_json` fails to deserialize content of the file
+
+ */
 async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, LuaurcError> {
-    if fs::try_exists(path).await? {
-        let content = fs::read(path).await?;
+    if let Ok(content) = fs::read(path).await {
         serde_json::from_slice(&content)
             .map(Some)
             .map_err(|err| LuaurcError::FilaedToParse(path.clone(), err))

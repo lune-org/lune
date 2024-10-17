@@ -156,12 +156,6 @@ impl RequireContext {
             }
         }
 
-        if !fs::try_exists(&path_abs).await? {
-            return Err(RequireError::InvalidRequire(
-                path_rel.to_string_lossy().to_string(),
-            ));
-        }
-
         let content = fs::read_to_string(&path_abs).await?;
         let thread = lua
             .load(&content)
