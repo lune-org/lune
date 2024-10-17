@@ -164,8 +164,6 @@ impl RequireContext {
             return Self::from_cache(lua, &path_abs).await;
         }
 
-        let content = fs::read_to_string(&path_abs).await?;
-
         // create a broadcast channel
         {
             let data_ref = lua
@@ -179,6 +177,23 @@ impl RequireContext {
                 pending.insert(path_abs.clone(), broadcast_tx);
             }
         }
+
+        let content = match fs::read_to_string(&path_abs).await {
+            Ok(content) => content,
+            Err(err) => {
+                // this error is expected to happen in most cases
+                // because this function will be retried on the same path
+                // with different extensions when it fails here
+
+                let data_ref = lua
+                    .app_data_ref::<RequireContextData>()
+                    .ok_or_else(|| RequireError::RequireContextNotFound)?;
+
+                data_ref.pending.lock().await.remove(&path_abs);
+
+                return Err(err.into());
+            }
+        };
 
         let thread = lua
             .load(&content)
