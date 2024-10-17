@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use crate::fmt::ErrorComponents;
 
-fn new_lua_result() -> LuaResult<()> {
+fn new_lua_runtime_error() -> LuaResult<()> {
     let lua = Lua::new();
 
     lua.globals()
@@ -17,13 +17,34 @@ fn new_lua_result() -> LuaResult<()> {
     lua.load("f()").set_name("chunk_name").eval()
 }
 
+fn new_lua_script_error() -> LuaResult<()> {
+    let lua = Lua::new();
+
+    lua.load(
+        "local function inner()\
+        \n    error(\"oh no, a script error\")\
+        \nend\
+        \n\
+        \nlocal function outer()\
+        \n    inner()\
+        \nend\
+        \n\
+        \nouter()\
+        ",
+    )
+    .set_name("chunk_name")
+    .eval()
+}
+
 // Tests for error context stack
 mod context {
     use super::*;
 
     #[test]
     fn preserves_original() {
-        let lua_error = new_lua_result().context("additional context").unwrap_err();
+        let lua_error = new_lua_runtime_error()
+            .context("additional context")
+            .unwrap_err();
         let components = ErrorComponents::from(lua_error);
 
         assert_eq!(components.messages()[0], "additional context");
@@ -34,7 +55,7 @@ mod context {
     fn preserves_levels() {
         // NOTE: The behavior in mlua is to preserve a single level of context
         // and not all levels (context gets replaced on each call to `context`)
-        let lua_error = new_lua_result()
+        let lua_error = new_lua_runtime_error()
             .context("level 1")
             .context("level 2")
             .context("level 3")
@@ -54,7 +75,7 @@ mod error_components {
 
     #[test]
     fn message() {
-        let lua_error = new_lua_result().unwrap_err();
+        let lua_error = new_lua_runtime_error().unwrap_err();
         let components = ErrorComponents::from(lua_error);
 
         assert_eq!(components.messages()[0], "oh no, a runtime error");
@@ -62,7 +83,7 @@ mod error_components {
 
     #[test]
     fn stack_begin_end() {
-        let lua_error = new_lua_result().unwrap_err();
+        let lua_error = new_lua_runtime_error().unwrap_err();
         let formatted = format!("{}", ErrorComponents::from(lua_error));
 
         assert!(formatted.contains("Stack Begin"));
@@ -71,7 +92,7 @@ mod error_components {
 
     #[test]
     fn stack_lines() {
-        let lua_error = new_lua_result().unwrap_err();
+        let lua_error = new_lua_runtime_error().unwrap_err();
         let components = ErrorComponents::from(lua_error);
 
         let mut lines = components.trace().unwrap().lines().iter();
@@ -81,5 +102,49 @@ mod error_components {
 
         assert_eq!(line_1, "Script '[C]' - function 'f'");
         assert_eq!(line_2, "Script 'chunk_name', Line 1");
+    }
+}
+
+// Tests for general formatting
+mod general {
+    use super::*;
+
+    #[test]
+    fn message_does_not_contain_location() {
+        let lua_error = new_lua_script_error().unwrap_err();
+
+        let components = ErrorComponents::from(lua_error);
+        let trace = components.trace().unwrap();
+
+        let first_message = components.messages().first().unwrap();
+        let first_lua_stack_line = trace
+            .lines()
+            .iter()
+            .find(|line| line.source().is_lua())
+            .unwrap();
+
+        let location_prefix = format!(
+            "[string \"{}\"]:{}:",
+            first_lua_stack_line.path().unwrap(),
+            first_lua_stack_line.line_number().unwrap()
+        );
+
+        assert!(!first_message.starts_with(&location_prefix));
+    }
+
+    #[test]
+    fn no_redundant_c_mentions() {
+        let lua_error = new_lua_script_error().unwrap_err();
+
+        let components = ErrorComponents::from(lua_error);
+        let trace = components.trace().unwrap();
+
+        let c_stack_lines = trace
+            .lines()
+            .iter()
+            .filter(|line| line.source().is_c())
+            .collect::<Vec<_>>();
+
+        assert_eq!(c_stack_lines.len(), 1); // Just the "error" call
     }
 }

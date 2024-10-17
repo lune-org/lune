@@ -39,6 +39,24 @@ pub enum StackTraceSource {
     Lua,
 }
 
+impl StackTraceSource {
+    /**
+        Returns `true` if the error originated from a C / Rust function, `false` otherwise.
+    */
+    #[must_use]
+    pub const fn is_c(self) -> bool {
+        matches!(self, Self::C)
+    }
+
+    /**
+        Returns `true` if the error originated from a Lua (user) function, `false` otherwise.
+    */
+    #[must_use]
+    pub const fn is_lua(self) -> bool {
+        matches!(self, Self::Lua)
+    }
+}
+
 /**
     Stack trace line parsed from a [`LuaError`].
 */
@@ -81,6 +99,20 @@ impl StackTraceLine {
     #[must_use]
     pub fn function_name(&self) -> Option<&str> {
         self.function_name.as_deref()
+    }
+
+    /**
+        Returns `true` if the stack trace line contains no "useful" information, `false` otherwise.
+
+        Useful information is determined as one of:
+
+        - A path
+        - A line number
+        - A function name
+    */
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.path.is_none() && self.line_number.is_none() && self.function_name.is_none()
     }
 }
 
@@ -144,6 +176,14 @@ impl StackTrace {
     #[must_use]
     pub fn lines(&self) -> &[StackTraceLine] {
         &self.lines
+    }
+
+    /**
+        Returns the individual stack trace lines, mutably.
+    */
+    #[must_use]
+    pub fn lines_mut(&mut self) -> &mut Vec<StackTraceLine> {
+        &mut self.lines
     }
 }
 
