@@ -114,8 +114,8 @@ impl LuaUserData for CPtr {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
-        method_provider::provide_ptr(methods);
-        method_provider::provide_arr(methods);
+        method_provider::provide_ptr_info(methods);
+        method_provider::provide_arr_info(methods);
 
         // ToString
         method_provider::provide_to_string(methods);

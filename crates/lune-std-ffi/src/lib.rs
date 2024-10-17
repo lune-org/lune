@@ -23,7 +23,7 @@ use crate::{
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let result = TableBuilder::new(lua)?
         .with_values(export_ctypes(lua)?)?
-        .with_value("nullRef", create_nullptr(lua)?)?
+        .with_function("nullRef", |lua, ()| create_nullptr(lua))?
         .with_function("box", |_lua, size: usize| Ok(FfiBox::new(size)))?
         .with_function("open", |_lua, name: String| FfiLib::new(name))?
         .with_function("structInfo", |lua, types: LuaTable| {

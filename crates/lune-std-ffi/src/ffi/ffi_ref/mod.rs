@@ -186,7 +186,7 @@ impl LuaUserData for FfiRef {
             let ffiref = FfiRef::luaref(lua, this)?;
             Ok(ffiref)
         });
-        methods.add_method("isNullptr", |_, this, ()| Ok(this.is_nullptr()));
+        methods.add_method("isNull", |_, this, ()| Ok(this.is_nullptr()));
     }
 }
 

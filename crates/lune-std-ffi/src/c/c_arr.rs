@@ -152,15 +152,15 @@ impl LuaUserData for CArr {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
-        method_provider::provide_ptr(methods);
+        method_provider::provide_ptr_info(methods);
 
         // ToString
         method_provider::provide_to_string(methods);
 
         // Realize
         method_provider::provide_box(methods);
-        method_provider::provide_from(methods);
-        method_provider::provide_into(methods);
+        method_provider::provide_from_data(methods);
+        method_provider::provide_into_data(methods);
 
         methods.add_method("offset", |_, this, offset: isize| {
             if this.length > (offset as usize) && offset >= 0 {

@@ -16,31 +16,31 @@ pub mod method_provider {
         });
     }
 
-    pub fn provide_ptr<'lua, Target, M>(methods: &mut M)
+    pub fn provide_ptr_info<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
+        methods.add_function("ptrInfo", |lua, this: LuaAnyUserData| {
             CPtr::from_userdata(lua, &this)
         });
     }
 
-    pub fn provide_arr<'lua, Target, M>(methods: &mut M)
+    pub fn provide_arr_info<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
+        methods.add_function("arrInfo", |lua, (this, length): (LuaAnyUserData, usize)| {
             CArr::from_userdata(lua, &this, length)
         });
     }
 
-    pub fn provide_from<'lua, Target, M>(methods: &mut M)
+    pub fn provide_from_data<'lua, Target, M>(methods: &mut M)
     where
         Target: NativeSize + NativeConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
-            "from",
+            "fromData",
             |lua, this, (userdata, offset): (LuaAnyUserData, Option<isize>)| {
                 let offset = offset.unwrap_or(0);
 
@@ -57,13 +57,13 @@ pub mod method_provider {
         );
     }
 
-    pub fn provide_into<'lua, Target, M>(methods: &mut M)
+    pub fn provide_into_data<'lua, Target, M>(methods: &mut M)
     where
         Target: NativeSize + NativeConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
-            "into",
+            "intoData",
             |lua, this, (userdata, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| {
                 let offset = offset.unwrap_or(0);
 
