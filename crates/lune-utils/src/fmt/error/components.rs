@@ -26,6 +26,11 @@ static STYLED_STACK_END: Lazy<String> = Lazy::new(|| {
     )
 });
 
+// NOTE: We indent using 4 spaces instead of tabs since
+// these errors are most likely to be displayed in a terminal
+// or some kind of live output - and tabs don't work well there
+const STACK_TRACE_INDENT: &str = "    ";
+
 /**
     Error components parsed from a [`LuaError`].
 
@@ -86,7 +91,7 @@ impl fmt::Display for ErrorComponents {
             let trace = self.trace.as_ref().unwrap();
             writeln!(f, "{}", *STYLED_STACK_BEGIN)?;
             for line in trace.lines() {
-                writeln!(f, "\t{line}")?;
+                writeln!(f, "{STACK_TRACE_INDENT}{line}")?;
             }
             writeln!(f, "{}", *STYLED_STACK_END)?;
         }
