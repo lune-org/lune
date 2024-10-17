@@ -6,10 +6,10 @@ use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
+use super::method_provider;
 use crate::{
-    c::method_provider,
-    ffi::{GetNativeData, NativeConvert, NativeData, NativeSignedness, NativeSize},
-    libffi_helper::get_ensured_size,
+    data::{FfiConvert, FfiData, FfiSignedness, FfiSize, GetFfiData},
+    ffi::libffi_helper::get_ensured_size,
 };
 
 // Cast native data
@@ -19,8 +19,8 @@ pub trait CTypeCast {
         &self,
         from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
-        _from: &Ref<dyn NativeData>,
-        _into: &Ref<dyn NativeData>,
+        _from: &Ref<dyn FfiData>,
+        _into: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
         // Show error if have no cast implement
         Err(Self::cast_failed_with(self, from_ctype, into_ctype))
@@ -40,23 +40,23 @@ pub trait CTypeCast {
     }
 }
 
-pub struct CType<T> {
+pub struct CTypeInfo<T> {
     middle_type: Type,
     size: usize,
     name: &'static str,
     _phantom: PhantomData<T>,
 }
 
-impl<T> NativeSize for CType<T> {
+impl<T> FfiSize for CTypeInfo<T> {
     fn get_size(&self) -> usize {
         self.size
     }
 }
 
-impl<T> CType<T>
+impl<T> CTypeInfo<T>
 where
     T: 'static,
-    Self: CTypeCast + NativeSignedness + NativeConvert + NativeSize,
+    Self: CTypeCast + FfiSignedness + FfiConvert + FfiSize,
 {
     pub fn new_with_libffi_type<'lua>(
         lua: &'lua Lua,
@@ -85,10 +85,10 @@ where
     }
 }
 
-impl<T> LuaUserData for CType<T>
+impl<T> LuaUserData for CTypeInfo<T>
 where
     T: 'static,
-    Self: CTypeCast + NativeSignedness + NativeConvert + NativeSize,
+    Self: CTypeCast + FfiSignedness + FfiConvert + FfiSize,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));

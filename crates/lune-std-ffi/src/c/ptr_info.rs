@@ -3,41 +3,38 @@ use std::cell::Ref;
 use libffi::middle::Type;
 use mlua::prelude::*;
 
-use super::{association_names::CPTR_INNER, c_helper, c_type_helper, method_provider};
+use super::{association_names::CPTR_INNER, ctype_helper, helper, method_provider};
 use crate::{
-    ffi::{
-        ffi_association::{get_association, set_association},
-        FfiRef, NativeConvert, NativeData, NativeSignedness, NativeSize,
-    },
-    libffi_helper::SIEE_OF_POINTER,
+    data::{FfiConvert, FfiData, FfiSignedness, FfiSize, RefData},
+    ffi::{association, libffi_helper::SIEE_OF_POINTER},
 };
 
-pub struct CPtr {
+pub struct CPtrInfo {
     inner_size: usize,
 }
 
-impl NativeSignedness for CPtr {
+impl FfiSignedness for CPtrInfo {
     fn get_signedness(&self) -> bool {
         false
     }
 }
-impl NativeSize for CPtr {
+impl FfiSize for CPtrInfo {
     fn get_size(&self) -> usize {
         SIEE_OF_POINTER
     }
 }
-impl NativeConvert for CPtr {
+impl FfiConvert for CPtrInfo {
     // Convert luavalue into data, then write into ptr
-    unsafe fn luavalue_into<'lua>(
+    unsafe fn value_into_data<'lua>(
         &self,
         _lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeData>,
+        data_handle: &Ref<dyn FfiData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
         if let LuaValue::UserData(value_userdata) = value {
-            if value_userdata.is::<FfiRef>() {
-                let value_ref = value_userdata.borrow::<FfiRef>()?;
+            if value_userdata.is::<RefData>() {
+                let value_ref = value_userdata.borrow::<RefData>()?;
                 value_ref
                     .check_boundary(0, self.inner_size)
                     .then_some(())
@@ -56,17 +53,17 @@ impl NativeConvert for CPtr {
     }
 
     // Read data from ptr, then convert into luavalue
-    unsafe fn luavalue_from<'lua>(
+    unsafe fn value_from_data<'lua>(
         &self,
         _lua: &'lua Lua,
         _offset: isize,
-        _data_handle: &Ref<dyn NativeData>,
+        _data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
         Err(LuaError::external("Conversion of pointer is not allowed"))
     }
 }
 
-impl CPtr {
+impl CPtrInfo {
     // Create pointer type with '.inner' field
     // inner can be CArr, CType or CStruct
     pub fn from_userdata<'lua>(
@@ -74,10 +71,10 @@ impl CPtr {
         inner: &LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let value = lua.create_userdata(Self {
-            inner_size: c_helper::get_size(inner)?,
+            inner_size: helper::get_size(inner)?,
         })?;
 
-        set_association(lua, CPTR_INNER, &value, inner)?;
+        association::set(lua, CPTR_INNER, &value, inner)?;
 
         Ok(value)
     }
@@ -85,8 +82,8 @@ impl CPtr {
     // Stringify CPtr with inner ctype
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         if let LuaValue::UserData(inner_userdata) = userdata.get("inner")? {
-            let pretty_formatted = c_helper::pretty_format(lua, &inner_userdata)?;
-            Ok(if c_type_helper::is_ctype(&inner_userdata) {
+            let pretty_formatted = helper::pretty_format(lua, &inner_userdata)?;
+            Ok(if ctype_helper::is_ctype(&inner_userdata) {
                 pretty_formatted
             } else {
                 format!(" {pretty_formatted} ")
@@ -102,11 +99,11 @@ impl CPtr {
     }
 }
 
-impl LuaUserData for CPtr {
+impl LuaUserData for CPtrInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, _| Ok(size_of::<usize>()));
         fields.add_field_function_get("inner", |lua, this| {
-            let inner = get_association(lua, CPTR_INNER, this)?
+            let inner = association::get(lua, CPTR_INNER, this)?
                 .ok_or_else(|| LuaError::external("inner type not found"))?;
             Ok(inner)
         });

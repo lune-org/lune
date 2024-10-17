@@ -1,12 +1,12 @@
-use super::NativeConvert;
+use super::FfiConvert;
 
 // pub enum NativeResultType {
 //     FfiBox,
 //     FfiRef,
 // }
 
-pub struct NativeResultInfo {
-    pub conv: *const dyn NativeConvert,
+pub struct FfiResultInfo {
+    pub conv: *const dyn FfiConvert,
     pub size: usize,
     // kind: NativeResultType,
 }

@@ -7,20 +7,20 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use super::{GetNativeData, NativeArgInfo, NativeData, NativeResultInfo};
+use super::{FfiArgInfo, FfiData, FfiResultInfo, GetFfiData};
 
-pub struct FfiCallable {
+pub struct CallableData {
     cif: *mut ffi_cif,
-    arg_info_list: *const Vec<NativeArgInfo>,
-    result_info: *const NativeResultInfo,
+    arg_info_list: *const Vec<FfiArgInfo>,
+    result_info: *const FfiResultInfo,
     code: CodePtr,
 }
 
-impl FfiCallable {
+impl CallableData {
     pub unsafe fn new(
         cif: *mut ffi_cif,
-        arg_info_list: *const Vec<NativeArgInfo>,
-        result_info: *const NativeResultInfo,
+        arg_info_list: *const Vec<FfiArgInfo>,
+        result_info: *const FfiResultInfo,
         function_pointer: *const (),
     ) -> Self {
         Self {
@@ -33,7 +33,7 @@ impl FfiCallable {
 
     // TODO? async call: if have no lua closure in arguments, fficallble can be called with async way
 
-    pub unsafe fn call(&self, result: &Ref<dyn NativeData>, args: LuaMultiValue) -> LuaResult<()> {
+    pub unsafe fn call(&self, result: &Ref<dyn FfiData>, args: LuaMultiValue) -> LuaResult<()> {
         result
             .check_boundary(0, self.result_info.as_ref().unwrap().size)
             .then_some(())
@@ -74,11 +74,11 @@ impl FfiCallable {
     }
 }
 
-impl LuaUserData for FfiCallable {
+impl LuaUserData for CallableData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method(
             "call",
-            |_lua, this: &FfiCallable, mut args: LuaMultiValue| {
+            |_lua, this: &CallableData, mut args: LuaMultiValue| {
                 let result_userdata = args.pop_front().ok_or_else(|| {
                     LuaError::external("first argument must be result data handle")
                 })?;

@@ -3,24 +3,21 @@ use std::{cell::Ref, vec::Vec};
 use libffi::{low, middle::Type, raw};
 use mlua::prelude::*;
 
-use super::{association_names::CSTRUCT_INNER, c_helper, method_provider};
-use crate::ffi::{
-    ffi_association::{get_association, set_association},
-    NativeConvert, NativeData, NativeSignedness, NativeSize, FFI_STATUS_NAMES,
+use super::{association_names::CSTRUCT_INNER, helper, method_provider};
+use crate::{
+    data::{FfiConvert, FfiData, FfiSignedness, FfiSize},
+    ffi::{association, libffi_helper::FFI_STATUS_NAMES},
 };
 
-pub struct CStruct {
+pub struct CStructInfo {
     middle_type: Type,
     size: usize,
     inner_offset_list: Vec<usize>,
-    inner_conv_list: Vec<*const dyn NativeConvert>,
+    inner_conv_list: Vec<*const dyn FfiConvert>,
 }
 
-impl CStruct {
-    pub fn new(
-        fields: Vec<Type>,
-        inner_conv_list: Vec<*const dyn NativeConvert>,
-    ) -> LuaResult<Self> {
+impl CStructInfo {
+    pub fn new(fields: Vec<Type>, inner_conv_list: Vec<*const dyn FfiConvert>) -> LuaResult<Self> {
         let len = fields.len();
         let mut inner_offset_list = Vec::<usize>::with_capacity(len);
         let middle_type = Type::structure(fields);
@@ -60,32 +57,33 @@ impl CStruct {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let cstruct = lua.create_userdata(Self::new(
-            c_helper::get_middle_type_list(&table)?,
-            unsafe { c_helper::get_conv_list(&table)? },
-        )?)?;
+        let cstruct = lua
+            .create_userdata(Self::new(helper::get_middle_type_list(&table)?, unsafe {
+                helper::get_conv_list(&table)?
+            })?)?;
 
         table.set_readonly(true);
-        set_association(lua, CSTRUCT_INNER, &cstruct, table)?;
+        association::set(lua, CSTRUCT_INNER, &cstruct, table)?;
         Ok(cstruct)
     }
 
     // Stringify cstruct for pretty printing like:
     // <CStruct( u8, i32, size = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-        if let LuaValue::Table(fields) = get_association(lua, CSTRUCT_INNER, userdata)?
+        if let LuaValue::Table(fields) = association::get(lua, CSTRUCT_INNER, userdata)?
             .ok_or_else(|| LuaError::external("Field table not found"))?
         {
             let mut result = String::from(" ");
             for i in 0..fields.raw_len() {
                 let child: LuaAnyUserData = fields.raw_get(i + 1)?;
-                let pretty_formatted = c_helper::pretty_format(lua, &child)?;
+                let pretty_formatted = helper::pretty_format(lua, &child)?;
                 result.push_str(format!("{pretty_formatted}, ").as_str());
             }
 
             // size of
-            result
-                .push_str(format!("size = {} ", userdata.borrow::<CStruct>()?.get_size()).as_str());
+            result.push_str(
+                format!("size = {} ", userdata.borrow::<CStructInfo>()?.get_size()).as_str(),
+            );
             Ok(result)
         } else {
             Err(LuaError::external("failed to get inner type table."))
@@ -107,23 +105,23 @@ impl CStruct {
     }
 }
 
-impl NativeSize for CStruct {
+impl FfiSize for CStructInfo {
     fn get_size(&self) -> usize {
         self.size
     }
 }
-impl NativeSignedness for CStruct {
+impl FfiSignedness for CStructInfo {
     fn get_signedness(&self) -> bool {
         false
     }
 }
-impl NativeConvert for CStruct {
+impl FfiConvert for CStructInfo {
     // FIXME: FfiBox, FfiRef support required
-    unsafe fn luavalue_into<'lua>(
+    unsafe fn value_into_data<'lua>(
         &self,
         lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeData>,
+        data_handle: &Ref<dyn FfiData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
         let LuaValue::Table(ref table) = value else {
@@ -133,18 +131,21 @@ impl NativeConvert for CStruct {
             let field_offset = self.offset(i)? as isize;
             let data: LuaValue = table.get(i + 1)?;
 
-            conv.as_ref()
-                .unwrap()
-                .luavalue_into(lua, field_offset + offset, data_handle, data)?;
+            conv.as_ref().unwrap().value_into_data(
+                lua,
+                field_offset + offset,
+                data_handle,
+                data,
+            )?;
         }
         Ok(())
     }
 
-    unsafe fn luavalue_from<'lua>(
+    unsafe fn value_from_data<'lua>(
         &self,
         lua: &'lua Lua,
         offset: isize,
-        data_handle: &Ref<dyn NativeData>,
+        data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
         let table = lua.create_table_with_capacity(self.inner_conv_list.len(), 0)?;
         for (i, conv) in self.inner_conv_list.iter().enumerate() {
@@ -153,14 +154,14 @@ impl NativeConvert for CStruct {
                 i + 1,
                 conv.as_ref()
                     .unwrap()
-                    .luavalue_from(lua, field_offset + offset, data_handle)?,
+                    .value_from_data(lua, field_offset + offset, data_handle)?,
             )?;
         }
         Ok(LuaValue::Table(table))
     }
 }
 
-impl LuaUserData for CStruct {
+impl LuaUserData for CStructInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
     }
@@ -184,7 +185,7 @@ impl LuaUserData for CStruct {
         // Simply pass type in the locked table used when first creating this object.
         // By referencing the table to struct, the types inside do not disappear
         methods.add_function("field", |lua, (this, field): (LuaAnyUserData, usize)| {
-            if let LuaValue::Table(fields) = get_association(lua, CSTRUCT_INNER, this)?
+            if let LuaValue::Table(fields) = association::get(lua, CSTRUCT_INNER, this)?
                 .ok_or_else(|| LuaError::external("Field table not found"))?
             {
                 let value: LuaValue = fields.raw_get(field + 1)?;

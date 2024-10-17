@@ -1,20 +1,19 @@
-mod c_arr;
-mod c_func;
-pub mod c_helper;
-mod c_ptr;
-mod c_string;
-mod c_struct;
-mod c_type;
+mod arr_info;
+mod fn_info;
+pub mod helper;
+mod ptr_info;
+mod struct_info;
+mod type_info;
 mod types;
 
 pub use self::{
-    c_arr::CArr,
-    c_func::CFunc,
-    c_helper::method_provider,
-    c_ptr::CPtr,
-    c_struct::CStruct,
-    c_type::{CType, CTypeCast},
-    types::{c_type_helper, export_ctypes},
+    arr_info::CArrInfo,
+    fn_info::CFnInfo,
+    helper::method_provider,
+    ptr_info::CPtrInfo,
+    struct_info::CStructInfo,
+    type_info::{CTypeCast, CTypeInfo},
+    types::{ctype_helper, export_ctypes},
 };
 
 // Named registry table names

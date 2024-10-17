@@ -1,71 +1,49 @@
-pub mod ffi_association;
-mod ffi_box;
-mod ffi_callable;
-mod ffi_closure;
-mod ffi_lib;
-mod ffi_native;
-mod ffi_ref;
+use std::cell::Ref;
 
 use mlua::prelude::*;
 
-pub use self::{
-    ffi_box::FfiBox,
-    ffi_callable::FfiCallable,
-    ffi_closure::FfiClosure,
-    ffi_lib::FfiLib,
-    ffi_native::{
-        native_num_cast, GetNativeData, NativeArgInfo, NativeConvert, NativeData, NativeResultInfo,
-        NativeSignedness, NativeSize,
-    },
-    ffi_ref::{create_nullptr, FfiRef, FfiRefFlag},
-};
+mod arg;
+pub mod association;
+pub mod bit_mask;
+mod cast;
+pub mod libffi_helper;
+mod result;
 
-// Named registry table names
-mod association_names {
-    pub const REF_INNER: &str = "__ref_inner";
-    pub const SYM_INNER: &str = "__syn_inner";
+pub trait FfiSize {
+    fn get_size(&self) -> usize;
 }
 
-// Converts ffi status into &str
-pub const FFI_STATUS_NAMES: [&str; 4] = [
-    "ffi_status_FFI_OK",
-    "ffi_status_FFI_BAD_TYPEDEF",
-    "ffi_status_FFI_BAD_ABI",
-    "ffi_status_FFI_BAD_ARGTYPE",
-];
-
-#[allow(unused)]
-pub mod bit_mask {
-    pub const U8_MASK1: u8 = 1;
-    pub const U8_MASK2: u8 = 2;
-    pub const U8_MASK3: u8 = 4;
-    pub const U8_MASK4: u8 = 8;
-    pub const U8_MASK5: u8 = 16;
-    pub const U8_MASK6: u8 = 32;
-    pub const U8_MASK7: u8 = 64;
-    pub const U8_MASK8: u8 = 128;
-
-    #[inline]
-    pub fn u8_test(bits: u8, mask: u8) -> bool {
-        bits & mask != 0
-    }
-
-    #[inline]
-    pub fn u8_test_not(bits: u8, mask: u8) -> bool {
-        bits & mask == 0
-    }
-
-    #[inline]
-    pub fn u8_set(bits: u8, mask: u8, val: bool) -> u8 {
-        if val {
-            bits | mask
-        } else {
-            bits & !mask
-        }
+pub trait FfiSignedness {
+    fn get_signedness(&self) -> bool {
+        false
     }
 }
 
-#[inline]
-pub fn is_integer(num: LuaValue) -> bool {
-    num.is_integer()
+// Provide type conversion between luavalue and ffidata types
+pub trait FfiConvert {
+    // Write LuaValue into FfiData
+    unsafe fn value_into_data<'lua>(
+        &self,
+        lua: &'lua Lua,
+        offset: isize,
+        data_handle: &Ref<dyn FfiData>,
+        value: LuaValue<'lua>,
+    ) -> LuaResult<()>;
+
+    // Read LuaValue from FfiData
+    unsafe fn value_from_data<'lua>(
+        &self,
+        lua: &'lua Lua,
+        offset: isize,
+        data_handle: &Ref<dyn FfiData>,
+    ) -> LuaResult<LuaValue<'lua>>;
 }
+
+pub trait FfiData {
+    fn check_boundary(&self, offset: isize, size: usize) -> bool;
+    unsafe fn get_pointer(&self) -> *mut ();
+    fn is_writable(&self) -> bool;
+    fn is_readable(&self) -> bool;
+}
+
+pub use self::{arg::FfiArgInfo, cast::num_cast, result::FfiResultInfo};

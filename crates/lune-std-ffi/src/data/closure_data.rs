@@ -8,17 +8,18 @@ use libffi::{
 use mlua::prelude::*;
 
 use super::{
-    ffi_ref::{FfiRefBounds, FfiRefFlag},
-    FfiRef, FFI_STATUS_NAMES,
+    ref_data::{RefDataBounds, RefDataFlag},
+    RefData,
 };
+use crate::ffi::libffi_helper::FFI_STATUS_NAMES;
 
-pub struct FfiClosure<'a> {
+pub struct ClosureData<'a> {
     closure: *mut ffi_closure,
     code: CodePtr,
     userdata: CallbackUserdata<'a>,
 }
 
-impl<'a> Drop for FfiClosure<'a> {
+impl<'a> Drop for ClosureData<'a> {
     fn drop(&mut self) {
         unsafe {
             closure_free(self.closure);
@@ -35,7 +36,7 @@ pub struct CallbackUserdata<'a> {
     pub result_size: usize,
 }
 
-const RESULT_REF_FLAGS: u8 = FfiRefFlag::Leaked.value() | FfiRefFlag::Writable.value();
+const RESULT_REF_FLAGS: u8 = RefDataFlag::Leaked.value() | RefDataFlag::Writable.value();
 
 unsafe extern "C" fn callback(
     cif: *mut ffi_cif,
@@ -51,10 +52,10 @@ unsafe extern "C" fn callback(
     args.push(LuaValue::UserData(
         (*userdata)
             .lua
-            .create_userdata(FfiRef::new(
+            .create_userdata(RefData::new(
                 result_pointer.cast::<()>(),
                 RESULT_REF_FLAGS,
-                FfiRefBounds::new(0, (*userdata).result_size),
+                RefDataBounds::new(0, (*userdata).result_size),
             ))
             .unwrap(),
     ));
@@ -64,10 +65,10 @@ unsafe extern "C" fn callback(
         args.push(LuaValue::UserData(
             (*userdata)
                 .lua
-                .create_userdata(FfiRef::new(
+                .create_userdata(RefData::new(
                     (*arg_pointers.add(i)).cast::<()>(),
                     (*userdata).arg_ref_flags.get(i).unwrap().to_owned(),
-                    FfiRefBounds::new(0, (*userdata).arg_ref_size.get(i).unwrap().to_owned()),
+                    RefDataBounds::new(0, (*userdata).arg_ref_size.get(i).unwrap().to_owned()),
                 ))
                 .unwrap(),
         ));
@@ -76,11 +77,11 @@ unsafe extern "C" fn callback(
     (*userdata).func.call::<_, ()>(args).unwrap();
 }
 
-impl<'a> FfiClosure<'a> {
+impl<'a> ClosureData<'a> {
     pub unsafe fn new(
         cif: *mut ffi_cif,
         userdata: CallbackUserdata<'a>,
-    ) -> LuaResult<FfiClosure<'a>> {
+    ) -> LuaResult<ClosureData<'a>> {
         let (closure, code) = closure_alloc();
         let prep_result = ffi_prep_closure_loc(
             closure,
@@ -96,7 +97,7 @@ impl<'a> FfiClosure<'a> {
                 FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[prep_result as usize]
             )))
         } else {
-            Ok(FfiClosure {
+            Ok(ClosureData {
                 closure,
                 code,
                 userdata,

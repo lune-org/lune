@@ -1,16 +1,16 @@
-use super::NativeConvert;
+use super::FfiConvert;
 
 pub struct FfiArgRefOption {
     pub flag: u8,
 }
 
-pub enum NativeArgType {
+pub enum FfiArgType {
     FfiBox,
     FfiRef(FfiArgRefOption),
 }
 
-pub struct NativeArgInfo {
-    pub conv: *const dyn NativeConvert,
+pub struct FfiArgInfo {
+    pub conv: *const dyn FfiConvert,
     pub size: usize,
     // pub kind: NativeArgType,
 }

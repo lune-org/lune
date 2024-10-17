@@ -5,13 +5,11 @@ use mlua::prelude::*;
 
 use super::{
     association_names::{CALLABLE_CFN, CALLABLE_REF, CFN_ARGS, CFN_RESULT},
-    c_helper, method_provider,
+    helper, method_provider,
 };
-use crate::ffi::{
-    bit_mask::u8_test_not,
-    ffi_association::{get_association, set_association},
-    FfiCallable, FfiRef, FfiRefFlag, NativeArgInfo, NativeData, NativeResultInfo, NativeSignedness,
-    NativeSize,
+use crate::{
+    data::{CallableData, RefData, RefDataFlag},
+    ffi::{association, bit_mask::*, FfiArgInfo, FfiData, FfiResultInfo, FfiSignedness, FfiSize},
 };
 
 // cfn is a type declaration for a function.
@@ -30,29 +28,29 @@ use crate::ffi::{
 // The name cfn is intentional. This is because any *c_void is
 // moved to a Lua function or vice versa.
 
-pub struct CFunc {
+pub struct CFnInfo {
     cif: Cif,
-    arg_info_list: Vec<NativeArgInfo>,
-    result_info: NativeResultInfo,
+    arg_info_list: Vec<FfiArgInfo>,
+    result_info: FfiResultInfo,
 }
 
-impl NativeSignedness for CFunc {
+impl FfiSignedness for CFnInfo {
     fn get_signedness(&self) -> bool {
         false
     }
 }
-impl NativeSize for CFunc {
+impl FfiSize for CFnInfo {
     fn get_size(&self) -> usize {
         size_of::<*mut ()>()
     }
 }
 
-impl CFunc {
+impl CFnInfo {
     pub fn new(
         args: Vec<Type>,
         ret: Type,
-        arg_info_list: Vec<NativeArgInfo>,
-        result_info: NativeResultInfo,
+        arg_info_list: Vec<FfiArgInfo>,
+        result_info: FfiResultInfo,
     ) -> LuaResult<Self> {
         // let cif = ;
 
@@ -68,29 +66,29 @@ impl CFunc {
         arg_table: LuaTable,
         ret: LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let args_types = c_helper::get_middle_type_list(&arg_table)?;
-        let ret_type = c_helper::get_middle_type(&ret)?;
+        let args_types = helper::get_middle_type_list(&arg_table)?;
+        let ret_type = helper::get_middle_type(&ret)?;
 
         let arg_len = arg_table.raw_len();
-        let mut arg_info_list = Vec::<NativeArgInfo>::with_capacity(arg_len);
+        let mut arg_info_list = Vec::<FfiArgInfo>::with_capacity(arg_len);
         for index in 0..arg_len {
-            let userdata = c_helper::get_userdata(arg_table.raw_get(index + 1)?)?;
-            arg_info_list.push(NativeArgInfo {
-                conv: unsafe { c_helper::get_conv(&userdata)? },
-                size: c_helper::get_size(&userdata)?,
+            let userdata = helper::get_userdata(arg_table.raw_get(index + 1)?)?;
+            arg_info_list.push(FfiArgInfo {
+                conv: unsafe { helper::get_conv(&userdata)? },
+                size: helper::get_size(&userdata)?,
             });
         }
-        let result_info = NativeResultInfo {
-            conv: unsafe { c_helper::get_conv(&ret)? },
-            size: c_helper::get_size(&ret)?,
+        let result_info = FfiResultInfo {
+            conv: unsafe { helper::get_conv(&ret)? },
+            size: helper::get_size(&ret)?,
         };
 
         let cfn =
             lua.create_userdata(Self::new(args_types, ret_type, arg_info_list, result_info)?)?;
 
         // Create association to hold argument and result type
-        set_association(lua, CFN_ARGS, &cfn, arg_table)?;
-        set_association(lua, CFN_RESULT, &cfn, ret)?;
+        association::set(lua, CFN_ARGS, &cfn, arg_table)?;
+        association::set(lua, CFN_RESULT, &cfn, ret)?;
 
         Ok(cfn)
     }
@@ -100,13 +98,13 @@ impl CFunc {
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let mut result = String::from(" (");
         if let (Some(LuaValue::Table(arg_table)), Some(LuaValue::UserData(result_userdata))) = (
-            get_association(lua, CFN_ARGS, userdata)?,
-            get_association(lua, CFN_RESULT, userdata)?,
+            association::get(lua, CFN_ARGS, userdata)?,
+            association::get(lua, CFN_RESULT, userdata)?,
         ) {
             let len = arg_table.raw_len();
             for arg_index in 1..=len {
                 let arg_userdata: LuaAnyUserData = arg_table.raw_get(arg_index)?;
-                let pretty_formatted = c_helper::pretty_format(lua, &arg_userdata)?;
+                let pretty_formatted = helper::pretty_format(lua, &arg_userdata)?;
                 result.push_str(
                     (if len == arg_index {
                         pretty_formatted
@@ -117,7 +115,7 @@ impl CFunc {
                 );
             }
             result.push_str(
-                format!(") -> {} ", c_helper::pretty_format(lua, &result_userdata)?,).as_str(),
+                format!(") -> {} ", helper::pretty_format(lua, &result_userdata)?,).as_str(),
             );
             Ok(result)
         } else {
@@ -126,7 +124,7 @@ impl CFunc {
     }
 }
 
-impl LuaUserData for CFunc {
+impl LuaUserData for CFnInfo {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr_info(methods);
@@ -142,19 +140,19 @@ impl LuaUserData for CFunc {
         methods.add_function(
             "callable",
             |lua, (cfn, function_ref): (LuaAnyUserData, LuaAnyUserData)| {
-                let this = cfn.borrow::<CFunc>()?;
+                let this = cfn.borrow::<CFnInfo>()?;
 
-                if !function_ref.is::<FfiRef>() {
+                if !function_ref.is::<RefData>() {
                     return Err(LuaError::external("argument 0 must be ffiref"));
                 }
 
-                let ffi_ref = function_ref.borrow::<FfiRef>()?;
-                if u8_test_not(ffi_ref.flags, FfiRefFlag::Function.value()) {
+                let ffi_ref = function_ref.borrow::<RefData>()?;
+                if u8_test_not(ffi_ref.flags, RefDataFlag::Function.value()) {
                     return Err(LuaError::external("not a function ref"));
                 }
 
                 let callable = lua.create_userdata(unsafe {
-                    FfiCallable::new(
+                    CallableData::new(
                         this.cif.as_raw_ptr(),
                         ptr::from_ref(&this.arg_info_list),
                         ptr::from_ref(&this.result_info),
@@ -162,8 +160,8 @@ impl LuaUserData for CFunc {
                     )
                 })?;
 
-                set_association(lua, CALLABLE_CFN, &callable, cfn.clone())?;
-                set_association(lua, CALLABLE_REF, &callable, function_ref.clone())?;
+                association::set(lua, CALLABLE_CFN, &callable, cfn.clone())?;
+                association::set(lua, CALLABLE_REF, &callable, function_ref.clone())?;
 
                 Ok(callable)
             },

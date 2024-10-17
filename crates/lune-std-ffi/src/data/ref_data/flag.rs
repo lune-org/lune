@@ -1,6 +1,6 @@
-use super::super::bit_mask::*;
+use crate::ffi::bit_mask::*;
 
-pub enum FfiRefFlag {
+pub enum RefDataFlag {
     Leaked,
     Dereferenceable,
     Readable,
@@ -9,7 +9,7 @@ pub enum FfiRefFlag {
     Function,
     Uninit,
 }
-impl FfiRefFlag {
+impl RefDataFlag {
     pub const fn value(&self) -> u8 {
         match self {
             Self::Leaked => U8_MASK1,

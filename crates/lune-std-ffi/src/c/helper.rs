@@ -2,8 +2,8 @@ use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
-use super::{c_type_helper, CArr, CFunc, CPtr, CStruct};
-use crate::ffi::{FfiBox, GetNativeData, NativeConvert, NativeSize};
+use super::{ctype_helper, CArrInfo, CFnInfo, CPtrInfo, CStructInfo};
+use crate::data::{BoxData, FfiConvert, FfiSize, GetFfiData};
 
 pub mod method_provider {
     use super::*;
@@ -20,8 +20,8 @@ pub mod method_provider {
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("ptrInfo", |lua, this: LuaAnyUserData| {
-            CPtr::from_userdata(lua, &this)
+        methods.add_function("pointerInfo", |lua, this: LuaAnyUserData| {
+            CPtrInfo::from_userdata(lua, &this)
         });
     }
 
@@ -29,14 +29,14 @@ pub mod method_provider {
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("arrInfo", |lua, (this, length): (LuaAnyUserData, usize)| {
-            CArr::from_userdata(lua, &this, length)
+        methods.add_function("ArrInfo", |lua, (this, length): (LuaAnyUserData, usize)| {
+            CArrInfo::from_userdata(lua, &this, length)
         });
     }
 
     pub fn provide_from_data<'lua, Target, M>(methods: &mut M)
     where
-        Target: NativeSize + NativeConvert,
+        Target: FfiSize + FfiConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
@@ -52,14 +52,14 @@ pub mod method_provider {
                     return Err(LuaError::external("Unreadable data handle"));
                 }
 
-                unsafe { this.luavalue_from(lua, offset, data_handle) }
+                unsafe { this.value_from_data(lua, offset, data_handle) }
             },
         );
     }
 
     pub fn provide_into_data<'lua, Target, M>(methods: &mut M)
     where
-        Target: NativeSize + NativeConvert,
+        Target: FfiSize + FfiConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
@@ -76,19 +76,19 @@ pub mod method_provider {
                     return Err(LuaError::external("Unwritable data handle"));
                 }
 
-                unsafe { this.luavalue_into(lua, offset, data_handle, value) }
+                unsafe { this.value_into_data(lua, offset, data_handle, value) }
             },
         );
     }
 
     pub fn provide_box<'lua, Target, M>(methods: &mut M)
     where
-        Target: NativeSize + NativeConvert,
+        Target: FfiSize + FfiConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method("box", |lua, this, table: LuaValue| {
-            let result = lua.create_userdata(FfiBox::new(this.get_size()))?;
-            unsafe { this.luavalue_into(lua, 0, &result.get_data_handle()?, table)? };
+            let result = lua.create_userdata(BoxData::new(this.get_size()))?;
+            unsafe { this.value_into_data(lua, 0, &result.get_data_handle()?, table)? };
             Ok(result)
         });
     }
@@ -109,22 +109,22 @@ pub fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
 // this is intended to avoid lookup userdata and lua table every time. (eg: struct)
 // userdata must live longer than the NativeConvert handle.
 // However, c_struct is a strong reference to each field, so this is not a problem.
-pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {
-    if userdata.is::<CStruct>() {
-        Ok(userdata.to_pointer().cast::<CStruct>() as *const dyn NativeConvert)
-    } else if userdata.is::<CArr>() {
-        Ok(userdata.to_pointer().cast::<CArr>() as *const dyn NativeConvert)
-    } else if userdata.is::<CPtr>() {
-        Ok(userdata.to_pointer().cast::<CPtr>() as *const dyn NativeConvert)
+pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiConvert> {
+    if userdata.is::<CStructInfo>() {
+        Ok(userdata.to_pointer().cast::<CStructInfo>() as *const dyn FfiConvert)
+    } else if userdata.is::<CArrInfo>() {
+        Ok(userdata.to_pointer().cast::<CArrInfo>() as *const dyn FfiConvert)
+    } else if userdata.is::<CPtrInfo>() {
+        Ok(userdata.to_pointer().cast::<CPtrInfo>() as *const dyn FfiConvert)
     } else {
-        c_type_helper::get_conv(userdata)
+        ctype_helper::get_conv(userdata)
         // TODO: struct and more
     }
 }
 
-pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn NativeConvert>> {
+pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn FfiConvert>> {
     let len: usize = table.raw_len();
-    let mut conv_list = Vec::<*const dyn NativeConvert>::with_capacity(len);
+    let mut conv_list = Vec::<*const dyn FfiConvert>::with_capacity(len);
 
     for i in 0..len {
         let value: LuaValue = table.raw_get(i + 1)?;
@@ -135,27 +135,27 @@ pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn Native
 }
 
 pub fn get_size(this: &LuaAnyUserData) -> LuaResult<usize> {
-    if this.is::<CStruct>() {
-        Ok(this.borrow::<CStruct>()?.get_size())
-    } else if this.is::<CArr>() {
-        Ok(this.borrow::<CArr>()?.get_size())
-    } else if this.is::<CPtr>() {
-        Ok(this.borrow::<CPtr>()?.get_size())
+    if this.is::<CStructInfo>() {
+        Ok(this.borrow::<CStructInfo>()?.get_size())
+    } else if this.is::<CArrInfo>() {
+        Ok(this.borrow::<CArrInfo>()?.get_size())
+    } else if this.is::<CPtrInfo>() {
+        Ok(this.borrow::<CPtrInfo>()?.get_size())
     } else {
-        c_type_helper::get_size(this)
+        ctype_helper::get_size(this)
     }
 }
 
 // get libffi_type from any c-type userdata
 pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
-    if userdata.is::<CStruct>() {
-        Ok(userdata.borrow::<CStruct>()?.get_type())
-    } else if let Some(middle_type) = c_type_helper::get_middle_type(userdata)? {
+    if userdata.is::<CStructInfo>() {
+        Ok(userdata.borrow::<CStructInfo>()?.get_type())
+    } else if let Some(middle_type) = ctype_helper::get_middle_type(userdata)? {
         Ok(middle_type)
-    } else if userdata.is::<CArr>() {
-        Ok(userdata.borrow::<CArr>()?.get_type())
-    } else if userdata.is::<CPtr>() {
-        Ok(CPtr::get_type())
+    } else if userdata.is::<CArrInfo>() {
+        Ok(userdata.borrow::<CArrInfo>()?.get_type())
+    } else if userdata.is::<CPtrInfo>() {
+        Ok(CPtrInfo::get_type())
     } else {
         Err(LuaError::external(format!(
             "Unexpected field. CStruct, CType, CString or CArr is required for element but got {}",
@@ -192,15 +192,15 @@ pub fn get_middle_type_list(table: &LuaTable) -> LuaResult<Vec<Type>> {
 
 // stringify any c-type userdata (for recursive)
 pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-    if userdata.is::<CStruct>() {
-        CStruct::stringify(lua, userdata)
-    } else if userdata.is::<CArr>() {
-        CArr::stringify(lua, userdata)
-    } else if userdata.is::<CPtr>() {
-        CPtr::stringify(lua, userdata)
-    } else if userdata.is::<CFunc>() {
-        CFunc::stringify(lua, userdata)
-    } else if let Some(name) = c_type_helper::get_name(userdata)? {
+    if userdata.is::<CStructInfo>() {
+        CStructInfo::stringify(lua, userdata)
+    } else if userdata.is::<CArrInfo>() {
+        CArrInfo::stringify(lua, userdata)
+    } else if userdata.is::<CPtrInfo>() {
+        CPtrInfo::stringify(lua, userdata)
+    } else if userdata.is::<CFnInfo>() {
+        CFnInfo::stringify(lua, userdata)
+    } else if let Some(name) = ctype_helper::get_name(userdata)? {
         Ok(String::from(name))
     } else {
         Ok(String::from("unknown"))
@@ -209,15 +209,15 @@ pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
 
 // get name tag for any c-type userdata
 pub fn get_tag_name(userdata: &LuaAnyUserData) -> LuaResult<String> {
-    Ok(if userdata.is::<CStruct>() {
+    Ok(if userdata.is::<CStructInfo>() {
         String::from("CStruct")
-    } else if userdata.is::<CArr>() {
+    } else if userdata.is::<CArrInfo>() {
         String::from("CArr")
-    } else if userdata.is::<CPtr>() {
+    } else if userdata.is::<CPtrInfo>() {
         String::from("CPtr")
-    } else if userdata.is::<CFunc>() {
+    } else if userdata.is::<CFnInfo>() {
         String::from("CFunc")
-    } else if c_type_helper::is_ctype(userdata) {
+    } else if ctype_helper::is_ctype(userdata) {
         String::from("CType")
     } else {
         String::from("Unknown")
@@ -226,7 +226,7 @@ pub fn get_tag_name(userdata: &LuaAnyUserData) -> LuaResult<String> {
 
 // emulate 'print' for ctype userdata, but ctype is simplified
 pub fn pretty_format(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-    if c_type_helper::is_ctype(userdata) {
+    if ctype_helper::is_ctype(userdata) {
         stringify(lua, userdata)
     } else {
         Ok(format!(

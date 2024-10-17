@@ -1,37 +1,57 @@
 -- NOTE: T is a unique identifier for the `CType` and R is the closest Lua type.
-export type CType<T, R> = {
+export type CTypeInfo<T, R> = {
 	size: number,
 	signedness: boolean,
 
-	ptr: (self: CType<T, R>) -> CPtr<R>,
-	box: (self: CType<T, R>, val: R) -> Box,
-	-- FIXME: recursive types; ud should be CTypes
-	from: (self: CType<T, R>, ud: any, offset: number?) -> R,
-	into: (self: CType<T, R>, ud: any, value: R, offset: number?) -> (),
-	arr: (self: CType<T, R>, len: number) -> CArr<R>,
-	-- FIXME: recursive types; intoType should be CTypes
-	cast: <F, I>(self: CType<T, R>, intoType: any, from: F, into: I) -> (),
+	-- subtype
+	ptrInfo: (self: CTypeInfo<T, R>) -> CPtrInfo<CTypeInfo<T, R>>,
+	arrInfo: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
+
+	-- realize
+	box: (self: CTypeInfo<T, R>, val: R) -> Box,
+	fromData: (self: CTypeInfo<T, R>, data: (Ref|Box), offset: number?) -> R,
+	intoData: (self: CTypeInfo<T, R>, data: (Ref|Box), value: R, offset: number?) -> (),
+	
+	-- FIXME: recursive types; 'intoType' should be CTypes
+	cast: (self: CTypeInfo<T, R>, intoType: any, fromData: (Ref|Box), intoData: (Ref|Box)) -> (),
 } & { ["__phantom"]: T }
 
-export type CPtr<T> = {
+export type CPtrInfo<T> = {
 	size: number,
-	inner: T?,
+	inner: T,
+
+	-- subtype
+	-- FIXME: recursive types; 'any' should be CPtrInfo
+	arrInfo: (self: CPtrInfo<T>, len: number) -> any,
+	ptrInfo: (self: CPtrInfo<T>) -> any,
 }
 
-export type CArr<T> = {
+export type CArrInfo<T, R> = {
 	size: number,
 	length: number,
-	inner: { T }?,
+	inner: T,
 
-	offset: (self: CArr<T>, offset: number) -> number,
-	ptr: (self: CArr<T>) -> CPtr<{ T }>,
-	box: (self: CArr<T>, table: { T }) -> Box,
-	-- FIXME: recursive types; ud should be CTypes
-	from: (self: CArr<T>, ud: any, offset: number?) -> { T },
-	into: (self: CArr<T>, ud: any, value: { T }, offset: number?) -> (),
+	-- subtype
+	ptrInfo: (self: CArrInfo<T, R>) -> CPtrInfo<T>,
+
+	-- realize
+	box: (self: CArrInfo<T, R>, table: { T }) -> Box,
+	fromData: (self: CArrInfo<T, R>, data: (Ref|Box), offset: number?) -> { T },
+	intoData: (self: CArrInfo<T, R>, data: (Ref|Box), value: { T }, offset: number?) -> (),
+
+	offset: (self: CArrInfo<T, R>, offset: number) -> number,
 }
 
-type NumCType<T> = CType<T, number>
+export type CFuncInfo = {
+	callable: (self: CFuncInfo, functionRef: Ref) -> Callable,
+}
+
+export type CStructInfo = {
+	arrInfo: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, {any}>,
+	ptrInfo: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
+}
+
+type NumCType<T> = CTypeInfo<T, (number|any)>
 
 -- Fixed size Rust-style types --
 export type u8 = NumCType<"u8">
@@ -64,10 +84,6 @@ export type ulong = NumCType<"ulong">
 export type longlong = NumCType<"longlong">
 export type ulonglong = NumCType<"ulonglong">
 
-export type CFn = {
-	caller: (self: CFn, fnPtr: Ref) -> Callable,
-}
-
 export type CTypes =
 	| u8
 	| u16
@@ -96,12 +112,15 @@ export type CTypes =
 	| ulong
 	| longlong
 	| ulonglong
+	| CArrInfo<CTypes, any>
+	| CPtrInfo<CTypes>
+	| CFuncInfo
 
 export type Ref = {
 	deref: (self: Ref) -> Ref,
 	offset: (self: Ref, offset: number) -> Ref,
 	ref: (self: Ref) -> Ref,
-	isNullptr: (self: Ref) -> boolean,
+	isNull: (self: Ref) -> boolean,
 }
 
 export type Box = {
@@ -112,12 +131,12 @@ export type Box = {
 	ref: (self: Box, offset: number?) -> Ref,
 }
 
-export type Library = {
-	find: (self: Library, sym: string) -> Ref,
+export type Lib = {
+	find: (self: Lib, sym: string) -> Ref,
 }
 
 export type Callable = {
-	call: (self: Callable, retPtr: Ref, ...Box) -> (),
+	call: (self: Callable, result: Ref, ...(Ref | Box))->();
 }
 
 local ffi = {}
@@ -151,17 +170,19 @@ ffi.ulong = {} :: ulong
 ffi.longlong = {} :: longlong
 ffi.ulonglong = {} :: ulonglong
 
-ffi.nullptr = {} :: Ref
+function ffi.nullRef(): Ref
+	return nil :: any
+end
 
 function ffi.box(size: number): Box
 	return nil :: any
 end
 
-function ffi.open(path: string): Library
+function ffi.open(name: string): Lib
 	return nil :: any
 end
 
-function ffi.ref(): Ref
+function ffi.uninitRef(): Ref
 	return nil :: any
 end
 
@@ -169,7 +190,7 @@ function ffi.isInteger<T>(val: T): boolean
 	return nil :: any
 end
 
-function ffi.fn<T>(args: { CTypes }, ret: CTypes): CFn
+function ffi.funcInfo<T>(args: { CTypes }, ret: CTypes): CFuncInfo
 	return nil :: any
 end
 

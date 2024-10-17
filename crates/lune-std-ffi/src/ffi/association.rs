@@ -29,12 +29,7 @@ use mlua::prelude::*;
 // You can delete the relationship by changing 'associated' to nil
 
 #[inline]
-pub fn set_association<'lua, T, U>(
-    lua: &'lua Lua,
-    regname: &str,
-    value: T,
-    associated: U,
-) -> LuaResult<()>
+pub fn set<'lua, T, U>(lua: &'lua Lua, regname: &str, value: T, associated: U) -> LuaResult<()>
 where
     T: IntoLua<'lua>,
     U: IntoLua<'lua>,
@@ -61,11 +56,7 @@ where
 // If there is no table in registry, it returns None.
 // If there is no value in table, it returns LuaNil.
 #[inline]
-pub fn get_association<'lua, T>(
-    lua: &'lua Lua,
-    regname: &str,
-    value: T,
-) -> LuaResult<Option<LuaValue<'lua>>>
+pub fn get<'lua, T>(lua: &'lua Lua, regname: &str, value: T) -> LuaResult<Option<LuaValue<'lua>>>
 where
     T: IntoLua<'lua>,
 {

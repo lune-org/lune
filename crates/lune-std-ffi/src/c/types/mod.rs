@@ -7,8 +7,8 @@ use libffi::middle::Type;
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
-use super::{CType, CTypeCast};
-use crate::ffi::{native_num_cast, NativeConvert, NativeData, NativeSize};
+use super::{CTypeCast, CTypeInfo};
+use crate::data::{num_cast, FfiConvert, FfiData, FfiSize};
 
 pub mod f32;
 pub mod f64;
@@ -30,7 +30,7 @@ macro_rules! create_ctypes {
     ($lua:ident, $(( $name:expr, $rust_type:ty, $libffi_type:expr ),)* ) => {
         Ok(vec![$((
             $name,
-            CType::<$rust_type>::new_with_libffi_type($lua, $libffi_type, $name)?,
+            CTypeInfo::<$rust_type>::new_with_libffi_type($lua, $libffi_type, $name)?,
         ),)*])
     };
 }
@@ -80,14 +80,14 @@ pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>
 // Implement type-casting for numeric ctypes
 macro_rules! define_cast_num {
     ($from_rust_type:ident, $self:ident, $from_ctype:ident, $into_ctype:ident, $from:ident, $into:ident, $($into_rust_type:ty)*) => {
-        $( if $into_ctype.is::<CType<$into_rust_type>>() {
-            native_num_cast::<$from_rust_type, $into_rust_type>($from, $into)
+        $( if $into_ctype.is::<CTypeInfo<$into_rust_type>>() {
+            num_cast::<$from_rust_type, $into_rust_type>($from, $into)
         } else )* {
             Err($self.cast_failed_with($from_ctype, $into_ctype))
         }
     };
 }
-impl<From> CTypeCast for CType<From>
+impl<From> CTypeCast for CTypeInfo<From>
 where
     From: AsPrimitive<u8>
         + AsPrimitive<u16>
@@ -106,41 +106,41 @@ where
 {
     fn cast(
         &self,
-        from_ctype: &LuaAnyUserData,
-        into_ctype: &LuaAnyUserData,
-        from: &Ref<dyn NativeData>,
-        into: &Ref<dyn NativeData>,
+        from_info: &LuaAnyUserData,
+        into_info: &LuaAnyUserData,
+        from: &Ref<dyn FfiData>,
+        into: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
         define_cast_num!(
-            From, self, into_ctype, from_ctype, from, into,
+            From, self, into_info, from_info, from, into,
             u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize
         )
     }
 }
 
-pub mod c_type_helper {
+pub mod ctype_helper {
     use super::*;
 
     // To prevent drop NativeConvert, we must use ffi_association to ensure children keep alive
     macro_rules! define_get_conv {
         ($userdata:ident, $( $rust_type:ty )*) => {
-            $( if $userdata.is::<CType<$rust_type>>() {
-                Ok($userdata.to_pointer().cast::<CType<$rust_type>>() as *const dyn NativeConvert)
+            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
+                Ok($userdata.to_pointer().cast::<CTypeInfo<$rust_type>>() as *const dyn FfiConvert)
             } else )* {
                 Err(LuaError::external("Unexpected type"))
             }
         };
     }
     #[inline]
-    pub fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn NativeConvert> {
+    pub fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiConvert> {
         define_get_conv!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
     }
 
     // Get size of ctype (not includes struct, arr, ... only CType<*>)
     macro_rules! define_get_size {
         ($userdata:ident, $( $rust_type:ty )*) => {
-            $( if $userdata.is::<CType<$rust_type>>() {
-                Ok($userdata.borrow::<CType<$rust_type>>()?.get_size())
+            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
+                Ok($userdata.borrow::<CTypeInfo<$rust_type>>()?.get_size())
             } else )* {
                 Err(LuaError::external("Unexpected type"))
             }
@@ -154,8 +154,8 @@ pub mod c_type_helper {
     // Get name of ctype
     macro_rules! define_get_name {
         ($userdata:ident, $( $rust_type:ty )*) => {
-            $( if $userdata.is::<CType<$rust_type>>() {
-                Ok(Some($userdata.borrow::<CType<$rust_type>>()?.get_name()))
+            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
+                Ok(Some($userdata.borrow::<CTypeInfo<$rust_type>>()?.get_name()))
             } else )* {
                 Ok(None)
             }
@@ -169,8 +169,8 @@ pub mod c_type_helper {
     // Get libffi_type of ctype
     macro_rules! define_get_middle_type {
         ($userdata:ident, $( $rust_type:ty )*) => {
-            $( if $userdata.is::<CType<$rust_type>>() {
-                Ok(Some($userdata.borrow::<CType<$rust_type>>()?.get_type()))
+            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
+                Ok(Some($userdata.borrow::<CTypeInfo<$rust_type>>()?.get_type()))
             } else )* {
                 Ok(None)
             }
@@ -183,7 +183,7 @@ pub mod c_type_helper {
 
     macro_rules! define_is_ctype {
         ($userdata:ident, $( $rust_type:ty )*) => {
-            $( if $userdata.is::<CType<$rust_type>>() {
+            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
                 true
             } else )* {
                 false

@@ -3,8 +3,6 @@ use std::ptr::{self, null_mut};
 use libffi::{low, raw};
 use mlua::prelude::*;
 
-use crate::ffi::FFI_STATUS_NAMES;
-
 // Get ensured size of c-type (raw::libffi_type)
 // See: http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
 pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
@@ -29,3 +27,11 @@ pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
 }
 
 pub const SIEE_OF_POINTER: usize = size_of::<*mut ()>();
+
+// Converts ffi status into &str
+pub const FFI_STATUS_NAMES: [&str; 4] = [
+    "ffi_status_FFI_OK",
+    "ffi_status_FFI_BAD_TYPEDEF",
+    "ffi_status_FFI_BAD_ABI",
+    "ffi_status_FFI_BAD_ARGTYPE",
+];
