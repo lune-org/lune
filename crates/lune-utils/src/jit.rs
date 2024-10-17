@@ -2,6 +2,7 @@
 pub struct JitStatus(bool);
 
 impl JitStatus {
+    #[must_use]
     pub fn new(enabled: bool) -> Self {
         Self(enabled)
     }
@@ -10,6 +11,7 @@ impl JitStatus {
         self.0 = enabled;
     }
 
+    #[must_use]
     pub fn enabled(self) -> bool {
         self.0
     }
