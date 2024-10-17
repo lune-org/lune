@@ -96,12 +96,7 @@ impl CFnInfo {
         let args_types = helper::get_middle_type_list(&arg_table)?;
         let ret_type = helper::get_middle_type(&ret)?;
 
-        let arg_len = arg_table.raw_len();
-        let mut arg_info_list = Vec::<FfiArg>::with_capacity(arg_len);
-        for index in 0..arg_len {
-            let userdata = helper::get_userdata(arg_table.raw_get(index + 1)?)?;
-            arg_info_list.push(create_arg_info(&userdata)?);
-        }
+        let arg_info_list = helper::create_list(&arg_table, create_arg_info)?;
         let result_info = FfiResult {
             size: helper::get_size(&ret)?,
         };
@@ -117,7 +112,7 @@ impl CFnInfo {
     }
 
     // Stringify for pretty printing like:
-    // <CFunc( (u8, i32) -> u8 )>
+    // <CFn( (u8, i32) -> u8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let mut result = String::from(" (");
         if let (Some(LuaValue::Table(arg_table)), Some(LuaValue::UserData(result_userdata))) = (

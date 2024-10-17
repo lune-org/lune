@@ -49,7 +49,7 @@ impl CallableData {
                 .get(index)
                 .ok_or_else(|| LuaError::external(format!("argument {index} required")))?;
             let arg_pointer = if let LuaValue::UserData(userdata) = arg {
-                let data_handle = userdata.get_data_handle()?;
+                let data_handle = userdata.get_ffi_data()?;
                 data_handle
                     .check_boundary(0, arg_info.size)
                     .then_some(())
@@ -86,7 +86,7 @@ impl LuaUserData for CallableData {
                     return Err(LuaError::external(""));
                 };
                 // FIXME: clone
-                unsafe { this.call(&result.clone().get_data_handle()?, args) }
+                unsafe { this.call(&result.clone().get_ffi_data()?, args) }
             },
         );
         // ref, leak ..?

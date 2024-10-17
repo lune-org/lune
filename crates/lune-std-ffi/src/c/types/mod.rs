@@ -30,7 +30,7 @@ macro_rules! create_ctypes {
     ($lua:ident, $(( $name:expr, $rust_type:ty, $libffi_type:expr ),)* ) => {
         Ok(vec![$((
             $name,
-            CTypeInfo::<$rust_type>::new_with_libffi_type($lua, $libffi_type, $name)?,
+            CTypeInfo::<$rust_type>::from_middle_type($lua, $libffi_type, $name)?,
         ),)*])
     };
 }

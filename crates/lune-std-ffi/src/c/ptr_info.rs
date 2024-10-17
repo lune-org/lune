@@ -5,14 +5,22 @@ use mlua::prelude::*;
 
 use super::{association_names::CPTR_INNER, ctype_helper, helper, method_provider};
 use crate::{
-    data::RefData,
+    data::{GetFfiData, RefBounds, RefData, RefFlag},
     ffi::{
         association, libffi_helper::SIZE_OF_POINTER, FfiConvert, FfiData, FfiSignedness, FfiSize,
     },
 };
 
+const READ_CPTR_REF_FLAGS: u8 =
+    RefFlag::Dereferenceable.value() | RefFlag::Offsetable.value() | RefFlag::Leaked.value();
+const READ_REF_FLAGS: u8 = RefFlag::Offsetable.value()
+    | RefFlag::Leaked.value()
+    | RefFlag::Readable.value()
+    | RefFlag::Writable.value();
+
 pub struct CPtrInfo {
     inner_size: usize,
+    inner_is_cptr: bool,
 }
 
 impl FfiSignedness for CPtrInfo {
@@ -34,34 +42,47 @@ impl FfiConvert for CPtrInfo {
         data_handle: &Ref<dyn FfiData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
-        if let LuaValue::UserData(value_userdata) = value {
-            if value_userdata.is::<RefData>() {
-                let value_ref = value_userdata.borrow::<RefData>()?;
-                value_ref
-                    .check_boundary(0, self.inner_size)
-                    .then_some(())
-                    .ok_or_else(|| LuaError::external("boundary check failed"))?;
-                *data_handle
-                    .get_pointer()
-                    .byte_offset(offset)
-                    .cast::<*mut ()>() = value_ref.get_pointer();
-                Ok(())
-            } else {
-                Err(LuaError::external("Ptr:into only allows FfiRef"))
-            }
-        } else {
-            Err(LuaError::external("Conversion of pointer is not allowed"))
-        }
+        let value_userdata = value
+            .as_userdata()
+            .ok_or_else(|| LuaError::external("CPtrInfo:writeRef only allows data"))?;
+
+        data_handle
+            .check_boundary(offset, self.get_size())
+            .then_some(())
+            .ok_or_else(|| LuaError::external("Out of bounds"))?;
+        data_handle
+            .is_writable()
+            .then_some(())
+            .ok_or_else(|| LuaError::external("Unwritable data handle"))?;
+
+        *data_handle
+            .get_pointer()
+            .byte_offset(offset)
+            .cast::<*mut ()>() = value_userdata.get_ffi_data()?.get_pointer();
+
+        Ok(())
     }
 
     // Read data from ptr, then convert into luavalue
     unsafe fn value_from_data<'lua>(
         &self,
-        _lua: &'lua Lua,
-        _offset: isize,
-        _data_handle: &Ref<dyn FfiData>,
+        lua: &'lua Lua,
+        offset: isize,
+        data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
-        Err(LuaError::external("Conversion of pointer is not allowed"))
+        if !data_handle.check_boundary(offset, SIZE_OF_POINTER) {
+            return Err(LuaError::external("Out of bounds"));
+        }
+
+        Ok(LuaValue::UserData(lua.create_userdata(RefData::new(
+            unsafe { data_handle.get_pointer().byte_offset(offset) },
+            if self.inner_is_cptr {
+                READ_CPTR_REF_FLAGS
+            } else {
+                READ_REF_FLAGS
+            },
+            RefBounds::new(0, self.inner_size),
+        ))?))
     }
 }
 
@@ -74,6 +95,7 @@ impl CPtrInfo {
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let value = lua.create_userdata(Self {
             inner_size: helper::get_size(inner)?,
+            inner_is_cptr: inner.is::<CPtrInfo>(),
         })?;
 
         association::set(lua, CPTR_INNER, &value, inner)?;
@@ -118,5 +140,18 @@ impl LuaUserData for CPtrInfo {
 
         // ToString
         method_provider::provide_to_string(methods);
+
+        methods.add_method(
+            "readRef",
+            |lua, this, (target, offset): (LuaAnyUserData, Option<isize>)| unsafe {
+                this.value_from_data(lua, offset.unwrap_or(0), &target.get_ffi_data()?)
+            },
+        );
+        methods.add_method(
+            "writeRef",
+            |lua, this, (target, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| unsafe {
+                this.value_into_data(lua, offset.unwrap_or(0), &target.get_ffi_data()?, value)
+            },
+        );
     }
 }

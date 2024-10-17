@@ -9,9 +9,9 @@ export type CTypeInfo<T, R> = {
 
 	-- realize
 	box: (self: CTypeInfo<T, R>, val: R) -> Box,
-	fromData: (self: CTypeInfo<T, R>, data: (Ref|Box), offset: number?) -> R,
-	intoData: (self: CTypeInfo<T, R>, data: (Ref|Box), value: R, offset: number?) -> (),
-	
+	readData: (self: CTypeInfo<T, R>, target: (Ref|Box), offset: number?) -> R,
+	writeData: (self: CTypeInfo<T, R>, target: (Ref|Box), value: R, offset: number?) -> (),
+
 	-- FIXME: recursive types; 'intoType' should be CTypes
 	cast: (self: CTypeInfo<T, R>, intoType: any, fromData: (Ref|Box), intoData: (Ref|Box)) -> (),
 } & { ["__phantom"]: T }
@@ -24,6 +24,10 @@ export type CPtrInfo<T> = {
 	-- FIXME: recursive types; 'any' should be CPtrInfo
 	arrInfo: (self: CPtrInfo<T>, len: number) -> any,
 	ptrInfo: (self: CPtrInfo<T>) -> any,
+
+	readRef: (self: CPtrInfo<T>, target: (Ref|Box), offset: number?) -> Ref,
+	writeRef: (self: CPtrInfo<T>, target: (Ref|Box), value: (Ref|Box), offset: number?) -> (),
+	
 }
 
 export type CArrInfo<T, R> = {
@@ -36,19 +40,24 @@ export type CArrInfo<T, R> = {
 
 	-- realize
 	box: (self: CArrInfo<T, R>, table: { T }) -> Box,
-	fromData: (self: CArrInfo<T, R>, data: (Ref|Box), offset: number?) -> { T },
-	intoData: (self: CArrInfo<T, R>, data: (Ref|Box), value: { T }, offset: number?) -> (),
+	readData: (self: CArrInfo<T, R>, target: (Ref|Box), offset: number?) -> { T },
+	writeData: (self: CArrInfo<T, R>, target: (Ref|Box), value: { T }, offset: number?) -> (),
 
 	offset: (self: CArrInfo<T, R>, offset: number) -> number,
 }
 
-export type CFuncInfo = {
-	callable: (self: CFuncInfo, functionRef: Ref) -> Callable,
+export type CFnInfo = {
+	callable: (self: CFnInfo, functionRef: Ref) -> Callable,
+	closure: (self: CFnInfo, (...Ref)->()) -> (),
 }
 
 export type CStructInfo = {
 	arrInfo: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, {any}>,
 	ptrInfo: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
+
+	box: (self: CStructInfo, table: { any }) -> Box,
+	readData: (self: CStructInfo, target: (Ref|Box), offset: number?) -> { any },
+	writeData: (self: CStructInfo, target: (Ref|Box), table: { any }, offset: number?) -> (),
 }
 
 type NumCType<T> = CTypeInfo<T, (number|any)>
@@ -114,7 +123,8 @@ export type CTypes =
 	| ulonglong
 	| CArrInfo<CTypes, any>
 	| CPtrInfo<CTypes>
-	| CFuncInfo
+	| CFnInfo
+	| CStructInfo
 
 export type Ref = {
 	deref: (self: Ref) -> Ref,
@@ -136,7 +146,7 @@ export type Lib = {
 }
 
 export type Callable = {
-	call: (self: Callable, result: Ref, ...(Ref | Box))->();
+	call: (self: Callable, result: (Ref | Box), ...(Ref | Box))->();
 }
 
 local ffi = {}
@@ -190,7 +200,11 @@ function ffi.isInteger<T>(val: T): boolean
 	return nil :: any
 end
 
-function ffi.funcInfo<T>(args: { CTypes }, ret: CTypes): CFuncInfo
+function ffi.fnInfo(args: { CTypes }, ret: CTypes): CFnInfo
+	return nil :: any
+end
+
+function ffi.structInfo(inner: { CTypes }): CStructInfo
 	return nil :: any
 end
 

@@ -58,7 +58,7 @@ where
     T: 'static,
     Self: CTypeCast + FfiSignedness + FfiConvert + FfiSize,
 {
-    pub fn new_with_libffi_type<'lua>(
+    pub fn from_middle_type<'lua>(
         lua: &'lua Lua,
         libffi_type: Type,
         name: &'static str,
@@ -106,8 +106,8 @@ where
 
         // Realize
         method_provider::provide_box(methods);
-        method_provider::provide_from_data(methods);
-        method_provider::provide_into_data(methods);
+        method_provider::provide_read_data(methods);
+        method_provider::provide_write_data(methods);
 
         methods.add_function(
             "cast",
@@ -121,8 +121,8 @@ where
                 from_type.borrow::<Self>()?.cast(
                     &from_type,
                     &into_type,
-                    &from.get_data_handle()?,
-                    &into.get_data_handle()?,
+                    &from.get_ffi_data()?,
+                    &into.get_ffi_data()?,
                 )
             },
         );

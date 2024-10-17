@@ -23,7 +23,7 @@ pub mod method_provider {
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("pointerInfo", |lua, this: LuaAnyUserData| {
+        methods.add_function("ptrInfo", |lua, this: LuaAnyUserData| {
             CPtrInfo::from_userdata(lua, &this)
         });
     }
@@ -37,17 +37,17 @@ pub mod method_provider {
         });
     }
 
-    pub fn provide_from_data<'lua, Target, M>(methods: &mut M)
+    pub fn provide_read_data<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
-            "fromData",
-            |lua, this, (userdata, offset): (LuaAnyUserData, Option<isize>)| {
+            "readData",
+            |lua, this, (target, offset): (LuaAnyUserData, Option<isize>)| {
                 let offset = offset.unwrap_or(0);
 
-                let data_handle = &userdata.get_data_handle()?;
+                let data_handle = &target.get_ffi_data()?;
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
@@ -60,17 +60,17 @@ pub mod method_provider {
         );
     }
 
-    pub fn provide_into_data<'lua, Target, M>(methods: &mut M)
+    pub fn provide_write_data<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
-            "intoData",
-            |lua, this, (userdata, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| {
+            "writeData",
+            |lua, this, (target, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| {
                 let offset = offset.unwrap_or(0);
 
-                let data_handle = &userdata.get_data_handle()?;
+                let data_handle = &target.get_ffi_data()?;
                 // use or functions
                 if !data_handle.check_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
@@ -91,7 +91,7 @@ pub mod method_provider {
     {
         methods.add_method("box", |lua, this, table: LuaValue| {
             let result = lua.create_userdata(BoxData::new(this.get_size()))?;
-            unsafe { this.value_into_data(lua, 0, &result.get_data_handle()?, table)? };
+            unsafe { this.value_into_data(lua, 0, &result.get_ffi_data()?, table)? };
             Ok(result)
         });
     }
@@ -121,20 +121,26 @@ pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiCon
         Ok(userdata.to_pointer().cast::<CPtrInfo>() as *const dyn FfiConvert)
     } else {
         ctype_helper::get_conv(userdata)
-        // TODO: struct and more
     }
 }
 
-pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn FfiConvert>> {
+pub fn create_list<T>(
+    table: &LuaTable,
+    callback: fn(&LuaAnyUserData) -> LuaResult<T>,
+) -> LuaResult<Vec<T>> {
     let len: usize = table.raw_len();
-    let mut conv_list = Vec::<*const dyn FfiConvert>::with_capacity(len);
+    let mut list = Vec::<T>::with_capacity(len);
 
     for i in 0..len {
         let value: LuaValue = table.raw_get(i + 1)?;
-        conv_list.push(get_conv(&get_userdata(value)?)?);
+        list.push(callback(&get_userdata(value)?)?);
     }
 
-    Ok(conv_list)
+    Ok(list)
+}
+
+pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn FfiConvert>> {
+    create_list(table, |userdata| get_conv(userdata))
 }
 
 pub fn get_size(this: &LuaAnyUserData) -> LuaResult<usize> {
@@ -174,23 +180,7 @@ pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
 
 // get Vec<libffi_type> from table(array) of c-type userdata
 pub fn get_middle_type_list(table: &LuaTable) -> LuaResult<Vec<Type>> {
-    let len: usize = table.raw_len();
-    let mut fields = Vec::with_capacity(len);
-
-    for i in 0..len {
-        // Test required
-        let value = table.raw_get(i + 1)?;
-        if let LuaValue::UserData(field_type) = value {
-            fields.push(get_middle_type(&field_type)?);
-        } else {
-            return Err(LuaError::external(format!(
-                "Unexpected field. CStruct, CType or CArr is required for element but got {}",
-                value.type_name()
-            )));
-        }
-    }
-
-    Ok(fields)
+    create_list(table, get_middle_type)
 }
 
 // stringify any c-type userdata (for recursive)
@@ -219,7 +209,7 @@ pub fn get_tag_name(userdata: &LuaAnyUserData) -> LuaResult<String> {
     } else if userdata.is::<CPtrInfo>() {
         String::from("CPtr")
     } else if userdata.is::<CFnInfo>() {
-        String::from("CFunc")
+        String::from("CFn")
     } else if ctype_helper::is_ctype(userdata) {
         String::from("CType")
     } else {

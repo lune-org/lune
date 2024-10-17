@@ -115,7 +115,6 @@ impl FfiSignedness for CStructInfo {
     }
 }
 impl FfiConvert for CStructInfo {
-    // FIXME: FfiBox, FfiRef support required
     unsafe fn value_into_data<'lua>(
         &self,
         lua: &'lua Lua,
@@ -126,9 +125,9 @@ impl FfiConvert for CStructInfo {
         let LuaValue::Table(ref table) = value else {
             return Err(LuaError::external("Value is not a table"));
         };
-        for (i, conv) in self.inner_conv_list.iter().enumerate() {
-            let field_offset = self.offset(i)? as isize;
-            let data: LuaValue = table.get(i + 1)?;
+        for (index, conv) in self.inner_conv_list.iter().enumerate() {
+            let field_offset = self.offset(index)? as isize;
+            let data: LuaValue = table.get(index + 1)?;
 
             conv.as_ref().unwrap().value_into_data(
                 lua,
@@ -174,8 +173,8 @@ impl LuaUserData for CStructInfo {
 
         // Realize
         method_provider::provide_box(methods);
-        method_provider::provide_from_data(methods);
-        method_provider::provide_into_data(methods);
+        method_provider::provide_read_data(methods);
+        method_provider::provide_write_data(methods);
 
         methods.add_method("offset", |_, this, index: usize| {
             let offset = this.offset(index)?;

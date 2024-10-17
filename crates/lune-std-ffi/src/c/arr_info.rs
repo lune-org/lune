@@ -155,8 +155,8 @@ impl LuaUserData for CArrInfo {
 
         // Realize
         method_provider::provide_box(methods);
-        method_provider::provide_from_data(methods);
-        method_provider::provide_into_data(methods);
+        method_provider::provide_read_data(methods);
+        method_provider::provide_write_data(methods);
 
         methods.add_method("offset", |_, this, offset: isize| {
             if this.length > (offset as usize) && offset >= 0 {
