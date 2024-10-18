@@ -37,6 +37,24 @@ pub trait FfiConvert {
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>>;
+
+    unsafe fn copy_data(
+        &self,
+        lua: &Lua,
+        dst_offset: isize,
+        src_offset: isize,
+        dst: &Ref<dyn FfiData>,
+        src: &Ref<dyn FfiData>,
+    ) -> LuaResult<()>;
+
+    unsafe fn stringify_data(
+        &self,
+        _lua: &Lua,
+        _offset: isize,
+        _data_handle: &Ref<dyn FfiData>,
+    ) -> LuaResult<String> {
+        Err(LuaError::external("stringify not implemented"))
+    }
 }
 
 pub trait FfiData {

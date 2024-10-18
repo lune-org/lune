@@ -59,7 +59,7 @@ impl CArrInfo {
         self.length
     }
 
-    pub fn get_type(&self) -> Type {
+    pub fn get_middle_type(&self) -> Type {
         self.struct_type.clone()
     }
 
@@ -87,7 +87,6 @@ impl FfiSize for CArrInfo {
     }
 }
 impl FfiConvert for CArrInfo {
-    // FIXME: FfiBox, FfiRef support required
     unsafe fn value_into_data<'lua>(
         &self,
         lua: &'lua Lua,
@@ -132,6 +131,20 @@ impl FfiConvert for CArrInfo {
         }
         Ok(LuaValue::Table(table))
     }
+
+    unsafe fn copy_data(
+        &self,
+        _lua: &Lua,
+        dst_offset: isize,
+        src_offset: isize,
+        dst: &Ref<dyn FfiData>,
+        src: &Ref<dyn FfiData>,
+    ) -> LuaResult<()> {
+        dst.get_pointer()
+            .byte_offset(dst_offset)
+            .copy_from(src.get_pointer().byte_offset(src_offset), self.get_size());
+        Ok(())
+    }
 }
 
 impl LuaUserData for CArrInfo {
@@ -157,6 +170,7 @@ impl LuaUserData for CArrInfo {
         method_provider::provide_box(methods);
         method_provider::provide_read_data(methods);
         method_provider::provide_write_data(methods);
+        method_provider::provide_copy_data(methods);
 
         methods.add_method("offset", |_, this, offset: isize| {
             if this.length > (offset as usize) && offset >= 0 {

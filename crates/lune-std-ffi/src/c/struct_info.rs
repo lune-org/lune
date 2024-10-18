@@ -1,11 +1,11 @@
 use std::{cell::Ref, vec::Vec};
 
-use libffi::{low, middle::Type, raw};
+use libffi::{low, middle::Type, raw::ffi_get_struct_offsets};
 use mlua::prelude::*;
 
 use super::{association_names::CSTRUCT_INNER, helper, method_provider};
 use crate::ffi::{
-    association, libffi_helper::FFI_STATUS_NAMES, FfiConvert, FfiData, FfiSignedness, FfiSize,
+    association, libffi_helper::ffi_status_assert, FfiConvert, FfiData, FfiSignedness, FfiSize,
 };
 
 pub struct CStructInfo {
@@ -13,6 +13,21 @@ pub struct CStructInfo {
     size: usize,
     inner_offset_list: Vec<usize>,
     inner_conv_list: Vec<*const dyn FfiConvert>,
+}
+
+fn get_field_table<'lua>(
+    lua: &'lua Lua,
+    userdata: &LuaAnyUserData<'lua>,
+) -> LuaResult<LuaTable<'lua>> {
+    let value = association::get(lua, CSTRUCT_INNER, userdata)?
+        .ok_or_else(|| LuaError::external("Failed to get inner field table. not found"))?;
+    if let LuaValue::Table(table) = value {
+        Ok(table)
+    } else {
+        Err(LuaError::external(
+            "Failed to get inner field table. not a table",
+        ))
+    }
 }
 
 impl CStructInfo {
@@ -23,17 +38,11 @@ impl CStructInfo {
 
         // Get field offsets with ffi_get_struct_offsets
         unsafe {
-            let offset_result: raw::ffi_status = raw::ffi_get_struct_offsets(
+            ffi_status_assert(ffi_get_struct_offsets(
                 low::ffi_abi_FFI_DEFAULT_ABI,
                 middle_type.as_raw_ptr(),
                 inner_offset_list.as_mut_ptr(),
-            );
-            if offset_result != raw::ffi_status_FFI_OK {
-                return Err(LuaError::external(format!(
-                    "ffi_get_struct_offsets failed. expected result {}, got {}",
-                    FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[offset_result as usize]
-                )));
-            }
+            ))?;
             inner_offset_list.set_len(len);
         }
 
@@ -50,7 +59,7 @@ impl CStructInfo {
         })
     }
 
-    // Create new CStruct UserData with LuaTable.
+    // Create new CStruct UserData from LuaTable.
     // Lock and hold table for .inner ref
     pub fn from_table<'lua>(
         lua: &'lua Lua,
@@ -60,7 +69,6 @@ impl CStructInfo {
             .create_userdata(Self::new(helper::get_middle_type_list(&table)?, unsafe {
                 helper::get_conv_list(&table)?
             })?)?;
-
         table.set_readonly(true);
         association::set(lua, CSTRUCT_INNER, &cstruct, table)?;
         Ok(cstruct)
@@ -69,24 +77,20 @@ impl CStructInfo {
     // Stringify cstruct for pretty printing like:
     // <CStruct( u8, i32, size = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
-        if let LuaValue::Table(fields) = association::get(lua, CSTRUCT_INNER, userdata)?
-            .ok_or_else(|| LuaError::external("Field table not found"))?
-        {
-            let mut result = String::from(" ");
-            for i in 0..fields.raw_len() {
-                let child: LuaAnyUserData = fields.raw_get(i + 1)?;
-                let pretty_formatted = helper::pretty_format(lua, &child)?;
-                result.push_str(format!("{pretty_formatted}, ").as_str());
-            }
+        let fields = get_field_table(lua, userdata)?;
+        let mut stringified = String::from(" ");
 
-            // size of
-            result.push_str(
-                format!("size = {} ", userdata.borrow::<CStructInfo>()?.get_size()).as_str(),
-            );
-            Ok(result)
-        } else {
-            Err(LuaError::external("failed to get inner type table."))
+        // children
+        for i in 0..fields.raw_len() {
+            let child: LuaAnyUserData = fields.raw_get(i + 1)?;
+            let pretty_formatted = helper::pretty_format(lua, &child)?;
+            stringified.push_str(format!("{pretty_formatted}, ").as_str());
         }
+
+        // size of
+        stringified
+            .push_str(format!("size = {} ", userdata.borrow::<CStructInfo>()?.get_size()).as_str());
+        Ok(stringified)
     }
 
     // Get byte offset of nth field
@@ -99,7 +103,7 @@ impl CStructInfo {
         Ok(offset)
     }
 
-    pub fn get_type(&self) -> Type {
+    pub fn get_middle_type(&self) -> Type {
         self.middle_type.clone()
     }
 }
@@ -128,7 +132,6 @@ impl FfiConvert for CStructInfo {
         for (index, conv) in self.inner_conv_list.iter().enumerate() {
             let field_offset = self.offset(index)? as isize;
             let data: LuaValue = table.get(index + 1)?;
-
             conv.as_ref().unwrap().value_into_data(
                 lua,
                 field_offset + offset,
@@ -157,6 +160,19 @@ impl FfiConvert for CStructInfo {
         }
         Ok(LuaValue::Table(table))
     }
+    unsafe fn copy_data(
+        &self,
+        _lua: &Lua,
+        dst_offset: isize,
+        src_offset: isize,
+        dst: &Ref<dyn FfiData>,
+        src: &Ref<dyn FfiData>,
+    ) -> LuaResult<()> {
+        dst.get_pointer()
+            .byte_offset(dst_offset)
+            .copy_from(src.get_pointer().byte_offset(src_offset), self.get_size());
+        Ok(())
+    }
 }
 
 impl LuaUserData for CStructInfo {
@@ -175,22 +191,16 @@ impl LuaUserData for CStructInfo {
         method_provider::provide_box(methods);
         method_provider::provide_read_data(methods);
         method_provider::provide_write_data(methods);
+        method_provider::provide_copy_data(methods);
 
-        methods.add_method("offset", |_, this, index: usize| {
-            let offset = this.offset(index)?;
-            Ok(offset)
-        });
-        // Simply pass type in the locked table used when first creating this object.
-        // By referencing the table to struct, the types inside do not disappear
-        methods.add_function("field", |lua, (this, field): (LuaAnyUserData, usize)| {
-            if let LuaValue::Table(fields) = association::get(lua, CSTRUCT_INNER, this)?
-                .ok_or_else(|| LuaError::external("Field table not found"))?
-            {
-                let value: LuaValue = fields.raw_get(field + 1)?;
-                Ok(value)
-            } else {
-                Err(LuaError::external("Failed to read field table"))
-            }
-        });
+        methods.add_method("offset", |_, this, index: usize| this.offset(index));
+        // Get nth field type userdata
+        methods.add_function(
+            "field",
+            |lua, (this, field_index): (LuaAnyUserData, usize)| {
+                let field_table = get_field_table(lua, &this)?;
+                field_table.raw_get::<_, LuaAnyUserData>(field_index + 1)
+            },
+        );
     }
 }

@@ -35,3 +35,14 @@ pub const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_BAD_ABI",
     "ffi_status_FFI_BAD_ARGTYPE",
 ];
+
+pub fn ffi_status_assert(result: raw::ffi_status) -> LuaResult<()> {
+    if result == raw::ffi_status_FFI_OK {
+        Ok(())
+    } else {
+        Err(LuaError::external(format!(
+            "ffi_status assertion failed. expected result {}, got {}",
+            FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[result as usize]
+        )))
+    }
+}

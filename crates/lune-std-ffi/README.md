@@ -90,3 +90,9 @@ Add `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `
 Add bor band and such bit-related operation
 
 > Luau only supports 32bit bit operations
+
+wchar and wstring support
+
+string(null ending) / buffer support
+
+void support

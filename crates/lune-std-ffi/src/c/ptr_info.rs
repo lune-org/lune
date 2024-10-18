@@ -45,21 +45,10 @@ impl FfiConvert for CPtrInfo {
         let value_userdata = value
             .as_userdata()
             .ok_or_else(|| LuaError::external("CPtrInfo:writeRef only allows data"))?;
-
-        data_handle
-            .check_boundary(offset, self.get_size())
-            .then_some(())
-            .ok_or_else(|| LuaError::external("Out of bounds"))?;
-        data_handle
-            .is_writable()
-            .then_some(())
-            .ok_or_else(|| LuaError::external("Unwritable data handle"))?;
-
         *data_handle
             .get_pointer()
             .byte_offset(offset)
             .cast::<*mut ()>() = value_userdata.get_ffi_data()?.get_pointer();
-
         Ok(())
     }
 
@@ -70,10 +59,6 @@ impl FfiConvert for CPtrInfo {
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
-        if !data_handle.check_boundary(offset, SIZE_OF_POINTER) {
-            return Err(LuaError::external("Out of bounds"));
-        }
-
         Ok(LuaValue::UserData(lua.create_userdata(RefData::new(
             unsafe { data_handle.get_pointer().byte_offset(offset) },
             if self.inner_is_cptr {
@@ -83,6 +68,19 @@ impl FfiConvert for CPtrInfo {
             },
             RefBounds::new(0, self.inner_size),
         ))?))
+    }
+
+    unsafe fn copy_data(
+        &self,
+        _lua: &Lua,
+        dst_offset: isize,
+        src_offset: isize,
+        dst: &Ref<dyn FfiData>,
+        src: &Ref<dyn FfiData>,
+    ) -> LuaResult<()> {
+        *dst.get_pointer().byte_offset(dst_offset).cast::<*mut ()>() =
+            src.get_pointer().byte_offset(src_offset);
+        Ok(())
     }
 }
 
@@ -118,7 +116,7 @@ impl CPtrInfo {
     }
 
     // Return void*
-    pub fn get_type() -> Type {
+    pub fn get_middle_type() -> Type {
         Type::pointer()
     }
 }

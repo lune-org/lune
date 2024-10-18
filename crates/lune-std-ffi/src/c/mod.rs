@@ -5,6 +5,7 @@ mod ptr_info;
 mod struct_info;
 mod type_info;
 mod types;
+mod void_info;
 
 pub use self::{
     arr_info::CArrInfo,

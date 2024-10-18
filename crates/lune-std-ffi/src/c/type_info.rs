@@ -108,6 +108,8 @@ where
         method_provider::provide_box(methods);
         method_provider::provide_read_data(methods);
         method_provider::provide_write_data(methods);
+        method_provider::provide_copy_data(methods);
+        method_provider::provide_stringify_data(methods);
 
         methods.add_function(
             "cast",

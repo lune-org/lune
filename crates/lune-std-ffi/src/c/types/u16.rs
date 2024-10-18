@@ -19,7 +19,6 @@ impl FfiConvert for CTypeInfo<u16> {
     unsafe fn value_into_data<'lua>(
         &self,
         _lua: &'lua Lua,
-        // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
         value: LuaValue<'lua>,
@@ -54,5 +53,25 @@ impl FfiConvert for CTypeInfo<u16> {
             (*data_handle.get_pointer().byte_offset(offset).cast::<u16>()).into_lua(lua)?
         };
         Ok(value)
+    }
+    unsafe fn copy_data(
+        &self,
+        _lua: &Lua,
+        dst_offset: isize,
+        src_offset: isize,
+        dst: &Ref<dyn FfiData>,
+        src: &Ref<dyn FfiData>,
+    ) -> LuaResult<()> {
+        *dst.get_pointer().byte_offset(dst_offset).cast::<u16>() =
+            *src.get_pointer().byte_offset(src_offset).cast::<u16>();
+        Ok(())
+    }
+    unsafe fn stringify_data(
+        &self,
+        _lua: &Lua,
+        offset: isize,
+        data_handle: &Ref<dyn FfiData>,
+    ) -> LuaResult<String> {
+        Ok((*data_handle.get_pointer().byte_offset(offset).cast::<u16>()).to_string())
     }
 }

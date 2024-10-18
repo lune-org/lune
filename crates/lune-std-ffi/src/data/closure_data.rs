@@ -9,7 +9,7 @@ use mlua::prelude::*;
 
 use super::ref_data::{RefBounds, RefData, RefFlag};
 use crate::ffi::{
-    libffi_helper::{FFI_STATUS_NAMES, SIZE_OF_POINTER},
+    libffi_helper::{ffi_status_assert, SIZE_OF_POINTER},
     FfiArg, FfiData, FfiResult,
 };
 
@@ -97,7 +97,7 @@ impl ClosureData {
             func,
         };
 
-        let prep_result = unsafe {
+        ffi_status_assert(unsafe {
             ffi_prep_closure_loc(
                 closure,
                 cif,
@@ -105,16 +105,9 @@ impl ClosureData {
                 ptr::from_ref(&closure_data).cast::<c_void>().cast_mut(),
                 code.as_mut_ptr(),
             )
-        };
+        })?;
 
-        if prep_result != 0 {
-            Err(LuaError::external(format!(
-                "ffi_get_struct_offsets failed. expected result {}, got {}",
-                FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[prep_result as usize]
-            )))
-        } else {
-            Ok(closure_data)
-        }
+        Ok(closure_data)
     }
 }
 

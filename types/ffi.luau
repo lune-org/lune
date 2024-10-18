@@ -11,6 +11,7 @@ export type CTypeInfo<T, R> = {
 	box: (self: CTypeInfo<T, R>, val: R) -> Box,
 	readData: (self: CTypeInfo<T, R>, target: (Ref|Box), offset: number?) -> R,
 	writeData: (self: CTypeInfo<T, R>, target: (Ref|Box), value: R, offset: number?) -> (),
+	stringifyData: (self: CTypeInfo<T, R>, target: (Ref|Box), offset: number?) -> string,
 
 	-- FIXME: recursive types; 'intoType' should be CTypes
 	cast: (self: CTypeInfo<T, R>, intoType: any, fromData: (Ref|Box), intoData: (Ref|Box)) -> (),
@@ -27,7 +28,6 @@ export type CPtrInfo<T> = {
 
 	readRef: (self: CPtrInfo<T>, target: (Ref|Box), offset: number?) -> Ref,
 	writeRef: (self: CPtrInfo<T>, target: (Ref|Box), value: (Ref|Box), offset: number?) -> (),
-	
 }
 
 export type CArrInfo<T, R> = {
@@ -42,6 +42,7 @@ export type CArrInfo<T, R> = {
 	box: (self: CArrInfo<T, R>, table: { T }) -> Box,
 	readData: (self: CArrInfo<T, R>, target: (Ref|Box), offset: number?) -> { T },
 	writeData: (self: CArrInfo<T, R>, target: (Ref|Box), value: { T }, offset: number?) -> (),
+	copyData: (self: CArrInfo<T, R>, dst: (Ref|Box), src: (Ref|Box), dst_offset: number?, src_offset: number?) -> (),
 
 	offset: (self: CArrInfo<T, R>, offset: number) -> number,
 }
