@@ -30,6 +30,7 @@ std-roblox = ["dep:lune-std", "lune-std/roblox", "dep:lune-roblox"]
 std-serde = ["dep:lune-std", "lune-std/serde"]
 std-stdio = ["dep:lune-std", "lune-std/stdio"]
 std-task = ["dep:lune-std", "lune-std/task"]
+std-ffi = ["dep:lune-std", "lune-std/ffi"]
 
 std = [
     "std-datetime",
@@ -42,6 +43,7 @@ std = [
     "std-serde",
     "std-stdio",
     "std-task",
+    "std-ffi",
 ]
 
 cli = ["dep:clap", "dep:include_dir", "dep:rustyline", "dep:zip_next"]
