@@ -65,6 +65,10 @@ impl CStructInfo {
         lua: &'lua Lua,
         table: LuaTable<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
+        if helper::has_void(&table)? {
+            return Err(LuaError::external("Void field in sturct is not allowed"));
+        }
+
         let cstruct = lua
             .create_userdata(Self::new(helper::get_middle_type_list(&table)?, unsafe {
                 helper::get_conv_list(&table)?

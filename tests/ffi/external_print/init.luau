@@ -1,0 +1,18 @@
+local ffi = require("@lune/ffi")
+
+local testdir = "./tests/ffi/external_print"
+
+local compile = require("../utility/compile")
+compile(`{testdir}/lib.c`, `{testdir}/lib.so`)
+
+local lib = ffi.open(`{testdir}/lib.so`)
+
+local function test_hello_world()
+	local add_int = ffi.fnInfo({}, ffi.void)
+
+	local hello_world_caller = add_int:callable(lib:find("hello_world"))
+
+	hello_world_caller:call(nil)
+end
+
+test_hello_world()

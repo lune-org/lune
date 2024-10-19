@@ -16,6 +16,9 @@ impl FfiSize for CVoidInfo {
     }
 }
 impl CVoidInfo {
+    pub fn new() -> Self {
+        Self()
+    }
     pub fn get_middle_type() -> Type {
         Type::void()
     }

@@ -1,5 +1,5 @@
 use core::ffi::c_void;
-use std::cell::Ref;
+use std::ptr;
 
 use libffi::{
     low::{ffi_cif, CodePtr},
@@ -7,7 +7,7 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use super::{FfiData, GetFfiData};
+use super::GetFfiData;
 use crate::ffi::{FfiArg, FfiResult};
 
 pub struct CallableData {
@@ -34,30 +34,38 @@ impl CallableData {
 
     // TODO? async call: if have no lua closure in arguments, fficallble can be called with async way
 
-    pub unsafe fn call(&self, result: &Ref<dyn FfiData>, args: LuaMultiValue) -> LuaResult<()> {
-        result
-            .check_boundary(0, self.result_info.size)
-            .then_some(())
-            .ok_or_else(|| LuaError::external("result boundary check failed"))?;
-
+    pub unsafe fn call(&self, result: LuaValue, args: LuaMultiValue) -> LuaResult<()> {
         // cache Vec => unable to create async call but no allocation
         let mut arg_list = Vec::<*mut c_void>::with_capacity(self.arg_info_list.len());
+
+        let result_pointer = if self.result_info.size == 0 {
+            ptr::null_mut()
+        } else {
+            let result_data = result.get_ffi_data()?;
+            if result_data.check_boundary(0, self.result_info.size) {
+                return Err(LuaError::external("Result boundary check failed"));
+            }
+            result_data.get_pointer()
+        }
+        .cast::<c_void>();
 
         for index in 0..self.arg_info_list.len() {
             let arg_info = self.arg_info_list.get(index).unwrap();
             let arg = args
                 .get(index)
                 .ok_or_else(|| LuaError::external(format!("argument {index} required")))?;
+
             let arg_pointer = if let LuaValue::UserData(userdata) = arg {
+                // BoxData, RefData, ...
                 let data_handle = userdata.get_ffi_data()?;
-                data_handle
-                    .check_boundary(0, arg_info.size)
-                    .then_some(())
-                    .ok_or_else(|| {
-                        LuaError::external(format!("argument {index} boundary check failed"))
-                    })?;
+                if !data_handle.check_boundary(0, arg_info.size) {
+                    return Err(LuaError::external(format!(
+                        "argument {index} boundary check failed"
+                    )));
+                }
                 data_handle.get_pointer()
             } else {
+                // FIXME: buffer, string here
                 return Err(LuaError::external("unimpl"));
             };
             arg_list.push(arg_pointer.cast::<c_void>());
@@ -66,7 +74,7 @@ impl CallableData {
         ffi_call(
             self.cif,
             Some(*self.code.as_safe_fun()),
-            result.get_pointer().cast::<c_void>(),
+            result_pointer,
             arg_list.as_mut_ptr(),
         );
 
@@ -79,14 +87,11 @@ impl LuaUserData for CallableData {
         methods.add_method(
             "call",
             |_lua, this: &CallableData, mut args: LuaMultiValue| {
-                let result_userdata = args.pop_front().ok_or_else(|| {
-                    LuaError::external("first argument must be result data handle")
+                let result = args.pop_front().ok_or_else(|| {
+                    LuaError::external("First argument must be result data handle or nil")
                 })?;
-                let LuaValue::UserData(result) = result_userdata else {
-                    return Err(LuaError::external(""));
-                };
                 // FIXME: clone
-                unsafe { this.call(&result.clone().get_ffi_data()?, args) }
+                unsafe { this.call(result, args) }
             },
         );
         // ref, leak ..?

@@ -61,6 +61,10 @@ export type CStructInfo = {
 	writeData: (self: CStructInfo, target: (Ref|Box), table: { any }, offset: number?) -> (),
 }
 
+export type CVoidInfo = {
+	ptrInfo: (self: CVoidInfo) -> CPtrInfo<CVoidInfo>,
+}
+
 type NumCType<T> = CTypeInfo<T, (number|any)>
 
 -- Fixed size Rust-style types --
@@ -126,6 +130,7 @@ export type CTypes =
 	| CPtrInfo<CTypes>
 	| CFnInfo
 	| CStructInfo
+	| CVoidInfo
 
 export type Ref = {
 	deref: (self: Ref) -> Ref,
@@ -147,12 +152,12 @@ export type Lib = {
 }
 
 export type Callable = {
-	call: (self: Callable, result: (Ref | Box), ...(Ref | Box))->();
+	call: (self: Callable, result: (Ref | Box)?, ...(Ref | Box))->();
 }
 
 local ffi = {}
 
-ffi.u8 = (nil :: unknown) :: u8
+ffi.u8 = {} :: u8
 ffi.u16 = {} :: u16
 ffi.u32 = {} :: u32
 ffi.u64 = {} :: u64
@@ -180,6 +185,8 @@ ffi.long = {} :: long
 ffi.ulong = {} :: ulong
 ffi.longlong = {} :: longlong
 ffi.ulonglong = {} :: ulonglong
+
+ffi.void = {} :: CVoidInfo
 
 function ffi.nullRef(): Ref
 	return nil :: any

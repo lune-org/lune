@@ -1,5 +1,6 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use c::CVoidInfo;
 use data::RefData;
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
@@ -23,6 +24,7 @@ use crate::{
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let result = TableBuilder::new(lua)?
         .with_values(export_ctypes(lua)?)?
+        .with_value("void", CVoidInfo::new())?
         .with_function("nullRef", |lua, ()| create_nullptr(lua))?
         .with_function("box", |_lua, size: usize| Ok(BoxData::new(size)))?
         .with_function("open", |_lua, name: String| LibData::new(name))?

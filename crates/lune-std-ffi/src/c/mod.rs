@@ -15,6 +15,7 @@ pub use self::{
     struct_info::CStructInfo,
     type_info::{CTypeCast, CTypeInfo},
     types::{ctype_helper, export_ctypes},
+    void_info::CVoidInfo,
 };
 
 // Named registry table names

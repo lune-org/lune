@@ -211,6 +211,7 @@ pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiCon
     }
 }
 
+// Create vec<T> from table with (userdata)->T
 pub fn create_list<T>(
     table: &LuaTable,
     callback: fn(&LuaAnyUserData) -> LuaResult<T>,
@@ -226,10 +227,12 @@ pub fn create_list<T>(
     Ok(list)
 }
 
+//Get
 pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn FfiConvert>> {
     create_list(table, |userdata| get_conv(userdata))
 }
 
+// Get type size from ctype userdata
 pub fn get_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
     if userdata.is::<CStructInfo>() {
         Ok(userdata.borrow::<CStructInfo>()?.get_size())
@@ -244,7 +247,7 @@ pub fn get_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
     }
 }
 
-// get libffi_type from any c-type userdata
+// Get libffi_type from ctype userdata
 pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
     if userdata.is::<CStructInfo>() {
         Ok(userdata.borrow::<CStructInfo>()?.get_middle_type())
@@ -272,6 +275,16 @@ pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
 // get Vec<libffi_type> from table(array) of c-type userdata
 pub fn get_middle_type_list(table: &LuaTable) -> LuaResult<Vec<Type>> {
     create_list(table, get_middle_type)
+}
+
+pub fn has_void(table: &LuaTable) -> LuaResult<bool> {
+    for i in 0..table.raw_len() {
+        let value: LuaValue = table.raw_get(i + 1)?;
+        if get_userdata(value)?.is::<CVoidInfo>() {
+            return Ok(false);
+        }
+    }
+    Ok(false)
 }
 
 // stringify any c-type userdata (for recursive)

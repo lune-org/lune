@@ -93,6 +93,10 @@ impl CFnInfo {
         arg_table: LuaTable,
         ret: LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
+        if helper::has_void(&arg_table)? {
+            return Err(LuaError::external("Arguments can not include void type"));
+        }
+
         let args_types = helper::get_middle_type_list(&arg_table)?;
         let ret_type = helper::get_middle_type(&ret)?;
 
