@@ -1,3 +1,6 @@
+use lune_utils::TableBuilder;
+use mlua::prelude::*;
+
 mod arr_info;
 mod fn_info;
 pub mod helper;
@@ -29,4 +32,17 @@ mod association_names {
     pub const CALLABLE_CFN: &str = "__callable_cfn";
     pub const CLOSURE_FUNC: &str = "__closure_func";
     pub const CLOSURE_CFN: &str = "__closure_cfn";
+}
+
+pub fn export(lua: &Lua) -> LuaResult<LuaTable> {
+    TableBuilder::new(lua)?
+        .with_value("void", CVoidInfo::new())?
+        .with_values(export_ctypes(lua)?)?
+        .with_function("struct", |lua, types: LuaTable| {
+            CStructInfo::from_table(lua, types)
+        })?
+        .with_function("fn", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
+            CFnInfo::from_table(lua, args, ret)
+        })?
+        .build_readonly()
 }

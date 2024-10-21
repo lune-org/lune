@@ -3,6 +3,8 @@ use mlua::prelude::*;
 
 use crate::ffi::{FfiSignedness, FfiSize};
 
+use super::method_provider;
+
 pub struct CVoidInfo();
 
 impl FfiSignedness for CVoidInfo {

@@ -74,7 +74,7 @@ impl BoxData {
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let target = this.borrow::<BoxData>()?;
         let mut bounds = RefBounds::new(0, target.size());
-        let mut ptr = unsafe { target.get_pointer() };
+        let mut ptr = unsafe { target.get_inner_pointer() };
 
         // Calculate offset
         if let Some(t) = offset {
@@ -121,13 +121,13 @@ impl Drop for BoxData {
 }
 
 impl FfiData for BoxData {
-    fn check_boundary(&self, offset: isize, size: usize) -> bool {
+    fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         if offset < 0 {
             return false;
         }
         self.size() - (offset as usize) >= size
     }
-    unsafe fn get_pointer(&self) -> *mut () {
+    unsafe fn get_inner_pointer(&self) -> *mut () {
         self.data.as_ptr().cast_mut().cast::<()>()
     }
     fn is_readable(&self) -> bool {

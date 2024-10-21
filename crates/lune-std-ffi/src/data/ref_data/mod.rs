@@ -61,7 +61,7 @@ impl RefData {
         let target = this.borrow::<RefData>()?;
 
         let luaref = lua.create_userdata(RefData::new(
-            ptr::from_ref(&target.ptr) as *mut (),
+            ptr::from_ref(&**target.ptr) as *mut (),
             BOX_REF_REF_FLAGS,
             RefBounds {
                 below: 0,
@@ -76,18 +76,15 @@ impl RefData {
     }
 
     pub unsafe fn deref(&self) -> LuaResult<Self> {
-        u8_test(self.flags, RefFlag::Dereferenceable.value())
-            .then_some(())
-            .ok_or_else(|| LuaError::external("This pointer is not dereferenceable."))?;
+        if !u8_test(self.flags, RefFlag::Dereferenceable.value()) {
+            return Err(LuaError::external("This pointer is not dereferenceable."));
+        }
 
-        self.boundary
-            .check_sized(0, size_of::<usize>())
-            .then_some(())
-            .ok_or_else(|| {
-                LuaError::external(
-                    "Offset is out of bounds. Dereferencing pointer requires size of usize",
-                )
-            })?;
+        if !self.boundary.check_sized(0, size_of::<usize>()) {
+            return Err(LuaError::external(
+                "Offset is out of bounds. Dereferencing pointer requires size of usize",
+            ));
+        }
 
         // FIXME flags
         Ok(Self::new(
@@ -139,10 +136,10 @@ impl Drop for RefData {
 }
 
 impl FfiData for RefData {
-    fn check_boundary(&self, offset: isize, size: usize) -> bool {
+    fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
-    unsafe fn get_pointer(&self) -> *mut () {
+    unsafe fn get_inner_pointer(&self) -> *mut () {
         **self.ptr
     }
     fn is_readable(&self) -> bool {

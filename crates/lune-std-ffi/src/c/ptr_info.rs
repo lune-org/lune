@@ -46,9 +46,9 @@ impl FfiConvert for CPtrInfo {
             .as_userdata()
             .ok_or_else(|| LuaError::external("CPtrInfo:writeRef only allows data"))?;
         *data_handle
-            .get_pointer()
+            .get_inner_pointer()
             .byte_offset(offset)
-            .cast::<*mut ()>() = value_userdata.get_ffi_data()?.get_pointer();
+            .cast::<*mut ()>() = value_userdata.get_ffi_data()?.get_inner_pointer();
         Ok(())
     }
 
@@ -60,7 +60,7 @@ impl FfiConvert for CPtrInfo {
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
         Ok(LuaValue::UserData(lua.create_userdata(RefData::new(
-            unsafe { data_handle.get_pointer().byte_offset(offset) },
+            unsafe { data_handle.get_inner_pointer().byte_offset(offset) },
             if self.inner_is_cptr {
                 READ_CPTR_REF_FLAGS
             } else {
@@ -78,8 +78,9 @@ impl FfiConvert for CPtrInfo {
         dst: &Ref<dyn FfiData>,
         src: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
-        *dst.get_pointer().byte_offset(dst_offset).cast::<*mut ()>() =
-            src.get_pointer().byte_offset(src_offset);
+        *dst.get_inner_pointer()
+            .byte_offset(dst_offset)
+            .cast::<*mut ()>() = src.get_inner_pointer().byte_offset(src_offset);
         Ok(())
     }
 }
@@ -133,8 +134,8 @@ impl LuaUserData for CPtrInfo {
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
-        method_provider::provide_ptr_info(methods);
-        method_provider::provide_arr_info(methods);
+        method_provider::provide_ptr(methods);
+        method_provider::provide_arr(methods);
 
         // ToString
         method_provider::provide_to_string(methods);

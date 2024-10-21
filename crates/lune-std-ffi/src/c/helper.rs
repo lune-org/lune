@@ -10,6 +10,7 @@ use crate::{
 
 pub mod method_provider {
     use super::*;
+
     pub fn provide_to_string<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
@@ -19,20 +20,20 @@ pub mod method_provider {
         });
     }
 
-    pub fn provide_ptr_info<'lua, Target, M>(methods: &mut M)
+    pub fn provide_ptr<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("ptrInfo", |lua, this: LuaAnyUserData| {
+        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
             CPtrInfo::from_userdata(lua, &this)
         });
     }
 
-    pub fn provide_arr_info<'lua, Target, M>(methods: &mut M)
+    pub fn provide_arr<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
     {
-        methods.add_function("ArrInfo", |lua, (this, length): (LuaAnyUserData, usize)| {
+        methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
             CArrInfo::from_userdata(lua, &this, length)
         });
     }
@@ -48,7 +49,7 @@ pub mod method_provider {
                 let offset = offset.unwrap_or(0);
 
                 let data_handle = &target.get_ffi_data()?;
-                if !data_handle.check_boundary(offset, this.get_size()) {
+                if !data_handle.check_inner_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
                 if !data_handle.is_readable() {
@@ -72,7 +73,7 @@ pub mod method_provider {
 
                 let data_handle = &target.get_ffi_data()?;
                 // use or functions
-                if !data_handle.check_boundary(offset, this.get_size()) {
+                if !data_handle.check_inner_boundary(offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
                 if !data_handle.is_writable() {
@@ -104,7 +105,7 @@ pub mod method_provider {
 
                 let dst = &dst.get_ffi_data()?;
                 // use or functions
-                if !dst.check_boundary(dst_offset, this.get_size()) {
+                if !dst.check_inner_boundary(dst_offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
                 if !dst.is_writable() {
@@ -112,7 +113,7 @@ pub mod method_provider {
                 }
 
                 let src = &src.get_ffi_data()?;
-                if !src.check_boundary(dst_offset, this.get_size()) {
+                if !src.check_inner_boundary(dst_offset, this.get_size()) {
                     return Err(LuaError::external("Out of bounds"));
                 }
                 if !src.is_readable() {
@@ -189,7 +190,7 @@ pub fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
         Ok(field_type)
     } else {
         Err(LuaError::external(format!(
-            "Unexpected field. CStruct, CType or CArr is required for element but got {}",
+            "CStruct, CType, CFn, CVoid or CArr is required but got {}",
             pretty_format_value(&value, &ValueFormatConfig::new())
         )))
     }
@@ -242,6 +243,8 @@ pub fn get_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
         Ok(userdata.borrow::<CPtrInfo>()?.get_size())
     } else if userdata.is::<CVoidInfo>() {
         Ok(userdata.borrow::<CVoidInfo>()?.get_size())
+    } else if userdata.is::<CFnInfo>() {
+        Ok(userdata.borrow::<CFnInfo>()?.get_size())
     } else {
         ctype_helper::get_size(userdata)
     }
@@ -259,9 +262,11 @@ pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
         Ok(CPtrInfo::get_middle_type())
     } else if userdata.is::<CVoidInfo>() {
         Ok(CVoidInfo::get_middle_type())
+    } else if userdata.is::<CFnInfo>() {
+        Ok(CFnInfo::get_middle_type())
     } else {
         Err(LuaError::external(format!(
-            "Unexpected field. CStruct, CType, CString or CArr is required for element but got {}",
+            "CStruct, CType, CFn, CVoid or CArr is required but got {}",
             pretty_format_value(
                 // Since the data is in the Lua location,
                 // there is no problem with the clone.

@@ -172,9 +172,10 @@ impl FfiConvert for CStructInfo {
         dst: &Ref<dyn FfiData>,
         src: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
-        dst.get_pointer()
-            .byte_offset(dst_offset)
-            .copy_from(src.get_pointer().byte_offset(src_offset), self.get_size());
+        dst.get_inner_pointer().byte_offset(dst_offset).copy_from(
+            src.get_inner_pointer().byte_offset(src_offset),
+            self.get_size(),
+        );
         Ok(())
     }
 }
@@ -185,8 +186,8 @@ impl LuaUserData for CStructInfo {
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
-        method_provider::provide_ptr_info(methods);
-        method_provider::provide_arr_info(methods);
+        method_provider::provide_ptr(methods);
+        method_provider::provide_arr(methods);
 
         // ToString
         method_provider::provide_to_string(methods);

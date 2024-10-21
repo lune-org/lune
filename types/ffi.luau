@@ -4,8 +4,8 @@ export type CTypeInfo<T, R> = {
 	signedness: boolean,
 
 	-- subtype
-	ptrInfo: (self: CTypeInfo<T, R>) -> CPtrInfo<CTypeInfo<T, R>>,
-	arrInfo: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
+	ptr: (self: CTypeInfo<T, R>) -> CPtrInfo<CTypeInfo<T, R>>,
+	arr: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
 
 	-- realize
 	box: (self: CTypeInfo<T, R>, val: R) -> Box,
@@ -23,8 +23,8 @@ export type CPtrInfo<T> = {
 
 	-- subtype
 	-- FIXME: recursive types; 'any' should be CPtrInfo
-	arrInfo: (self: CPtrInfo<T>, len: number) -> any,
-	ptrInfo: (self: CPtrInfo<T>) -> any,
+	arr: (self: CPtrInfo<T>, len: number) -> any,
+	ptr: (self: CPtrInfo<T>) -> any,
 
 	readRef: (self: CPtrInfo<T>, target: (Ref|Box), offset: number?) -> Ref,
 	writeRef: (self: CPtrInfo<T>, target: (Ref|Box), value: (Ref|Box), offset: number?) -> (),
@@ -36,7 +36,7 @@ export type CArrInfo<T, R> = {
 	inner: T,
 
 	-- subtype
-	ptrInfo: (self: CArrInfo<T, R>) -> CPtrInfo<T>,
+	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<T>,
 
 	-- realize
 	box: (self: CArrInfo<T, R>, table: { T }) -> Box,
@@ -49,12 +49,12 @@ export type CArrInfo<T, R> = {
 
 export type CFnInfo = {
 	callable: (self: CFnInfo, functionRef: Ref) -> Callable,
-	closure: (self: CFnInfo, (...Ref)->()) -> (),
+	closure: (self: CFnInfo, (ret: Ref, ...Ref)->()) -> Closure,
 }
 
 export type CStructInfo = {
-	arrInfo: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, {any}>,
-	ptrInfo: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
+	arr: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, {any}>,
+	ptr: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
 
 	box: (self: CStructInfo, table: { any }) -> Box,
 	readData: (self: CStructInfo, target: (Ref|Box), offset: number?) -> { any },
@@ -62,7 +62,7 @@ export type CStructInfo = {
 }
 
 export type CVoidInfo = {
-	ptrInfo: (self: CVoidInfo) -> CPtrInfo<CVoidInfo>,
+	ptr: (self: CVoidInfo) -> CPtrInfo<CVoidInfo>,
 }
 
 type NumCType<T> = CTypeInfo<T, (number|any)>
@@ -151,42 +151,60 @@ export type Lib = {
 	find: (self: Lib, sym: string) -> Ref,
 }
 
-export type Callable = {
-	call: (self: Callable, result: (Ref | Box)?, ...(Ref | Box))->();
+-- export type AppliedCallable = ()->()
+
+export type Callable = (ret: (Ref|Box)?, ...Ref)->() & {
+	-- apply: (self: Callable, args: Args)->AppliedCallable,
 }
+
+export type Closure = {
+	ref: (self: Closure)->Ref,
+}
+
+local c = {}
+
+c.u8 = {} :: u8
+c.u16 = {} :: u16
+c.u32 = {} :: u32
+c.u64 = {} :: u64
+c.u128 = {} :: u128
+c.i8 = {} :: i8
+c.i16 = {} :: i16
+c.i32 = {} :: i32
+c.i64 = {} :: i64
+c.i128 = {} :: i128
+c.f32 = {} :: f32
+c.f64 = {} :: f64
+c.usize = {} :: usize
+c.isize = {} :: isize
+
+c.char = {} :: char
+c.float = {} :: float
+c.double = {} :: double
+c.uchar = {} :: uchar
+c.schar = {} :: schar
+c.short = {} :: short
+c.ushort = {} :: ushort
+c.int = {} :: int
+c.uint = {} :: uint
+c.long = {} :: long
+c.ulong = {} :: ulong
+c.longlong = {} :: longlong
+c.ulonglong = {} :: ulonglong
+
+c.void = {} :: CVoidInfo
+
+function c.fn(args: { CTypes }, ret: CTypes): CFnInfo
+	return nil :: any
+end
+
+function c.struct(inner: { CTypes }): CStructInfo
+	return nil :: any
+end
 
 local ffi = {}
 
-ffi.u8 = {} :: u8
-ffi.u16 = {} :: u16
-ffi.u32 = {} :: u32
-ffi.u64 = {} :: u64
-ffi.u128 = {} :: u128
-ffi.i8 = {} :: i8
-ffi.i16 = {} :: i16
-ffi.i32 = {} :: i32
-ffi.i64 = {} :: i64
-ffi.i128 = {} :: i128
-ffi.f32 = {} :: f32
-ffi.f64 = {} :: f64
-ffi.usize = {} :: usize
-ffi.isize = {} :: isize
-
-ffi.char = {} :: char
-ffi.float = {} :: float
-ffi.double = {} :: double
-ffi.uchar = {} :: uchar
-ffi.schar = {} :: schar
-ffi.short = {} :: short
-ffi.ushort = {} :: ushort
-ffi.int = {} :: int
-ffi.uint = {} :: uint
-ffi.long = {} :: long
-ffi.ulong = {} :: ulong
-ffi.longlong = {} :: longlong
-ffi.ulonglong = {} :: ulonglong
-
-ffi.void = {} :: CVoidInfo
+ffi.c = c
 
 function ffi.nullRef(): Ref
 	return nil :: any
@@ -208,12 +226,5 @@ function ffi.isInteger<T>(val: T): boolean
 	return nil :: any
 end
 
-function ffi.fnInfo(args: { CTypes }, ret: CTypes): CFnInfo
-	return nil :: any
-end
-
-function ffi.structInfo(inner: { CTypes }): CStructInfo
-	return nil :: any
-end
 
 return ffi

@@ -7,8 +7,8 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use super::GetFfiData;
-use crate::ffi::{FfiArg, FfiResult};
+use super::{GetFfiData, RefData};
+use crate::ffi::{FfiArg, FfiData, FfiResult};
 
 pub struct CallableData {
     cif: *mut ffi_cif,
@@ -42,33 +42,24 @@ impl CallableData {
             ptr::null_mut()
         } else {
             let result_data = result.get_ffi_data()?;
-            if result_data.check_boundary(0, self.result_info.size) {
+            if !result_data.check_inner_boundary(0, self.result_info.size) {
                 return Err(LuaError::external("Result boundary check failed"));
             }
-            result_data.get_pointer()
+            result_data.get_inner_pointer()
         }
         .cast::<c_void>();
 
         for index in 0..self.arg_info_list.len() {
-            let arg_info = self.arg_info_list.get(index).unwrap();
-            let arg = args
+            // let arg_info = self.arg_info_list.get(index).unwrap();
+            let arg_value = args
                 .get(index)
-                .ok_or_else(|| LuaError::external(format!("argument {index} required")))?;
+                .ok_or_else(|| LuaError::external(format!("argument {index} required")))?
+                .as_userdata()
+                .ok_or_else(|| LuaError::external("argument should be Ref"))?;
 
-            let arg_pointer = if let LuaValue::UserData(userdata) = arg {
-                // BoxData, RefData, ...
-                let data_handle = userdata.get_ffi_data()?;
-                if !data_handle.check_boundary(0, arg_info.size) {
-                    return Err(LuaError::external(format!(
-                        "argument {index} boundary check failed"
-                    )));
-                }
-                data_handle.get_pointer()
-            } else {
-                // FIXME: buffer, string here
-                return Err(LuaError::external("unimpl"));
-            };
-            arg_list.push(arg_pointer.cast::<c_void>());
+            let arg_ref = arg_value.borrow::<RefData>()?;
+
+            arg_list.push(arg_ref.get_inner_pointer().cast::<c_void>());
         }
 
         ffi_call(
@@ -84,16 +75,14 @@ impl CallableData {
 
 impl LuaUserData for CallableData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method(
-            "call",
+        methods.add_meta_method(
+            LuaMetaMethod::Call,
             |_lua, this: &CallableData, mut args: LuaMultiValue| {
                 let result = args.pop_front().ok_or_else(|| {
                     LuaError::external("First argument must be result data handle or nil")
                 })?;
-                // FIXME: clone
                 unsafe { this.call(result, args) }
             },
         );
-        // ref, leak ..?
     }
 }

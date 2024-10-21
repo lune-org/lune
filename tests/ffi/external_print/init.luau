@@ -8,11 +8,11 @@ compile(`{testdir}/lib.c`, `{testdir}/lib.so`)
 local lib = ffi.open(`{testdir}/lib.so`)
 
 local function test_hello_world()
-	local add_int = ffi.fnInfo({}, ffi.void)
+	local hello_world_info = ffi.fnInfo({}, ffi.void)
 
-	local hello_world_caller = add_int:callable(lib:find("hello_world"))
+	local hello_world_callable = hello_world_info:callable(lib:find("hello_world"))
 
-	hello_world_caller:call(nil)
+	hello_world_callable:call(nil)
 end
 
 test_hello_world()

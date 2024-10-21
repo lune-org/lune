@@ -39,10 +39,13 @@ unsafe extern "C" fn callback(
     arg_pointers: *mut *mut c_void,
     closure_data: *mut c_void,
 ) {
+    dbg!("before ud");
     let closure_data = closure_data.cast::<ClosureData>().as_ref().unwrap();
     let lua = closure_data.lua.as_ref().unwrap();
     let len = (*cif).nargs as usize;
     let mut args = Vec::<LuaValue>::with_capacity(len + 1);
+
+    dbg!("before result");
 
     // Push result pointer (ref)
     args.push(LuaValue::UserData(
@@ -53,6 +56,8 @@ unsafe extern "C" fn callback(
         ))
         .unwrap(),
     ));
+
+    dbg!("before arg");
 
     // Push arg pointer (ref)
     for i in 0..len {
@@ -66,6 +71,8 @@ unsafe extern "C" fn callback(
             .unwrap(),
         ));
     }
+
+    dbg!("before call");
 
     closure_data
         .func
@@ -112,10 +119,12 @@ impl ClosureData {
 }
 
 impl FfiData for ClosureData {
-    unsafe fn get_pointer(&self) -> *mut () {
-        self.code.as_mut_ptr().cast::<()>()
+    unsafe fn get_inner_pointer(&self) -> *mut () {
+        ptr::from_ref(&self.code.as_mut_ptr())
+            .cast_mut()
+            .cast::<()>()
     }
-    fn check_boundary(&self, offset: isize, size: usize) -> bool {
+    fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         (offset as usize) + size <= SIZE_OF_POINTER
     }
     fn is_readable(&self) -> bool {
@@ -126,4 +135,8 @@ impl FfiData for ClosureData {
     }
 }
 
-impl LuaUserData for ClosureData {}
+impl LuaUserData for ClosureData {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        // methods.add_function("ref", function);
+    }
+}

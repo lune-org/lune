@@ -12,7 +12,10 @@ use super::{
 };
 use crate::{
     data::{CallableData, ClosureData, RefData, RefFlag},
-    ffi::{association, bit_mask::*, FfiArg, FfiData, FfiResult, FfiSignedness, FfiSize},
+    ffi::{
+        association, bit_mask::*, libffi_helper::SIZE_OF_POINTER, FfiArg, FfiData, FfiResult,
+        FfiSignedness, FfiSize,
+    },
 };
 
 // cfn is a type declaration for a function.
@@ -42,9 +45,10 @@ impl FfiSignedness for CFnInfo {
         false
     }
 }
+
 impl FfiSize for CFnInfo {
     fn get_size(&self) -> usize {
-        size_of::<*mut ()>()
+        SIZE_OF_POINTER
     }
 }
 
@@ -186,7 +190,7 @@ impl CFnInfo {
                 self.cif.as_raw_ptr(),
                 self.arg_info_list.clone(),
                 self.result_info.clone(),
-                ffi_ref.get_pointer(),
+                ffi_ref.get_inner_pointer(),
             )
         })?;
 
@@ -195,13 +199,17 @@ impl CFnInfo {
 
         Ok(callable)
     }
+
+    pub fn get_middle_type() -> Type {
+        Type::void()
+    }
 }
 
 impl LuaUserData for CFnInfo {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
-        method_provider::provide_ptr_info(methods);
-        method_provider::provide_arr_info(methods);
+        method_provider::provide_ptr(methods);
+        method_provider::provide_arr(methods);
 
         // ToString
         method_provider::provide_to_string(methods);

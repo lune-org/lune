@@ -58,8 +58,8 @@ pub trait FfiConvert {
 }
 
 pub trait FfiData {
-    fn check_boundary(&self, offset: isize, size: usize) -> bool;
-    unsafe fn get_pointer(&self) -> *mut ();
+    fn check_inner_boundary(&self, offset: isize, size: usize) -> bool;
+    unsafe fn get_inner_pointer(&self) -> *mut ();
     fn is_writable(&self) -> bool;
     fn is_readable(&self) -> bool;
 }

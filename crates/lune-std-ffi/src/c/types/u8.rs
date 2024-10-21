@@ -34,7 +34,7 @@ impl FfiConvert for CTypeInfo<u8> {
             }
         };
         unsafe {
-            *(data_handle.get_pointer().byte_offset(offset).cast::<u8>()) = value;
+            *(data_handle.get_inner_pointer().byte_offset(offset).cast::<u8>()) = value;
         }
         Ok(())
     }
@@ -48,7 +48,7 @@ impl FfiConvert for CTypeInfo<u8> {
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
         let value =
-            unsafe { (*data_handle.get_pointer().byte_offset(offset).cast::<u8>()).into_lua(lua)? };
+            unsafe { (*data_handle.get_inner_pointer().byte_offset(offset).cast::<u8>()).into_lua(lua)? };
         Ok(value)
     }
     unsafe fn copy_data(
@@ -59,8 +59,8 @@ impl FfiConvert for CTypeInfo<u8> {
         dst: &Ref<dyn FfiData>,
         src: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
-        *dst.get_pointer().byte_offset(dst_offset).cast::<u8>() =
-            *src.get_pointer().byte_offset(src_offset).cast::<u8>();
+        *dst.get_inner_pointer().byte_offset(dst_offset).cast::<u8>() =
+            *src.get_inner_pointer().byte_offset(src_offset).cast::<u8>();
         Ok(())
     }
     unsafe fn stringify_data(
@@ -69,6 +69,6 @@ impl FfiConvert for CTypeInfo<u8> {
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<String> {
-        Ok((*data_handle.get_pointer().byte_offset(offset).cast::<u8>()).to_string())
+        Ok((*data_handle.get_inner_pointer().byte_offset(offset).cast::<u8>()).to_string())
     }
 }
