@@ -8,6 +8,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.9.0`
+
+### Breaking changes
+
+- Added two new process spawning functions - `process.create` and `process.exec`, removing the previous `process.spawn` API completely. ([#211])
+
+  To migrate from `process.spawn`, use the new `process.exec` API which retains the same behavior as the old function.
+
+  The new `process.create` function is a non-blocking process creation API and can be used to interactively
+  read and write stdio of the process.
+
+  ```lua
+  local child = process.create("program", {
+    "cli-argument",
+    "other-cli-argument"
+  })
+
+  -- Writing to stdin
+  child.stdin:write("Hello from Lune!")
+
+  -- Reading from stdout
+  local data = child.stdout:read()
+  print(buffer.tostring(data))
+  ```
+
+- WebSocket methods in `net.socket` and `net.serve` now use standard Lua method calling convention and colon syntax.
+  This means `socket.send(...)` is now `socket:send(...)`, `socket.close(...)` is now `socket:close(...)`, and so on.
+
+- `Runtime::run` now returns a more useful value instead of an `ExitCode` ([#178])
+
+### Changed
+
+- Documentation comments for several standard library properties have been improved ([#248], [#250])
+- Error messages no longer contain redundant or duplicate stack trace information
+
+[#178]: https://github.com/lune-org/lune/pull/178
+[#211]: https://github.com/lune-org/lune/pull/211
+[#248]: https://github.com/lune-org/lune/pull/248
+[#250]: https://github.com/lune-org/lune/pull/250
+
 ## `0.8.9` - October 7th, 2024
 
 ### Changed

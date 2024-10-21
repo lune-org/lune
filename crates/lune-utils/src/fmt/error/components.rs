@@ -26,6 +26,11 @@ static STYLED_STACK_END: Lazy<String> = Lazy::new(|| {
     )
 });
 
+// NOTE: We indent using 4 spaces instead of tabs since
+// these errors are most likely to be displayed in a terminal
+// or some kind of live output - and tabs don't work well there
+const STACK_TRACE_INDENT: &str = "    ";
+
 /**
     Error components parsed from a [`LuaError`].
 
@@ -86,7 +91,7 @@ impl fmt::Display for ErrorComponents {
             let trace = self.trace.as_ref().unwrap();
             writeln!(f, "{}", *STYLED_STACK_BEGIN)?;
             for line in trace.lines() {
-                writeln!(f, "\t{line}")?;
+                writeln!(f, "{STACK_TRACE_INDENT}{line}")?;
             }
             writeln!(f, "{}", *STYLED_STACK_END)?;
         }
@@ -124,7 +129,7 @@ impl From<LuaError> for ErrorComponents {
         }
 
         // We will then try to extract any stack trace
-        let trace = if let LuaError::CallbackError {
+        let mut trace = if let LuaError::CallbackError {
             ref traceback,
             ref cause,
         } = *error
@@ -146,6 +151,45 @@ impl From<LuaError> for ErrorComponents {
             messages.push(lua_error_message(&error));
             None
         };
+
+        // Sometimes, we can get duplicate stack trace lines that only
+        // mention "[C]", without a function name or path, and these can
+        // be safely ignored / removed if the following line has more info
+        if let Some(trace) = &mut trace {
+            let lines = trace.lines_mut();
+            loop {
+                let first_is_c_and_empty = lines
+                    .first()
+                    .is_some_and(|line| line.source().is_c() && line.is_empty());
+                let second_is_c_and_nonempty = lines
+                    .get(1)
+                    .is_some_and(|line| line.source().is_c() && !line.is_empty());
+                if first_is_c_and_empty && second_is_c_and_nonempty {
+                    lines.remove(0);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // Finally, we do some light postprocessing to remove duplicate
+        // information, such as the location prefix in the error message
+        if let Some(message) = messages.last_mut() {
+            if let Some(line) = trace
+                .iter()
+                .flat_map(StackTrace::lines)
+                .find(|line| line.source().is_lua())
+            {
+                let location_prefix = format!(
+                    "[string \"{}\"]:{}:",
+                    line.path().unwrap(),
+                    line.line_number().unwrap()
+                );
+                if message.starts_with(&location_prefix) {
+                    *message = message[location_prefix.len()..].trim().to_string();
+                }
+            }
+        }
 
         ErrorComponents { messages, trace }
     }
