@@ -34,7 +34,10 @@ impl FfiConvert for CTypeInfo<u8> {
             }
         };
         unsafe {
-            *(data_handle.get_inner_pointer().byte_offset(offset).cast::<u8>()) = value;
+            *(data_handle
+                .get_inner_pointer()
+                .byte_offset(offset)
+                .cast::<u8>()) = value;
         }
         Ok(())
     }
@@ -47,8 +50,13 @@ impl FfiConvert for CTypeInfo<u8> {
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {
-        let value =
-            unsafe { (*data_handle.get_inner_pointer().byte_offset(offset).cast::<u8>()).into_lua(lua)? };
+        let value = unsafe {
+            (*data_handle
+                .get_inner_pointer()
+                .byte_offset(offset)
+                .cast::<u8>())
+            .into_lua(lua)?
+        };
         Ok(value)
     }
     unsafe fn copy_data(
@@ -69,6 +77,10 @@ impl FfiConvert for CTypeInfo<u8> {
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<String> {
-        Ok((*data_handle.get_inner_pointer().byte_offset(offset).cast::<u8>()).to_string())
+        Ok((*data_handle
+            .get_inner_pointer()
+            .byte_offset(offset)
+            .cast::<u8>())
+        .to_string())
     }
 }
