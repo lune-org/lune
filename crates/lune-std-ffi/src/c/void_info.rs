@@ -17,6 +17,7 @@ impl FfiSize for CVoidInfo {
         0
     }
 }
+
 impl CVoidInfo {
     pub fn new() -> Self {
         Self()
@@ -24,6 +25,17 @@ impl CVoidInfo {
     pub fn get_middle_type() -> Type {
         Type::void()
     }
+    pub fn stringify() -> LuaResult<String> {
+        Ok(String::from("CVoid"))
+    }
 }
 
-impl LuaUserData for CVoidInfo {}
+impl LuaUserData for CVoidInfo {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_meta_field(LuaMetaMethod::Type, "CVoid");
+    }
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        method_provider::provide_to_string(methods);
+        method_provider::provide_ptr(methods);
+    }
+}

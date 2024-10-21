@@ -17,7 +17,7 @@ pub use self::{
     ptr_info::CPtrInfo,
     struct_info::CStructInfo,
     type_info::{CTypeCast, CTypeInfo},
-    types::{ctype_helper, export_ctypes},
+    types::{ctype_helper, export_c_types, export_fixed_types},
     void_info::CVoidInfo,
 };
 
@@ -34,10 +34,10 @@ mod association_names {
     pub const CLOSURE_CFN: &str = "__closure_cfn";
 }
 
-pub fn export(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn export_c(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_value("void", CVoidInfo::new())?
-        .with_values(export_ctypes(lua)?)?
+        .with_values(export_c_types(lua)?)?
         .with_function("struct", |lua, types: LuaTable| {
             CStructInfo::from_table(lua, types)
         })?

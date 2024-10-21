@@ -8,8 +8,8 @@ mod data;
 mod ffi;
 
 use crate::{
-    c::export as c_export,
-    data::{create_nullptr, BoxData, LibData, RefData},
+    c::{export_c, export_fixed_types},
+    data::{create_nullref, BoxData, LibData},
 };
 
 /**
@@ -21,12 +21,12 @@ use crate::{
 */
 pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     let result = TableBuilder::new(lua)?
-        .with_function("nullRef", |lua, ()| create_nullptr(lua))?
+        .with_values(export_fixed_types(lua)?)?
+        .with_function("nullRef", |lua, ()| create_nullref(lua))?
         .with_function("box", |_lua, size: usize| Ok(BoxData::new(size)))?
         .with_function("open", |_lua, name: String| LibData::new(name))?
-        .with_function("uninitRef", |_lua, ()| Ok(RefData::new_uninit()))?
         .with_function("isInteger", |_lua, num: LuaValue| Ok(num.is_integer()))?
-        .with_value("c", c_export(lua)?)?;
+        .with_value("c", export_c(lua)?)?;
 
     #[cfg(debug_assertions)]
     let result = result.with_function("debugAssociation", |lua, str: String| {

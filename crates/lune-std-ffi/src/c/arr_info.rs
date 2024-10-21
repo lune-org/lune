@@ -140,15 +140,17 @@ impl FfiConvert for CArrInfo {
         dst: &Ref<dyn FfiData>,
         src: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
-        dst.get_inner_pointer()
-            .byte_offset(dst_offset)
-            .copy_from(src.get_inner_pointer().byte_offset(src_offset), self.get_size());
+        dst.get_inner_pointer().byte_offset(dst_offset).copy_from(
+            src.get_inner_pointer().byte_offset(src_offset),
+            self.get_size(),
+        );
         Ok(())
     }
 }
 
 impl LuaUserData for CArrInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_meta_field(LuaMetaMethod::Type, "CArr");
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
         fields.add_field_method_get("length", |_, this| Ok(this.get_length()));
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {

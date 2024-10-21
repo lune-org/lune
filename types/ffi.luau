@@ -44,7 +44,7 @@ export type CArrInfo<T, R> = {
 	writeData: (self: CArrInfo<T, R>, target: (Ref|Box), value: { T }, offset: number?) -> (),
 	copyData: (self: CArrInfo<T, R>, dst: (Ref|Box), src: (Ref|Box), dst_offset: number?, src_offset: number?) -> (),
 
-	offset: (self: CArrInfo<T, R>, offset: number) -> number,
+	offset: (self: CArrInfo<T, R>, index: number) -> number,
 }
 
 export type CFnInfo = {
@@ -53,12 +53,18 @@ export type CFnInfo = {
 }
 
 export type CStructInfo = {
+	size: number,
+
 	arr: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, {any}>,
 	ptr: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
 
 	box: (self: CStructInfo, table: { any }) -> Box,
 	readData: (self: CStructInfo, target: (Ref|Box), offset: number?) -> { any },
 	writeData: (self: CStructInfo, target: (Ref|Box), table: { any }, offset: number?) -> (),
+	copyData: (self: CStructInfo, dst: (Ref|Box), src: (Ref|Box), dst_offset: number?, src_offset: number?) -> (),
+
+	offset: (self: CStructInfo, index: number) -> number,
+	field: (self: CStructInfo, index: number) -> CTypes,
 }
 
 export type CVoidInfo = {
@@ -163,21 +169,6 @@ export type Closure = {
 
 local c = {}
 
-c.u8 = {} :: u8
-c.u16 = {} :: u16
-c.u32 = {} :: u32
-c.u64 = {} :: u64
-c.u128 = {} :: u128
-c.i8 = {} :: i8
-c.i16 = {} :: i16
-c.i32 = {} :: i32
-c.i64 = {} :: i64
-c.i128 = {} :: i128
-c.f32 = {} :: f32
-c.f64 = {} :: f64
-c.usize = {} :: usize
-c.isize = {} :: isize
-
 c.char = {} :: char
 c.float = {} :: float
 c.double = {} :: double
@@ -205,6 +196,21 @@ end
 local ffi = {}
 
 ffi.c = c
+
+ffi.u8 = {} :: u8
+ffi.u16 = {} :: u16
+ffi.u32 = {} :: u32
+ffi.u64 = {} :: u64
+ffi.u128 = {} :: u128
+ffi.i8 = {} :: i8
+ffi.i16 = {} :: i16
+ffi.i32 = {} :: i32
+ffi.i64 = {} :: i64
+ffi.i128 = {} :: i128
+ffi.f32 = {} :: f32
+ffi.f64 = {} :: f64
+ffi.usize = {} :: usize
+ffi.isize = {} :: isize
 
 function ffi.nullRef(): Ref
 	return nil :: any

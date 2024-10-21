@@ -17,7 +17,6 @@ pub use self::{
 
 // Box:ref():ref() should not be able to modify, Only for external
 const BOX_REF_REF_FLAGS: u8 = 0;
-const UNINIT_REF_FLAGS: u8 = RefFlag::Uninit.value();
 // | FfiRefFlag::Writable.value()
 // | FfiRefFlag::Readable.value()
 // | FfiRefFlag::Dereferenceable.value()
@@ -42,14 +41,6 @@ impl RefData {
             ptr: ManuallyDrop::new(Box::new(ptr)),
             flags,
             boundary,
-        }
-    }
-
-    pub fn new_uninit() -> Self {
-        Self {
-            ptr: ManuallyDrop::new(Box::new(ptr::null_mut())),
-            flags: UNINIT_REF_FLAGS,
-            boundary: UNSIZED_BOUNDS,
         }
     }
 
@@ -185,14 +176,11 @@ impl LuaUserData for RefData {
     }
 }
 
-pub fn create_nullptr(lua: &Lua) -> LuaResult<LuaAnyUserData> {
-    // https://en.cppreference.com/w/cpp/types/nullptr_t
+pub fn create_nullref(lua: &Lua) -> LuaResult<LuaAnyUserData> {
     lua.create_userdata(RefData::new(
         ptr::null_mut::<()>().cast(),
         0,
         // usize::MAX means that nullptr is can be 'any' pointer type
-        // We check size of inner data. give ffi.box(1):ref() as argument which typed as i32:ptr() will fail,
-        // throw lua error
         UNSIZED_BOUNDS,
     ))
 }

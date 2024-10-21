@@ -7,7 +7,6 @@ pub enum RefFlag {
     Writable,
     Offsetable,
     Function,
-    Uninit,
 }
 impl RefFlag {
     pub const fn value(&self) -> u8 {
@@ -18,7 +17,6 @@ impl RefFlag {
             Self::Readable => U8_MASK4,
             Self::Offsetable => U8_MASK5,
             Self::Function => U8_MASK6,
-            Self::Uninit => U8_MASK7,
         }
     }
 }

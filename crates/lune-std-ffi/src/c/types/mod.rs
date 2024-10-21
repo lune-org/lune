@@ -34,7 +34,7 @@ macro_rules! create_ctypes {
         ),)*])
     };
 }
-pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
+pub fn export_c_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
     create_ctypes!(
         lua,
         // Export Compile-time known c-types
@@ -55,6 +55,11 @@ pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>
         ("ulong", c_ulong, Type::c_ulong()),
         ("longlong", c_longlong, Type::c_longlong()),
         ("ulonglong", c_ulonglong, Type::c_ulonglong()),
+    )
+}
+pub fn export_fixed_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>> {
+    create_ctypes!(
+        lua,
         // Export Source-time known c-types (fixed)
         ("u8", u8, Type::u8()),
         ("u16", u16, Type::u16()),
@@ -70,10 +75,8 @@ pub fn export_ctypes(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserData)>
         ("f32", f32, Type::f32()),
         ("usize", usize, Type::usize()),
         ("isize", isize, Type::isize()),
-        // TODO: c_float and c_double sometime can be half and single,
-        // TODO: but libffi-rs doesn't support it. need work-around or drop support
-        ("float", f32, Type::f32()),
-        ("double", f64, Type::f64()),
+        ("f32", f32, Type::f32()),
+        ("f64", f64, Type::f64()),
     )
 }
 

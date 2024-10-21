@@ -1,6 +1,6 @@
 local ffi = require("@lune/ffi")
 
-local testdir = "./tests/ffi/external_closure"
+local testdir = "./tests/ffi/external-closure"
 
 local compile = require("../utility/compile")
 compile(`{testdir}/lib.c`, `{testdir}/lib.so`)
@@ -19,6 +19,7 @@ local function test_closure()
 
 	local result_box = ffi.box(ffi.c.int.size)
 	closure_test_callable(result_box, callback_closure:ref())
+	print(callback_closure)
 end
 
 test_closure()

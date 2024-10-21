@@ -302,6 +302,8 @@ pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         CPtrInfo::stringify(lua, userdata)
     } else if userdata.is::<CFnInfo>() {
         CFnInfo::stringify(lua, userdata)
+    } else if userdata.is::<CVoidInfo>() {
+        CVoidInfo::stringify()
     } else if let Some(name) = ctype_helper::get_name(userdata)? {
         Ok(String::from(name))
     } else {

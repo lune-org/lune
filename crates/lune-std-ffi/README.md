@@ -1,5 +1,9 @@
 # `lune-std-ffi`
 
+## Tests
+
+See [tests/ffi](../../tests/ffi/README.md)
+
 ## Code structure
 
 ### /c
@@ -83,16 +87,19 @@ Implememt type-casting for all CTypes
 
 ## TODO
 
-Add `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow` for math operation.
+- CString
 
-> Luau cannot handle i64 or i128
+- Add buffer for owned data support
 
-Add bor band and such bit-related operation
+- Add math operation.
 
-> Luau only supports 32bit bit operations
+  > `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow`  
+  > Luau cannot handle f64, i64 or i128, so we should provide math operation for it
 
-wchar and wstring support
+- Add bit operation
 
-string(null ending) / buffer support
+  > Luau only supports 32bit bit operations
 
-void support
+- Add wchar and wstring support
+
+  > For windows API

@@ -59,6 +59,14 @@ impl CallableData {
 
             let arg_ref = arg_value.borrow::<RefData>()?;
 
+            // unsafe {
+            //     let argp = arg_ref.get_inner_pointer();
+            //     let fnr = transmute::<*mut c_void, unsafe extern "C" fn(i32, i32) -> i32>(
+            //         *argp.cast::<*mut c_void>(),
+            //     );
+            //     dbg!(fnr(1, 2));
+            // }
+
             arg_list.push(arg_ref.get_inner_pointer().cast::<c_void>());
         }
 

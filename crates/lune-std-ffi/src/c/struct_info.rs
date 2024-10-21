@@ -182,6 +182,7 @@ impl FfiConvert for CStructInfo {
 
 impl LuaUserData for CStructInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_meta_field(LuaMetaMethod::Type, "CStruct");
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {

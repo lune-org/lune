@@ -1,5 +1,3 @@
-use std::ptr;
-
 use libffi::middle::{Cif, Type};
 use mlua::prelude::*;
 
@@ -155,19 +153,18 @@ impl CFnInfo {
         this: &LuaAnyUserData,
         lua_function: LuaFunction<'lua>,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
-        let closure = ClosureData::new(
-            ptr::from_ref(lua),
+        let closure_data = ClosureData::alloc(
+            lua,
             self.cif.as_raw_ptr(),
             self.arg_info_list.clone(),
             self.result_info.clone(),
             lua.create_registry_value(&lua_function)?,
         )?;
-        let closure_userdata = lua.create_userdata(closure)?;
 
-        association::set(lua, CLOSURE_CFN, &closure_userdata, this)?;
-        association::set(lua, CLOSURE_FUNC, &closure_userdata, lua_function)?;
+        association::set(lua, CLOSURE_CFN, &closure_data, this)?;
+        association::set(lua, CLOSURE_FUNC, &closure_data, lua_function)?;
 
-        Ok(closure_userdata)
+        Ok(closure_data)
     }
 
     pub fn create_callable<'lua>(
@@ -206,6 +203,9 @@ impl CFnInfo {
 }
 
 impl LuaUserData for CFnInfo {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_meta_field(LuaMetaMethod::Type, "CFn");
+    }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);

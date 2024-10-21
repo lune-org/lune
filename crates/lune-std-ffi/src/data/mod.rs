@@ -14,7 +14,7 @@ pub use self::{
     callable_data::CallableData,
     closure_data::ClosureData,
     lib_data::LibData,
-    ref_data::{create_nullptr, RefBounds, RefData, RefFlag},
+    ref_data::{create_nullref, RefBounds, RefData, RefFlag},
 };
 use crate::ffi::FfiData;
 
@@ -22,6 +22,7 @@ use crate::ffi::FfiData;
 mod association_names {
     pub const REF_INNER: &str = "__ref_inner";
     pub const SYM_INNER: &str = "__syn_inner";
+    pub const CLSOURE_REF_INNER: &str = "__closure_ref_inner";
 }
 
 pub trait GetFfiData {
