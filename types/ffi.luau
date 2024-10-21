@@ -1,3 +1,131 @@
+--[=[
+	@class FFI
+	
+	Built-in library for foreign function interface
+
+	### Example usage
+
+	```lua
+	```
+]=]
+local ffi = {}
+
+--[=[
+	@class C
+	@within FFI
+
+	Namespace for compile time sized c types.
+]=]
+local c = {}
+ffi.c = c
+
+--#region Data --
+
+--[=[
+	@class RefData
+	
+	A user manageable memory reference
+]=]
+export type RefData = {
+	deref: (self: RefData) -> RefData,
+	offset: (self: RefData, offset: number) -> RefData,
+	ref: (self: RefData) -> RefData,
+	isNull: (self: RefData) -> boolean,
+}
+
+--[=[
+	@class BoxData
+	
+	A user manageable heap memory
+]=]
+export type BoxData = {
+	--[=[
+		@within BoxData
+		@tag Field
+		@field size
+
+		Size of the box.
+	]=]
+	size: number,
+
+	--[=[
+		@within BoxData
+		@tag Method
+		@method zero
+
+		Fill the box with zero.
+
+		@return `Box` itself for convenience
+	]=]
+	zero: (self: BoxData) -> BoxData,
+	--[=[
+		@within BoxData
+		@tag Method
+		@method leak
+
+		Create a reference of the box after leaking it.
+
+		GC doesn't manage destruction after this action. You must free it later
+
+		@return A reference of the box
+	]=]
+	leak: (self: BoxData, offset: number?) -> RefData,
+	--[=[
+		@within BoxData
+		@tag Method
+		@method ref
+
+		Create a reference of the box.
+
+		@return A reference of the box
+	]=]
+	ref: (self: BoxData, offset: number?) -> RefData,
+}
+
+--[=[
+	@class LibData
+	
+	A dynamic opened library handle
+]=]
+export type LibData = {
+	--[=[
+		@within LibData
+		@tag Method
+		@method find
+
+		Find a symbol from the dynamic library.
+
+		@param sym The name of the symbol
+		@return A `Ref` of the found symbol
+	]=]
+	find: (self: LibData, sym: string) -> RefData,
+}
+
+-- export type AppliedCallable = ()->()
+
+--[=[
+	@class CallableData
+	@tag unsafe
+	
+	A callable external function
+]=]
+export type CallableData = (ret: (RefData|BoxData)?, ...RefData)->() & {
+	-- apply: (self: Callable, args: Args)->AppliedCallable,
+}
+
+--[=[
+	@class ClosureData
+	
+	A lua function wrapper for function pointer
+]=]
+export type ClosureData = {
+	ref: (self: ClosureData)->RefData,
+}
+
+--#endregion Data --
+
+--#region C ABI Type Infos --
+
 -- NOTE: T is a unique identifier for the `CType` and R is the closest Lua type.
 export type CTypeInfo<T, R> = {
 	size: number,
@@ -8,14 +136,15 @@ export type CTypeInfo<T, R> = {
 	arr: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
 
 	-- realize
-	box: (self: CTypeInfo<T, R>, val: R) -> Box,
-	readData: (self: CTypeInfo<T, R>, target: (Ref|Box), offset: number?) -> R,
-	writeData: (self: CTypeInfo<T, R>, target: (Ref|Box), value: R, offset: number?) -> (),
-	stringifyData: (self: CTypeInfo<T, R>, target: (Ref|Box), offset: number?) -> string,
+	box: (self: CTypeInfo<T, R>, val: R) -> BoxData,
+	readData: (self: CTypeInfo<T, R>, target: (RefData|BoxData), offset: number?) -> R,
+	writeData: (self: CTypeInfo<T, R>, target: (RefData|BoxData), value: R, offset: number?) -> (),
+	stringifyData: (self: CTypeInfo<T, R>, target: (RefData|BoxData), offset: number?) -> string,
 
 	-- FIXME: recursive types; 'intoType' should be CTypes
-	cast: (self: CTypeInfo<T, R>, intoType: any, fromData: (Ref|Box), intoData: (Ref|Box)) -> (),
+	cast: (self: CTypeInfo<T, R>, intoType: any, fromData: (RefData|BoxData), intoData: (RefData|BoxData)) -> (),
 } & { ["__phantom"]: T }
+type NumCType<T> = CTypeInfo<T, (number|any)>
 
 export type CPtrInfo<T> = {
 	size: number,
@@ -27,8 +156,8 @@ export type CPtrInfo<T> = {
 	-- FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
 	ptr: (self: CPtrInfo<T>) -> any,
 
-	readRef: (self: CPtrInfo<T>, target: (Ref|Box), offset: number?) -> Ref,
-	writeRef: (self: CPtrInfo<T>, target: (Ref|Box), value: (Ref|Box), offset: number?) -> (),
+	readRef: (self: CPtrInfo<T>, target: (RefData|BoxData), offset: number?) -> RefData,
+	writeRef: (self: CPtrInfo<T>, target: (RefData|BoxData), value: (RefData|BoxData), offset: number?) -> (),
 }
 
 export type CArrInfo<T, R> = {
@@ -40,17 +169,17 @@ export type CArrInfo<T, R> = {
 	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<CArrInfo<T, R>>,
 
 	-- realize
-	box: (self: CArrInfo<T, R>, table: { T }) -> Box,
-	readData: (self: CArrInfo<T, R>, target: (Ref|Box), offset: number?) -> { T },
-	writeData: (self: CArrInfo<T, R>, target: (Ref|Box), value: { R }, target_offset: number?) -> (),
-	copyData: (self: CArrInfo<T, R>, dst: (Ref|Box), src: (Ref|Box), dst_offset: number?, src_offset: number?) -> (),
+	box: (self: CArrInfo<T, R>, table: { T }) -> BoxData,
+	readData: (self: CArrInfo<T, R>, target: (RefData|BoxData), offset: number?) -> { T },
+	writeData: (self: CArrInfo<T, R>, target: (RefData|BoxData), value: { R }, target_offset: number?) -> (),
+	copyData: (self: CArrInfo<T, R>, dst: (RefData|BoxData), src: (RefData|BoxData), dst_offset: number?, src_offset: number?) -> (),
 
 	offset: (self: CArrInfo<T, R>, index: number) -> number,
 }
 
 export type CFnInfo = {
-	callable: (self: CFnInfo, functionRef: Ref) -> Callable,
-	closure: (self: CFnInfo, (ret: Ref, ...Ref)->()) -> Closure,
+	callable: (self: CFnInfo, functionRef: RefData) -> CallableData,
+	closure: (self: CFnInfo, (ret: RefData, ...RefData)->()) -> ClosureData,
 }
 
 export type CStructInfo = {
@@ -59,51 +188,183 @@ export type CStructInfo = {
 	arr: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, {any}>,
 	ptr: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
 
-	box: (self: CStructInfo, table: { any }) -> Box,
-	readData: (self: CStructInfo, target: (Ref|Box), offset: number?) -> { any },
-	writeData: (self: CStructInfo, target: (Ref|Box), table: { any }, offset: number?) -> (),
-	copyData: (self: CStructInfo, dst: (Ref|Box), src: (Ref|Box), dst_offset: number?, src_offset: number?) -> (),
+	box: (self: CStructInfo, table: { any }) -> BoxData,
+	readData: (self: CStructInfo, target: (RefData|BoxData), offset: number?) -> { any },
+	writeData: (self: CStructInfo, target: (RefData|BoxData), table: { any }, offset: number?) -> (),
+	copyData: (self: CStructInfo, dst: (RefData|BoxData), src: (RefData|BoxData), dst_offset: number?, src_offset: number?) -> (),
 
 	offset: (self: CStructInfo, index: number) -> number,
 	field: (self: CStructInfo, index: number) -> CTypes,
 }
 
+--[=[
+	@class CVoidInfo
+
+	A type that represents c void. can only be used for the function return type.
+]=]
 export type CVoidInfo = {
+	--[=[
+		@within CVoidInfo
+		@tag Method
+		@method ptr
+
+		Create a generic pointer type
+
+		@return Generic pointer type
+	]=]
 	ptr: (self: CVoidInfo) -> CPtrInfo<CVoidInfo>,
 }
+c.void = {} :: CVoidInfo
 
-type NumCType<T> = CTypeInfo<T, (number|any)>
+--#endregion C ABI Type Infos --
 
--- Fixed size Rust-style types --
+--#region Fixed size Rust-style types --
+
+--[=[
+	@class u8
+	@within FFI
+
+	A 8-bit sized unsigned integer, Equivalent to `uint8_t` in `stdint`
+]=]
+ffi.u8 = {} :: u8
 export type u8 = NumCType<"u8">
+--[=[
+	@class u16
+	@within FFI
+
+	A 16-bit sized unsigned integer, Equivalent to `uint16_t` in `stdint`
+]=]
+ffi.u16 = {} :: u16
 export type u16 = NumCType<"u16">
+--[=[
+	@class u32
+	@within FFI
+
+	A 32-bit sized unsigned integer, Equivalent to `uint32_t` in `stdint`
+]=]
+ffi.u32 = {} :: u32
 export type u32 = NumCType<"u32">
+--[=[
+	@class u64
+	@within FFI
+
+	A 64-bit sized unsigned integer, Equivalent to `uint64_t` in `stdint`
+]=]
+ffi.u64 = {} :: u64
 export type u64 = NumCType<"u64">
+--[=[
+	@class u128
+	@within FFI
+
+	A 128-bit sized unsigned integer, Equivalent to `uint128_t` in `stdint`
+]=]
+ffi.u128 = {} :: u128
 export type u128 = NumCType<"u128">
+--[=[
+	@class i8
+	@within FFI
+
+	A 8-bit sized signed integer, Equivalent to `int8_t` in `stdint`
+]=]
+ffi.i8 = {} :: i8
 export type i8 = NumCType<"i8">
+--[=[
+	@class i16
+	@within FFI
+
+	A 16-bit sized signed integer, Equivalent to `int16_t` in `stdint`
+]=]
+ffi.i16 = {} :: i16
 export type i16 = NumCType<"i16">
+--[=[
+	@class i32
+	@within FFI
+
+	A 32-bit sized signed integer, Equivalent to `int32_t` in `stdint`
+]=]
+ffi.i32 = {} :: i32
 export type i32 = NumCType<"i32">
+--[=[
+	@class i64
+	@within FFI
+
+	A 64-bit sized signed integer, Equivalent to `int64_t` in `stdint`
+]=]
+ffi.i64 = {} :: i64
 export type i64 = NumCType<"i64">
+--[=[
+	@class i128
+	@within FFI
+
+	A 128-bit sized signed integer, Equivalent to `int128_t` in `stdint`
+]=]
+ffi.i128 = {} :: i128
 export type i128 = NumCType<"i128">
+--[=[
+	@class f32
+	@within FFI
+
+	A single-precision 32-bit sized floating-point, Almost always equivalent to `float` in C
+]=]
+ffi.f32 = {} :: f32
 export type f32 = NumCType<"f32">
+--[=[
+	@class f64
+	@within FFI
+
+	A double-precision 64-bit sized floating-point, Almost always equivalent to `double` in C
+]=]
+ffi.f64 = {} :: f64
 export type f64 = NumCType<"f64">
+--[=[
+	@class usize
+	@within FFI
+
+	A machine specific pointer sized unsigned integer,
+]=]
+ffi.usize = {} :: usize
 export type usize = NumCType<"usize">
+--[=[
+	@class isize
+	@within FFI
+
+	A machine specific pointer sized signed integer,
+]=]
+ffi.isize = {} :: isize
 export type isize = NumCType<"isize">
 
--- Variable size C-style types --
+--#endregion Fixed size Rust-style types --
+
+--#region Variable size C-style types --
+
+c.char = {} :: char
 export type char = NumCType<"char">
-export type float = NumCType<"float">
-export type double = NumCType<"double">
+-- c.float = {} :: float
+-- export type float = NumCType<"float">
+-- c.double = {} :: double
+-- export type double = NumCType<"double">
+c.uchar = {} :: uchar
 export type uchar = NumCType<"uchar">
+c.schar = {} :: schar
 export type schar = NumCType<"schar">
+c.short = {} :: short
 export type short = NumCType<"short">
+c.ushort = {} :: ushort
 export type ushort = NumCType<"ushort">
+c.int = {} :: int
 export type int = NumCType<"int">
+c.uint = {} :: uint
 export type uint = NumCType<"uint">
+c.long = {} :: long
 export type long = NumCType<"long">
+c.ulong = {} :: ulong
 export type ulong = NumCType<"ulong">
+c.longlong = {} :: longlong
 export type longlong = NumCType<"longlong">
+c.ulonglong = {} :: ulonglong
 export type ulonglong = NumCType<"ulonglong">
+
+--#endregion Variable size C-style types --
 
 export type CTypes =
 	| u8
@@ -121,8 +382,8 @@ export type CTypes =
 	| usize
 	| isize
 	| char
-	| float
-	| double
+	-- | float
+	-- | double
 	| uchar
 	| schar
 	| short
@@ -138,121 +399,6 @@ export type CTypes =
 	| CFnInfo
 	| CStructInfo
 	| CVoidInfo
-
-export type Ref = {
-	deref: (self: Ref) -> Ref,
-	offset: (self: Ref, offset: number) -> Ref,
-	ref: (self: Ref) -> Ref,
-	isNull: (self: Ref) -> boolean,
-}
-
---[=[
-	@class Box
-	
-	A user manageable heap memory
-]=]
-export type Box = {
-	--[=[
-		@within Box
-		@tag Field
-		@field size
-
-		Size of the box.
-	]=]
-	size: number,
-
-	--[=[
-		@within Box
-		@tag Method
-		@method zero
-
-		Fill the box with zero.
-
-		@return `Box` itself for convenience
-	]=]
-	zero: (self: Box) -> Box,
-	--[=[
-		@within Box
-		@tag Method
-		@method leak
-
-		Create a reference of the box after leaking it.
-
-		GC doesn't manage destruction after this action. You must free it later
-
-		@return A reference of the box
-	]=]
-	leak: (self: Box, offset: number?) -> Ref,
-	--[=[
-		@within Box
-		@tag Method
-		@method ref
-
-		Create a reference of the box.
-
-		@return A reference of the box
-	]=]
-	ref: (self: Box, offset: number?) -> Ref,
-}
-
---[=[
-	@class Lib
-	
-	A dynamic opened library handle
-]=]
-export type Lib = {
-	--[=[
-		@within Lib
-		@tag Method
-		@method find
-
-		Find a symbol from the dynamic library.
-
-		@param sym The name of the symbol
-		@return A `Ref` of the found symbol
-	]=]
-	find: (self: Lib, sym: string) -> Ref,
-}
-
--- export type AppliedCallable = ()->()
-
---[=[
-	@class Callable
-	@tag unsafe
-	
-	A callable external function
-]=]
-export type Callable = (ret: (Ref|Box)?, ...Ref)->() & {
-	-- apply: (self: Callable, args: Args)->AppliedCallable,
-}
-
-export type Closure = {
-	ref: (self: Closure)->Ref,
-}
-
---[=[
-	@class C
-	@within FFI
-
-	Namespace for compile time sized c types.
-]=]
-local c = {}
-
-c.char = {} :: char
-c.float = {} :: float
-c.double = {} :: double
-c.uchar = {} :: uchar
-c.schar = {} :: schar
-c.short = {} :: short
-c.ushort = {} :: ushort
-c.int = {} :: int
-c.uint = {} :: uint
-c.long = {} :: long
-c.ulong = {} :: ulong
-c.longlong = {} :: longlong
-c.ulonglong = {} :: ulonglong
-
-c.void = {} :: CVoidInfo
 
 --[=[
 	@within C
@@ -280,35 +426,6 @@ function c.struct(fields: { CTypes }): CStructInfo
 end
 
 --[=[
-	@class FFI
-	
-	Built-in library for foreign function interface
-
-	### Example usage
-
-	```lua
-	```
-]=]
-local ffi = {}
-
-ffi.c = c
-
-ffi.u8 = {} :: u8
-ffi.u16 = {} :: u16
-ffi.u32 = {} :: u32
-ffi.u64 = {} :: u64
-ffi.u128 = {} :: u128
-ffi.i8 = {} :: i8
-ffi.i16 = {} :: i16
-ffi.i32 = {} :: i32
-ffi.i64 = {} :: i64
-ffi.i128 = {} :: i128
-ffi.f32 = {} :: f32
-ffi.f64 = {} :: f64
-ffi.usize = {} :: usize
-ffi.isize = {} :: isize
-
---[=[
 	@within FFI
 
 	Create a `Ref` with address 0.
@@ -317,7 +434,7 @@ ffi.isize = {} :: isize
 
 	@return A zero initialized Ref
 ]=]
-function ffi.nullRef(): Ref
+function ffi.nullRef(): RefData
 	return nil :: any
 end
 
@@ -329,7 +446,7 @@ end
 	@param size The size of the new box
 	@return A allocated box
 ]=]
-function ffi.box(size: number): Box
+function ffi.box(size: number): BoxData
 	return nil :: any
 end
 
@@ -341,7 +458,7 @@ end
 	@param name The name of the target library
 	@return A dynamic library handle
 ]=]
-function ffi.open(name: string): Lib
+function ffi.open(name: string): LibData
 	return nil :: any
 end
 
@@ -356,6 +473,5 @@ end
 function ffi.isInteger<T>(val: T): boolean
 	return nil :: any
 end
-
 
 return ffi

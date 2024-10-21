@@ -68,8 +68,12 @@ impl FfiConvert for CTypeInfo<isize> {
         dst: &Ref<dyn FfiData>,
         src: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
-        *dst.get_inner_pointer().byte_offset(dst_offset).cast::<isize>() =
-            *src.get_inner_pointer().byte_offset(src_offset).cast::<isize>();
+        *dst.get_inner_pointer()
+            .byte_offset(dst_offset)
+            .cast::<isize>() = *src
+            .get_inner_pointer()
+            .byte_offset(src_offset)
+            .cast::<isize>();
         Ok(())
     }
     unsafe fn stringify_data(
