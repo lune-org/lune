@@ -198,7 +198,7 @@ impl CFnInfo {
     }
 
     pub fn get_middle_type() -> Type {
-        Type::void()
+        Type::pointer()
     }
 }
 

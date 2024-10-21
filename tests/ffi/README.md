@@ -8,29 +8,29 @@ gcc for library compiling (for external-\*)
 
 **External tests**
 
-- [x] tests/ffi/external-math
-- [x] tests/ffi/external-pointer
-- [x] tests/ffi/external-print
-- [x] tests/ffi/external-struct
-- [ ] tests/ffi/external-closure
+- [x] [external_math](./external_math/init.luau)
+- [x] [external_pointer](./external_pointer/init.luau)
+- [x] [external_print](./external_print/init.luau)
+- [x] [external_struct](./external_struct/init.luau)
+- [ ] [external_closure](./external_closure/init.luau)
 
   > failed (segfault)
 
 **Luau-side**
 
-- [ ] tests/ffi/pretty-print :white_check_mark:
+- [ ] [pretty_print](./pretty_print)
 
   > need box, ref test
 
-- [x] tests/ffi/isInteger
-- [ ] tests/ffi/into-boundary
+- [x] [isInteger](./isInteger)
+- [ ] [into_boundary](./into_boundary)
 
   > need assertion
 
-- [ ] tests/ffi/from-boundary
+- [ ] [from_boundary](./from_boundary)
 
   > need assertion
 
-- [ ] tests/ffi/cast
+- [ ] [cast](./cast)
 
   > need assertion

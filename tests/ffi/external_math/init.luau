@@ -1,7 +1,7 @@
 local ffi = require("@lune/ffi")
 local c = ffi.c
 
-local testdir = "./tests/ffi/external-math"
+local testdir = "./tests/ffi/external_math"
 local compile = require("../utility/compile")
 compile(`{testdir}/lib.c`, `{testdir}/lib.so`)
 local lib = ffi.open(`{testdir}/lib.so`)

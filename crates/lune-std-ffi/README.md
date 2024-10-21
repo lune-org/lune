@@ -4,6 +4,25 @@
 
 See [tests/ffi](../../tests/ffi/README.md)
 
+## TODO
+
+- CString
+
+- Add buffer for owned data support
+
+- Add math operation.
+
+  > `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow`  
+  > Luau cannot handle f64, i64 or i128, so we should provide math operation for it
+
+- Add bit operation
+
+  > Luau only supports 32bit bit operations
+
+- Add wchar and wstring support
+
+  > For windows API
+
 ## Code structure
 
 ### /c
@@ -84,22 +103,3 @@ Implememt type-casting for all CTypes
   - **Const `FFI_STATUS_NAMES`:** Used for ffi_status stringify
   - **Function `get_ensured_size`:** Returns ensured ffi_type size
   - **Const `SIEE_OF_POINTER`:** Platform specific pointer size (Compile time known)
-
-## TODO
-
-- CString
-
-- Add buffer for owned data support
-
-- Add math operation.
-
-  > `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow`  
-  > Luau cannot handle f64, i64 or i128, so we should provide math operation for it
-
-- Add bit operation
-
-  > Luau only supports 32bit bit operations
-
-- Add wchar and wstring support
-
-  > For windows API

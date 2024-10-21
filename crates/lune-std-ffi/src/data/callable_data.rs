@@ -32,10 +32,7 @@ impl CallableData {
         }
     }
 
-    // TODO? async call: if have no lua closure in arguments, fficallble can be called with async way
-
     pub unsafe fn call(&self, result: LuaValue, args: LuaMultiValue) -> LuaResult<()> {
-        // cache Vec => unable to create async call but no allocation
         let mut arg_list = Vec::<*mut c_void>::with_capacity(self.arg_info_list.len());
 
         let result_pointer = if self.result_info.size == 0 {
@@ -50,7 +47,6 @@ impl CallableData {
         .cast::<c_void>();
 
         for index in 0..self.arg_info_list.len() {
-            // let arg_info = self.arg_info_list.get(index).unwrap();
             let arg_value = args
                 .get(index)
                 .ok_or_else(|| LuaError::external(format!("argument {index} required")))?
@@ -58,14 +54,6 @@ impl CallableData {
                 .ok_or_else(|| LuaError::external("argument should be Ref"))?;
 
             let arg_ref = arg_value.borrow::<RefData>()?;
-
-            // unsafe {
-            //     let argp = arg_ref.get_inner_pointer();
-            //     let fnr = transmute::<*mut c_void, unsafe extern "C" fn(i32, i32) -> i32>(
-            //         *argp.cast::<*mut c_void>(),
-            //     );
-            //     dbg!(fnr(1, 2));
-            // }
 
             arg_list.push(arg_ref.get_inner_pointer().cast::<c_void>());
         }

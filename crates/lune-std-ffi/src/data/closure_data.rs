@@ -1,5 +1,5 @@
 use core::ffi::c_void;
-use std::{borrow::Borrow, mem::transmute, ptr};
+use std::{borrow::Borrow, ptr};
 
 use libffi::{
     low::{closure_alloc, closure_free, ffi_cif},
@@ -20,7 +20,7 @@ use crate::ffi::{
 pub struct ClosureData {
     lua: *const Lua,
     closure: *mut ffi_closure,
-    code: *mut c_void,
+    code: Box<*mut c_void>,
     arg_info_list: Vec<FfiArg>,
     result_info: FfiResult,
     func: LuaRegistryKey,
@@ -44,13 +44,10 @@ unsafe extern "C" fn callback(
     arg_pointers: *mut *mut c_void,
     closure_data: *mut c_void,
 ) {
-    dbg!("before ud");
     let closure_data = closure_data.cast::<ClosureData>().as_ref().unwrap();
     let lua = closure_data.lua.as_ref().unwrap();
     let len = (*cif).nargs as usize;
     let mut args = Vec::<LuaValue>::with_capacity(len + 1);
-
-    dbg!("before result", closure_data.result_info.size);
 
     // Push result pointer (ref)
     args.push(LuaValue::UserData(
@@ -61,8 +58,6 @@ unsafe extern "C" fn callback(
         ))
         .unwrap(),
     ));
-
-    dbg!("before arg");
 
     // Push arg pointer (ref)
     for i in 0..len {
@@ -76,8 +71,6 @@ unsafe extern "C" fn callback(
             .unwrap(),
         ));
     }
-
-    dbg!("before call");
 
     closure_data
         .func
@@ -101,42 +94,26 @@ impl ClosureData {
         let (closure, code) = closure_alloc();
         let code = code.as_mut_ptr();
 
-        dbg!(result_info.size);
-
         let closure_data = lua.create_userdata(ClosureData {
             lua: ptr::from_ref(lua),
             closure,
-            code,
+            code: Box::new(code),
             arg_info_list,
             result_info,
             func,
         })?;
 
-        dbg!(unsafe {
-            closure_data
-                .to_pointer()
-                .cast::<ClosureData>()
-                .as_ref()
-                .unwrap()
-                .result_info
-                .size
-        });
+        let closure_data_ptr = ptr::from_ref(&*closure_data.borrow::<ClosureData>()?);
 
         ffi_status_assert(unsafe {
             ffi_prep_closure_loc(
                 closure,
                 cif,
                 Some(callback),
-                closure_data.to_pointer().cast_mut(),
+                closure_data_ptr.cast::<c_void>().cast_mut(),
                 code,
             )
         })?;
-
-        unsafe {
-            // let argp = closure_data.borrow::<ClosureData>()?.get_inner_pointer();
-            let fnr = transmute::<*mut c_void, unsafe extern "C" fn(i32, i32) -> i32>(code);
-            dbg!(fnr(1, 2));
-        }
 
         Ok(closure_data)
     }
@@ -144,8 +121,9 @@ impl ClosureData {
 
 impl FfiData for ClosureData {
     unsafe fn get_inner_pointer(&self) -> *mut () {
-        ptr::from_ref(&self.code).cast_mut().cast::<()>()
-        // self.code.cast::<()>()
+        ptr::from_ref::<*mut c_void>(&*self.code)
+            .cast::<()>()
+            .cast_mut()
     }
     fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         (offset as usize) + size <= SIZE_OF_POINTER
@@ -166,15 +144,6 @@ impl LuaUserData for ClosureData {
                 CLOSURE_REF_FLAGS,
                 UNSIZED_BOUNDS,
             ))?;
-            unsafe {
-                let mut b = this.borrow_mut::<ClosureData>()?;
-                b.lua = ptr::from_ref(lua);
-                let argp = b.get_inner_pointer();
-                let fnr = transmute::<*mut c_void, unsafe extern "C" fn(i32, i32) -> i32>(
-                    *argp.cast::<*mut c_void>(),
-                );
-                dbg!(fnr(1, 2));
-            }
             association::set(lua, CLSOURE_REF_INNER, &ref_data, &this)?;
             Ok(ref_data)
         });
