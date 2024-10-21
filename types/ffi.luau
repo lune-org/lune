@@ -22,8 +22,9 @@ export type CPtrInfo<T> = {
 	inner: T,
 
 	-- subtype
-	-- FIXME: recursive types; 'any' should be CPtrInfo
+	-- FIXME: recursive types; result 'any' should be CArrInfo<CPtrInfo<T>>
 	arr: (self: CPtrInfo<T>, len: number) -> any,
+	-- FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
 	ptr: (self: CPtrInfo<T>) -> any,
 
 	readRef: (self: CPtrInfo<T>, target: (Ref|Box), offset: number?) -> Ref,
@@ -36,12 +37,12 @@ export type CArrInfo<T, R> = {
 	inner: T,
 
 	-- subtype
-	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<T>,
+	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<CArrInfo<T, R>>,
 
 	-- realize
 	box: (self: CArrInfo<T, R>, table: { T }) -> Box,
 	readData: (self: CArrInfo<T, R>, target: (Ref|Box), offset: number?) -> { T },
-	writeData: (self: CArrInfo<T, R>, target: (Ref|Box), value: { T }, offset: number?) -> (),
+	writeData: (self: CArrInfo<T, R>, target: (Ref|Box), value: { R }, target_offset: number?) -> (),
 	copyData: (self: CArrInfo<T, R>, dst: (Ref|Box), src: (Ref|Box), dst_offset: number?, src_offset: number?) -> (),
 
 	offset: (self: CArrInfo<T, R>, index: number) -> number,
@@ -145,20 +146,82 @@ export type Ref = {
 	isNull: (self: Ref) -> boolean,
 }
 
+--[=[
+	@class Box
+	
+	A user manageable heap memory
+]=]
 export type Box = {
+	--[=[
+		@within Box
+		@tag Field
+		@field size
+
+		Size of the box.
+	]=]
 	size: number,
 
+	--[=[
+		@within Box
+		@tag Method
+		@method zero
+
+		Fill the box with zero.
+
+		@return `Box` itself for convenience
+	]=]
 	zero: (self: Box) -> Box,
+	--[=[
+		@within Box
+		@tag Method
+		@method leak
+
+		Create a reference of the box after leaking it.
+
+		GC doesn't manage destruction after this action. You must free it later
+
+		@return A reference of the box
+	]=]
 	leak: (self: Box, offset: number?) -> Ref,
+	--[=[
+		@within Box
+		@tag Method
+		@method ref
+
+		Create a reference of the box.
+
+		@return A reference of the box
+	]=]
 	ref: (self: Box, offset: number?) -> Ref,
 }
 
+--[=[
+	@class Lib
+	
+	A dynamic opened library handle
+]=]
 export type Lib = {
+	--[=[
+		@within Lib
+		@tag Method
+		@method find
+
+		Find a symbol from the dynamic library.
+
+		@param sym The name of the symbol
+		@return A `Ref` of the found symbol
+	]=]
 	find: (self: Lib, sym: string) -> Ref,
 }
 
 -- export type AppliedCallable = ()->()
 
+--[=[
+	@class Callable
+	@tag unsafe
+	
+	A callable external function
+]=]
 export type Callable = (ret: (Ref|Box)?, ...Ref)->() & {
 	-- apply: (self: Callable, args: Args)->AppliedCallable,
 }
@@ -167,6 +230,12 @@ export type Closure = {
 	ref: (self: Closure)->Ref,
 }
 
+--[=[
+	@class C
+	@within FFI
+
+	Namespace for compile time sized c types.
+]=]
 local c = {}
 
 c.char = {} :: char
@@ -185,14 +254,41 @@ c.ulonglong = {} :: ulonglong
 
 c.void = {} :: CVoidInfo
 
+--[=[
+	@within C
+
+	Create a function signature type information.
+
+	@param args An array of CTypes represents the arguments of the function
+	@param ret The return type of the function
+	@return A function signature type information
+]=]
 function c.fn(args: { CTypes }, ret: CTypes): CFnInfo
 	return nil :: any
 end
 
-function c.struct(inner: { CTypes }): CStructInfo
+--[=[
+	@within C
+
+	Create a struct type information.
+
+	@param fields An array of CTypes represents the fields of the struct 
+	@return A struct type information
+]=]
+function c.struct(fields: { CTypes }): CStructInfo
 	return nil :: any
 end
 
+--[=[
+	@class FFI
+	
+	Built-in library for foreign function interface
+
+	### Example usage
+
+	```lua
+	```
+]=]
 local ffi = {}
 
 ffi.c = c
@@ -212,22 +308,51 @@ ffi.f64 = {} :: f64
 ffi.usize = {} :: usize
 ffi.isize = {} :: isize
 
+--[=[
+	@within FFI
+
+	Create a `Ref` with address 0.
+
+	Can be used for receive a pointer from external function or pass it as an argument.
+
+	@return A zero initialized Ref
+]=]
 function ffi.nullRef(): Ref
 	return nil :: any
 end
 
+--[=[
+	@within FFI
+
+	Create a `Box` with specific size.
+
+	@param size The size of the new box
+	@return A allocated box
+]=]
 function ffi.box(size: number): Box
 	return nil :: any
 end
 
+--[=[
+	@within FFI
+
+	Open a dynamic library.
+
+	@param name The name of the target library
+	@return A dynamic library handle
+]=]
 function ffi.open(name: string): Lib
 	return nil :: any
 end
 
-function ffi.uninitRef(): Ref
-	return nil :: any
-end
+--[=[
+	@within FFI
 
+	Return `true` if the second argument is an integer (i32)
+
+	@param val A lua value to check
+	@return Whether val is an integer or not
+]=]
 function ffi.isInteger<T>(val: T): boolean
 	return nil :: any
 end

@@ -85,8 +85,8 @@ Implememt type-casting for all CTypes
 
 **Trait `FfiData`:** Provide common data handle, including methods below
 
-- **Method `check_boundary`:** check boundary with offset and size
-- **Method `get_pointer`:** returns raw pointer `*mut ()`
+- **Method `check_inner_boundary`:** check boundary with offset and size
+- **Method `get_inner_pointer`:** returns raw pointer `*mut ()`
 - **Method `is_writable`**
 - **Method `is_readable`**
 
@@ -102,4 +102,4 @@ Implememt type-casting for all CTypes
 - [**Mod `libffi_helper.rs`:**](./src/ffi/libffi_helper.rs)
   - **Const `FFI_STATUS_NAMES`:** Used for ffi_status stringify
   - **Function `get_ensured_size`:** Returns ensured ffi_type size
-  - **Const `SIEE_OF_POINTER`:** Platform specific pointer size (Compile time known)
+  - **Const `SIZE_OF_POINTER`:** Platform specific pointer size (Compile time known)
