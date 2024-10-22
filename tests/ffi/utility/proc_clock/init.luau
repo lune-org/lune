@@ -1,4 +1,8 @@
+-- FIXME: in windows, we need another library to get process cpu time
+
 local ffi = require("@lune/ffi")
+local process = require("@lune/process")
+local is_windows = process.os == "windows"
 local c = ffi.c
 
 local proc_clock = {}
@@ -10,27 +14,35 @@ local lib = ffi.open(`{libdir}/lib.so`)
 
 -- sizeof_clock
 local sizeof_clock = c.fn({}, c.int):callable(lib:find("sizeof_clock"))
-function proc_clock.sizeof_clock()
+function proc_clock.sizeof_clock(): number
 	local result = ffi.box(c.int.size)
 	sizeof_clock(result)
 	return c.int:readData(result)
 end
-
 -- get_clock
-local clock_t = ffi["u" .. (proc_clock.sizeof_clock() * 8)]
+local clock_t = if is_windows then ffi.f32 else ffi["u" .. (proc_clock.sizeof_clock() * 8)]
 assert(clock_t, "clock_t is unknown type")
-local get_clock = c.fn({}, clock_t):callable(lib:find("get_clock"))
-proc_clock.get_clock = get_clock
+proc_clock.get_clock = (
+	if is_windows
+		then function(clock: ffi.BoxData | ffi.RefData)
+			ffi.f32:writeData(clock, os.clock())
+		end
+		else c.fn({}, clock_t):callable(lib:find("get_clock"))
+) :: (ffi.BoxData | ffi.RefData) -> ()
 
 -- get_offset
-local get_offset = c.fn({ clock_t, clock_t }, ffi.f64):callable(lib:find("get_offset"))
-function proc_clock.get_offset(before, after)
+local get_offset: (ffi.BoxData, ffi.RefData, ffi.RefData) -> () = if is_windows
+	then function(result: ffi.BoxData, before: ffi.RefData, after: ffi.RefData)
+		ffi.f64:writeData(result, (ffi.f32:readData(after) - ffi.f32:readData(before)))
+	end
+	else c.fn({ clock_t, clock_t }, ffi.f64):callable(lib:find("get_offset"))
+function proc_clock.get_offset(before: ffi.BoxData, after: ffi.BoxData): number
 	local result = ffi.box(ffi.f64.size)
 	get_offset(result, before:ref(), after:ref())
 	return ffi.f64:readData(result)
 end
 
-function proc_clock.new_box()
+function proc_clock.new_box(): (ffi.BoxData, ffi.BoxData)
 	return ffi.box(clock_t.size), ffi.box(clock_t.size)
 end
 
