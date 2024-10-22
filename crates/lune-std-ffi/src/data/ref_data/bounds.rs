@@ -16,11 +16,13 @@ impl RefBounds {
         Self { above, below }
     }
 
+    #[inline]
     pub fn is_unsized(&self) -> bool {
         self.above == usize::MAX && self.below == usize::MAX
     }
 
     // Check boundary
+    #[inline]
     pub fn check_boundary(&self, offset: isize) -> bool {
         if self.is_unsized() {
             return true;
@@ -39,6 +41,7 @@ impl RefBounds {
 
     // Check boundary
     // Check required here
+    #[inline]
     pub fn check_sized(&self, offset: isize, size: usize) -> bool {
         if self.is_unsized() {
             return true;
@@ -61,6 +64,7 @@ impl RefBounds {
 
     // Calculate new bounds from bounds and offset
     // No boundary checking in here
+    #[inline]
     pub fn offset(&self, offset: isize) -> Self {
         let sign = offset.signum();
         let offset_abs = offset.unsigned_abs();

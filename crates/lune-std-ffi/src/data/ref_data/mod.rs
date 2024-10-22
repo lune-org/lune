@@ -127,15 +127,19 @@ impl Drop for RefData {
 }
 
 impl FfiData for RefData {
+    #[inline]
     fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
+    #[inline]
     unsafe fn get_inner_pointer(&self) -> *mut () {
         **self.ptr
     }
+    #[inline]
     fn is_readable(&self) -> bool {
         u8_test(self.flags, RefFlag::Readable.value())
     }
+    #[inline]
     fn is_writable(&self) -> bool {
         u8_test(self.flags, RefFlag::Writable.value())
     }

@@ -23,6 +23,8 @@ See [tests/ffi](../../tests/ffi/README.md)
 
   > For windows API
 
+- Add varargs support
+
 ## Code structure
 
 ### /c

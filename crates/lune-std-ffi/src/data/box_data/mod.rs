@@ -107,6 +107,7 @@ impl BoxData {
     }
 
     // Get size of box
+    #[inline]
     pub fn size(&self) -> usize {
         self.data.len()
     }
@@ -121,18 +122,22 @@ impl Drop for BoxData {
 }
 
 impl FfiData for BoxData {
+    #[inline]
     fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         if offset < 0 {
             return false;
         }
         self.size() - (offset as usize) >= size
     }
+    #[inline]
     unsafe fn get_inner_pointer(&self) -> *mut () {
         self.data.as_ptr().cast_mut().cast::<()>()
     }
+    #[inline]
     fn is_readable(&self) -> bool {
         true
     }
+    #[inline]
     fn is_writable(&self) -> bool {
         true
     }

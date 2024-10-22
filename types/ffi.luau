@@ -119,6 +119,15 @@ export type CallableData = (ret: (RefData|BoxData)?, ...RefData)->() & {
 	A lua function wrapper for function pointer
 ]=]
 export type ClosureData = {
+	--[=[
+		@within ClosureData
+		@tag Method
+		@method ref
+
+		Create a reference of the closure. usually can be used for passing function pointer as argument
+
+		@return A reference of the closure
+	]=]
 	ref: (self: ClosureData)->RefData,
 }
 
