@@ -1,4 +1,5 @@
 export let libSuffix = "";
+// @ts-ignore
 switch (Deno.build.os) {
   case "windows":
     libSuffix = "dll";

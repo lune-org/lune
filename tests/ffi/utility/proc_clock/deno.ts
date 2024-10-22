@@ -1,6 +1,7 @@
 import { libSuffix } from "../deno.ts";
 
 const library_file = "./tests/ffi/utility/proc_clock/lib."+libSuffix;
+// @ts-ignore
 let library = Deno.dlopen(library_file, {
     sizeof_clock: {
         parameters: [],
@@ -10,6 +11,7 @@ let library = Deno.dlopen(library_file, {
 const sizeof_clock = library.symbols.sizeof_clock();
 const type_clock_t = "u" + (sizeof_clock * 8);
 library.close();
+// @ts-ignore
 library = Deno.dlopen(library_file, {
     get_clock: {
         parameters: [],

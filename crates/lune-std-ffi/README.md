@@ -1,6 +1,6 @@
 # `lune-std-ffi`
 
-## Tests
+## Tests & Benchmarks
 
 See [tests/ffi](../../tests/ffi/README.md)
 

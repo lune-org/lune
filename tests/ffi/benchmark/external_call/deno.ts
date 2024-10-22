@@ -2,6 +2,7 @@ import { libSuffix } from "../../utility/deno.ts";
 import { get_clock, get_offset } from "../../utility/proc_clock/deno.ts";
 
 const library_file = "./tests/ffi/benchmark/external_call/lib."+libSuffix;
+// @ts-ignore
 let library = Deno.dlopen(library_file, {
     add: {
         parameters: ["i32", "i32"],
