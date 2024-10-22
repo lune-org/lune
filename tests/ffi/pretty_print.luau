@@ -14,7 +14,7 @@ assert(tostring(c.int:ptr():arr(5)) == " <CPtr(int)>, length = 5 ")
 
 assert(typeof(c.fn({ c.int }, c.int)) :: string == "CFn")
 assert(tostring(c.fn({ c.int }, c.int)) == " (int) -> int ")
-assert(tostring(c.fn({ c.int, c.double }, c.int)) == " (int, double) -> int ")
+assert(tostring(c.fn({ c.int, ffi.f32 }, c.int)) == " (int, f32) -> int ")
 assert(tostring(c.fn({ c.int:ptr() }, c.int)) == " (<CPtr(int)>) -> int ")
 assert(tostring(c.fn({ c.int }, c.int:ptr())) == " (int) -> <CPtr(int)> ")
 assert(tostring(c.fn({ c.int:ptr() }, c.int:ptr())) == " (<CPtr(int)>) -> <CPtr(int)> ")

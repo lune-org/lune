@@ -1,3 +1,3 @@
-void pointer(int *a) {
+void pointer_write(int *a) {
     *a = 123;
 }
