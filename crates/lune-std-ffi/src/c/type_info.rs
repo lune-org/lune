@@ -91,9 +91,8 @@ where
     Self: CTypeCast + FfiSignedness + FfiConvert + FfiSize,
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_meta_field(LuaMetaMethod::Type, "CType");
+        fields.add_meta_field(LuaMetaMethod::Type, "CTypeInfo");
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
-        fields.add_meta_field(LuaMetaMethod::Type, "CType");
         fields.add_field_method_get("signedness", |_, this| Ok(this.get_signedness()));
     }
 

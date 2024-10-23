@@ -150,7 +150,6 @@ impl FfiConvert for CArrInfo {
 
 impl LuaUserData for CArrInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_meta_field(LuaMetaMethod::Type, "CArr");
         fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
         fields.add_field_method_get("length", |_, this| Ok(this.get_length()));
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {

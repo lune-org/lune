@@ -5,6 +5,7 @@ mod arr_info;
 mod fn_info;
 pub mod helper;
 mod ptr_info;
+mod string_info;
 mod struct_info;
 mod type_info;
 mod types;
@@ -15,6 +16,7 @@ pub use self::{
     fn_info::CFnInfo,
     helper::method_provider,
     ptr_info::CPtrInfo,
+    string_info::CStringInfo,
     struct_info::CStructInfo,
     type_info::{CTypeCast, CTypeInfo},
     types::{ctype_helper, export_c_types, export_fixed_types},
@@ -44,5 +46,6 @@ pub fn export_c(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("fn", |lua, (args, ret): (LuaTable, LuaAnyUserData)| {
             CFnInfo::from_table(lua, args, ret)
         })?
+        .with_value("string", CStringInfo::new())?
         .build_readonly()
 }

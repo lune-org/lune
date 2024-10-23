@@ -12,7 +12,7 @@ See [tests/ffi](../../tests/ffi/README.md)
 
 - Add math operation.
 
-  > `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow`  
+  > Provide related methods: `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow` `:max` `:min` `:gt` `:lt`  
   > Luau cannot handle f64, i64 or i128, so we should provide math operation for it
 
 - Add bit operation

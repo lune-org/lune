@@ -203,9 +203,6 @@ impl CFnInfo {
 }
 
 impl LuaUserData for CFnInfo {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_meta_field(LuaMetaMethod::Type, "CFn");
-    }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);

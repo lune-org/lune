@@ -314,17 +314,17 @@ pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
 // get name tag for any c-type userdata
 pub fn get_tag_name(userdata: &LuaAnyUserData) -> LuaResult<String> {
     Ok(if userdata.is::<CStructInfo>() {
-        String::from("CStruct")
+        String::from("CStructInfo")
     } else if userdata.is::<CArrInfo>() {
-        String::from("CArr")
+        String::from("CArrInfo")
     } else if userdata.is::<CPtrInfo>() {
-        String::from("CPtr")
+        String::from("CPtrInfo")
     } else if userdata.is::<CFnInfo>() {
-        String::from("CFn")
+        String::from("CFnInfo")
     } else if userdata.is::<CVoidInfo>() {
-        String::from("CVoid")
+        String::from("CVoidInfo")
     } else if ctype_helper::is_ctype(userdata) {
-        String::from("CType")
+        String::from("CTypeInfo")
     } else {
         String::from("Unknown")
     })
