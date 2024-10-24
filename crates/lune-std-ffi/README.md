@@ -31,6 +31,8 @@ See [tests/ffi](../../tests/ffi/README.md)
 
 - Array argument in cfn
 
+- Ref boundary fix
+
 ## Code structure
 
 ### /c
@@ -84,12 +86,11 @@ Implememt type-casting for all CTypes
 
 - **Trait `FfiSize`**
 - **Trait `FfiSignedness`**
-- **Trait `FfiConvert`:** Provide read LuaValue from FfiData or write LuaValue into FfiData
 
-**Traits:** Provide call information trait
+**Structs:** Provide call information trait
 
-- **Trait `FfiArg`:** Used for argument boundary checking and callback argument ref flag
-- **Trait `FfiResult`:** Used for result boundary checking
+- **Struct `FfiArg`:** Used for argument boundary checking and callback argument ref flag
+- **Struct `FfiResult`:** Used for result boundary checking
 
 **Trait `FfiData`:** Provide common data handle, including methods below
 
@@ -97,6 +98,14 @@ Implememt type-casting for all CTypes
 - **Method `get_inner_pointer`:** returns raw pointer `*mut ()`
 - **Method `is_writable`**
 - **Method `is_readable`**
+- **Method `copy_from`** copy data from another data
+
+- **Trait `FfiConvert`:** Provide methods for read LuaValue from FfiData or write LuaValue into FfiData
+
+- **Method `value_into_data`:** set data with lua value
+- **Method `value_from_data`:** get lua value from data
+- **Method `copy_data`:** copy sized data into another data
+- **Method `stringify_data`:** stringify data with specific type
 
 > Note: `GetFfiData` trait in `data/mod.rs` provides `AnyUserData.get_data_handle() -> FfiData` method
 
@@ -108,6 +117,7 @@ Implememt type-casting for all CTypes
   - **Function `num_cast<From, Into>(from: FfiData, from: FfiData)`:**
     Cast number type value inno another number type
 - [**Mod `libffi_helper.rs`:**](./src/ffi/libffi_helper.rs)
-  - **Const `FFI_STATUS_NAMES`:** Used for ffi_status stringify
-  - **Function `get_ensured_size`:** Returns ensured ffi_type size
+  - **Const `FFI_STATUS_NAMES`:** Used for `ffi_status` stringify
+  - **Function `get_ensured_size`:** Returns ensured `ffi_type` size
   - **Const `SIZE_OF_POINTER`:** Platform specific pointer size (Compile time known)
+  - **Function `ffi_status_assert`:** Convert `ffi_status` to `LuaResult<()>`

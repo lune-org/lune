@@ -115,7 +115,7 @@ where
         into: &Ref<dyn FfiData>,
     ) -> LuaResult<()> {
         define_cast_num!(
-            From, self, into_info, from_info, from, into,
+            From, self, from_info, into_info, from, into,
             u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize
         )
     }
