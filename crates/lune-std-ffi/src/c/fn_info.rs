@@ -43,7 +43,6 @@ impl FfiSignedness for CFnInfo {
         false
     }
 }
-
 impl FfiSize for CFnInfo {
     fn get_size(&self) -> usize {
         SIZE_OF_POINTER
@@ -203,6 +202,9 @@ impl CFnInfo {
 }
 
 impl LuaUserData for CFnInfo {
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("size", |_, _| Ok(SIZE_OF_POINTER));
+    }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);

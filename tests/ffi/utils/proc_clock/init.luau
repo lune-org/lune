@@ -7,10 +7,7 @@ local c = ffi.c
 
 local procClock = {}
 
-local libdir = "./tests/ffi/utility/proc_clock"
-local compile = require("../compile")
-compile(`{libdir}/lib.c`, `{libdir}/lib.so`)
-local lib = ffi.open(`{libdir}/lib.so`)
+local lib = require("../compile")("./tests/ffi/utils/proc_clock/lib.c")
 
 -- sizeof_clock
 local sizeofClock = c.fn({}, c.int):callable(lib:find("sizeof_clock"))

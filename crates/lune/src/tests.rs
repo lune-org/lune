@@ -99,6 +99,24 @@ create_tests! {
     datetime_to_universal_time: "datetime/toUniversalTime",
 }
 
+#[cfg(feature = "std-ffi")]
+create_tests! {
+    ffi_external_closure_call_closure: "ffi/external_closure/callClosure",
+    ffi_external_closure_call_closure_with_pointer: "ffi/external_closure/callClosureWithPointer",
+    ffi_external_closure_call_hello_world: "ffi/external_closure/callHelloWorld",
+    ffi_external_math_add_int: "ffi/external_math/addInt",
+    ffi_external_math_mul_int: "ffi/external_math/mulInt",
+    ffi_external_pointer_pointer_read: "ffi/external_pointer/pointerRead",
+    ffi_external_pointer_pointer_write: "ffi/external_pointer/pointerWrite",
+    ffi_external_print_hello_world: "ffi/external_print/helloWorld",
+    ffi_external_struct_ab: "ffi/external_struct/ab",
+    ffi_cast: "ffi/cast",
+    ffi_is_integer: "ffi/isInteger",
+    ffi_pretty_print: "ffi/prettyPrint",
+    ffi_read_boundary: "ffi/readBoundary",
+    ffi_write_boundary: "ffi/writeBoundary",
+}
+
 #[cfg(feature = "std-fs")]
 create_tests! {
     fs_files: "fs/files",

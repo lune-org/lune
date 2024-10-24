@@ -8,7 +8,7 @@ typedef struct {
     int mul;
 } ResultStruct;
 
-ResultStruct AB(ArgStruct t) {
+ResultStruct ab(ArgStruct t) {
     ResultStruct result = { t.a+ * t.b, t.a * (*t.b) };
     return result;
 }

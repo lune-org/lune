@@ -1,6 +1,6 @@
-import { libSuffix } from "../deno.ts";
+import { libSuffix } from "../libSuffix.ts";
 
-const library_file = "./tests/ffi/utility/proc_clock/lib."+libSuffix;
+const library_file = "./tests/ffi/utils/proc_clock/lib."+libSuffix;
 // @ts-ignore
 let library = Deno.dlopen(library_file, {
     sizeof_clock: {

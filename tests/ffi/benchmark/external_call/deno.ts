@@ -1,5 +1,5 @@
-import { libSuffix } from "../../utility/deno.ts";
-import { get_clock, get_offset } from "../../utility/proc_clock/deno.ts";
+import { libSuffix } from "../../utils/libSuffix.ts";
+import { get_clock, get_offset } from "../../utils/proc_clock/deno.ts";
 
 const library_file = "./tests/ffi/benchmark/external_call/lib."+libSuffix;
 // @ts-ignore

@@ -1,5 +1,4 @@
 local ffi = require("@lune/ffi")
-
 local ok
 
 -- Case1: Success
@@ -24,7 +23,6 @@ end)
 assert(ok, "assersion failed, Case3 should success")
 
 -- Case4: Success
-
 ok = pcall(function()
 	local box = ffi.box(ffi.u8.size * 2)
 	ffi.u8:readData(box, ffi.u8.size)

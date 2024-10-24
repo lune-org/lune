@@ -124,7 +124,7 @@ impl CPtrInfo {
 
 impl LuaUserData for CPtrInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, _| Ok(size_of::<usize>()));
+        fields.add_field_method_get("size", |_, _| Ok(SIZE_OF_POINTER));
         fields.add_field_function_get("inner", |lua, this| {
             let inner = association::get(lua, CPTR_INNER, this)?
                 .ok_or_else(|| LuaError::external("inner type not found"))?;

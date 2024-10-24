@@ -1,6 +1,5 @@
 local ffi = require("@lune/ffi")
 local c = ffi.c
-
 local ok
 
 -- Case1: Fail
