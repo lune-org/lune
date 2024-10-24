@@ -64,6 +64,11 @@ Command: `cargo run --profile=release run tests/ffi/benchmark/external_call`
 
   > Commit: ddf0c4c
 
+**C**
+
+- Device1-Linux-PVE: 0.001949 (sec)
+  > gcc (GCC) 14.2.1 20240910
+
 **LuaJit ffi**
 
 Command: `luajit tests/ffi/benchmark/external_call/luajit.lua`
