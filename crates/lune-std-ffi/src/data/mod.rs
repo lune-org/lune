@@ -6,6 +6,7 @@ use mlua::prelude::*;
 mod box_data;
 mod callable_data;
 mod closure_data;
+mod helper;
 mod lib_data;
 mod ref_data;
 

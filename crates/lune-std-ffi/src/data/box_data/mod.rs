@@ -1,7 +1,13 @@
-use std::{alloc, alloc::Layout, boxed::Box, mem::ManuallyDrop, ptr};
+use std::{
+    alloc::{self, Layout},
+    boxed::Box,
+    mem::ManuallyDrop,
+    ptr,
+};
 
 use mlua::prelude::*;
 
+use super::helper::method_provider;
 use crate::{
     data::{association_names::REF_INNER, RefBounds, RefData, RefFlag},
     ffi::{association, bit_mask::*, FfiData},
@@ -148,6 +154,7 @@ impl LuaUserData for BoxData {
         fields.add_field_method_get("size", |_, this| Ok(this.size()));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        method_provider::provide_copy_from(methods);
         // For convenience, :zero returns self.
         methods.add_function_mut("zero", |_, this: LuaAnyUserData| {
             this.borrow_mut::<BoxData>()?.zero();

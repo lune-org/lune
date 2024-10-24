@@ -6,6 +6,10 @@ See [tests/ffi](../../tests/ffi/README.md)
 
 ## TODO
 
+- Deref
+
+- Big endianness / Little endianness variable (On process.endianness)
+
 - CString
 
 - Add buffer for owned data support
@@ -24,6 +28,8 @@ See [tests/ffi](../../tests/ffi/README.md)
   > For windows API
 
 - Add varargs support
+
+- Array argument in cfn
 
 ## Code structure
 

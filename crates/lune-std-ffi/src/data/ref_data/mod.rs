@@ -2,6 +2,7 @@ use std::{mem::ManuallyDrop, ptr};
 
 use mlua::prelude::*;
 
+use super::helper::method_provider;
 use crate::{
     data::association_names::REF_INNER,
     ffi::{association, bit_mask::*, FfiData},
@@ -91,6 +92,10 @@ impl RefData {
         (**self.ptr) as usize == 0
     }
 
+    pub fn leak(&mut self) {
+        self.flags = u8_set(self.flags, RefFlag::Leaked.value(), true);
+    }
+
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
         u8_test(self.flags, RefFlag::Offsetable.value())
             .then_some(())
@@ -147,6 +152,8 @@ impl FfiData for RefData {
 
 impl LuaUserData for RefData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        method_provider::provide_copy_from(methods);
+
         // FIXME:
         methods.add_function("deref", |lua, this: LuaAnyUserData| {
             let inner = association::get(lua, REF_INNER, &this)?;
@@ -171,10 +178,12 @@ impl LuaUserData for RefData {
 
             Ok(userdata)
         });
-        // FIXME:
+        methods.add_function_mut("leak", |lua, this: LuaAnyUserData| {
+            this.borrow_mut::<RefData>()?.leak();
+            RefData::luaref(lua, this)
+        });
         methods.add_function("ref", |lua, this: LuaAnyUserData| {
-            let ffiref = RefData::luaref(lua, this)?;
-            Ok(ffiref)
+            RefData::luaref(lua, this)
         });
         methods.add_method("isNull", |_, this, ()| Ok(this.is_nullptr()));
     }

@@ -62,6 +62,17 @@ pub trait FfiData {
     unsafe fn get_inner_pointer(&self) -> *mut ();
     fn is_writable(&self) -> bool;
     fn is_readable(&self) -> bool;
+    unsafe fn copy_from(
+        &self,
+        src: &Ref<dyn FfiData>,
+        length: usize,
+        dst_offset: isize,
+        src_offset: isize,
+    ) {
+        self.get_inner_pointer()
+            .byte_offset(dst_offset)
+            .copy_from(src.get_inner_pointer().byte_offset(src_offset), length);
+    }
 }
 
 pub struct FfiArg {
