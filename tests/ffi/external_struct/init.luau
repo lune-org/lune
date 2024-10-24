@@ -7,19 +7,19 @@ compile(`{testdir}/lib.c`, `{testdir}/lib.so`)
 local lib = ffi.open(`{testdir}/lib.so`)
 
 local function test_AB()
-	local ArgStruct = c.struct({ c.int, c.int:ptr() })
-	local ResultStruct = c.struct({ c.int, c.int })
+	local argStructInfo = c.struct({ c.int, c.int:ptr() })
+	local resultStructInfo = c.struct({ c.int, c.int })
 
-	local AB = c.fn({ ArgStruct }, ResultStruct)
+	local AB = c.fn({ argStructInfo }, resultStructInfo)
 
 	local AB_callable = AB:callable(lib:find("AB"))
 
-	local resultBox = ffi.box(ResultStruct.size)
+	local resultBox = ffi.box(resultStructInfo.size)
 	local b = c.int:box(200)
-	local arg = ArgStruct:box({ 100, b:ref() })
+	local argStruct = argStructInfo:box({ 100, b:ref() })
 
-	AB_callable(resultBox, arg:ref())
-	local result = ResultStruct:readData(resultBox)
+	AB_callable(resultBox, argStruct:ref())
+	local result = resultStructInfo:readData(resultBox)
 
 	assert(result[1] == 300, `AB failed. result expected 300, got {result[1]}`)
 	assert(result[2] == 20000, `AB failed. result expected 300, got {result[2]}`)

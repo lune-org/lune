@@ -6,14 +6,10 @@ See [tests/ffi](../../tests/ffi/README.md)
 
 ## TODO
 
+- Rewrite error messages
 - Deref
-
-- Big endianness / Little endianness variable (On process.endianness)
-
 - CString
-
 - Add buffer for owned data support
-
 - Add math operation.
 
   > Provide related methods: `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow` `:max` `:min` `:gt` `:lt`  
@@ -28,9 +24,7 @@ See [tests/ffi](../../tests/ffi/README.md)
   > For windows API
 
 - Add varargs support
-
 - Array argument in cfn
-
 - Ref boundary fix
 
 ## Code structure

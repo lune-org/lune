@@ -9,6 +9,6 @@ typedef struct {
 } ResultStruct;
 
 ResultStruct AB(ArgStruct t) {
-    ResultStruct result = { t.a+*t.b, t.a**t.b };
+    ResultStruct result = { t.a+ * t.b, t.a * (*t.b) };
     return result;
 }

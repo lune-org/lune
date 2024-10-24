@@ -2,8 +2,8 @@ local ffi = require("@lune/ffi")
 local c = ffi.c
 
 local proc_clock = require("../../utility/proc_clock")
-local before, after = proc_clock.new_box()
-local get_clock = proc_clock.get_clock
+local before, after = proc_clock.newBox()
+local get_clock = proc_clock.getClock
 
 local testdir = "./tests/ffi/benchmark/external_call"
 local compile = require("../../utility/compile")
@@ -26,7 +26,7 @@ local function bench_add(bench_scale: number)
 		add_callable(a, a_ref, delta_ref)
 	end
 	get_clock(after)
-	print(proc_clock.get_offset(before, after))
+	print(proc_clock.getOffset(before, after))
 
 	local result = c.int:readData(a)
 	assert(result == bench_scale, `bench_add failed. result expected {bench_scale}, got {result}`)

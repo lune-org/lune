@@ -6,18 +6,15 @@ local compile = require("../utility/compile")
 compile(`{testdir}/lib.c`, `{testdir}/lib.so`)
 local lib = ffi.open(`{testdir}/lib.so`)
 
-local function test_pointer_write()
-	local pointer_write_info = c.fn({ c.int:ptr() }, c.void)
+local function test_pointerWrite()
+	local pointerWrite = c.fn({ c.int:ptr() }, c.void):callable(lib:find("pointer_write"))
 
-	local pointer_write_callable = pointer_write_info:callable(lib:find("pointer_write"))
+	local aBox = ffi.box(c.int.size)
+	pointerWrite(nil, aBox:ref():ref())
 
-	local a = ffi.box(c.int.size)
-
-	pointer_write_callable(nil, a:ref():ref())
-
-	local result = c.int:readData(a)
+	local result = c.int:readData(aBox)
 
 	assert(result == 123, `pointer failed. result expected 123, got {result}`)
 end
 
-test_pointer_write()
+test_pointerWrite()
