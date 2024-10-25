@@ -8,7 +8,10 @@ use std::{
     },
 };
 
-use mlua::prelude::*;
+use mlua::{
+    prelude::*,
+    Compiler,
+};
 use mlua_luau_scheduler::{Functions, Scheduler};
 use self_cell::self_cell;
 
@@ -30,6 +33,10 @@ impl RuntimeInner {
     fn create() -> LuaResult<Self> {
         let lua = Rc::new(Lua::new());
 
+        let compiler = Compiler::new()
+            .set_optimization_level(2);
+
+        lua.set_compiler(compiler);
         lua.set_app_data(Rc::downgrade(&lua));
         lua.set_app_data(Vec::<String>::new());
 
