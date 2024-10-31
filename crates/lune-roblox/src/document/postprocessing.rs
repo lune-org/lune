@@ -18,8 +18,8 @@ pub fn postprocess_dom_for_model(dom: &mut WeakDom) {
         remove_matching_prop(inst, DomType::UniqueId, "HistoryId");
         // Similar story with ScriptGuid - this is used
         // in the studio-only cloud script drafts feature
-        if class_is_a(&inst.class, "LuaSourceContainer").unwrap_or(false) {
-            inst.properties.remove("ScriptGuid");
+        if class_is_a(inst.class, "LuaSourceContainer").unwrap_or(false) {
+            inst.properties.remove(&"ScriptGuid".into());
         }
     });
 }
@@ -41,7 +41,11 @@ where
 }
 
 fn remove_matching_prop(inst: &mut DomInstance, ty: DomType, name: &'static str) {
-    if inst.properties.get(name).map_or(false, |u| u.ty() == ty) {
-        inst.properties.remove(name);
+    if inst
+        .properties
+        .get(&name.into())
+        .map_or(false, |u| u.ty() == ty)
+    {
+        inst.properties.remove(&name.into());
     }
 }
