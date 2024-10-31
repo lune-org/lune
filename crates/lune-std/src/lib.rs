@@ -6,10 +6,12 @@ mod global;
 mod globals;
 mod library;
 mod luaurc;
+mod unsafe_library;
 
 pub use self::global::LuneStandardGlobal;
 pub use self::globals::version::set_global_version;
 pub use self::library::LuneStandardLibrary;
+pub use self::unsafe_library::{get_unsafe_library_enabled, set_unsafe_library_enabled};
 
 /**
     Injects all standard globals into the given Lua state / VM.

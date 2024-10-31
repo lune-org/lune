@@ -54,6 +54,7 @@ impl RuntimeInner {
                 feature = "std-serde",
                 feature = "std-stdio",
                 feature = "std-task",
+                feature = "std-ffi",
             ))]
             {
                 lune_std::set_global_version(lua, env!("CARGO_PKG_VERSION"));
@@ -76,6 +77,7 @@ impl RuntimeInner {
                 feature = "std-serde",
                 feature = "std-stdio",
                 feature = "std-task",
+                feature = "std-ffi",
             ))]
             {
                 let g_table = lune_std::LuneStandardGlobal::GTable;
@@ -127,6 +129,15 @@ impl Runtime {
     {
         let args = args.into_iter().map(Into::into).collect::<Vec<_>>();
         self.inner.lua().set_app_data(args);
+        self
+    }
+
+    /**
+        Sets arguments to give in `process.args` for Lune scripts.
+    */
+    #[must_use]
+    pub fn set_unsafe_lib_enabled(self, enabled: bool) -> Self {
+        lune_std::set_unsafe_library_enabled(self.inner.lua(), enabled);
         self
     }
 

@@ -2,6 +2,8 @@ use std::str::FromStr;
 
 use mlua::prelude::*;
 
+use crate::get_unsafe_library_enabled;
+
 /**
     A standard library probloxrovided by Lune.
 */
@@ -65,15 +67,43 @@ impl LuneStandardLibrary {
     }
 
     /**
+        Gets whether the library is unsafe.
+    */
+    #[must_use]
+    #[rustfmt::skip]
+    #[allow(unreachable_patterns)]
+    pub fn is_unsafe(&self) -> bool {
+        match self {
+            #[cfg(feature = "datetime")] Self::DateTime => false,
+            #[cfg(feature = "fs")]       Self::Fs       => false,
+            #[cfg(feature = "luau")]     Self::Luau     => false,
+            #[cfg(feature = "net")]      Self::Net      => false,
+            #[cfg(feature = "task")]     Self::Task     => false,
+            #[cfg(feature = "process")]  Self::Process  => false,
+            #[cfg(feature = "regex")]    Self::Regex    => false,
+            #[cfg(feature = "serde")]    Self::Serde    => false,
+            #[cfg(feature = "stdio")]    Self::Stdio    => false,
+            #[cfg(feature = "roblox")]   Self::Roblox   => false,
+            #[cfg(feature = "ffi")]      Self::Ffi      => true,
+
+            _ => unreachable!("no standard library enabled"),
+        }
+    }
+
+    /**
         Creates the Lua module for the library.
 
         # Errors
 
-        If the library could not be created.
+        If the library could not be created, or if requiring an unsafe library without enabling the unsafe library.
     */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
     pub fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
+        if self.is_unsafe() && !get_unsafe_library_enabled(lua) {
+            return Err(LuaError::external(format!("Standard library '{}' requires unsafe library enabled", self.name())));
+        }
+
         let res: LuaResult<LuaTable> = match self {
             #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(lua),
             #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::module(lua),

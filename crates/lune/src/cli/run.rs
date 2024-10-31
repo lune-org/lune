@@ -14,6 +14,9 @@ use super::utils::files::{discover_script_path_including_lune_dirs, strip_sheban
 /// Run a script
 #[derive(Debug, Clone, Parser)]
 pub struct RunCommand {
+    /// Allow unsafe libraries
+    #[clap(long, action)]
+    r#unsafe: bool,
     /// Script name or full path to the file to run
     script_path: String,
     /// Arguments to pass to the script, stored in process.args
@@ -41,7 +44,9 @@ impl RunCommand {
         };
 
         // Create a new lune runtime with all globals & run the script
-        let mut rt = Runtime::new().with_args(self.script_args);
+        let mut rt = Runtime::new()
+            .with_args(self.script_args)
+            .set_unsafe_lib_enabled(self.r#unsafe);
 
         let result = rt
             .run(&script_display_name, strip_shebang(script_contents))
