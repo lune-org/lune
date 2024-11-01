@@ -27,8 +27,10 @@ self_cell! {
 }
 
 impl RuntimeInner {
-    fn create() -> LuaResult<Self> {
+    fn create(codegen: bool) -> LuaResult<Self> {
         let lua = Rc::new(Lua::new());
+
+        lua.enable_jit(codegen);
 
         lua.set_app_data(Rc::downgrade(&lua));
         lua.set_app_data(Vec::<String>::new());
@@ -110,9 +112,9 @@ impl Runtime {
     */
     #[must_use]
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new(codegen: bool) -> Self {
         Self {
-            inner: RuntimeInner::create().expect("Failed to create runtime"),
+            inner: RuntimeInner::create(codegen).expect("Failed to create runtime"),
         }
     }
 

@@ -31,7 +31,7 @@ macro_rules! create_tests {
             // The rest of the test logic can continue as normal
             let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
             let script = read_to_string(&full_name).await?;
-            let mut lune = Runtime::new().with_args(
+            let mut lune = Runtime::new(true).with_args(
                 ARGS
                     .clone()
                     .iter()

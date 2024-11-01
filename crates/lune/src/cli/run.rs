@@ -16,6 +16,9 @@ use super::utils::files::{discover_script_path_including_lune_dirs, strip_sheban
 pub struct RunCommand {
     /// Script name or full path to the file to run
     script_path: String,
+    /// If native codegen should be disabled. This is useful for benchmarking.
+    #[clap(long)]
+    disable_codegen: bool,
     /// Arguments to pass to the script, stored in process.args
     script_args: Vec<String>,
 }
@@ -41,7 +44,7 @@ impl RunCommand {
         };
 
         // Create a new lune runtime with all globals & run the script
-        let mut rt = Runtime::new().with_args(self.script_args);
+        let mut rt = Runtime::new(!self.disable_codegen).with_args(self.script_args);
 
         let result = rt
             .run(&script_display_name, strip_shebang(script_contents))

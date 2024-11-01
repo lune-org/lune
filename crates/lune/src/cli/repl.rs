@@ -17,7 +17,11 @@ enum PromptState {
 
 /// Launch an interactive REPL (default)
 #[derive(Debug, Clone, Default, Parser)]
-pub struct ReplCommand {}
+pub struct ReplCommand {
+    /// If native codegen should be disabled. This is useful for benchmarking.
+    #[clap(long)]
+    disable_codegen: bool,
+}
 
 impl ReplCommand {
     pub async fn run(self) -> Result<ExitCode> {
@@ -38,7 +42,7 @@ impl ReplCommand {
         let mut prompt_state = PromptState::Regular;
         let mut source_code = String::new();
 
-        let mut lune_instance = Runtime::new();
+        let mut lune_instance = Runtime::new(!self.disable_codegen);
 
         loop {
             let prompt = match prompt_state {
