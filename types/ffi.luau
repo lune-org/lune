@@ -119,15 +119,15 @@ export type RefData = {
 
 		@param src The source data
 		@param len The amount of data to copy, in bytes
-		@param dst_offset The offset in the destination where the data will be pasted
-		@param src_offset The offset in the source data from where the data will be copied
+		@param dstOffset The offset in the destination where the data will be pasted
+		@param srcOffset The offset in the source data from where the data will be copied
 	]=]
 	copyFrom: (
 		self: RefData,
 		src: BoxData | RefData,
 		length: number,
-		dst_offset: number,
-		src_offset: number
+		dstOffset: number,
+		srcOffset: number
 	) -> (),
 }
 
@@ -191,15 +191,15 @@ export type BoxData = {
 
 		@param src The source data
 		@param len The amount of data to copy, in bytes
-		@param dst_offset The offset in the destination where the data will be pasted
-		@param src_offset The offset in the source data from where the data will be copied
+		@param dstOffset The offset in the destination where the data will be pasted
+		@param srcOffset The offset in the source data from where the data will be copied
 	]=]
 	copyFrom: (
 		self: BoxData,
 		src: BoxData | RefData,
 		length: number,
-		dst_offset: number,
-		src_offset: number
+		dstOffset: number,
+		srcOffset: number
 	) -> (),
 }
 
@@ -291,6 +291,13 @@ export type CTypeInfo<T, R> = {
 	box: (self: CTypeInfo<T, R>, val: R) -> BoxData,
 	readData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> R,
 	writeData: (self: CTypeInfo<T, R>, target: RefData | BoxData, value: R, offset: number?) -> (),
+	copyData: (
+		self: CTypeInfo<T, R>,
+		dst: RefData | BoxData,
+		src: RefData | BoxData,
+		dstOffset: number?,
+		srcOffset: number?
+	) -> (),
 	stringifyData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> string,
 
 	-- FIXME: recursive types; 'intoType' should be CTypes
@@ -298,7 +305,9 @@ export type CTypeInfo<T, R> = {
 		self: CTypeInfo<T, R>,
 		intoType: any,
 		fromData: RefData | BoxData,
-		intoData: RefData | BoxData
+		intoData: RefData | BoxData,
+		fromOffset: number?,
+		intoOffset: number?
 	) -> (),
 } & { ["__phantom"]: T }
 type NumCType<T> = CTypeInfo<T, (number | any)>
@@ -385,8 +394,8 @@ export type CArrInfo<T, R> = {
 		self: CArrInfo<T, R>,
 		dst: RefData | BoxData,
 		src: RefData | BoxData,
-		dst_offset: number?,
-		src_offset: number?
+		dstOffset: number?,
+		srcOffset: number?
 	) -> (),
 
 	offset: (self: CArrInfo<T, R>, index: number) -> number,
@@ -490,6 +499,17 @@ export type CStructInfo = {
 		@return A table
 	]=]
 	readData: (self: CStructInfo, target: RefData | BoxData, offset: number?) -> { any },
+	--[=[
+		@within CSturctInfo
+		@tag Method
+		@method writeData
+
+		Write a lua table into reference or box.
+
+		@param target Target to write data into
+		@param table Lua data to write
+		@param offset Offset to write data into
+	]=]
 	writeData: (
 		self: CStructInfo,
 		target: RefData | BoxData,
@@ -500,8 +520,8 @@ export type CStructInfo = {
 		self: CStructInfo,
 		dst: RefData | BoxData,
 		src: RefData | BoxData,
-		dst_offset: number?,
-		src_offset: number?
+		dstOffset: number?,
+		srcOffset: number?
 	) -> (),
 
 	offset: (self: CStructInfo, index: number) -> number,
