@@ -136,7 +136,7 @@ impl Runtime {
         Sets arguments to give in `process.args` for Lune scripts.
     */
     #[must_use]
-    pub fn set_unsafe_lib_enabled(self, enabled: bool) -> Self {
+    pub fn set_unsafe_library_enabled(self, enabled: bool) -> Self {
         lune_std::set_unsafe_library_enabled(self.inner.lua(), enabled);
         self
     }

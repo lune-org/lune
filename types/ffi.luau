@@ -415,7 +415,7 @@ export type CFnInfo = {
 
 		Create a callable from reference.
 
-		@return Struct array type
+		@return A callable
 	]=]
 	callable: (self: CFnInfo, functionRef: RefData) -> CallableData,
 	--[=[
@@ -425,7 +425,7 @@ export type CFnInfo = {
 
 		Create a closure from lua function.
 
-		@return A closure.
+		@return A closure
 	]=]
 	closure: (self: CFnInfo, (ret: RefData, ...RefData) -> ()) -> ClosureData,
 }
@@ -467,7 +467,28 @@ export type CStructInfo = {
 	]=]
 	ptr: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
 
+	--[=[
+		@within CSturctInfo
+		@tag Method
+		@method box
+
+		Create a box with initial value.
+
+		@param table The array of field values
+		@return A box
+	]=]
 	box: (self: CStructInfo, table: { any }) -> BoxData,
+	--[=[
+		@within CSturctInfo
+		@tag Method
+		@method readData
+
+		Read a lua table from reference or box.
+
+		@param target Target to read data from
+		@param offset Offset to read data from
+		@return A table
+	]=]
 	readData: (self: CStructInfo, target: RefData | BoxData, offset: number?) -> { any },
 	writeData: (
 		self: CStructInfo,

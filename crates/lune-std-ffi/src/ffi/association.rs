@@ -66,16 +66,3 @@ where
         _ => panic!(),
     }
 }
-
-// Allows reading of registry tables for debugging.
-// This helps keep track of data being gc'd.
-// However, for security and safety reasons,
-// this will not be allowed unless debug build.
-#[cfg(debug_assertions)]
-pub fn get_table<'lua>(lua: &'lua Lua, regname: &str) -> LuaResult<Option<LuaTable<'lua>>> {
-    match lua.named_registry_value::<LuaValue>(regname)? {
-        LuaValue::Nil => Ok(None),
-        LuaValue::Table(t) => Ok(Some(t)),
-        _ => panic!(),
-    }
-}

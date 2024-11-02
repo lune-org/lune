@@ -46,7 +46,7 @@ impl RunCommand {
         // Create a new lune runtime with all globals & run the script
         let mut rt = Runtime::new()
             .with_args(self.script_args)
-            .set_unsafe_lib_enabled(self.r#unsafe);
+            .set_unsafe_library_enabled(self.r#unsafe);
 
         let result = rt
             .run(&script_display_name, strip_shebang(script_contents))
