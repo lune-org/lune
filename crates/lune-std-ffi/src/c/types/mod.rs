@@ -25,7 +25,7 @@ pub mod u64;
 pub mod u8;
 pub mod usize;
 
-// create CType userdata and export
+// CType userdata export
 macro_rules! create_ctypes {
     ($lua:ident, $(( $name:expr, $rust_type:ty, $libffi_type:expr ),)* ) => {
         Ok(vec![$((
@@ -82,9 +82,9 @@ pub fn export_fixed_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserD
 
 // Implement type-casting for numeric ctypes
 macro_rules! define_cast_num {
-    ($from_rust_type:ident, $self:ident, $from_ctype:ident, $into_ctype:ident, $from:ident, $into:ident, $($into_rust_type:ty)*) => {
+    ($from_rust_type:ident, $self:ident, $from_ctype:ident, $into_ctype:ident, $from:ident, $into:ident, $fromOffset:ident, $intoOffset:ident, $($into_rust_type:ty)*) => {
         $( if $into_ctype.is::<CTypeInfo<$into_rust_type>>() {
-            num_cast::<$from_rust_type, $into_rust_type>($from, $into)
+            num_cast::<$from_rust_type, $into_rust_type>($from, $into, $fromOffset, $intoOffset)
         } else )* {
             Err($self.cast_failed_with($from_ctype, $into_ctype))
         }
@@ -113,9 +113,11 @@ where
         into_info: &LuaAnyUserData,
         from: &Ref<dyn FfiData>,
         into: &Ref<dyn FfiData>,
+        from_offset: isize,
+        into_offset: isize,
     ) -> LuaResult<()> {
         define_cast_num!(
-            From, self, from_info, into_info, from, into,
+            From, self, from_info, into_info, from, into, from_offset, into_offset,
             u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize
         )
     }

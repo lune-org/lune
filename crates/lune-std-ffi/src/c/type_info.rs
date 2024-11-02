@@ -21,6 +21,8 @@ pub trait CTypeCast {
         into_ctype: &LuaAnyUserData,
         _from: &Ref<dyn FfiData>,
         _into: &Ref<dyn FfiData>,
+        _from_offset: isize,
+        _into_offset: isize,
     ) -> LuaResult<()> {
         // Show error if have no cast implement
         Err(Self::cast_failed_with(self, from_ctype, into_ctype))
@@ -114,17 +116,21 @@ where
         methods.add_function(
             "cast",
             |_,
-             (from_type, into_type, from, into): (
+             (from_type, into_type, from, into, from_offset, into_offset): (
                 LuaAnyUserData,
                 LuaAnyUserData,
                 LuaAnyUserData,
                 LuaAnyUserData,
+                Option<isize>,
+                Option<isize>,
             )| {
                 from_type.borrow::<Self>()?.cast(
                     &from_type,
                     &into_type,
                     &from.get_ffi_data()?,
                     &into.get_ffi_data()?,
+                    from_offset.unwrap_or(0),
+                    into_offset.unwrap_or(0),
                 )
             },
         );

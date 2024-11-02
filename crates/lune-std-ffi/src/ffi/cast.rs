@@ -6,13 +6,26 @@ use num::cast::AsPrimitive;
 use super::FfiData;
 
 #[inline]
-pub fn num_cast<From, Into>(from: &Ref<dyn FfiData>, into: &Ref<dyn FfiData>) -> LuaResult<()>
+pub fn num_cast<From, Into>(
+    from: &Ref<dyn FfiData>,
+    into: &Ref<dyn FfiData>,
+    from_offset: isize,
+    into_offset: isize,
+) -> LuaResult<()>
 where
     From: AsPrimitive<Into>,
     Into: 'static + Copy,
 {
-    let from_ptr = unsafe { from.get_inner_pointer().cast::<From>() };
-    let into_ptr = unsafe { into.get_inner_pointer().cast::<Into>() };
+    let from_ptr = unsafe {
+        from.get_inner_pointer()
+            .byte_offset(from_offset)
+            .cast::<From>()
+    };
+    let into_ptr = unsafe {
+        into.get_inner_pointer()
+            .byte_offset(into_offset)
+            .cast::<Into>()
+    };
 
     unsafe {
         *into_ptr = (*from_ptr).as_();
