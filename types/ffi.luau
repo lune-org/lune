@@ -289,7 +289,7 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method ptr
 
-		create a pointer subtype.
+		Create a pointer subtype.
 
 		@return pointer subtype
 	]=]
@@ -300,10 +300,10 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method arr
 
-		create an array subtype.
+		Create an array subtype.
 
 		@param len The length of the array
-		@return array subtype
+		@return An array subtype
 	]=]
 	arr: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
 
@@ -435,10 +435,9 @@ export type CPtrInfo<T> = {
 		@Method arr
 
 		create an array subtype.
-		FIXME: recursive types; result 'any' should be CArrInfo<CPtrInfo<T>>
 
 		@param len The length of the array
-		@return array subtype
+		@return An array subtype
 	]=]
 	arr: (self: CPtrInfo<T>, len: number) -> any,
 	
@@ -748,21 +747,21 @@ export type CStructInfo = {
 		@method copyData
 
 		returns the byte offset of the field.
-		
+
 		@param field index
-		@return byte offset
+		@return the byte offset
 	]=]
 	offset: (self: CStructInfo, index: number) -> number,
 
 	--[=[
 		@within CSturctInfo
 		@tag Method
-		@method copyData
+		@method field
 
-		returns the field type
+		Get the field type.
 		
-		@param field index
-		@return field type
+		@param index The field index
+		@return The field type
 	]=]
 	field: (self: CStructInfo, index: number) -> CTypes,
 }
