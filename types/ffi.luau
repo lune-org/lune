@@ -446,7 +446,6 @@ export type CPtrInfo<T> = {
 		@Method ptr
 
 		create a pointer subtype.
-		FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
 
 		@return pointer subtype
 	]=]
@@ -457,7 +456,7 @@ export type CPtrInfo<T> = {
 		@tag Method
 		@Method readData
 	
-		similar to readData . Reads data in the reference (the memory space pointed to by reference).
+		Similar to readData. Reads data in the reference (the memory space pointed to by reference).
 	
 		@param Reference to read
 		@param byte offset
@@ -469,7 +468,7 @@ export type CPtrInfo<T> = {
 		@tag Method
 		@Method writeData
 	
-		similar to writeData. Writes data in the reference (in the memory space pointed to by).
+		Similar to writeData. Writes data in the reference (in the memory space pointed to by).
 	
 		@param reference to use
 		@param lua value to use
@@ -521,7 +520,6 @@ export type CArrInfo<T, R> = {
 		@Method ptr
 
 		create a pointer subtype.
-		FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
 
 		@return pointer subtype
 	]=]
@@ -533,7 +531,7 @@ export type CArrInfo<T, R> = {
 		@tag Method
 		@Method box
 
-		create a box with initial values
+		Create a box with initial values
 
 		@param table The array of field values
 		@return A box
@@ -576,7 +574,7 @@ export type CArrInfo<T, R> = {
 		@tag Method
 		@Method copyData
 	
-		copy values ​​from the source and paste them into the target.
+		Copy values ​​from the source and paste them into the target.
 	
 		@param destination where the data will be pasted
 		@param src The source data
@@ -596,7 +594,7 @@ export type CArrInfo<T, R> = {
 		@tag Method
 		@method copyData
 
-		returns the byte offset of the field.
+		Get the byte offset of the field.
 		
 		@param field index
 		@return byte offset
