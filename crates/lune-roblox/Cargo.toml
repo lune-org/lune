@@ -20,10 +20,10 @@ rand = "0.8"
 thiserror = "1.0"
 once_cell = "1.17"
 
-rbx_binary = "0.7.7"
-rbx_dom_weak = "2.9.0"
-rbx_reflection = "4.7.0"
-rbx_reflection_database = "0.2.12"
-rbx_xml = "0.13.5"
+rbx_binary = { version = "0.7.7", git = "https://github.com/rojo-rbx/rbx-dom/" }
+rbx_dom_weak = { version = "2.9.0", git = "https://github.com/rojo-rbx/rbx-dom/" }
+rbx_reflection = { version = "4.7.0", git = "https://github.com/rojo-rbx/rbx-dom/" }
+rbx_reflection_database = { version = "0.2.12", git = "https://github.com/rojo-rbx/rbx-dom/" }
+rbx_xml = { version = "0.13.5", git = "https://github.com/rojo-rbx/rbx-dom/" }
 
 lune-utils = { version = "0.1.3", path = "../lune-utils" }
