@@ -313,7 +313,7 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method box
 
-		create a box with initial values
+		Create a box with initial values
 
 		@param table The array of field values
 		@return A box
@@ -351,7 +351,7 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method copyData
 	
-		copy values ​​from the source and paste them into the target.
+		Copy values ​​from the source and paste them into the target.
 	
 		@param destination where the data will be pasted
 		@param src The source data
