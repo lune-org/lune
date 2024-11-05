@@ -20,14 +20,10 @@ assert(not pcall(function()
 	return child1.Name
 end))
 
-assert(not pcall(function()
-	return child1.Parent
-end))
+assert(not child1.Parent)
 
 assert(not pcall(function()
 	return child2.Name
 end))
 
-assert(not pcall(function()
-	return child2.Parent
-end))
+assert(not child2.Parent)

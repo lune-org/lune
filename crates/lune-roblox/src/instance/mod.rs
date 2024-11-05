@@ -302,10 +302,7 @@ impl Instance {
     pub fn get_parent(&self) -> Option<Instance> {
         let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
 
-        let parent_ref = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .parent();
+        let parent_ref = dom.get_by_ref(self.dom_ref)?.parent();
 
         if parent_ref == dom.root_ref() {
             None
