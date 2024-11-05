@@ -50,6 +50,11 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     // Create constants for OS & processor architecture
     let os = lua.create_string(OS.to_lowercase())?;
     let arch = lua.create_string(ARCH.to_lowercase())?;
+    let endianness = lua.create_string(if cfg!(target_endian = "big") {
+        "big"
+    } else {
+        "little"
+    })?;
     // Create readonly args array
     let args_vec = lua
         .app_data_ref::<Vec<String>>()
@@ -75,6 +80,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_value("os", os)?
         .with_value("arch", arch)?
+        .with_value("endianness", endianness)?
         .with_value("args", args_tab)?
         .with_value("cwd", cwd_str)?
         .with_value("env", env_tab)?

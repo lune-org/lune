@@ -1,5 +1,6 @@
 export type OS = "linux" | "macos" | "windows"
 export type Arch = "x86_64" | "aarch64"
+export type Endianness = "big" | "little"
 
 export type SpawnOptionsStdioKind = "default" | "inherit" | "forward" | "none"
 export type SpawnOptionsStdio = {
@@ -117,8 +118,8 @@ export type ChildProcess = {
 	stdin: typeof(ChildProcessWriter),
 	stdout: typeof(ChildProcessReader),
 	stderr: typeof(ChildProcessReader),
-	kill: () -> ();
-	status: () -> { ok: boolean, code: number }
+	kill: () -> (),
+	status: () -> { ok: boolean, code: number },
 }
 
 --[=[
@@ -221,6 +222,20 @@ process.os = (nil :: any) :: OS
 	* `"aarch64"`
 ]=]
 process.arch = (nil :: any) :: Arch
+
+--[=[
+	@within Process
+	@prop endianness Endianness
+	@tag read_only
+
+	The endianness of the processor currently being used.
+
+	Possible values:
+
+	* `"big"`
+	* `"little"`
+]=]
+process.endianness = (nil :: any) :: Endianness
 
 --[=[
 	@within Process
