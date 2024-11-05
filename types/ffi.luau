@@ -387,8 +387,6 @@ export type CTypeInfo<T, R> = {
 		casting a value to a different type.
 
 		may result in loss of precision.
-	
-		FIXME: recursive types; 'intoType' should be CTypes
 
 		@param type to convert
 		@param memory to read the value to be converted
