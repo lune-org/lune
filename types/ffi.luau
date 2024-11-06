@@ -597,7 +597,7 @@ export type CArrInfo<T, R> = {
 
 		Get the byte offset of the field.
 		
-		@param field index
+		@param The element index
 		@return byte offset
 	]=]
 	offset: (self: CArrInfo<T, R>, index: number) -> number,
