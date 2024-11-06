@@ -291,7 +291,7 @@ export type CTypeInfo<T, R> = {
 
 		Create a pointer subtype.
 
-		@return pointer subtype
+		@return A pointer subtype
 	]=]
 	ptr: (self: CTypeInfo<T, R>) -> CPtrInfo<CTypeInfo<T, R>>,
 
@@ -432,7 +432,7 @@ export type CPtrInfo<T> = {
 		@tag Method
 		@Method arr
 
-		create an array subtype.
+		Create an array subtype.
 
 		@param len The length of the array
 		@return An array subtype
@@ -445,34 +445,35 @@ export type CPtrInfo<T> = {
 		@tag Method
 		@Method ptr
 
-		create a pointer subtype.
+		Create a pointer subtype.
 
-		@return pointer subtype
+		@return A pointer subtype
 	]=]
 	ptr: (self: CPtrInfo<T>) -> any,
 
 	--[=[
 		@within CPtrInfo
 		@tag Method
-		@Method readData
+		@Method readRef
 	
-		Similar to readData. Reads data in the reference (the memory space pointed to by reference).
+		Similar to readData, read a lua value from reference.
 	
-		@param Reference to read
-		@param byte offset
+		@param target Target reference to read data from
+		@param offset Offset to read data from
+		@return A lua value
 	]=]
-	readRef: (self: CPtrInfo<T>, target: RefData | BoxData, offset: number?) -> RefData,
+	readRef: (self: CPtrInfo<T>, target: RefData | BoxData, offset: number?) -> any,
 
 	--[=[
 		@within CPtrInfo
 		@tag Method
-		@Method writeData
+		@Method writeRef
+
+	 	Similar to writeData, write a lua value into reference.
 	
-		Similar to writeData. Writes data in the reference (in the memory space pointed to by).
-	
-		@param reference to use
-		@param lua value to use
-		@param byte offset
+		@param target Target reference to write data into
+		@param value Lua data to write
+		@param offset Offset to write data into
 	]=]
 	writeRef: (
 		self: CPtrInfo<T>,
@@ -519,9 +520,9 @@ export type CArrInfo<T, R> = {
 		@tag Method
 		@Method ptr
 
-		create a pointer subtype.
+		Create a pointer subtype.
 
-		@return pointer subtype
+		@return A pointer subtype
 	]=]
 	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<CArrInfo<T, R>>,
 
@@ -531,7 +532,7 @@ export type CArrInfo<T, R> = {
 		@tag Method
 		@Method box
 
-		Create a box with initial values
+		Create a box with initial values.
 
 		@param table The array of field values
 		@return A box
@@ -576,9 +577,9 @@ export type CArrInfo<T, R> = {
 	
 		Copy values ​​from the source and paste them into the target.
 	
-		@param destination where the data will be pasted
+		@param dst where the data will be pasted
 		@param src The source data
-		@param dstOffset The offset in the destination where the data will be pasted
+		@param dstOffset The offset in the dst where the data will be pasted
 		@param srcOffset The offset in the source data from where the data will be copied
 	]=]
 	copyData: (
@@ -592,7 +593,7 @@ export type CArrInfo<T, R> = {
 	--[=[
 		@within CArrInfo
 		@tag Method
-		@method copyData
+		@method offset
 
 		Get the byte offset of the field.
 		
