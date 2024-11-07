@@ -284,13 +284,80 @@ export type CTypeInfo<T, R> = {
 	signedness: boolean,
 
 	-- subtype
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@Method ptr
+
+		Create a pointer subtype.
+
+		@return A pointer subtype
+	]=]
 	ptr: (self: CTypeInfo<T, R>) -> CPtrInfo<CTypeInfo<T, R>>,
+
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@Method arr
+
+		Create an array subtype.
+
+		@param len The length of the array
+		@return An array subtype
+	]=]
 	arr: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
 
 	-- realize
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@Method box
+
+		Create a box with initial values
+
+		@param table The array of field values
+		@return A box
+	]=]
 	box: (self: CTypeInfo<T, R>, val: R) -> BoxData,
+
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@method readData
+
+		Read a lua table from reference or box.
+
+		@param target Target to read data from
+		@param offset Offset to read data from
+		@return A table
+	]=]
 	readData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> R,
+
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@method writeData
+
+		Write a lua table into reference or box.
+
+		@param target Target to write data into
+		@param table Lua data to write
+		@param offset Offset to write data into
+	]=]
 	writeData: (self: CTypeInfo<T, R>, target: RefData | BoxData, value: R, offset: number?) -> (),
+	
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@Method copyData
+	
+		Copy values ​​from the source and paste them into the target.
+	
+		@param destination where the data will be pasted
+		@param src The source data
+		@param dstOffset The offset in the destination where the data will be pasted
+		@param srcOffset The offset in the source data from where the data will be copied
+	]=]
 	copyData: (
 		self: CTypeInfo<T, R>,
 		dst: RefData | BoxData,
@@ -298,9 +365,35 @@ export type CTypeInfo<T, R> = {
 		dstOffset: number?,
 		srcOffset: number?
 	) -> (),
+
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@Method stringifyData
+	
+		stringify data. Useful when you need to output numbers that Lua can't handle.
+	
+		@param memory to output
+		@param memory byte offset
+	]=]
 	stringifyData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> string,
 
 	-- FIXME: recursive types; 'intoType' should be CTypes
+	--[=[
+		@within CTypeInfo
+		@tag Method
+		@Method cast
+	
+		casting a value to a different type.
+
+		may result in loss of precision.
+
+		@param type to convert
+		@param memory to read the value to be converted
+		@param memory to use the converted value
+		@param memory byte offset to read
+		@param memory byte offset to write
+	]=]
 	cast: (
 		self: CTypeInfo<T, R>,
 		intoType: any,
@@ -334,11 +427,54 @@ export type CPtrInfo<T> = {
 
 	-- subtype
 	-- FIXME: recursive types; result 'any' should be CArrInfo<CPtrInfo<T>>
+	--[=[
+		@within CPtrInfo
+		@tag Method
+		@Method arr
+
+		Create an array subtype.
+
+		@param len The length of the array
+		@return An array subtype
+	]=]
 	arr: (self: CPtrInfo<T>, len: number) -> any,
+	
 	-- FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
+	--[=[
+		@within CPtrInfo
+		@tag Method
+		@Method ptr
+
+		Create a pointer subtype.
+
+		@return A pointer subtype
+	]=]
 	ptr: (self: CPtrInfo<T>) -> any,
 
-	readRef: (self: CPtrInfo<T>, target: RefData | BoxData, offset: number?) -> RefData,
+	--[=[
+		@within CPtrInfo
+		@tag Method
+		@Method readRef
+	
+		Similar to readData, read a lua value from reference.
+	
+		@param target Target reference to read data from
+		@param offset Offset to read data from
+		@return A lua value
+	]=]
+	readRef: (self: CPtrInfo<T>, target: RefData | BoxData, offset: number?) -> any,
+
+	--[=[
+		@within CPtrInfo
+		@tag Method
+		@Method writeRef
+
+	 	Similar to writeData, write a lua value into reference.
+	
+		@param target Target reference to write data into
+		@param value Lua data to write
+		@param offset Offset to write data into
+	]=]
 	writeRef: (
 		self: CPtrInfo<T>,
 		target: RefData | BoxData,
@@ -379,17 +515,73 @@ export type CArrInfo<T, R> = {
 	inner: T,
 
 	-- subtype
+	--[=[
+		@within CArrInfo
+		@tag Method
+		@Method ptr
+
+		Create a pointer subtype.
+
+		@return A pointer subtype
+	]=]
 	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<CArrInfo<T, R>>,
 
 	-- realize
+	--[=[
+		@within CArrInfo
+		@tag Method
+		@Method box
+
+		Create a box with initial values.
+
+		@param table The array of field values
+		@return A box
+	]=]
 	box: (self: CArrInfo<T, R>, table: { T }) -> BoxData,
+
+	--[=[
+		@within CArrInfo
+		@tag Method
+		@method readData
+
+		Read a lua table from reference or box.
+
+		@param target Target to read data from
+		@param offset Offset to read data from
+		@return A table
+	]=]
 	readData: (self: CArrInfo<T, R>, target: RefData | BoxData, offset: number?) -> { T },
+
+	--[=[
+		@within CArrInfo
+		@tag Method
+		@method writeData
+
+		Write a lua table into reference or box.
+
+		@param target Target to write data into
+		@param table Lua data to write
+		@param offset Offset to write data into
+	]=]
 	writeData: (
 		self: CArrInfo<T, R>,
 		target: RefData | BoxData,
 		value: { R },
 		target_offset: number?
 	) -> (),
+
+	--[=[
+		@within CArrInfo
+		@tag Method
+		@Method copyData
+	
+		Copy values ​​from the source and paste them into the target.
+	
+		@param dst where the data will be pasted
+		@param src The source data
+		@param dstOffset The offset in the dst where the data will be pasted
+		@param srcOffset The offset in the source data from where the data will be copied
+	]=]
 	copyData: (
 		self: CArrInfo<T, R>,
 		dst: RefData | BoxData,
@@ -398,6 +590,16 @@ export type CArrInfo<T, R> = {
 		srcOffset: number?
 	) -> (),
 
+	--[=[
+		@within CArrInfo
+		@tag Method
+		@method offset
+
+		Get the byte offset of the field.
+		
+		@param The element index
+		@return byte offset
+	]=]
 	offset: (self: CArrInfo<T, R>, index: number) -> number,
 }
 
@@ -516,6 +718,18 @@ export type CStructInfo = {
 		table: { any },
 		offset: number?
 	) -> (),
+	--[=[
+		@within CSturctInfo
+		@tag Method
+		@method copyData
+
+		Copy values from the source and paste them into the target.
+
+		@param destination where the data will be pasted
+		@param src The source data
+		@param dstOffset The offset in the destination where the data will be pasted
+		@param srcOffset The offset in the source data from where the data will be copied
+	]=]
 	copyData: (
 		self: CStructInfo,
 		dst: RefData | BoxData,
@@ -524,7 +738,28 @@ export type CStructInfo = {
 		srcOffset: number?
 	) -> (),
 
+	--[=[
+		@within CSturctInfo
+		@tag Method
+		@method copyData
+
+		returns the byte offset of the field.
+
+		@param field index
+		@return the byte offset
+	]=]
 	offset: (self: CStructInfo, index: number) -> number,
+
+	--[=[
+		@within CSturctInfo
+		@tag Method
+		@method field
+
+		Get the field type.
+		
+		@param index The field index
+		@return The field type
+	]=]
 	field: (self: CStructInfo, index: number) -> CTypes,
 }
 
