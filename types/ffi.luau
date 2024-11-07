@@ -115,7 +115,7 @@ export type RefData = {
 		@tag Method
 		@method copyFrom
 
-		Copy content from another data.
+		Copy content from another data with specific length.
 
 		@param src The source data
 		@param len The amount of data to copy, in bytes
@@ -187,7 +187,7 @@ export type BoxData = {
 		@tag Method
 		@method copyFrom
 
-		Copy content from another data.
+		Copy content from another data with specific length.
 
 		@param src The source data
 		@param len The amount of data to copy, in bytes
@@ -300,7 +300,7 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method arr
 
-		Create an array subtype.
+		Create an array subtype with specific length.
 
 		@param len The length of the array
 		@return An array subtype
@@ -313,9 +313,9 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method box
 
-		Create a box with initial values
+		Create a box with initial values.
 
-		@param table The array of field values
+		@param table The array of element values
 		@return A box
 	]=]
 	box: (self: CTypeInfo<T, R>, val: R) -> BoxData,
@@ -345,15 +345,15 @@ export type CTypeInfo<T, R> = {
 		@param offset Offset to write data into
 	]=]
 	writeData: (self: CTypeInfo<T, R>, target: RefData | BoxData, value: R, offset: number?) -> (),
-	
+
 	--[=[
 		@within CTypeInfo
 		@tag Method
 		@Method copyData
 	
 		Copy values ​​from the source and paste them into the target.
-	
-		@param destination where the data will be pasted
+
+		@param dst Where the data will be pasted
 		@param src The source data
 		@param dstOffset The offset in the destination where the data will be pasted
 		@param srcOffset The offset in the source data from where the data will be copied
@@ -370,11 +370,11 @@ export type CTypeInfo<T, R> = {
 		@within CTypeInfo
 		@tag Method
 		@Method stringifyData
+
+		Stringify data. Useful when output numbers, which Luau can't handle.
 	
-		stringify data. Useful when you need to output numbers that Lua can't handle.
-	
-		@param memory to output
-		@param memory byte offset
+		@param target The target data
+		@param offset Offset to stringify data from
 	]=]
 	stringifyData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> string,
 
@@ -384,15 +384,15 @@ export type CTypeInfo<T, R> = {
 		@tag Method
 		@Method cast
 	
-		casting a value to a different type.
+		Casting data to different type.
 
-		may result in loss of precision.
+		May result in loss of precision.
 
-		@param type to convert
-		@param memory to read the value to be converted
-		@param memory to use the converted value
-		@param memory byte offset to read
-		@param memory byte offset to write
+		@param intoType The target type to convert to
+		@param fromData Source data to be converted
+		@param intoData Target to write converted data into
+		@param fromOffset The offset in the source data
+		@param intoOffset The offset in the destination
 	]=]
 	cast: (
 		self: CTypeInfo<T, R>,
@@ -432,13 +432,12 @@ export type CPtrInfo<T> = {
 		@tag Method
 		@Method arr
 
-		Create an array subtype.
+		Create an array subtype with specific length.
 
 		@param len The length of the array
 		@return An array subtype
 	]=]
 	arr: (self: CPtrInfo<T>, len: number) -> any,
-	
 	-- FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
 	--[=[
 		@within CPtrInfo
@@ -577,7 +576,7 @@ export type CArrInfo<T, R> = {
 	
 		Copy values ​​from the source and paste them into the target.
 	
-		@param dst where the data will be pasted
+		@param dst Where the data will be pasted
 		@param src The source data
 		@param dstOffset The offset in the dst where the data will be pasted
 		@param srcOffset The offset in the source data from where the data will be copied
@@ -597,8 +596,8 @@ export type CArrInfo<T, R> = {
 
 		Get the byte offset of the field.
 		
-		@param The element index
-		@return byte offset
+		@param index The element index
+		@return The byte offset
 	]=]
 	offset: (self: CArrInfo<T, R>, index: number) -> number,
 }
@@ -725,7 +724,7 @@ export type CStructInfo = {
 
 		Copy values from the source and paste them into the target.
 
-		@param destination where the data will be pasted
+		@param dst Where the data will be pasted
 		@param src The source data
 		@param dstOffset The offset in the destination where the data will be pasted
 		@param srcOffset The offset in the source data from where the data will be copied
@@ -741,12 +740,12 @@ export type CStructInfo = {
 	--[=[
 		@within CSturctInfo
 		@tag Method
-		@method copyData
+		@method offset
 
-		returns the byte offset of the field.
+		Get the field offset.
 
-		@param field index
-		@return the byte offset
+		@param index The field index
+		@return The byte offset
 	]=]
 	offset: (self: CStructInfo, index: number) -> number,
 
