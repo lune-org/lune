@@ -17,12 +17,7 @@ pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
         )
     };
 
-    if result != raw::ffi_status_FFI_OK {
-        return Err(LuaError::external(format!(
-            "ffi_prep_cif failed. expected result {}, got {}",
-            FFI_STATUS_NAMES[0], FFI_STATUS_NAMES[result as usize]
-        )));
-    }
+    ffi_status_assert(result)?;
     unsafe { Ok((*ffi_type).size) }
 }
 

@@ -20,12 +20,12 @@ fn get_field_table<'lua>(
     userdata: &LuaAnyUserData<'lua>,
 ) -> LuaResult<LuaTable<'lua>> {
     let value = association::get(lua, CSTRUCT_INNER, userdata)?
-        .ok_or_else(|| LuaError::external("Failed to get inner field table. not found"))?;
+        .ok_or_else(|| LuaError::external("Failed to retrieve inner field table: not found"))?;
     if let LuaValue::Table(table) = value {
         Ok(table)
     } else {
         Err(LuaError::external(
-            "Failed to get inner field table. not a table",
+            "Failed to retrieve inner field: not a table",
         ))
     }
 }

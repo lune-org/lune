@@ -86,7 +86,7 @@ impl BoxData {
         if let Some(t) = offset {
             if !bounds.check_boundary(t) {
                 return Err(LuaError::external(format!(
-                    "Offset is out of bounds. box.size: {}. offset got {}",
+                    "Offset out of bounds (box.size: {}, got {})",
                     target.size(),
                     t
                 )));

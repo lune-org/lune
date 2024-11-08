@@ -53,7 +53,7 @@ pub trait FfiConvert {
         _offset: isize,
         _data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<String> {
-        Err(LuaError::external("stringify not implemented"))
+        Err(LuaError::external("Stringify method not implemented"))
     }
 }
 

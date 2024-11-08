@@ -69,12 +69,12 @@ impl RefData {
 
     pub unsafe fn deref(&self) -> LuaResult<Self> {
         if !u8_test(self.flags, RefFlag::Dereferenceable.value()) {
-            return Err(LuaError::external("This pointer is not dereferenceable."));
+            return Err(LuaError::external("Reference is not dereferenceable"));
         }
 
         if !self.boundary.check_sized(0, size_of::<usize>()) {
             return Err(LuaError::external(
-                "Offset is out of bounds. Dereferencing pointer requires size of usize",
+                "Offset out of bounds",
             ));
         }
 
@@ -99,7 +99,7 @@ impl RefData {
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
         u8_test(self.flags, RefFlag::Offsetable.value())
             .then_some(())
-            .ok_or_else(|| LuaError::external("This pointer is not offsetable."))?;
+            .ok_or_else(|| LuaError::external("Reference is not offsetable"))?;
 
         // Check boundary, if exceed, return error
         self.boundary
@@ -107,7 +107,7 @@ impl RefData {
             .then_some(())
             .ok_or_else(|| {
                 LuaError::external(format!(
-                    "Offset is out of bounds. high: {}, low: {}. offset got {}",
+                    "Offset out of bounds (high: {}, low: {}, got {})",
                     self.boundary.above, self.boundary.below, offset
                 ))
             })?;
