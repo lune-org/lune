@@ -17,7 +17,13 @@ pub use self::{
 };
 
 // Box:ref():ref() should not be able to modify, Only for external
-const BOX_REF_REF_FLAGS: u8 = 0;
+const REF_REF_FLAGS: u8 = 0;
+
+const DEREF_REF_FLAG: u8 = RefFlag::Dereferenceable.value()
+    | RefFlag::Function.value()
+    | RefFlag::Offsetable.value()
+    | RefFlag::Readable.value()
+    | RefFlag::Writable.value();
 
 // A referenced memory address box. Possible to read and write through types.
 pub struct RefData {
@@ -44,7 +50,7 @@ impl RefData {
 
         let luaref = lua.create_userdata(RefData::new(
             ptr::from_ref(&**target.ptr) as *mut (),
-            BOX_REF_REF_FLAGS,
+            REF_REF_FLAGS,
             RefBounds {
                 below: 0,
                 above: size_of::<usize>(),
@@ -58,7 +64,7 @@ impl RefData {
     }
 
     // Dereference this reference
-    pub unsafe fn deref(&self) -> LuaResult<Self> {
+    pub unsafe fn dereference(&self) -> LuaResult<Self> {
         // Check dereferenceable
         if !u8_test(self.flags, RefFlag::Dereferenceable.value()) {
             return Err(LuaError::external("Reference is not dereferenceable"));
@@ -71,7 +77,7 @@ impl RefData {
 
         Ok(Self::new(
             *self.ptr.cast::<*mut ()>(),
-            u8_set(self.flags, RefFlag::Leaked.value(), false),
+            DEREF_REF_FLAG,
             UNSIZED_BOUNDS,
         ))
     }
@@ -146,7 +152,7 @@ impl LuaUserData for RefData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
 
-        methods.add_method("deref", |_lua, this, ()| unsafe { this.deref() });
+        methods.add_method("deref", |_lua, this, ()| unsafe { this.dereference() });
         methods.add_function("offset", |lua, (this, offset): (LuaAnyUserData, isize)| {
             let ffiref = unsafe { this.borrow::<RefData>()?.offset(offset)? };
             let userdata = lua.create_userdata(ffiref)?;
