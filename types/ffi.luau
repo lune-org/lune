@@ -1129,4 +1129,15 @@ function ffi.isInteger<T>(val: T): boolean
 	return nil :: any
 end
 
+--[=[
+	@within FFI
+
+	Free referenced memory.
+
+	@param data Target memory to free
+]=]
+function ffi.free(data: RefData | BoxData)
+	return nil :: any
+end
+
 return ffi
