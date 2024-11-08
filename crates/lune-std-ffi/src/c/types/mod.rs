@@ -126,7 +126,7 @@ where
 pub mod ctype_helper {
     use super::*;
 
-    // To prevent drop NativeConvert, we must use ffi_association to ensure children keep alive
+    // To prevent droping NativeConvert, need to ensure userdata keep alive
     macro_rules! define_get_conv {
         ($userdata:ident, $( $rust_type:ty )*) => {
             $( if $userdata.is::<CTypeInfo<$rust_type>>() {
@@ -141,7 +141,7 @@ pub mod ctype_helper {
         define_get_conv!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
     }
 
-    // Get size of ctype (not includes struct, arr, ... only CType<*>)
+    // Get size of ctype (not including struct, arr, ... only CType<*>)
     macro_rules! define_get_size {
         ($userdata:ident, $( $rust_type:ty )*) => {
             $( if $userdata.is::<CTypeInfo<$rust_type>>() {
@@ -186,6 +186,7 @@ pub mod ctype_helper {
         define_get_middle_type!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
     }
 
+    // Check whether userdata is ctype or not
     macro_rules! define_is_ctype {
         ($userdata:ident, $( $rust_type:ty )*) => {
             $( if $userdata.is::<CTypeInfo<$rust_type>>() {

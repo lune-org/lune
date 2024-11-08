@@ -23,7 +23,8 @@ pub struct CallableData {
 const VOID_RESULT_PTR: *mut () = ptr::null_mut();
 const ZERO_SIZE_ARG_PTR: *mut *mut c_void = ptr::null_mut();
 
-// Use known size array in stack instead of creating new Vec on heap
+// Optimization:
+// Use known size array in stack instead of creating new Vec to eliminate heap allocation
 macro_rules! create_caller {
     ($len:expr) => {
         |callable: &CallableData, result: LuaValue, args: LuaMultiValue| unsafe {
@@ -42,12 +43,12 @@ macro_rules! create_caller {
                     .get(index)
                     .ok_or_else(|| LuaError::external(format!("Argument {index} required")))?
                     .as_userdata()
-                    .ok_or_else(|| LuaError::external("Argument should be a RefData"))?;
+                    .ok_or_else(|| LuaError::external("Argument must be a RefData"))?;
 
                 if let Ok(arg_ref) = arg_value.borrow::<RefData>() {
                     arg.write(arg_ref.get_inner_pointer().cast::<c_void>());
                 } else {
-                    return Err(LuaError::external("Argument should be a RefData"));
+                    return Err(LuaError::external("Argument must be a RefData"));
                 }
             }
 
@@ -65,6 +66,7 @@ macro_rules! create_caller {
     };
 }
 
+// Optimization:
 // Call without arguments
 unsafe fn zero_size_caller(
     callable: &CallableData,
@@ -88,6 +90,7 @@ unsafe fn zero_size_caller(
     Ok(())
 }
 
+// Optimization: sized callers
 type Caller =
     unsafe fn(callable: &CallableData, result: LuaValue, args: LuaMultiValue) -> LuaResult<()>;
 const SIZED_CALLERS: [Caller; 13] = [
@@ -123,6 +126,7 @@ impl CallableData {
 
     pub unsafe fn call(&self, result: LuaValue, args: LuaMultiValue) -> LuaResult<()> {
         let arg_len = self.arg_info_list.len();
+        // Optimization: use sized caller when possible
         if arg_len < SIZED_CALLERS.len() {
             return SIZED_CALLERS[arg_len](self, result, args);
         }
@@ -142,12 +146,12 @@ impl CallableData {
                 .get(index)
                 .ok_or_else(|| LuaError::external(format!("Argument {index} required")))?
                 .as_userdata()
-                .ok_or_else(|| LuaError::external("Argument should be a RefData"))?;
+                .ok_or_else(|| LuaError::external("Argument must be a RefData"))?;
 
             if let Ok(arg_ref) = arg_value.borrow::<RefData>() {
                 arg_list.push(arg_ref.get_inner_pointer().cast::<c_void>());
             } else {
-                return Err(LuaError::external("Argument should be a RefData"));
+                return Err(LuaError::external("Argument must be a RefData"));
             }
         }
 

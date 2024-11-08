@@ -7,7 +7,6 @@ See [tests/ffi](../../tests/ffi/README.md)
 ## TODO
 
 - Rewrite error messages
-- Deref
 - CString
 - Add buffer for owned data support
 - Add math operation.

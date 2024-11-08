@@ -18,22 +18,12 @@ pub use self::{
 
 // Box:ref():ref() should not be able to modify, Only for external
 const BOX_REF_REF_FLAGS: u8 = 0;
-// | FfiRefFlag::Writable.value()
-// | FfiRefFlag::Readable.value()
-// | FfiRefFlag::Dereferenceable.value()
-// | FfiRefFlag::Offsetable.value()
-// | FfiRefFlag::Function.value();
 
-// A referenced space. It is possible to read and write through types.
-// This operation is not safe. This may cause a memory error in Lua
-// if use it incorrectly.
-// If it references an area managed by Lua,
-// the box will remain as long as this reference is alive.
-
+// A referenced memory address box. Possible to read and write through types.
 pub struct RefData {
     ptr: ManuallyDrop<Box<*mut ()>>,
-    pub flags: u8,
-    pub boundary: RefBounds,
+    pub(crate) flags: u8,
+    boundary: RefBounds,
 }
 
 impl RefData {
@@ -45,7 +35,7 @@ impl RefData {
         }
     }
 
-    // Make FfiRef from ref
+    // Create reference of this reference box
     pub fn luaref<'lua>(
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
@@ -61,32 +51,32 @@ impl RefData {
             },
         ))?;
 
-        // If the ref holds a box, make sure the new ref also holds the box by holding ref
+        // Make new reference live longer then this reference
         association::set(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
     }
 
+    // Dereference this reference
     pub unsafe fn deref(&self) -> LuaResult<Self> {
+        // Check dereferenceable
         if !u8_test(self.flags, RefFlag::Dereferenceable.value()) {
             return Err(LuaError::external("Reference is not dereferenceable"));
         }
 
+        // Check boundary
         if !self.boundary.check_sized(0, size_of::<usize>()) {
-            return Err(LuaError::external(
-                "Offset out of bounds",
-            ));
+            return Err(LuaError::external("Out of bounds"));
         }
 
-        // FIXME flags
         Ok(Self::new(
             *self.ptr.cast::<*mut ()>(),
-            self.flags,
+            u8_set(self.flags, RefFlag::Leaked.value(), false),
             UNSIZED_BOUNDS,
         ))
     }
 
-    pub fn is_nullptr(&self) -> bool {
+    pub fn is_null(&self) -> bool {
         // * ManuallyDrop wrapper
         // * Box wrapper
         (**self.ptr) as usize == 0
@@ -96,30 +86,32 @@ impl RefData {
         self.flags = u8_set(self.flags, RefFlag::Leaked.value(), true);
     }
 
+    // Create new reference with specific offset from this reference
     pub unsafe fn offset(&self, offset: isize) -> LuaResult<Self> {
-        u8_test(self.flags, RefFlag::Offsetable.value())
-            .then_some(())
-            .ok_or_else(|| LuaError::external("Reference is not offsetable"))?;
+        // Check offsetable
+        if u8_test_not(self.flags, RefFlag::Offsetable.value()) {
+            return Err(LuaError::external("Reference is not offsetable"));
+        }
 
-        // Check boundary, if exceed, return error
-        self.boundary
-            .check_boundary(offset)
-            .then_some(())
-            .ok_or_else(|| {
-                LuaError::external(format!(
-                    "Offset out of bounds (high: {}, low: {}, got {})",
-                    self.boundary.above, self.boundary.below, offset
-                ))
-            })?;
+        // Check boundary
+        if !self.boundary.check_boundary(offset) {
+            return Err(LuaError::external(format!(
+                "Offset out of bounds (high: {}, low: {}, got {})",
+                self.boundary.above, self.boundary.below, offset
+            )));
+        }
 
         let boundary = self.boundary.offset(offset);
-
-        // TODO
         Ok(Self::new(
             self.ptr.byte_offset(offset),
-            self.flags,
+            u8_set(self.flags, RefFlag::Leaked.value(), false),
             boundary,
         ))
+    }
+
+    // Stringify for pretty-print, with hex format address
+    pub fn stringify(&self) -> String {
+        format!("{:x}", **self.ptr as usize)
     }
 }
 
@@ -154,24 +146,12 @@ impl LuaUserData for RefData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
 
-        // FIXME:
-        methods.add_function("deref", |lua, this: LuaAnyUserData| {
-            let inner = association::get(lua, REF_INNER, &this)?;
-            let ffiref = this.borrow::<RefData>()?;
-            let result = lua.create_userdata(unsafe { ffiref.deref()? })?;
-
-            if let Some(t) = inner {
-                // if let Some(u) = association::get(lua, regname, value) {}
-                association::set(lua, REF_INNER, &result, &t)?;
-            }
-
-            Ok(result)
-        });
+        methods.add_method("deref", |_lua, this, ()| unsafe { this.deref() });
         methods.add_function("offset", |lua, (this, offset): (LuaAnyUserData, isize)| {
             let ffiref = unsafe { this.borrow::<RefData>()?.offset(offset)? };
             let userdata = lua.create_userdata(ffiref)?;
 
-            // If the ref holds a box, make sure the new ref also holds the box
+            // If the ref holds a box or reference, make sure the new ref also holds it
             if let Some(t) = association::get(lua, REF_INNER, &this)? {
                 association::set(lua, REF_INNER, &userdata, t)?;
             }
@@ -185,7 +165,10 @@ impl LuaUserData for RefData {
         methods.add_function("ref", |lua, this: LuaAnyUserData| {
             RefData::luaref(lua, this)
         });
-        methods.add_method("isNull", |_, this, ()| Ok(this.is_nullptr()));
+        methods.add_method("isNull", |_lua, this, ()| Ok(this.is_null()));
+        methods.add_meta_method(LuaMetaMethod::ToString, |_lua, this, ()| {
+            Ok(this.stringify())
+        });
     }
 }
 

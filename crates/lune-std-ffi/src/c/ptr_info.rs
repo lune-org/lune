@@ -11,12 +11,9 @@ use crate::{
     },
 };
 
-const READ_CPTR_REF_FLAGS: u8 =
-    RefFlag::Dereferenceable.value() | RefFlag::Offsetable.value() | RefFlag::Leaked.value();
-const READ_REF_FLAGS: u8 = RefFlag::Offsetable.value()
-    | RefFlag::Leaked.value()
-    | RefFlag::Readable.value()
-    | RefFlag::Writable.value();
+const READ_CPTR_REF_FLAGS: u8 = RefFlag::Dereferenceable.value() | RefFlag::Offsetable.value();
+const READ_REF_FLAGS: u8 =
+    RefFlag::Offsetable.value() | RefFlag::Readable.value() | RefFlag::Writable.value();
 
 pub struct CPtrInfo {
     inner_size: usize,
@@ -42,9 +39,12 @@ impl FfiConvert for CPtrInfo {
         data_handle: &Ref<dyn FfiData>,
         value: LuaValue<'lua>,
     ) -> LuaResult<()> {
-        let value_userdata = value
-            .as_userdata()
-            .ok_or_else(|| LuaError::external("CPtrInfo:writeRef only allows data"))?;
+        let value_userdata = value.as_userdata().ok_or_else(|| {
+            LuaError::external(format!(
+                "Value must be a RefData, BoxData or ClosureData, got {}",
+                value.type_name()
+            ))
+        })?;
         *data_handle
             .get_inner_pointer()
             .byte_offset(offset)
@@ -112,7 +112,7 @@ impl CPtrInfo {
                 format!(" {pretty_formatted} ")
             })
         } else {
-            Err(LuaError::external("failed to get inner type userdata."))
+            Err(LuaError::external("Failed to retrieve inner type"))
         }
     }
 
@@ -124,11 +124,10 @@ impl CPtrInfo {
 
 impl LuaUserData for CPtrInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, _| Ok(SIZE_OF_POINTER));
+        fields.add_field_method_get("size", |_lua, _this| Ok(SIZE_OF_POINTER));
         fields.add_field_function_get("inner", |lua, this| {
-            let inner = association::get(lua, CPTR_INNER, this)?
-                .ok_or_else(|| LuaError::external("inner type not found"))?;
-            Ok(inner)
+            association::get(lua, CPTR_INNER, this)?
+                .ok_or_else(|| LuaError::external("Failed to retrieve inner type"))
         });
     }
 

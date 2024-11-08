@@ -32,7 +32,7 @@ impl FfiConvert for CTypeInfo<u16> {
                 .map_err(LuaError::external)?,
             _ => {
                 return Err(LuaError::external(format!(
-                    "Argument LuaValue expected a Integer, Number or String, got {}",
+                    "Value must be a Integer, Number or String, got {}",
                     value.type_name()
                 )))
             }
@@ -48,7 +48,6 @@ impl FfiConvert for CTypeInfo<u16> {
     unsafe fn value_from_data<'lua>(
         &self,
         lua: &'lua Lua,
-        // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {

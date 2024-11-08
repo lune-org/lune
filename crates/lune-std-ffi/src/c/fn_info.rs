@@ -67,7 +67,7 @@ fn create_arg_info(userdata: &LuaAnyUserData) -> LuaResult<FfiArg> {
     } else if userdata.is::<CFnInfo>() {
         CALLBACK_ARG_REF_FLAG_CFN
     } else {
-        return Err(LuaError::external("unexpected type userdata"));
+        return Err(LuaError::external("Unexpected argument type"));
     };
     Ok(FfiArg {
         size: helper::get_size(userdata)?,
@@ -116,8 +116,8 @@ impl CFnInfo {
         Ok(cfn)
     }
 
-    // Stringify for pretty printing like:
-    // <CFn( (u8, i32) -> u8 )>
+    // Stringify for pretty-print
+    // ex: <CFn( (u8, i32) -> u8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let mut result = String::from(" (");
         if let (Some(LuaValue::Table(arg_table)), Some(LuaValue::UserData(result_userdata))) = (
@@ -142,7 +142,7 @@ impl CFnInfo {
             );
             Ok(result)
         } else {
-            Err(LuaError::external("failed to get inner type userdata."))
+            Err(LuaError::external("Failed to retrieve inner type"))
         }
     }
 
@@ -173,12 +173,14 @@ impl CFnInfo {
         target_ref: &LuaAnyUserData,
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         if !target_ref.is::<RefData>() {
-            return Err(LuaError::external("argument 0 must be ffiref"));
+            return Err(LuaError::external("Argument 'functionRef' must be RefData"));
         }
 
         let ffi_ref = target_ref.borrow::<RefData>()?;
         if u8_test_not(ffi_ref.flags, RefFlag::Function.value()) {
-            return Err(LuaError::external("not a function ref"));
+            return Err(LuaError::external(
+                "Argument 'functionRef' is not a valid function reference",
+            ));
         }
 
         let callable = lua.create_userdata(unsafe {
@@ -203,7 +205,7 @@ impl CFnInfo {
 
 impl LuaUserData for CFnInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, _| Ok(SIZE_OF_POINTER));
+        fields.add_field_method_get("size", |_lua, _this| Ok(SIZE_OF_POINTER));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype

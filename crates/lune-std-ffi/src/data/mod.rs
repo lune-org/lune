@@ -26,11 +26,11 @@ mod association_names {
     pub const CLSOURE_REF_INNER: &str = "__closure_ref_inner";
 }
 
+// Get dynamic FfiData handle from LuaValue and LuaAnyUserData
 pub trait GetFfiData {
     fn get_ffi_data(&self) -> LuaResult<Ref<dyn FfiData>>;
     fn is_ffi_data(&self) -> bool;
 }
-
 impl GetFfiData for LuaAnyUserData<'_> {
     fn get_ffi_data(&self) -> LuaResult<Ref<dyn FfiData>> {
         if self.is::<BoxData>() {
@@ -51,7 +51,6 @@ impl GetFfiData for LuaAnyUserData<'_> {
         self.is::<BoxData>() | self.is::<RefData>() | self.is::<ClosureData>()
     }
 }
-
 impl GetFfiData for LuaValue<'_> {
     fn get_ffi_data(&self) -> LuaResult<Ref<dyn FfiData>> {
         self.as_userdata()

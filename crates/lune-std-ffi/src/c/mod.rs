@@ -36,6 +36,7 @@ mod association_names {
     pub const CLOSURE_CFN: &str = "__closure_cfn";
 }
 
+// Export c namespace
 pub fn export_c(lua: &Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_value("void", CVoidInfo::new())?

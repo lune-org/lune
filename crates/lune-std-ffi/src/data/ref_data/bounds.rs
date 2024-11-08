@@ -1,8 +1,8 @@
-// Memory range for ref or box data. For boundary checking
+// Memory boundaries
 pub struct RefBounds {
-    // Indicates how much data is above the pointer
+    // How much data available above
     pub(crate) above: usize,
-    // Indicates how much data is below the pointer
+    // How much data available below
     pub(crate) below: usize,
 }
 
@@ -39,8 +39,7 @@ impl RefBounds {
         }
     }
 
-    // Check boundary
-    // Check required here
+    // Check boundary with specific size
     #[inline]
     pub fn check_sized(&self, offset: isize, size: usize) -> bool {
         if self.is_unsized() {
@@ -62,7 +61,7 @@ impl RefBounds {
         }
     }
 
-    // Calculate new bounds from bounds and offset
+    // Calculate new boundaries from bounds and offset
     // No boundary checking in here
     #[inline]
     pub fn offset(&self, offset: isize) -> Self {

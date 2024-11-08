@@ -24,7 +24,7 @@ pub trait CTypeCast {
         _from_offset: isize,
         _into_offset: isize,
     ) -> LuaResult<()> {
-        // Show error if have no cast implement
+        // Error if have no cast implement
         Err(Self::cast_failed_with(self, from_ctype, into_ctype))
     }
 
@@ -35,7 +35,7 @@ pub trait CTypeCast {
     ) -> LuaError {
         let config = ValueFormatConfig::new();
         LuaError::external(format!(
-            "Cannot cast {} to {}",
+            "Failed to cast {} into {}",
             pretty_format_value(&LuaValue::UserData(from_ctype.to_owned()), &config),
             pretty_format_value(&LuaValue::UserData(into_ctype.to_owned()), &config),
         ))
@@ -94,8 +94,8 @@ where
 {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_meta_field(LuaMetaMethod::Type, "CTypeInfo");
-        fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
-        fields.add_field_method_get("signedness", |_, this| Ok(this.get_signedness()));
+        fields.add_field_method_get("size", |_lua, this| Ok(this.get_size()));
+        fields.add_field_method_get("signedness", |_lua, this| Ok(this.get_signedness()));
     }
 
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -115,7 +115,7 @@ where
 
         methods.add_function(
             "cast",
-            |_,
+            |_lua,
              (from_type, into_type, from, into, from_offset, into_offset): (
                 LuaAnyUserData,
                 LuaAnyUserData,

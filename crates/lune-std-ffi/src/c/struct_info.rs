@@ -46,9 +46,7 @@ impl CStructInfo {
             inner_offset_list.set_len(len);
         }
 
-        // Get tailing padded size of struct
-        // See http://www.chiark.greenend.org.uk/doc/libffi-dev/html/Size-and-Alignment.html
-        // In here, using get_ensured_size is not required
+        // Get tailing padded size of struct (get_ensured_size not required)
         let size = unsafe { (*middle_type.as_raw_ptr()).size };
 
         Ok(Self {
@@ -59,8 +57,8 @@ impl CStructInfo {
         })
     }
 
-    // Create new CStruct UserData from LuaTable.
-    // Lock and hold table for .inner ref
+    // Create new CStruct from LuaTable.
+    // Freeze and hold table
     pub fn from_table<'lua>(
         lua: &'lua Lua,
         table: LuaTable<'lua>,
@@ -73,25 +71,27 @@ impl CStructInfo {
             .create_userdata(Self::new(helper::get_middle_type_list(&table)?, unsafe {
                 helper::get_conv_list(&table)?
             })?)?;
+
+        // Save field table
         table.set_readonly(true);
         association::set(lua, CSTRUCT_INNER, &cstruct, table)?;
         Ok(cstruct)
     }
 
-    // Stringify cstruct for pretty printing like:
-    // <CStruct( u8, i32, size = 8 )>
+    // Stringify cstruct for pretty printing
+    // ex: <CStruct( u8, i32, size = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let fields = get_field_table(lua, userdata)?;
         let mut stringified = String::from(" ");
 
-        // children
+        // Children
         for i in 0..fields.raw_len() {
             let child: LuaAnyUserData = fields.raw_get(i + 1)?;
             let pretty_formatted = helper::pretty_format(lua, &child)?;
             stringified.push_str(format!("{pretty_formatted}, ").as_str());
         }
 
-        // size of
+        // Size
         stringified
             .push_str(format!("size = {} ", userdata.borrow::<CStructInfo>()?.get_size()).as_str());
         Ok(stringified)
@@ -99,12 +99,11 @@ impl CStructInfo {
 
     // Get byte offset of nth field
     pub fn offset(&self, index: usize) -> LuaResult<usize> {
-        let offset = self
+        Ok(self
             .inner_offset_list
             .get(index)
             .ok_or_else(|| LuaError::external("Out of index"))?
-            .to_owned();
-        Ok(offset)
+            .to_owned())
     }
 
     pub fn get_middle_type(&self) -> Type {
@@ -182,7 +181,7 @@ impl FfiConvert for CStructInfo {
 
 impl LuaUserData for CStructInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
+        fields.add_field_method_get("size", |_lua, this| Ok(this.get_size()));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         // Subtype
@@ -198,8 +197,9 @@ impl LuaUserData for CStructInfo {
         method_provider::provide_write_data(methods);
         method_provider::provide_copy_data(methods);
 
-        methods.add_method("offset", |_, this, index: usize| this.offset(index));
-        // Get nth field type userdata
+        // Get nth field offset
+        methods.add_method("offset", |_lua, this, index: usize| this.offset(index));
+        // Get nth field type
         methods.add_function(
             "field",
             |lua, (this, field_index): (LuaAnyUserData, usize)| {

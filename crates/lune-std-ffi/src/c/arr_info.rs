@@ -9,12 +9,10 @@ use crate::ffi::{association, libffi_helper::get_ensured_size, FfiConvert, FfiDa
 // This is a series of some type.
 // It provides the final size and the offset of the index,
 // but does not allow multidimensional arrays because of API complexity.
-// However, multidimensional arrays are not impossible to implement
+// Multidimensional arrays can be implemented
 // because they are a series of transcribed one-dimensional arrays. (flatten)
-
 // We can simply provide array type with struct.
 // See: https://stackoverflow.com/a/43525176
-
 pub struct CArrInfo {
     struct_type: Type,
     length: usize,
@@ -33,7 +31,6 @@ impl CArrInfo {
         let struct_type = Type::structure(vec![element_type.clone(); length]);
 
         Ok(Self {
-            // element_type,
             struct_type,
             length,
             size: inner_size * length,
@@ -63,8 +60,8 @@ impl CArrInfo {
         self.struct_type.clone()
     }
 
-    // Stringify for pretty printing like:
-    // <CArr( u8, length = 8 )>
+    // Stringify for pretty-print
+    // ex: <CArr( u8, length = 8 )>
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
         let this = userdata.borrow::<CArrInfo>()?;
         if let Some(LuaValue::UserData(inner_userdata)) =
@@ -76,7 +73,7 @@ impl CArrInfo {
                 this.length,
             ))
         } else {
-            Err(LuaError::external("failed to get inner type userdata."))
+            Err(LuaError::external("Failed to retrieve inner type"))
         }
     }
 }
@@ -150,13 +147,11 @@ impl FfiConvert for CArrInfo {
 
 impl LuaUserData for CArrInfo {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, this| Ok(this.get_size()));
-        fields.add_field_method_get("length", |_, this| Ok(this.get_length()));
+        fields.add_field_method_get("size", |_lua, this| Ok(this.get_size()));
+        fields.add_field_method_get("length", |_lua, this| Ok(this.get_length()));
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
-            let inner: LuaValue = association::get(lua, CARR_INNER, this)?
-                // It shouldn't happen.
-                .ok_or_else(|| LuaError::external("inner field not found"))?;
-            Ok(inner)
+            association::get(lua, CARR_INNER, this)?
+                .ok_or_else(|| LuaError::external("Failed to retrieve inner field"))
         });
     }
 
@@ -173,7 +168,7 @@ impl LuaUserData for CArrInfo {
         method_provider::provide_write_data(methods);
         method_provider::provide_copy_data(methods);
 
-        methods.add_method("offset", |_, this, offset: isize| {
+        methods.add_method("offset", |_lua, this, offset: isize| {
             if this.length > (offset as usize) && offset >= 0 {
                 Ok(this.inner_size * (offset as usize))
             } else {

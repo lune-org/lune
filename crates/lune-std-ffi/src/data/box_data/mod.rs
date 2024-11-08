@@ -17,28 +17,20 @@ mod flag;
 
 pub use self::flag::BoxFlag;
 
-// Ref which created by lua should not be dereferenceable,
+const FFI_BOX_PRINT_MAX_LENGTH: usize = 1024;
+
+// Reference which created by lua should not be dereferenceable
 const BOX_REF_FLAGS: u8 =
     RefFlag::Readable.value() | RefFlag::Writable.value() | RefFlag::Offsetable.value();
 
-// It is an untyped, sized memory area that Lua can manage.
-// This area is safe within Lua. Operations have their boundaries checked.
-// It is basically intended to implement passing a pointed space to the outside.
-// It also helps you handle data that Lua cannot handle.
-// Depending on the type, operations such as sum, mul, and mod may be implemented.
-// There is no need to enclose all data in a box;
-// rather, it creates more heap space, so it should be used appropriately
-// where necessary.
-
+// Untyped runtime sized memory for luau.
+// This operations are safe, have boundaries check.
 pub struct BoxData {
     flags: u8,
     data: ManuallyDrop<Box<[u8]>>,
 }
 
-const FFI_BOX_PRINT_MAX_LENGTH: usize = 1024;
-
 impl BoxData {
-    // For efficiency, it is initialized non-zeroed.
     pub fn new(size: usize) -> Self {
         let slice = unsafe {
             Box::from_raw(ptr::slice_from_raw_parts_mut(
@@ -53,13 +45,10 @@ impl BoxData {
         }
     }
 
-    // pub fn copy(&self, target: &mut FfiBox) {}
-
+    // Stringify for pretty-print, with hex format content
     pub fn stringify(&self) -> String {
         if self.size() > FFI_BOX_PRINT_MAX_LENGTH * 2 {
-            // FIXME
-            // Todo: if too big, print as another format
-            return String::from("exceed");
+            return String::from("length limit exceed");
         }
         let mut buff: String = String::with_capacity(self.size() * 2);
         for value in self.data.iter() {
@@ -72,7 +61,7 @@ impl BoxData {
         self.flags = u8_set(self.flags, BoxFlag::Leaked.value(), true);
     }
 
-    // Make FfiRef from box, with boundary checking
+    // Make FfiRef from box, with boundary check
     pub fn luaref<'lua>(
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
@@ -97,17 +86,13 @@ impl BoxData {
 
         let luaref = lua.create_userdata(RefData::new(ptr.cast(), BOX_REF_FLAGS, bounds))?;
 
-        // Makes box alive longer then ref
+        // Make box live longer then ref
         association::set(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
     }
 
-    pub unsafe fn drop(&mut self) {
-        ManuallyDrop::drop(&mut self.data);
-    }
-
-    // Fill every field with 0
+    // Fill with zero
     pub fn zero(&mut self) {
         self.data.fill(0);
     }
@@ -122,7 +107,7 @@ impl BoxData {
 impl Drop for BoxData {
     fn drop(&mut self) {
         if u8_test_not(self.flags, BoxFlag::Leaked.value()) {
-            unsafe { self.drop() };
+            unsafe { ManuallyDrop::drop(&mut self.data) };
         }
     }
 }
@@ -151,12 +136,12 @@ impl FfiData for BoxData {
 
 impl LuaUserData for BoxData {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("size", |_, this| Ok(this.size()));
+        fields.add_field_method_get("size", |_lua, this| Ok(this.size()));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
-        // For convenience, :zero returns self.
-        methods.add_function_mut("zero", |_, this: LuaAnyUserData| {
+        // For convenience, :zero returns box itself.
+        methods.add_function_mut("zero", |_lua, this: LuaAnyUserData| {
             this.borrow_mut::<BoxData>()?.zero();
             Ok(this)
         });
@@ -173,6 +158,8 @@ impl LuaUserData for BoxData {
                 BoxData::luaref(lua, this, offset)
             },
         );
-        methods.add_meta_method(LuaMetaMethod::ToString, |_, this, ()| Ok(this.stringify()));
+        methods.add_meta_method(LuaMetaMethod::ToString, |_lua, this, ()| {
+            Ok(this.stringify())
+        });
     }
 }

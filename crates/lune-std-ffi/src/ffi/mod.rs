@@ -9,17 +9,17 @@ pub mod libffi_helper;
 
 pub use self::cast::num_cast;
 
+// Common type information
 pub trait FfiSize {
     fn get_size(&self) -> usize;
 }
-
 pub trait FfiSignedness {
     fn get_signedness(&self) -> bool {
         false
     }
 }
 
-// Provide type conversion between luavalue and ffidata types
+// Provide conversion between luau value and ffi types
 pub trait FfiConvert {
     // Write LuaValue into FfiData
     unsafe fn value_into_data<'lua>(
@@ -57,6 +57,7 @@ pub trait FfiConvert {
     }
 }
 
+// Provide read, write, boundary check methods for datas
 pub trait FfiData {
     fn check_inner_boundary(&self, offset: isize, size: usize) -> bool;
     unsafe fn get_inner_pointer(&self) -> *mut ();
@@ -75,11 +76,11 @@ pub trait FfiData {
     }
 }
 
+// Function argument informations
 pub struct FfiArg {
     pub size: usize,
     pub callback_ref_flag: u8,
 }
-
 impl Clone for FfiArg {
     fn clone(&self) -> Self {
         Self {
@@ -89,10 +90,10 @@ impl Clone for FfiArg {
     }
 }
 
+// Function result information
 pub struct FfiResult {
     pub size: usize,
 }
-
 impl Clone for FfiResult {
     fn clone(&self) -> Self {
         Self { size: self.size }

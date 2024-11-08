@@ -52,7 +52,9 @@ ffi.c = c
 --[=[
 	@class RefData
 	
-	A user manageable memory reference.
+	A user manageable memory reference box.
+
+	It can be GCed, But it doesn't free the referenced memory.
 ]=]
 export type RefData = {
 	--[=[
@@ -60,7 +62,10 @@ export type RefData = {
 		@tag Method
 		@method deref
 
-		Get a RefData by dereference this reference.
+		Create a RefData by dereference this reference.
+		The created reference has no boundaries and has no restrictions.
+
+		This method is unsafe.
 
 		@return A dereferenced `RefData`
 	]=]
@@ -71,7 +76,9 @@ export type RefData = {
 		@method offset
 
 		Create a reference with specific offset from this reference.
-		
+
+		The created reference can be GCed and holds same data.
+
 		@param offset Create a reference at the given offset
 		@return A offseted reference
 	]=]
@@ -83,7 +90,7 @@ export type RefData = {
 
 		Create a reference of this reference.
 
-		The created reference keeps the box from being garbage collected until the reference itself is collected.
+		The created reference keeps the target reference from being garbage collected until created reference itself is collected.
 
 		@return A reference of this reference
 	]=]
@@ -1089,6 +1096,7 @@ end
 	@within FFI
 
 	Create a `Box` with specific size.
+	The created box is not filed with zero.
 
 	@param size The size of the new box
 	@return A allocated box

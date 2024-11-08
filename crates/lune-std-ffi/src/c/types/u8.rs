@@ -28,7 +28,7 @@ impl FfiConvert for CTypeInfo<u8> {
             LuaValue::String(t) => t.as_bytes().first().map_or(0, u8::to_owned).as_(),
             _ => {
                 return Err(LuaError::external(format!(
-                    "Argument LuaValue expected a Integer or String, got {}",
+                    "Value must be a Integer or String, got {}",
                     value.type_name()
                 )))
             }
@@ -46,7 +46,6 @@ impl FfiConvert for CTypeInfo<u8> {
     unsafe fn value_from_data<'lua>(
         &self,
         lua: &'lua Lua,
-        // _type_userdata: &LuaAnyUserData<'lua>,
         offset: isize,
         data_handle: &Ref<dyn FfiData>,
     ) -> LuaResult<LuaValue<'lua>> {

@@ -5,6 +5,7 @@ use num::cast::AsPrimitive;
 
 use super::FfiData;
 
+// Cast number type to another number type, with num::cast library
 #[inline]
 pub fn num_cast<From, Into>(
     from: &Ref<dyn FfiData>,

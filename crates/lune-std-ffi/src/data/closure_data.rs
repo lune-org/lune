@@ -34,10 +34,10 @@ impl Drop for ClosureData {
     }
 }
 
-const RESULT_REF_FLAGS: u8 =
-    RefFlag::Leaked.value() | RefFlag::Writable.value() | RefFlag::Offsetable.value();
+const RESULT_REF_FLAGS: u8 = RefFlag::Writable.value() | RefFlag::Offsetable.value();
 const CLOSURE_REF_FLAGS: u8 = RefFlag::Function.value();
 
+// Process C -> Lua function call
 unsafe extern "C" fn callback(
     cif: *mut ffi_cif,
     result_pointer: *mut c_void,
@@ -84,6 +84,7 @@ unsafe extern "C" fn callback(
 }
 
 impl ClosureData {
+    // Allocate new ffi closure with lua function
     pub fn alloc(
         lua: &Lua,
         cif: *mut ffi_cif,

@@ -3,9 +3,9 @@ use mlua::prelude::*;
 use super::{FfiData, GetFfiData};
 
 pub mod method_provider {
-
     use super::*;
 
+    // Implement copyFrom method
     pub fn provide_copy_from<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiData,
