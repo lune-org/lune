@@ -14,22 +14,16 @@ assert(not pcall(function()
 	return root.Name
 end))
 
-assert(not pcall(function()
-	return root.Parent
-end))
+assert(not root.Parent)
 
 assert(not pcall(function()
 	return child.Name
 end))
 
-assert(not pcall(function()
-	return child.Parent
-end))
+assert(not child.Parent)
 
 assert(not pcall(function()
 	return descendant.Name
 end))
 
-assert(not pcall(function()
-	return descendant.Parent
-end))
+assert(not descendant.Parent)

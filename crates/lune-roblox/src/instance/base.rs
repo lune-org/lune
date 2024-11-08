@@ -113,7 +113,6 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         },
     );
     m.add_method("IsA", |_, this, class_name: String| {
-        ensure_not_destroyed(this)?;
         Ok(class_is_a(&this.class_name, class_name).unwrap_or(false))
     });
     m.add_method(
@@ -217,17 +216,18 @@ fn instance_property_get<'lua>(
     this: &Instance,
     prop_name: String,
 ) -> LuaResult<LuaValue<'lua>> {
-    ensure_not_destroyed(this)?;
-
     match prop_name.as_str() {
         "ClassName" => return this.get_class_name().into_lua(lua),
-        "Name" => {
-            return this.get_name().into_lua(lua);
-        }
         "Parent" => {
             return this.get_parent().into_lua(lua);
         }
         _ => {}
+    }
+
+    ensure_not_destroyed(this)?;
+
+    if prop_name.as_str() == "Name" {
+        return this.get_name().into_lua(lua);
     }
 
     if let Some(info) = find_property_info(&this.class_name, &prop_name) {
