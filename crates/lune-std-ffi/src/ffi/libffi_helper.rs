@@ -23,7 +23,7 @@ pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
 }
 
 // Converts ffi status into &str for formatting
-pub const FFI_STATUS_NAMES: [&str; 4] = [
+const FFI_STATUS_NAMES: [&str; 4] = [
     "ffi_status_FFI_OK",
     "ffi_status_FFI_BAD_TYPEDEF",
     "ffi_status_FFI_BAD_ABI",

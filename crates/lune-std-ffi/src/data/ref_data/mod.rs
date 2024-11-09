@@ -41,7 +41,7 @@ impl RefData {
         }
     }
 
-    // Create reference of this reference box
+    // Create reference of this reference
     pub fn luaref<'lua>(
         lua: &'lua Lua,
         this: LuaAnyUserData<'lua>,
@@ -57,7 +57,7 @@ impl RefData {
             },
         ))?;
 
-        // Make new reference live longer then this reference
+        // Make sure new reference live longer then this reference
         association::set(lua, REF_INNER, &luaref, &this)?;
 
         Ok(luaref)
@@ -100,7 +100,7 @@ impl RefData {
         }
 
         // Check boundary
-        if !self.boundary.check_boundary(offset) {
+        if !self.boundary.check_offset(offset) {
             return Err(LuaError::external(format!(
                 "Offset out of bounds (high: {}, low: {}, got {})",
                 self.boundary.above, self.boundary.below, offset
@@ -130,7 +130,6 @@ impl Drop for RefData {
 }
 
 impl FfiData for RefData {
-    #[inline]
     fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         self.boundary.check_sized(offset, size)
     }
@@ -138,11 +137,9 @@ impl FfiData for RefData {
     unsafe fn get_inner_pointer(&self) -> *mut () {
         **self.ptr
     }
-    #[inline]
     fn is_readable(&self) -> bool {
         u8_test(self.flags, RefFlag::Readable.value())
     }
-    #[inline]
     fn is_writable(&self) -> bool {
         u8_test(self.flags, RefFlag::Writable.value())
     }

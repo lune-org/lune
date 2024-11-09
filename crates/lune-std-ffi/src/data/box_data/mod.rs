@@ -73,7 +73,7 @@ impl BoxData {
 
         // Calculate offset
         if let Some(t) = offset {
-            if !bounds.check_boundary(t) {
+            if !bounds.check_offset(t) {
                 return Err(LuaError::external(format!(
                     "Offset out of bounds (box.size: {}, got {})",
                     target.size(),
@@ -113,7 +113,6 @@ impl Drop for BoxData {
 }
 
 impl FfiData for BoxData {
-    #[inline]
     fn check_inner_boundary(&self, offset: isize, size: usize) -> bool {
         if offset < 0 {
             return false;
@@ -124,11 +123,9 @@ impl FfiData for BoxData {
     unsafe fn get_inner_pointer(&self) -> *mut () {
         self.data.as_ptr().cast_mut().cast::<()>()
     }
-    #[inline]
     fn is_readable(&self) -> bool {
         true
     }
-    #[inline]
     fn is_writable(&self) -> bool {
         true
     }

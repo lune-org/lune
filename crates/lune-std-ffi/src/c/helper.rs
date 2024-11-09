@@ -11,6 +11,7 @@ use crate::{
 pub mod method_provider {
     use super::*;
 
+    // Implement tostring
     pub fn provide_to_string<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
@@ -20,6 +21,7 @@ pub mod method_provider {
         });
     }
 
+    // Implement ptr method
     pub fn provide_ptr<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
@@ -29,6 +31,7 @@ pub mod method_provider {
         });
     }
 
+    // Implement arr method
     pub fn provide_arr<'lua, Target, M>(methods: &mut M)
     where
         M: LuaUserDataMethods<'lua, Target>,
@@ -38,6 +41,7 @@ pub mod method_provider {
         });
     }
 
+    // Implement readData method
     pub fn provide_read_data<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
@@ -61,6 +65,7 @@ pub mod method_provider {
         );
     }
 
+    // Implement writeData method
     pub fn provide_write_data<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
@@ -85,6 +90,7 @@ pub mod method_provider {
         );
     }
 
+    // Implement copyData method
     pub fn provide_copy_data<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
@@ -125,6 +131,7 @@ pub mod method_provider {
         );
     }
 
+    // Implement stringifyData method
     pub fn provide_stringify_data<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
@@ -138,6 +145,7 @@ pub mod method_provider {
         );
     }
 
+    // Implement box method
     pub fn provide_box<'lua, Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert,
@@ -149,43 +157,9 @@ pub mod method_provider {
             Ok(result)
         });
     }
-
-    // FIXME: Buffer support should be part of another PR
-    // pub fn provide_write_buffer<'lua, Target, M>(methods: &mut M)
-    // where
-    //     Target: FfiSize + FfiConvert,
-    //     M: LuaUserDataMethods<'lua, Target>,
-    // {
-    //     methods.add_method(
-    //         "writeBuffer",
-    //         |lua, this, (target, value, offset): (LuaValue, LuaValue, Option<isize>)| {
-    //             if !target.is_buffer() {
-    //                 return Err(LuaError::external(format!(
-    //                     "Argument target must be a buffer, got {}",
-    //                     target.type_name()
-    //                 )));
-    //             }
-
-    //             target.to_pointer()
-    //             target.as_userdata().unwrap().to_pointer()
-    //             let offset = offset.unwrap_or(0);
-
-    //             let data_handle = &target.get_ffi_data()?;
-    //             // use or functions
-    //             if !data_handle.check_boundary(offset, this.get_size()) {
-    //                 return Err(LuaError::external("Out of bounds"));
-    //             }
-    //             if !data_handle.is_writable() {
-    //                 return Err(LuaError::external("Unwritable data handle"));
-    //             }
-
-    //             unsafe { this.value_into_data(lua, offset, data_handle, value) }
-    //         },
-    //     );
-    // }
 }
 
-pub fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
+fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
     if let LuaValue::UserData(field_type) = value {
         Ok(field_type)
     } else {
@@ -212,9 +186,9 @@ pub fn create_list<T>(
     Ok(list)
 }
 
-// Get the NativeConvert handle from the ctype userData
+// Get the dynamic FfiConvert handle from the userData
 // This is intended to avoid lookup userdata and lua table every time. (eg: struct)
-// The userdata must live longer than the NativeConvert handle
+// The userdata must live longer than the FfiConvert handle
 pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiConvert> {
     if userdata.is::<CStructInfo>() {
         Ok(userdata.to_pointer().cast::<CStructInfo>() as *const dyn FfiConvert)

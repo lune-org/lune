@@ -7,7 +7,7 @@ pub enum BoxFlag {
 impl BoxFlag {
     pub const fn value(&self) -> u8 {
         match self {
-            Self::Leaked => U8_MASK2,
+            Self::Leaked => U8_MASK1,
         }
     }
 }

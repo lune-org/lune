@@ -23,7 +23,7 @@ pub use self::{
     void_info::CVoidInfo,
 };
 
-// Named registry table names
+// Named registry keys
 mod association_names {
     pub const CPTR_INNER: &str = "__cptr_inner";
     pub const CARR_INNER: &str = "__carr_inner";

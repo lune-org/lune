@@ -19,11 +19,10 @@ pub use self::{
 };
 use crate::ffi::FfiData;
 
-// Named registry table names
+// Named registry keys
 mod association_names {
     pub const REF_INNER: &str = "__ref_inner";
     pub const SYM_INNER: &str = "__syn_inner";
-    pub const CLSOURE_REF_INNER: &str = "__closure_ref_inner";
 }
 
 // Get dynamic FfiData handle from LuaValue and LuaAnyUserData

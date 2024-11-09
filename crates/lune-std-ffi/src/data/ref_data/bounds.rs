@@ -1,8 +1,8 @@
 // Memory boundaries
 pub struct RefBounds {
-    // How much data available above
+    // How much bytes available above
     pub(crate) above: usize,
-    // How much data available below
+    // How much bytes available below
     pub(crate) below: usize,
 }
 
@@ -16,9 +16,9 @@ impl RefBounds {
         Self { above, below }
     }
 
-    // Check boundary
+    // Check offset is in boundary
     #[inline]
-    pub fn check_boundary(&self, offset: isize) -> bool {
+    pub fn check_offset(&self, offset: isize) -> bool {
         let offset_abs = offset.unsigned_abs();
         match offset.signum() {
             -1 => self.above >= offset_abs,
@@ -52,8 +52,21 @@ impl RefBounds {
         end <= 0 || self.below >= end.unsigned_abs()
     }
 
-    // Calculate new boundaries with bounds and offset
+    // Calculate new boundaries with offset
     // No boundary checking in here
+    //
+    // Above = 3
+    //   ∧ ───∧───
+    // -3│    │ New above = 2
+    // -2│    │
+    // -1│ <────── Offset = -1
+    //  0│    │
+    //  1│    │
+    //  2│    │
+    //  3│    │ New below = 4
+    //   ∨ ───∨───
+    // Below = 3
+    //
     #[inline]
     pub fn offset(&self, offset: isize) -> Self {
         let sign = offset.signum();

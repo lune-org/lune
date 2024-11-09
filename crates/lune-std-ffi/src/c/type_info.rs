@@ -12,7 +12,8 @@ use crate::{
     ffi::{libffi_helper::get_ensured_size, FfiConvert, FfiData, FfiSignedness, FfiSize},
 };
 
-// Cast native data
+// Provide type casting
+// This trait should be implemented for each types
 pub trait CTypeCast {
     #[inline(always)]
     fn cast(
@@ -82,7 +83,7 @@ where
         self.name
     }
 
-    pub fn get_type(&self) -> Type {
+    pub fn get_middle_type(&self) -> Type {
         self.middle_type.clone()
     }
 }
@@ -112,6 +113,9 @@ where
         method_provider::provide_write_data(methods);
         method_provider::provide_copy_data(methods);
         method_provider::provide_stringify_data(methods);
+
+        // Math
+        // TODO: Math support for numeric types
 
         methods.add_function(
             "cast",

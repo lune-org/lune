@@ -8,7 +8,7 @@ use libffi::{
 use mlua::prelude::*;
 
 use super::{
-    association_names::CLSOURE_REF_INNER,
+    association_names::REF_INNER,
     ref_data::{RefBounds, RefData, RefFlag, UNSIZED_BOUNDS},
 };
 use crate::ffi::{
@@ -145,7 +145,7 @@ impl LuaUserData for ClosureData {
                 CLOSURE_REF_FLAGS,
                 UNSIZED_BOUNDS,
             ))?;
-            association::set(lua, CLSOURE_REF_INNER, &ref_data, &this)?;
+            association::set(lua, REF_INNER, &ref_data, &this)?;
             Ok(ref_data)
         });
     }

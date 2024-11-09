@@ -10,20 +10,20 @@ use num::cast::AsPrimitive;
 use super::{CTypeCast, CTypeInfo};
 use crate::ffi::{num_cast, FfiConvert, FfiData, FfiSize};
 
-pub mod f32;
-pub mod f64;
-pub mod i128;
-pub mod i16;
-pub mod i32;
-pub mod i64;
-pub mod i8;
-pub mod isize;
-pub mod u128;
-pub mod u16;
-pub mod u32;
-pub mod u64;
-pub mod u8;
-pub mod usize;
+mod f32;
+mod f64;
+mod i128;
+mod i16;
+mod i32;
+mod i64;
+mod i8;
+mod isize;
+mod u128;
+mod u16;
+mod u32;
+mod u64;
+mod u8;
+mod usize;
 
 // CType userdata export
 macro_rules! create_ctypes {
@@ -92,20 +92,20 @@ macro_rules! define_cast_num {
 }
 impl<From> CTypeCast for CTypeInfo<From>
 where
-    From: AsPrimitive<u8>
-        + AsPrimitive<u16>
-        + AsPrimitive<u32>
-        + AsPrimitive<u64>
-        + AsPrimitive<u128>
-        + AsPrimitive<i8>
+    From: AsPrimitive<f32>
+        + AsPrimitive<f64>
+        + AsPrimitive<i128>
         + AsPrimitive<i16>
         + AsPrimitive<i32>
         + AsPrimitive<i64>
-        + AsPrimitive<i128>
-        + AsPrimitive<f32>
-        + AsPrimitive<f64>
-        + AsPrimitive<usize>
-        + AsPrimitive<isize>,
+        + AsPrimitive<i8>
+        + AsPrimitive<isize>
+        + AsPrimitive<u128>
+        + AsPrimitive<u16>
+        + AsPrimitive<u32>
+        + AsPrimitive<u64>
+        + AsPrimitive<u8>
+        + AsPrimitive<usize>,
 {
     fn cast(
         &self,
@@ -118,7 +118,7 @@ where
     ) -> LuaResult<()> {
         define_cast_num!(
             From, self, from_info, into_info, from, into, from_offset, into_offset,
-            u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize
+            f32 f64 i128 i16 i32 i64 i8 isize u128 u16 u32 u64 u8 usize
         )
     }
 }
@@ -138,7 +138,22 @@ pub mod ctype_helper {
     }
     #[inline]
     pub fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiConvert> {
-        define_get_conv!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+        define_get_conv!(userdata, f32 f64 i128 i16 i32 i64 i8 isize u128 u16 u32 u64 u8 usize)
+    }
+
+    // Get libffi_type of ctype
+    macro_rules! define_get_middle_type {
+        ($userdata:ident, $( $rust_type:ty )*) => {
+            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
+                Ok(Some($userdata.borrow::<CTypeInfo<$rust_type>>()?.get_middle_type()))
+            } else )* {
+                Ok(None)
+            }
+        };
+    }
+    #[inline]
+    pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Option<Type>> {
+        define_get_middle_type!(userdata, f32 f64 i128 i16 i32 i64 i8 isize u128 u16 u32 u64 u8 usize)
     }
 
     // Get size of ctype (not including struct, arr, ... only CType<*>)
@@ -153,7 +168,7 @@ pub mod ctype_helper {
     }
     #[inline]
     pub fn get_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
-        define_get_size!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+        define_get_size!(userdata, f32 f64 i128 i16 i32 i64 i8 isize u128 u16 u32 u64 u8 usize)
     }
 
     // Get name of ctype
@@ -168,22 +183,7 @@ pub mod ctype_helper {
     }
     #[inline]
     pub fn get_name(userdata: &LuaAnyUserData) -> LuaResult<Option<&'static str>> {
-        define_get_name!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
-    }
-
-    // Get libffi_type of ctype
-    macro_rules! define_get_middle_type {
-        ($userdata:ident, $( $rust_type:ty )*) => {
-            $( if $userdata.is::<CTypeInfo<$rust_type>>() {
-                Ok(Some($userdata.borrow::<CTypeInfo<$rust_type>>()?.get_type()))
-            } else )* {
-                Ok(None)
-            }
-        };
-    }
-    #[inline]
-    pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Option<Type>> {
-        define_get_middle_type!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+        define_get_name!(userdata, f32 f64 i128 i16 i32 i64 i8 isize u128 u16 u32 u64 u8 usize)
     }
 
     // Check whether userdata is ctype or not
@@ -198,6 +198,6 @@ pub mod ctype_helper {
     }
     #[inline]
     pub fn is_ctype(userdata: &LuaAnyUserData) -> bool {
-        define_is_ctype!(userdata, u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 f32 f64 usize isize)
+        define_is_ctype!(userdata, f32 f64 i128 i16 i32 i64 i8 isize u128 u16 u32 u64 u8 usize)
     }
 }

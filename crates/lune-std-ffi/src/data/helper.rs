@@ -38,4 +38,7 @@ pub mod method_provider {
             },
         );
     }
+
+    // TODO: writeString, readString, writeBase64 and readBase64 methods
+    // TODO: Bit operation support
 }

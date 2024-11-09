@@ -8,6 +8,7 @@ pub enum RefFlag {
     Offsetable,
     Function,
 }
+
 impl RefFlag {
     pub const fn value(&self) -> u8 {
         match self {
