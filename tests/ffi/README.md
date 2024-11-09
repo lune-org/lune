@@ -1,4 +1,5 @@
 <!-- markdownlint-disable MD036 -->
+<!-- markdownlint-disable MD033 -->
 
 # `tests/ffi`
 
@@ -24,6 +25,12 @@ gcc for library compiling (for external-\*)
 - [x] [read_boundary](./read_boundary.luau)
 - [x] [write_boundary](./write_boundary.luau)
 
+**Types**
+
+- [x] [arr](./types/arr.luau)
+- [x] [ptr](./types/ptr.luau)
+- [x] [struct](./types/struct.luau)
+
 **Pretty Print**
 
 - [x] [arr](./pretty_print/arr.luau)
@@ -39,7 +46,7 @@ gcc for library compiling (for external-\*)
 
 > Note: LuaJit's os.clock function returns process CPU time (used) which much smaller then Luau's os.clock output. In this benchmark, luau uses 'time.h' instead of os.clock. See [utility/proc_clock](./utility/proc_clock/init.luau)
 
-### [benchmark/external_call](./benchmark/external_call/init.luau)
+<details><summary><h3><a href="./benchmark/external_call/init.luau">benchmark/external_call</a></h3></summary>
 
 **Target external c function**
 
@@ -102,3 +109,5 @@ Command: `deno run --unstable-ffi --allow-ffi ./tests/ffi/benchmark/external_cal
   > MEM: 12250MiB 5600 MT/s  
   > KERNEL: 10.0.22631 (Windows 11 x86_64)  
   > HOST: QEMU Standard PC (Q35 + ICH9, 2009)
+
+</details>

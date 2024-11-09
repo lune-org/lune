@@ -40,7 +40,7 @@ Define C-ABI type information and provide conversion and casting
 - [**Struct `CStructInfo`:**](./src/c/struct_info.rs) Represents C Struct type
 - [**Struct `CTypeInfo<T>`:**](./src/c/type_info.rs) Represents C type, extended in `/c/types`
 
-<details><summary><a href="./src/c/helper.rs"><strong>Mod <code>helper.rs</code>: C ABI type helper</strong></a></summary>
+<details><summary><a href="./src/c/helper.rs"><strong>Mod <code>helper.rs</code>:</strong></a> C ABI type helper</summary>
 
 - **Function `get_conv`, `get_conv_list`:**
   get `FfiConvert` from userdata (CStruct, CArr, CPtr, CTypes)
@@ -64,7 +64,7 @@ Define C-ABI type information and provide conversion and casting
 Export fixed-size source time known types and non-fixed compile time known types
 mod.rs implememts type-casting for all CTypes
 
-<details><summary><a href="./src/c/types/mod.rs"><strong>Mod <code>ctype_helper</code>:</strong></a> c type helper</summary>
+<details><summary><a href="./src/c/types/mod.rs"><strong>Mod <code>ctype_helper</code>:</strong></a> CTypeInfo helper</summary>
 
 - **Function `get_conv`:**
   get `FfiConvert` from ctype userdata, used for struct and array conversion
