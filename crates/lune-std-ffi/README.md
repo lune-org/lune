@@ -6,24 +6,28 @@ See [tests/ffi](../../tests/ffi/README.md)
 
 ## TODO
 
-- Rewrite error messages
 - CString
-- Add buffer for owned data support
-- Add math operation.
+- Add buffer as owned data support
+- Add math operation for numeric types
 
   > Provide related methods: `CTypeInfo:add(target, from1, from2, ...)` and `:sub` `:mul` `:div` `:mod` `:pow` `:max` `:min` `:gt` `:lt`  
   > Luau cannot handle f64, i64 or i128, so we should provide math operation for it
 
-- Add bit operation
+- Add bit operation for box/ref
 
   > Luau only supports 32bit bit operations
 
 - Add wchar and wstring support
 
-  > For windows API
+  > For windows API support
 
 - Add varargs support
 - Array argument in cfn
+- More box/ref methods
+  - writeString
+  - readString
+  - writeBase64
+  - readBase64
 
 ## Code structure
 

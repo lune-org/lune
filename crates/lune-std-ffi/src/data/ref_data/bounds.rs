@@ -16,77 +16,62 @@ impl RefBounds {
         Self { above, below }
     }
 
-    #[inline]
-    pub fn is_unsized(&self) -> bool {
-        self.above == usize::MAX && self.below == usize::MAX
-    }
-
     // Check boundary
     #[inline]
     pub fn check_boundary(&self, offset: isize) -> bool {
-        if self.is_unsized() {
-            return true;
-        }
-        let sign = offset.signum();
         let offset_abs = offset.unsigned_abs();
-        if sign == -1 {
-            self.above >= offset_abs
-        } else if sign == 1 {
-            self.below >= offset_abs
-        } else {
-            // sign == 0
-            true
+        match offset.signum() {
+            -1 => self.above >= offset_abs,
+            1 => self.below >= offset_abs,
+            0 => true,
+            _ => unreachable!(),
         }
     }
 
     // Check boundary with specific size
+    //
+    // -4 ∧ ────── Above = 4
+    // -3 │                      (Case1)
+    // -2 │  ┌──── Offset = -2 : offset >= 0 || abs(offset) <= above
+    // -1 │  │
+    //  0 │  │ Size = 4
+    //  1 │  │                   (Case2)
+    //  2 │  ∨ ─── End    = 2  : end = offset + size;
+    //  3 │                      end <= 0 || end <= below
+    //  4 ∨ ────── Below = 4
+    //
     #[inline]
     pub fn check_sized(&self, offset: isize, size: usize) -> bool {
-        if self.is_unsized() {
-            return true;
-        }
+        // (Case1) offset over above
         if offset < 0 && self.above < offset.unsigned_abs() {
-            return true;
+            return false;
         }
-        let end = offset + (size as isize) - 1;
-        let end_sign = end.signum();
-        let end_abs = end.unsigned_abs();
-        if end_sign == -1 {
-            self.above >= end_abs
-        } else if end_sign == 1 {
-            self.below >= end_abs
-        } else {
-            // sign == 0
-            true
-        }
+
+        // (Case2) end over below
+        let end = offset + (size as isize);
+        end <= 0 || self.below >= end.unsigned_abs()
     }
 
-    // Calculate new boundaries from bounds and offset
+    // Calculate new boundaries with bounds and offset
     // No boundary checking in here
     #[inline]
     pub fn offset(&self, offset: isize) -> Self {
         let sign = offset.signum();
         let offset_abs = offset.unsigned_abs();
 
-        let high: usize = if sign == -1 {
-            self.above - offset_abs
-        } else if sign == 1 {
-            self.above + offset_abs
-        } else {
-            self.above
-        };
-
-        let low: usize = if sign == -1 {
-            self.below + offset_abs
-        } else if sign == 1 {
-            self.below - offset_abs
-        } else {
-            self.below
-        };
-
         Self {
-            above: high,
-            below: low,
+            above: match sign {
+                -1 => self.above - offset_abs,
+                1 => self.above + offset_abs,
+                0 => self.above,
+                _ => unreachable!(),
+            },
+            below: match sign {
+                -1 => self.below + offset_abs,
+                1 => self.below - offset_abs,
+                0 => self.below,
+                _ => unreachable!(),
+            },
         }
     }
 }

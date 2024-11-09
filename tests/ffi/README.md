@@ -8,23 +8,28 @@ gcc for library compiling (for external-\*)
 
 **External tests**
 
+- [x] [external_closure](./external_closure/init.luau)
 - [x] [external_math](./external_math/init.luau)
 - [x] [external_pointer](./external_pointer/init.luau)
 - [x] [external_print](./external_print/init.luau)
 - [x] [external_struct](./external_struct/init.luau)
-- [x] [external_closure](./external_closure/init.luau)
 
 **Luau-side**
 
-- [x] [isInteger](./isInteger.luau)
 - [x] [cast](./cast.luau)
-- [x] [write_boundary](./write_boundary.luau)
-- [x] [read_boundary](./read_boundary.luau)
 - [x] [free](./free.luau)
+- [x] [isInteger](./isInteger.luau)
+- [x] [read_boundary](./read_boundary.luau)
+- [x] [write_boundary](./write_boundary.luau)
 
 **Pretty Print**
 
-- [ ] [pretty_print](./pretty_print)
+- [x] [arr](./pretty_print/arr.luau)
+- [ ] [box](./pretty_print/box.luau)
+- [x] [fn](./pretty_print/fn.luau)
+- [x] [ptr](./pretty_print/ptr.luau)
+- [x] [struct](./pretty_print/struct.luau)
+- [x] [type](./pretty_print/type.luau)
 
 ## Benchmark Results
 
