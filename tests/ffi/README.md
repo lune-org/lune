@@ -16,20 +16,15 @@ gcc for library compiling (for external-\*)
 
 **Luau-side**
 
-- [x] [isInteger](./isInteger)
+- [x] [isInteger](./isInteger.luau)
 - [x] [cast](./cast.luau)
+- [x] [write_boundary](./write_boundary.luau)
+- [x] [read_boundary](./read_boundary.luau)
+- [x] [free](./free.luau)
+
+**Pretty Print**
 
 - [ ] [pretty_print](./pretty_print)
-
-  > need box, ref test
-
-- [ ] [write_boundary](./write_boundary.luau)
-
-  > Failed, need fix
-
-- [ ] [read_boundary](./read_boundary.luau)
-
-  > Failed, need fix
 
 ## Benchmark Results
 
