@@ -18,5 +18,9 @@ pub fn set_unsafe_library_enabled(lua: &Lua, enabled: bool) {
 */
 #[must_use]
 pub fn get_unsafe_library_enabled(lua: &Lua) -> bool {
-    lua.app_data_ref::<UnsafeLibrary>().unwrap().0
+    if let Some(app_data) = lua.app_data_ref::<UnsafeLibrary>() {
+        app_data.0
+    } else {
+        false
+    }
 }
