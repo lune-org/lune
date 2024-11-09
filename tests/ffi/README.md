@@ -1,4 +1,6 @@
-# tests/ffi
+<!-- markdownlint-disable MD036 -->
+
+# `tests/ffi`
 
 ## Requirements
 
@@ -25,7 +27,9 @@ gcc for library compiling (for external-\*)
 **Pretty Print**
 
 - [x] [arr](./pretty_print/arr.luau)
-- [ ] [box](./pretty_print/box.luau)
+- [ ] [box](./pretty_print/box.luau) Need assertion
+- [ ] [ref](./pretty_print/ref.luau) Need assertion
+- [ ] [lib](./pretty_print/lib.luau) Need assertion
 - [x] [fn](./pretty_print/fn.luau)
 - [x] [ptr](./pretty_print/ptr.luau)
 - [x] [struct](./pretty_print/struct.luau)

@@ -117,7 +117,7 @@ impl RefData {
 
     // Stringify for pretty-print, with hex format address
     pub fn stringify(&self) -> String {
-        format!("{:x}", **self.ptr as usize)
+        format!("0x{:x}", **self.ptr as usize)
     }
 }
 

@@ -13,13 +13,19 @@ const LIB_REF_FLAGS: u8 = RefFlag::Offsetable.value()
     | RefFlag::Function.value();
 
 // Runtime dynamic loaded libraries
-pub struct LibData(Library);
+pub struct LibData {
+    name: String,
+    lib: Library,
+}
 
 impl LibData {
     // Open library then return library handle
     pub fn new(libname: String) -> LuaResult<Self> {
-        match Library::open(libname) {
-            Ok(t) => Ok(Self(t)),
+        match Library::open(&libname) {
+            Ok(t) => Ok(Self {
+                lib: t,
+                name: libname.clone(),
+            }),
             Err(err) => Err(err.into_lua_err()),
         }
     }
@@ -32,7 +38,7 @@ impl LibData {
     ) -> LuaResult<LuaAnyUserData<'lua>> {
         let lib = this.borrow::<LibData>()?;
         let sym = unsafe {
-            lib.0
+            lib.lib
                 .symbol::<*const ()>(name.as_str())
                 .map_err(LuaError::external)?
         };
@@ -44,12 +50,19 @@ impl LibData {
 
         Ok(ffi_ref)
     }
+
+    pub fn stringify(&self) -> String {
+        self.name.clone()
+    }
 }
 
 impl LuaUserData for LibData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("find", |lua, (this, name): (LuaAnyUserData, String)| {
             LibData::find_symbol(lua, this, name)
+        });
+        methods.add_meta_method(LuaMetaMethod::ToString, |_lua, this, ()| {
+            Ok(this.stringify())
         });
     }
 }

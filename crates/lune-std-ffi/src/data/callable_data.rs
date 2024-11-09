@@ -124,6 +124,11 @@ impl CallableData {
         }
     }
 
+    // Stringify for pretty-print, with hex format address
+    pub fn stringify(&self) -> String {
+        format!("0x{:x}", self.code.as_ptr() as usize)
+    }
+
     pub unsafe fn call(&self, result: LuaValue, args: LuaMultiValue) -> LuaResult<()> {
         let arg_len = self.arg_info_list.len();
         // Optimization: use sized caller when possible
@@ -178,5 +183,8 @@ impl LuaUserData for CallableData {
                 unsafe { this.call(result, args) }
             },
         );
+        methods.add_meta_method(LuaMetaMethod::ToString, |_lua, this, ()| {
+            Ok(this.stringify())
+        });
     }
 }

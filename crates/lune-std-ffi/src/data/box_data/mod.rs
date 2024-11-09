@@ -50,7 +50,8 @@ impl BoxData {
         if self.size() > FFI_BOX_PRINT_MAX_LENGTH * 2 {
             return String::from("length limit exceed");
         }
-        let mut buff: String = String::with_capacity(self.size() * 2);
+        let mut buff: String = String::with_capacity(self.size() * 2 + 2);
+        buff.push_str("0x");
         for value in self.data.iter() {
             buff.push_str(format!("{:x}", value.to_be()).as_str());
         }

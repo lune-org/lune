@@ -118,6 +118,11 @@ impl ClosureData {
 
         Ok(closure_data)
     }
+
+    // Stringify for pretty-print, with hex format address
+    pub fn stringify(&self) -> String {
+        format!("0x{:x}", unsafe { self.get_inner_pointer() } as usize)
+    }
 }
 
 impl FfiData for ClosureData {
@@ -147,6 +152,9 @@ impl LuaUserData for ClosureData {
             ))?;
             association::set(lua, REF_INNER, &ref_data, &this)?;
             Ok(ref_data)
+        });
+        methods.add_meta_method(LuaMetaMethod::ToString, |_lua, this, ()| {
+            Ok(this.stringify())
         });
     }
 }
