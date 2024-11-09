@@ -206,7 +206,9 @@ impl LuaUserData for CStructInfo {
             "field",
             |lua, (this, field_index): (LuaAnyUserData, usize)| {
                 let field_table = get_field_table(lua, &this)?;
-                field_table.raw_get::<_, LuaAnyUserData>(field_index + 1)
+                field_table
+                    .raw_get::<_, Option<LuaAnyUserData>>(field_index + 1)?
+                    .ok_or_else(|| LuaError::external("Out of index"))
             },
         );
     }
