@@ -24,7 +24,6 @@ See [tests/ffi](../../tests/ffi/README.md)
 
 - Add varargs support
 - Array argument in cfn
-- Ref boundary fix
 
 ## Code structure
 
@@ -35,7 +34,7 @@ Define C-ABI type information and provide conversion and casting
 - [**Struct ` CArrInfo`:**](./src/c/struct_info.rs) Represents C Array type
 - [**Struct ` CPtrInfo`:**](./src/c/ptr_info.rs) Represents C Pointer type
 - [**Struct ` CFnInfo`:**](./src/c/fn_info.rs) Represents C Function signature
-  > provide CallableData and ClosureData creation
+  > provide `CallableData` and `ClosureData` creator
 - [**Struct ` CStructInfo`:**](./src/c/struct_info.rs) Represents C Struct type
 - [**Struct ` CTypeInfo<T>`:**](./src/c/type_info.rs) Represents C type, extended in `/c/types`
 

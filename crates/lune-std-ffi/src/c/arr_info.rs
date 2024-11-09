@@ -83,6 +83,7 @@ impl FfiSize for CArrInfo {
         self.size
     }
 }
+
 impl FfiConvert for CArrInfo {
     unsafe fn value_into_data<'lua>(
         &self,

@@ -43,6 +43,7 @@ impl FfiSignedness for CFnInfo {
         false
     }
 }
+
 impl FfiSize for CFnInfo {
     fn get_size(&self) -> usize {
         SIZE_OF_POINTER

@@ -31,7 +31,7 @@ macro_rules! create_tests {
             // The rest of the test logic can continue as normal
             let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
             let script = read_to_string(&full_name).await?;
-            let mut lune = Runtime::new().with_args(
+            let mut lune = Runtime::new().set_unsafe_library_enabled(true).with_args(
                 ARGS
                     .clone()
                     .iter()
@@ -111,6 +111,7 @@ create_tests! {
     ffi_external_print_hello_world: "ffi/external_print/helloWorld",
     ffi_external_struct_ab: "ffi/external_struct/ab",
     ffi_cast: "ffi/cast",
+    ffi_free: "ffi/free",
     ffi_is_integer: "ffi/isInteger",
     ffi_pretty_print: "ffi/prettyPrint",
     ffi_read_boundary: "ffi/readBoundary",

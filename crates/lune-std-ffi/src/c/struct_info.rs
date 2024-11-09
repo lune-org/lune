@@ -116,11 +116,13 @@ impl FfiSize for CStructInfo {
         self.size
     }
 }
+
 impl FfiSignedness for CStructInfo {
     fn get_signedness(&self) -> bool {
         false
     }
 }
+
 impl FfiConvert for CStructInfo {
     unsafe fn value_into_data<'lua>(
         &self,

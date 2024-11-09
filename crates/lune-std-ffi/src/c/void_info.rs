@@ -12,6 +12,7 @@ impl FfiSignedness for CVoidInfo {
         false
     }
 }
+
 impl FfiSize for CVoidInfo {
     fn get_size(&self) -> usize {
         0

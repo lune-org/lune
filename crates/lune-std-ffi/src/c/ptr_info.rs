@@ -25,11 +25,13 @@ impl FfiSignedness for CPtrInfo {
         false
     }
 }
+
 impl FfiSize for CPtrInfo {
     fn get_size(&self) -> usize {
         SIZE_OF_POINTER
     }
 }
+
 impl FfiConvert for CPtrInfo {
     // Convert luavalue into data, then write into ptr
     unsafe fn value_into_data<'lua>(
