@@ -128,6 +128,7 @@ export type RefData = {
 		@param length The amount of data to copy, in bytes
 		@param dstOffset The offset in the destination where the content will be pasted
 		@param srcOffset The offset in the source data from where the content will be copied
+		@return `RefData` itself for convenience
 	]=]
 	copyFrom: (
 		self: RefData,
@@ -135,13 +136,13 @@ export type RefData = {
 		length: number,
 		dstOffset: number,
 		srcOffset: number
-	) -> (),
+	) -> RefData,
 	--[=[
 		@within RefData
 		@tag Method
 		@method readString
 
-		Read string from data with specific length.
+		Read string from data with specific length without null termination.
 
 		@param length The amount of data to read, in bytes
 		@param offset Offset to read string from
@@ -153,20 +154,21 @@ export type RefData = {
 		@tag Method
 		@method writeString
 
-		Write string into data.
+		Write string into data without null termination.
 
 		@param src The source string
 		@param length The amount of data to write, in bytes
 		@param dstOffset The offset in the destination where the content will be pasted
 		@param srcOffset The offset in the source string from where the content will be copied
+		@return `RefData` itself for convenience
 	]=]
 	writeString: (
 		self: RefData,
 		src: string,
-		length: number,
-		dstOffset: number,
-		srcOffset: number
-	) -> (),
+		length: number?,
+		dstOffset: number?,
+		srcOffset: number?
+	) -> RefData,
 }
 
 --[=[
@@ -191,7 +193,7 @@ export type BoxData = {
 
 		Fill the box with zero.
 
-		@return `Box` itself for convenience
+		@return `BoxData` itself for convenience
 	]=]
 	zero: (self: BoxData) -> BoxData,
 	--[=[
@@ -231,6 +233,7 @@ export type BoxData = {
 		@param length The amount of data to copy, in bytes
 		@param dstOffset The offset in the destination where the content will be pasted
 		@param srcOffset The offset in the source data from where the content will be copied
+		@return `BoxData` itself for convenience
 	]=]
 	copyFrom: (
 		self: BoxData,
@@ -238,13 +241,13 @@ export type BoxData = {
 		length: number,
 		dstOffset: number,
 		srcOffset: number
-	) -> (),
+	) -> BoxData,
 	--[=[
 		@within BoxData
 		@tag Method
 		@method readString
 
-		Read string from data with specific length.
+		Read string from data with specific length without null termination.
 
 		@param length The amount of data to read, in bytes
 		@param offset Offset to read string from
@@ -256,20 +259,21 @@ export type BoxData = {
 		@tag Method
 		@method writeString
 
-		Write string into data.
+		Write string into data without null termination.
 
 		@param src The source string
 		@param length The amount of data to write, in bytes
 		@param dstOffset The offset in the destination where the content will be pasted
 		@param srcOffset The offset in the source string from where the content will be copied
+		@return `BoxData` itself for convenience
 	]=]
 	writeString: (
 		self: BoxData,
 		src: string,
-		length: number,
-		dstOffset: number,
-		srcOffset: number
-	) -> (),
+		length: number?,
+		dstOffset: number?,
+		srcOffset: number?
+	) -> BoxData,
 }
 
 --[=[

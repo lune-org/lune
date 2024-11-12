@@ -123,6 +123,7 @@ create_tests! {
     ffi_free: "ffi/free",
     ffi_is_integer: "ffi/isInteger",
     ffi_read_boundary: "ffi/readBoundary",
+    ffi_read_write_string: "ffi/stringReadWrite",
     ffi_write_boundary: "ffi/writeBoundary",
 }
 

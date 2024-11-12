@@ -14,6 +14,7 @@ pub mod method_provider {
     // Implement tostring
     pub fn provide_to_string<'lua, Target, M>(methods: &mut M)
     where
+        Target: 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
@@ -24,6 +25,7 @@ pub mod method_provider {
     // Implement ptr method
     pub fn provide_ptr<'lua, Target, M>(methods: &mut M)
     where
+        Target: 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
@@ -34,6 +36,7 @@ pub mod method_provider {
     // Implement arr method
     pub fn provide_arr<'lua, Target, M>(methods: &mut M)
     where
+        Target: 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
@@ -44,7 +47,7 @@ pub mod method_provider {
     // Implement readData method
     pub fn provide_read_data<'lua, Target, M>(methods: &mut M)
     where
-        Target: FfiSize + FfiConvert,
+        Target: FfiSize + FfiConvert + 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
@@ -68,7 +71,7 @@ pub mod method_provider {
     // Implement writeData method
     pub fn provide_write_data<'lua, Target, M>(methods: &mut M)
     where
-        Target: FfiSize + FfiConvert,
+        Target: FfiSize + FfiConvert + 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
@@ -93,7 +96,7 @@ pub mod method_provider {
     // Implement copyData method
     pub fn provide_copy_data<'lua, Target, M>(methods: &mut M)
     where
-        Target: FfiSize + FfiConvert,
+        Target: FfiSize + FfiConvert + 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
@@ -134,7 +137,7 @@ pub mod method_provider {
     // Implement stringifyData method
     pub fn provide_stringify_data<'lua, Target, M>(methods: &mut M)
     where
-        Target: FfiSize + FfiConvert,
+        Target: FfiSize + FfiConvert + 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method(
@@ -148,7 +151,7 @@ pub mod method_provider {
     // Implement box method
     pub fn provide_box<'lua, Target, M>(methods: &mut M)
     where
-        Target: FfiSize + FfiConvert,
+        Target: FfiSize + FfiConvert + 'static,
         M: LuaUserDataMethods<'lua, Target>,
     {
         methods.add_method("box", |lua, this, value: LuaValue| {

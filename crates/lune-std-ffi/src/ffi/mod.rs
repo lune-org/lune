@@ -97,7 +97,10 @@ pub trait FfiData {
         self.get_inner_pointer()
             .cast::<u8>()
             .byte_offset(dst_offset)
-            .copy_from(src.to_pointer().cast::<u8>().byte_add(src_offset), length);
+            .copy_from(
+                src.as_bytes().as_ptr().cast::<u8>().byte_add(src_offset),
+                length,
+            );
     }
 }
 
