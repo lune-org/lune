@@ -15,7 +15,7 @@ pub use self::{
     callable_data::CallableData,
     closure_data::ClosureData,
     lib_data::LibData,
-    ref_data::{create_nullref, RefBounds, RefData, RefFlag},
+    ref_data::{create_nullref, RefBounds, RefData, RefFlag, UNSIZED_BOUNDS},
 };
 use crate::ffi::FfiData;
 

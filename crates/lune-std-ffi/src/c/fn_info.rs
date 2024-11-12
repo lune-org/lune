@@ -16,22 +16,7 @@ use crate::{
     },
 };
 
-// cfn is a type declaration for a function.
-// Basically, when calling an external function, this type declaration
-// is referred to and type conversion is automatically assisted.
-
-// However, in order to save on type conversion costs,
-// users keep values ​​they will use continuously in a box and use them multiple times.
-// Alternatively, if the types are the same,you can save the cost of creating
-// a new space by directly passing FfiRaw,
-// the result value of another function or the argument value of the callback.
-
-// Defining cfn simply lists the function's actual argument positions and conversions.
-// You must decide how to process the data in Lua.
-
-// The name cfn is intentional. This is because any *c_void is
-// moved to a Lua function or vice versa.
-
+// Function pointer type
 pub struct CFnInfo {
     cif: Cif,
     arg_info_list: Vec<FfiArg>,
@@ -147,6 +132,7 @@ impl CFnInfo {
         }
     }
 
+    // Create ClosureData with lua function
     pub fn create_closure<'lua>(
         &self,
         lua: &'lua Lua,
@@ -167,6 +153,7 @@ impl CFnInfo {
         Ok(closure_data)
     }
 
+    // Create CallableData from RefData
     pub fn create_callable<'lua>(
         &self,
         lua: &'lua Lua,
@@ -209,10 +196,6 @@ impl LuaUserData for CFnInfo {
         fields.add_field_method_get("size", |_lua, _this| Ok(SIZE_OF_POINTER));
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        // Subtype
-        method_provider::provide_ptr(methods);
-        method_provider::provide_arr(methods);
-
         // ToString
         method_provider::provide_to_string(methods);
 

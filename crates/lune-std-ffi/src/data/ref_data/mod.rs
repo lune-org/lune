@@ -41,6 +41,23 @@ impl RefData {
         }
     }
 
+    pub fn update<'lua>(
+        lua: &'lua Lua,
+        this: LuaAnyUserData<'lua>,
+        ptr: *mut (),
+        flags: u8,
+        boundary: RefBounds,
+    ) -> LuaResult<()> {
+        let mut target = this.borrow_mut::<RefData>()?;
+        association::set(lua, REF_INNER, &this, LuaNil)?;
+
+        **target.ptr = ptr;
+        target.flags = flags;
+        target.boundary = boundary;
+
+        Ok(())
+    }
+
     // Create reference of this reference
     pub fn luaref<'lua>(
         lua: &'lua Lua,

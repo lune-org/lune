@@ -6,7 +6,7 @@ use mlua::prelude::*;
 use super::{association_names::CARR_INNER, helper, method_provider};
 use crate::ffi::{association, libffi_helper::get_ensured_size, FfiConvert, FfiData, FfiSize};
 
-// This is a series of some type.
+// Series of some type.
 // It provides the final size and the offset of the index,
 // but does not allow multidimensional arrays because of API complexity.
 // Multidimensional arrays can be implemented

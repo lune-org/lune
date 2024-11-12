@@ -1,6 +1,6 @@
 --[=[
 	@class FFI
-	
+
 	Built-in library for foreign function interface.
 
 	### Example usage
@@ -30,7 +30,7 @@
 	local result = ffi.box(ffi.c.int.size)
 	local a = ffi.c.int:box(1)
 	local b = ffi.c.int:box(2)
-	
+
 	-- Call external function
 	add(result, a:ref(), b:ref())
 
@@ -51,8 +51,8 @@ ffi.c = c
 --#region Data
 --[=[
 	@class RefData
-	
-	A user manageable memory reference box.
+
+	A user manageable memory reference.
 
 	It can be GCed, But it doesn't free the referenced memory.
 ]=]
@@ -140,7 +140,7 @@ export type RefData = {
 
 --[=[
 	@class BoxData
-	
+
 	A user manageable heap memory.
 ]=]
 export type BoxData = {
@@ -229,14 +229,12 @@ export type LibData = {
 	find: (self: LibData, sym: string) -> RefData,
 }
 
--- export type AppliedCallable = ()->()
-
 --[=[
 	@class CallableData
-	
+
 	A callable external function.
 
-	To call external function, you should provide memory for the return value and references for the arguments.
+	To call external function, provide memory for save the return value and references for the arguments.
 
 	If return type is `void`, pass `nil`.
 ]=]
@@ -246,13 +244,12 @@ export type CallableData = (
 ) -> () & {
 	-- apply: (self: Callable, args: Args)->AppliedCallable,
 }
+-- export type AppliedCallable = ()->()
 
 --[=[
 	@class ClosureData
-	
-	A lua function wrapper for the function pointer.
 
-	To return some data, write value into ret reference.
+	A reference that holds lua function.
 ]=]
 export type ClosureData = {
 	--[=[
@@ -290,7 +287,7 @@ export type CTypeInfo<T, R> = {
 	]=]
 	signedness: boolean,
 
-	-- subtype
+	-- Subtype
 	--[=[
 		@within CTypeInfo
 		@tag Method
@@ -301,7 +298,6 @@ export type CTypeInfo<T, R> = {
 		@return A pointer subtype
 	]=]
 	ptr: (self: CTypeInfo<T, R>) -> CPtrInfo<CTypeInfo<T, R>>,
-
 	--[=[
 		@within CTypeInfo
 		@tag Method
@@ -314,7 +310,7 @@ export type CTypeInfo<T, R> = {
 	]=]
 	arr: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
 
-	-- realize
+	-- Create/Read/Write/Copy
 	--[=[
 		@within CTypeInfo
 		@tag Method
@@ -326,33 +322,30 @@ export type CTypeInfo<T, R> = {
 		@return A box
 	]=]
 	box: (self: CTypeInfo<T, R>, val: R) -> BoxData,
-
 	--[=[
 		@within CTypeInfo
 		@tag Method
 		@method readData
 
-		Read a lua table from reference or box.
+		Read a lua value from reference or box.
 
 		@param target Target to read data from
 		@param offset Offset to read data from
-		@return A table
+		@return A lua value
 	]=]
 	readData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> R,
-
 	--[=[
 		@within CTypeInfo
 		@tag Method
 		@method writeData
 
-		Write a lua table into reference or box.
+		Write a lua value into reference or box.
 
 		@param target Target to write data into
-		@param table Lua data to write
+		@param value Lua data to write
 		@param offset Offset to write data into
 	]=]
 	writeData: (self: CTypeInfo<T, R>, target: RefData | BoxData, value: R, offset: number?) -> (),
-
 	--[=[
 		@within CTypeInfo
 		@tag Method
@@ -372,7 +365,6 @@ export type CTypeInfo<T, R> = {
 		dstOffset: number?,
 		srcOffset: number?
 	) -> (),
-
 	--[=[
 		@within CTypeInfo
 		@tag Method
@@ -385,6 +377,7 @@ export type CTypeInfo<T, R> = {
 	]=]
 	stringifyData: (self: CTypeInfo<T, R>, target: RefData | BoxData, offset: number?) -> string,
 
+	-- ETC
 	-- FIXME: recursive types; 'intoType' should be CTypes
 	--[=[
 		@within CTypeInfo
@@ -432,7 +425,7 @@ export type CPtrInfo<T> = {
 	]=]
 	inner: T,
 
-	-- subtype
+	-- Subtype
 	-- FIXME: recursive types; result 'any' should be CArrInfo<CPtrInfo<T>>
 	--[=[
 		@within CPtrInfo
@@ -457,34 +450,46 @@ export type CPtrInfo<T> = {
 	]=]
 	ptr: (self: CPtrInfo<T>) -> any,
 
+	-- Address
 	--[=[
 		@within CPtrInfo
 		@tag Method
 		@Method readRef
-	
-		Similar to readData, read a lua value from reference.
-	
-		@param target Target reference to read data from
-		@param offset Offset to read data from
+
+		Read address from data, then return RefData.
+
+		Useful when reading pointer fields of structures.
+
+		If the `ref` argument is given, rather than create new RefData, update it.
+
+		@param target Target data to read address from
+		@param offset Offset to read address from
+		@param ref RefData to update
 		@return A lua value
 	]=]
-	readRef: (self: CPtrInfo<T>, target: RefData | BoxData, offset: number?) -> any,
-
+	readRef: (
+		self: CPtrInfo<T>,
+		target: RefData | BoxData,
+		offset: number?,
+		ref: RefData?
+	) -> RefData,
 	--[=[
 		@within CPtrInfo
 		@tag Method
 		@Method writeRef
 
-	 	Similar to writeData, write a lua value into reference.
+		Write address to data.
 	
-		@param target Target reference to write data into
-		@param value Lua data to write
-		@param offset Offset to write data into
+		Useful when writing pointer fields of structures.
+
+		@param target Target data to write address into
+		@param ref Memory address to write
+		@param offset Offset to write address into
 	]=]
 	writeRef: (
 		self: CPtrInfo<T>,
 		target: RefData | BoxData,
-		value: RefData | BoxData,
+		ref: RefData | BoxData | ClosureData,
 		offset: number?
 	) -> (),
 }
@@ -520,7 +525,7 @@ export type CArrInfo<T, R> = {
 	]=]
 	inner: T,
 
-	-- subtype
+	-- Subtype
 	--[=[
 		@within CArrInfo
 		@tag Method
@@ -532,7 +537,7 @@ export type CArrInfo<T, R> = {
 	]=]
 	ptr: (self: CArrInfo<T, R>) -> CPtrInfo<CArrInfo<T, R>>,
 
-	-- realize
+	-- Create/Read/Write/Copy
 	--[=[
 		@within CArrInfo
 		@tag Method
@@ -544,7 +549,6 @@ export type CArrInfo<T, R> = {
 		@return A box
 	]=]
 	box: (self: CArrInfo<T, R>, table: { T }) -> BoxData,
-
 	--[=[
 		@within CArrInfo
 		@tag Method
@@ -557,7 +561,6 @@ export type CArrInfo<T, R> = {
 		@return A table
 	]=]
 	readData: (self: CArrInfo<T, R>, target: RefData | BoxData, offset: number?) -> { T },
-
 	--[=[
 		@within CArrInfo
 		@tag Method
@@ -575,7 +578,6 @@ export type CArrInfo<T, R> = {
 		value: { R },
 		target_offset: number?
 	) -> (),
-
 	--[=[
 		@within CArrInfo
 		@tag Method
@@ -596,6 +598,7 @@ export type CArrInfo<T, R> = {
 		srcOffset: number?
 	) -> (),
 
+	-- ETC
 	--[=[
 		@within CArrInfo
 		@tag Method
@@ -612,7 +615,7 @@ export type CArrInfo<T, R> = {
 --[=[
 	@class CFnInfo
 
-	A c function signature type information.
+	A C function pointer type information, with function signature.
 ]=]
 export type CFnInfo = {
 	--[=[
@@ -625,6 +628,8 @@ export type CFnInfo = {
 		Equivalent to `ffi.c.usize.size`.
 	]=]
 	size: number,
+
+	-- Function
 	--[=[
 		@within CFnInfo
 		@tag Method
@@ -641,6 +646,8 @@ export type CFnInfo = {
 		@method closure
 
 		Create a closure from lua function.
+
+		To return some data, lua function should write value into ret reference.
 
 		@return A closure
 	]=]
@@ -662,6 +669,7 @@ export type CStructInfo = {
 	]=]
 	size: number,
 
+	-- Subtype
 	--[=[
 		@within CSturctInfo
 		@tag Method
@@ -684,6 +692,7 @@ export type CStructInfo = {
 	]=]
 	ptr: (self: CStructInfo) -> CPtrInfo<CStructInfo>,
 
+	-- Create/Read/Write/Copy
 	--[=[
 		@within CSturctInfo
 		@tag Method
@@ -744,6 +753,7 @@ export type CStructInfo = {
 		srcOffset: number?
 	) -> (),
 
+	-- ETC
 	--[=[
 		@within CSturctInfo
 		@tag Method
@@ -755,7 +765,6 @@ export type CStructInfo = {
 		@return The byte offset
 	]=]
 	offset: (self: CStructInfo, index: number) -> number,
-
 	--[=[
 		@within CSturctInfo
 		@tag Method
@@ -783,6 +792,8 @@ export type CVoidInfo = {
 		The size of the void type. It is always 0.
 	]=]
 	size: number,
+
+	-- Subtype
 	--[=[
 		@within CVoidInfo
 		@tag Method
