@@ -71,8 +71,33 @@ pub trait FfiData {
         src_offset: isize,
     ) {
         self.get_inner_pointer()
+            .cast::<u8>()
             .byte_offset(dst_offset)
-            .copy_from(src.get_inner_pointer().byte_offset(src_offset), length);
+            .copy_from(
+                src.get_inner_pointer().cast::<u8>().byte_offset(src_offset),
+                length,
+            );
+    }
+    unsafe fn read_string(&self, length: usize, offset: isize) -> Vec<u8> {
+        let mut string = Vec::<u8>::with_capacity(length);
+        string.as_mut_ptr().copy_from(
+            self.get_inner_pointer().cast::<u8>().byte_offset(offset),
+            length,
+        );
+        string.set_len(length);
+        string
+    }
+    unsafe fn write_string(
+        &self,
+        src: LuaString,
+        length: usize,
+        dst_offset: isize,
+        src_offset: usize,
+    ) {
+        self.get_inner_pointer()
+            .cast::<u8>()
+            .byte_offset(dst_offset)
+            .copy_from(src.to_pointer().cast::<u8>().byte_add(src_offset), length);
     }
 }
 

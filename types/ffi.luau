@@ -125,13 +125,44 @@ export type RefData = {
 		Copy content from another data with specific length.
 
 		@param src The source data
-		@param len The amount of data to copy, in bytes
-		@param dstOffset The offset in the destination where the data will be pasted
-		@param srcOffset The offset in the source data from where the data will be copied
+		@param length The amount of data to copy, in bytes
+		@param dstOffset The offset in the destination where the content will be pasted
+		@param srcOffset The offset in the source data from where the content will be copied
 	]=]
 	copyFrom: (
 		self: RefData,
 		src: BoxData | RefData,
+		length: number,
+		dstOffset: number,
+		srcOffset: number
+	) -> (),
+	--[=[
+		@within RefData
+		@tag Method
+		@method readString
+
+		Read string from data with specific length.
+
+		@param length The amount of data to read, in bytes
+		@param offset Offset to read string from
+		@return A string
+	]=]
+	readString: (self: RefData, length: number, offset: number?) -> string,
+	--[=[
+		@within RefData
+		@tag Method
+		@method writeString
+
+		Write string into data.
+
+		@param src The source string
+		@param length The amount of data to write, in bytes
+		@param dstOffset The offset in the destination where the content will be pasted
+		@param srcOffset The offset in the source string from where the content will be copied
+	]=]
+	writeString: (
+		self: RefData,
+		src: string,
 		length: number,
 		dstOffset: number,
 		srcOffset: number
@@ -197,13 +228,44 @@ export type BoxData = {
 		Copy content from another data with specific length.
 
 		@param src The source data
-		@param len The amount of data to copy, in bytes
-		@param dstOffset The offset in the destination where the data will be pasted
-		@param srcOffset The offset in the source data from where the data will be copied
+		@param length The amount of data to copy, in bytes
+		@param dstOffset The offset in the destination where the content will be pasted
+		@param srcOffset The offset in the source data from where the content will be copied
 	]=]
 	copyFrom: (
 		self: BoxData,
 		src: BoxData | RefData,
+		length: number,
+		dstOffset: number,
+		srcOffset: number
+	) -> (),
+	--[=[
+		@within BoxData
+		@tag Method
+		@method readString
+
+		Read string from data with specific length.
+
+		@param length The amount of data to read, in bytes
+		@param offset Offset to read string from
+		@return A string
+	]=]
+	readString: (self: BoxData, length: number, offset: number?) -> string,
+	--[=[
+		@within BoxData
+		@tag Method
+		@method writeString
+
+		Write string into data.
+
+		@param src The source string
+		@param length The amount of data to write, in bytes
+		@param dstOffset The offset in the destination where the content will be pasted
+		@param srcOffset The offset in the source string from where the content will be copied
+	]=]
+	writeString: (
+		self: BoxData,
+		src: string,
 		length: number,
 		dstOffset: number,
 		srcOffset: number
@@ -305,10 +367,10 @@ export type CTypeInfo<T, R> = {
 
 		Create an array subtype with specific length.
 
-		@param len The length of the array
+		@param length The length of the array
 		@return An array subtype
 	]=]
-	arr: (self: CTypeInfo<T, R>, len: number) -> CArrInfo<CTypeInfo<T, R>, R>,
+	arr: (self: CTypeInfo<T, R>, length: number) -> CArrInfo<CTypeInfo<T, R>, R>,
 
 	-- Create/Read/Write/Copy
 	--[=[
@@ -353,10 +415,10 @@ export type CTypeInfo<T, R> = {
 	
 		Copy values ​​from the source and paste them into the target.
 
-		@param dst Where the data will be pasted
+		@param dst Where the content will be pasted
 		@param src The source data
-		@param dstOffset The offset in the destination where the data will be pasted
-		@param srcOffset The offset in the source data from where the data will be copied
+		@param dstOffset The offset in the destination where the content will be pasted
+		@param srcOffset The offset in the source data from where the content will be copied
 	]=]
 	copyData: (
 		self: CTypeInfo<T, R>,
@@ -434,10 +496,10 @@ export type CPtrInfo<T> = {
 
 		Create an array subtype with specific length.
 
-		@param len The length of the array
+		@param length The length of the array
 		@return An array subtype
 	]=]
-	arr: (self: CPtrInfo<T>, len: number) -> any,
+	arr: (self: CPtrInfo<T>, length: number) -> any,
 	-- FIXME: recursive types; result 'any' should be CPtrInfo<CPtrInfo<T>>
 	--[=[
 		@within CPtrInfo
@@ -585,10 +647,10 @@ export type CArrInfo<T, R> = {
 	
 		Copy values ​​from the source and paste them into the target.
 	
-		@param dst Where the data will be pasted
+		@param dst Where the content will be pasted
 		@param src The source data
-		@param dstOffset The offset in the dst where the data will be pasted
-		@param srcOffset The offset in the source data from where the data will be copied
+		@param dstOffset The offset in the dst where the content will be pasted
+		@param srcOffset The offset in the source data from where the content will be copied
 	]=]
 	copyData: (
 		self: CArrInfo<T, R>,
@@ -677,10 +739,10 @@ export type CStructInfo = {
 
 		Create a struct array type.
 
-		@param len The length of the array
+		@param length The length of the array
 		@return A struct array type
 	]=]
-	arr: (self: CStructInfo, len: number) -> CArrInfo<CStructInfo, { any }>,
+	arr: (self: CStructInfo, length: number) -> CArrInfo<CStructInfo, { any }>,
 	--[=[
 		@within CSturctInfo
 		@tag Method
@@ -740,10 +802,10 @@ export type CStructInfo = {
 
 		Copy values from the source and paste them into the target.
 
-		@param dst Where the data will be pasted
+		@param dst Where the content will be pasted
 		@param src The source data
-		@param dstOffset The offset in the destination where the data will be pasted
-		@param srcOffset The offset in the source data from where the data will be copied
+		@param dstOffset The offset in the destination where the content will be pasted
+		@param srcOffset The offset in the source data from where the content will be copied
 	]=]
 	copyData: (
 		self: CStructInfo,

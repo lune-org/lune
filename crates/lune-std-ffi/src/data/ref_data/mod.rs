@@ -165,6 +165,8 @@ impl FfiData for RefData {
 impl LuaUserData for RefData {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
+        method_provider::provide_read_string(methods);
+        method_provider::provide_write_string(methods);
 
         methods.add_method("deref", |_lua, this, ()| unsafe { this.dereference() });
         methods.add_function("offset", |lua, (this, offset): (LuaAnyUserData, isize)| {

@@ -138,6 +138,9 @@ impl LuaUserData for BoxData {
     }
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
+        method_provider::provide_read_string(methods);
+        method_provider::provide_write_string(methods);
+
         // For convenience, :zero returns box itself.
         methods.add_function_mut("zero", |_lua, this: LuaAnyUserData| {
             this.borrow_mut::<BoxData>()?.zero();
