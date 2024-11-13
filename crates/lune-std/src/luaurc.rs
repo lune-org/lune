@@ -1,18 +1,21 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf, MAIN_SEPARATOR},
-    sync::Arc,
-};
-
+use crate::path::get_parent_path;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use tokio::fs::read;
+use std::{
+    collections::HashMap,
+    env::current_dir,
+    path::{Path, PathBuf},
+};
+use thiserror::Error;
+use tokio::fs;
 
-use lune_utils::path::{clean_path, clean_path_and_make_absolute};
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+pub struct RequireAlias {
+    pub alias: String,
+    pub path: String,
+}
 
-const LUAURC_FILE: &str = ".luaurc";
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum LuauLanguageMode {
     NoCheck,
@@ -20,9 +23,8 @@ enum LuauLanguageMode {
     Strict,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct LuauRcConfig {
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct Luaurc {
     #[serde(skip_serializing_if = "Option::is_none")]
     language_mode: Option<LuauLanguageMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -34,131 +36,97 @@ struct LuauRcConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     globals: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    paths: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    aliases: Option<HashMap<String, String>>,
+    aliases: Option<HashMap<String, PathBuf>>,
+}
+
+#[derive(Debug, Error)]
+pub enum LuaurcError {
+    #[error("Require with alias doesn't contain '/'")]
+    UsedAliasWithoutSlash,
+    #[error("Failed to convert string to path")]
+    FailedStringToPathConversion,
+    #[error("Failed to find a path for alias '{0}' in .luaurc files")]
+    FailedToFindAlias(String),
+    #[error("Failed to parse {0}\nParserError: {1}")]
+    FailedToParse(PathBuf, serde_json::Error),
+
+    #[error("IOError: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("LuaError: {0}")]
+    LuaError(#[from] mlua::Error),
+}
+
+impl RequireAlias {
+    /// Parses path into `RequireAlias` struct
+    ///
+    /// ### Examples
+    ///
+    /// `@lune/task` becomes `Some({ alias: "lune", path: "task" })`
+    ///
+    /// `../path/script` becomes `None`
+    pub fn from_path(path: &Path) -> Result<Option<Self>, LuaurcError> {
+        if let Some(aliased_path) = path
+            .to_str()
+            .ok_or(LuaurcError::FailedStringToPathConversion)?
+            .strip_prefix('@')
+        {
+            let (alias, path) = aliased_path
+                .split_once('/')
+                .ok_or(LuaurcError::UsedAliasWithoutSlash)?;
+
+            Ok(Some(RequireAlias {
+                alias: alias.to_string(),
+                path: path.to_string(),
+            }))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 /**
-    A deserialized `.luaurc` file.
+# Errors
 
-    Contains utility methods for validating and searching for aliases.
-*/
-#[derive(Debug, Clone)]
-pub struct LuauRc {
-    dir: Arc<Path>,
-    config: LuauRcConfig,
-}
+* when `serde_json` fails to deserialize content of the file
 
-impl LuauRc {
-    /**
-        Reads a `.luaurc` file from the given directory.
-
-        If the file does not exist, or if it is invalid, this function returns `None`.
-    */
-    pub async fn read(dir: impl AsRef<Path>) -> Option<Self> {
-        let dir = clean_path_and_make_absolute(dir);
-        let path = dir.join(LUAURC_FILE);
-        let bytes = read(&path).await.ok()?;
-        let config = serde_json::from_slice(&bytes).ok()?;
-        Some(Self {
-            dir: dir.into(),
-            config,
-        })
-    }
-
-    /**
-        Reads a `.luaurc` file from the given directory, and then recursively searches
-        for a `.luaurc` file in the parent directories if a predicate is not satisfied.
-
-        If no `.luaurc` file exists, or if they are invalid, this function returns `None`.
-    */
-    pub async fn read_recursive(
-        dir: impl AsRef<Path>,
-        mut predicate: impl FnMut(&Self) -> bool,
-    ) -> Option<Self> {
-        let mut current = clean_path_and_make_absolute(dir);
-        loop {
-            if let Some(rc) = Self::read(&current).await {
-                if predicate(&rc) {
-                    return Some(rc);
-                }
-            }
-            if let Some(parent) = current.parent() {
-                current = parent.to_path_buf();
-            } else {
-                return None;
-            }
-        }
-    }
-
-    /**
-        Validates that the `.luaurc` file is correct.
-
-        This primarily validates aliases since they are not
-        validated during creation of the [`LuauRc`] struct.
-
-        # Errors
-
-        If an alias key is invalid.
-    */
-    pub fn validate(&self) -> Result<(), String> {
-        if let Some(aliases) = &self.config.aliases {
-            for alias in aliases.keys() {
-                if !is_valid_alias_key(alias) {
-                    return Err(format!("invalid alias key: {alias}"));
-                }
-            }
-        }
-        Ok(())
-    }
-
-    /**
-        Gets a copy of all aliases in the `.luaurc` file.
-
-        Will return an empty map if there are no aliases.
-    */
-    #[must_use]
-    pub fn aliases(&self) -> HashMap<String, String> {
-        self.config.aliases.clone().unwrap_or_default()
-    }
-
-    /**
-        Finds an alias in the `.luaurc` file by name.
-
-        If the alias does not exist, this function returns `None`.
-    */
-    #[must_use]
-    pub fn find_alias(&self, name: &str) -> Option<PathBuf> {
-        self.config.aliases.as_ref().and_then(|aliases| {
-            aliases.iter().find_map(|(alias, path)| {
-                if alias
-                    .trim_end_matches(MAIN_SEPARATOR)
-                    .eq_ignore_ascii_case(name)
-                    && is_valid_alias_key(alias)
-                {
-                    Some(clean_path(self.dir.join(path)))
-                } else {
-                    None
-                }
-            })
-        })
-    }
-}
-
-fn is_valid_alias_key(alias: impl AsRef<str>) -> bool {
-    let alias = alias.as_ref();
-    if alias.is_empty()
-        || alias.starts_with('.')
-        || alias.starts_with("..")
-        || alias.chars().any(|c| c == MAIN_SEPARATOR)
-    {
-        false // Paths are not valid alias keys
+ */
+async fn parse_luaurc(_: &mlua::Lua, path: &PathBuf) -> Result<Option<Luaurc>, LuaurcError> {
+    if let Ok(content) = fs::read(path).await {
+        serde_json::from_slice(&content)
+            .map(Some)
+            .map_err(|err| LuaurcError::FailedToParse(path.clone(), err))
     } else {
-        alias.chars().all(is_valid_alias_char)
+        Ok(None)
     }
 }
 
-fn is_valid_alias_char(c: char) -> bool {
-    c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'
+impl Luaurc {
+    /// Searches for .luaurc recursively
+    /// until an alias for the provided `RequireAlias` is found
+    pub async fn resolve_path<'lua>(
+        lua: &'lua mlua::Lua,
+        alias: &'lua RequireAlias,
+    ) -> Result<PathBuf, LuaurcError> {
+        let cwd = current_dir()?;
+        let parent = cwd.join(get_parent_path(lua)?);
+        let ancestors = parent.ancestors();
+
+        for path in ancestors {
+            if path.starts_with(&cwd) {
+                if let Some(luaurc) = parse_luaurc(lua, &path.join(".luaurc")).await? {
+                    if let Some(aliases) = luaurc.aliases {
+                        if let Some(alias_path) = aliases.get(&alias.alias) {
+                            let resolved = path.join(alias_path.join(&alias.path));
+
+                            return Ok(resolved);
+                        }
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+        Err(LuaurcError::FailedToFindAlias(alias.alias.to_string()))
+    }
 }
