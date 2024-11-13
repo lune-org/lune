@@ -17,6 +17,7 @@ use crate::ffi::{
     FfiArg, FfiData, FfiResult,
 };
 
+// A closure that can be created with lua function.
 pub struct ClosureData {
     lua: *const Lua,
     closure: *mut ffi_closure,

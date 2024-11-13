@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+// Simple bit field library for handling data flags
+
 pub const U8_MASK1: u8 = 1;
 pub const U8_MASK2: u8 = 2;
 pub const U8_MASK3: u8 = 4;

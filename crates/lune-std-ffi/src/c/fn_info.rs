@@ -11,7 +11,7 @@ use super::{
 use crate::{
     data::{CallableData, ClosureData, RefData, RefFlag},
     ffi::{
-        association, bit_mask::*, libffi_helper::SIZE_OF_POINTER, FfiArg, FfiData, FfiResult,
+        association, bit_field::*, libffi_helper::SIZE_OF_POINTER, FfiArg, FfiData, FfiResult,
         FfiSignedness, FfiSize,
     },
 };

@@ -1,4 +1,4 @@
-use crate::ffi::bit_mask::*;
+use crate::ffi::bit_field::*;
 
 pub enum RefFlag {
     Leaked,

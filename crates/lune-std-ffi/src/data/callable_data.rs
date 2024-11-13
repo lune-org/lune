@@ -13,6 +13,7 @@ use mlua::prelude::*;
 use super::{GetFfiData, RefData};
 use crate::ffi::{FfiArg, FfiData, FfiResult};
 
+// A function pointer that luau can call. it stores libffi cif for calling convention.
 pub struct CallableData {
     cif: *mut ffi_cif,
     arg_info_list: Vec<FfiArg>,

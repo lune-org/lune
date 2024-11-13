@@ -3,7 +3,7 @@ use std::cell::Ref;
 use mlua::prelude::*;
 
 pub mod association;
-pub mod bit_mask;
+pub mod bit_field;
 mod cast;
 pub mod libffi_helper;
 

@@ -563,7 +563,9 @@ export type CPtrInfo<T> = {
 --[=[
 	@class CArrInfo
 
-	A c sized array type information.
+	A c sized array type information. It can be used for sturct field.
+
+	For function arguments, use CPtr instead.
 ]=]
 export type CArrInfo<T, R> = {
 	--[=[
@@ -682,6 +684,8 @@ export type CArrInfo<T, R> = {
 	@class CFnInfo
 
 	A C function pointer type information, with function signature.
+
+	For struct field, array element, or function arguments, use `void:ptr()` instead.
 ]=]
 export type CFnInfo = {
 	--[=[

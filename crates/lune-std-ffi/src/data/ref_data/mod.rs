@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use super::helper::method_provider;
 use crate::{
     data::association_names::REF_INNER,
-    ffi::{association, bit_mask::*, FfiData},
+    ffi::{association, bit_field::*, FfiData},
 };
 
 mod bounds;
