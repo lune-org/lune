@@ -31,7 +31,7 @@ macro_rules! create_tests {
             // The rest of the test logic can continue as normal
             let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
             let script = read_to_string(&full_name).await?;
-            let mut lune = Runtime::new().with_args(
+            let mut lune = Runtime::new().set_unsafe_library_enabled(true).with_args(
                 ARGS
                     .clone()
                     .iter()
@@ -97,6 +97,34 @@ create_tests! {
     datetime_to_iso_date: "datetime/toIsoDate",
     datetime_to_local_time: "datetime/toLocalTime",
     datetime_to_universal_time: "datetime/toUniversalTime",
+}
+
+#[cfg(feature = "std-ffi")]
+create_tests! {
+    ffi_external_closure_call_closure: "ffi/external_closure/callClosure",
+    ffi_external_closure_call_closure_with_pointer: "ffi/external_closure/callClosureWithPointer",
+    ffi_external_closure_call_hello_world: "ffi/external_closure/callHelloWorld",
+    ffi_external_math_add_int: "ffi/external_math/addInt",
+    ffi_external_math_mul_int: "ffi/external_math/mulInt",
+    ffi_external_pointer_pointer_read: "ffi/external_pointer/pointerRead",
+    ffi_external_pointer_pointer_write: "ffi/external_pointer/pointerWrite",
+    ffi_external_print_hello_world: "ffi/external_print/helloWorld",
+    ffi_external_struct_ab: "ffi/external_struct/ab",
+    ffi_pretty_print_arr: "ffi/pretty_print/arr",
+    ffi_pretty_print_box: "ffi/pretty_print/box",
+    ffi_pretty_print_fn: "ffi/pretty_print/fn",
+    ffi_pretty_print_ptr: "ffi/pretty_print/ptr",
+    ffi_pretty_print_struct: "ffi/pretty_print/struct",
+    ffi_pretty_print_type: "ffi/pretty_print/type",
+    ffi_types_arr: "ffi/types/arr",
+    ffi_types_ptr: "ffi/types/ptr",
+    ffi_types_struct: "ffi/types/struct",
+    ffi_cast: "ffi/cast",
+    ffi_free: "ffi/free",
+    ffi_is_integer: "ffi/isInteger",
+    ffi_read_boundary: "ffi/readBoundary",
+    ffi_read_write_string: "ffi/stringReadWrite",
+    ffi_write_boundary: "ffi/writeBoundary",
 }
 
 #[cfg(feature = "std-fs")]

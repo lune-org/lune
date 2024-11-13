@@ -6,3 +6,7 @@
 
 # Ensure all txt files within tests use LF
 tests/**/*.txt eol=lf
+
+# Remove test c and typescript from language list
+tests/ffi/**/*.c linguist-vendored
+tests/ffi/**/*.ts linguist-vendored

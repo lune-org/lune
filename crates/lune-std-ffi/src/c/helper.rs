@@ -1,0 +1,318 @@
+use libffi::middle::Type;
+use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
+use mlua::prelude::*;
+
+use super::{ctype_helper, void_info::CVoidInfo, CArrInfo, CFnInfo, CPtrInfo, CStructInfo};
+use crate::{
+    data::{BoxData, GetFfiData},
+    ffi::{FfiConvert, FfiSize},
+};
+
+pub mod method_provider {
+    use super::*;
+
+    // Implement tostring
+    pub fn provide_to_string<'lua, Target, M>(methods: &mut M)
+    where
+        Target: 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
+            stringify(lua, &this)
+        });
+    }
+
+    // Implement ptr method
+    pub fn provide_ptr<'lua, Target, M>(methods: &mut M)
+    where
+        Target: 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_function("ptr", |lua, this: LuaAnyUserData| {
+            CPtrInfo::from_userdata(lua, &this)
+        });
+    }
+
+    // Implement arr method
+    pub fn provide_arr<'lua, Target, M>(methods: &mut M)
+    where
+        Target: 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
+            CArrInfo::from_userdata(lua, &this, length)
+        });
+    }
+
+    // Implement readData method
+    pub fn provide_read_data<'lua, Target, M>(methods: &mut M)
+    where
+        Target: FfiSize + FfiConvert + 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_method(
+            "readData",
+            |lua, this, (target, offset): (LuaAnyUserData, Option<isize>)| {
+                let offset = offset.unwrap_or(0);
+
+                let data_handle = &target.get_ffi_data()?;
+                if !data_handle.check_inner_boundary(offset, this.get_size()) {
+                    return Err(LuaError::external("Out of bounds"));
+                }
+                if !data_handle.is_readable() {
+                    return Err(LuaError::external("Unreadable data"));
+                }
+
+                unsafe { this.value_from_data(lua, offset, data_handle) }
+            },
+        );
+    }
+
+    // Implement writeData method
+    pub fn provide_write_data<'lua, Target, M>(methods: &mut M)
+    where
+        Target: FfiSize + FfiConvert + 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_method(
+            "writeData",
+            |lua, this, (target, value, offset): (LuaAnyUserData, LuaValue, Option<isize>)| {
+                let offset = offset.unwrap_or(0);
+
+                let data_handle = &target.get_ffi_data()?;
+                // use or functions
+                if !data_handle.check_inner_boundary(offset, this.get_size()) {
+                    return Err(LuaError::external("Out of bounds"));
+                }
+                if !data_handle.is_writable() {
+                    return Err(LuaError::external("Unwritable data"));
+                }
+
+                unsafe { this.value_into_data(lua, offset, data_handle, value) }
+            },
+        );
+    }
+
+    // Implement copyData method
+    pub fn provide_copy_data<'lua, Target, M>(methods: &mut M)
+    where
+        Target: FfiSize + FfiConvert + 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_method(
+            "copyData",
+            |lua,
+             this,
+             (dst, src, dst_offset, src_offset): (
+                LuaAnyUserData,
+                LuaAnyUserData,
+                Option<isize>,
+                Option<isize>,
+            )| {
+                let dst_offset = dst_offset.unwrap_or(0);
+                let src_offset = src_offset.unwrap_or(0);
+
+                let dst = &dst.get_ffi_data()?;
+                // use or functions
+                if !dst.check_inner_boundary(dst_offset, this.get_size()) {
+                    return Err(LuaError::external("Destination out of bounds"));
+                }
+                if !dst.is_writable() {
+                    return Err(LuaError::external("Destination is unwritable"));
+                }
+
+                let src = &src.get_ffi_data()?;
+                if !src.check_inner_boundary(dst_offset, this.get_size()) {
+                    return Err(LuaError::external("Source out of bounds"));
+                }
+                if !src.is_readable() {
+                    return Err(LuaError::external("Source is unreadable"));
+                }
+
+                unsafe { this.copy_data(lua, dst_offset, src_offset, dst, src) }
+            },
+        );
+    }
+
+    // Implement stringifyData method
+    pub fn provide_stringify_data<'lua, Target, M>(methods: &mut M)
+    where
+        Target: FfiSize + FfiConvert + 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_method(
+            "stringifyData",
+            |lua, this, (target, offset): (LuaAnyUserData, Option<isize>)| unsafe {
+                this.stringify_data(lua, offset.unwrap_or(0), &target.get_ffi_data()?)
+            },
+        );
+    }
+
+    // Implement box method
+    pub fn provide_box<'lua, Target, M>(methods: &mut M)
+    where
+        Target: FfiSize + FfiConvert + 'static,
+        M: LuaUserDataMethods<'lua, Target>,
+    {
+        methods.add_method("box", |lua, this, value: LuaValue| {
+            let result = lua.create_userdata(BoxData::new(this.get_size()))?;
+            unsafe { this.value_into_data(lua, 0, &result.get_ffi_data()?, value)? };
+            Ok(result)
+        });
+    }
+}
+
+fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
+    if let LuaValue::UserData(field_type) = value {
+        Ok(field_type)
+    } else {
+        Err(LuaError::external(format!(
+            "CStruct, CType, CFn, CVoid or CArr is required but got {}",
+            pretty_format_value(&value, &ValueFormatConfig::new())
+        )))
+    }
+}
+
+// Create vec<T> from table with (userdata)->T
+pub fn create_list<T>(
+    table: &LuaTable,
+    callback: fn(&LuaAnyUserData) -> LuaResult<T>,
+) -> LuaResult<Vec<T>> {
+    let len: usize = table.raw_len();
+    let mut list = Vec::<T>::with_capacity(len);
+
+    for i in 0..len {
+        let value: LuaValue = table.raw_get(i + 1)?;
+        list.push(callback(&get_userdata(value)?)?);
+    }
+
+    Ok(list)
+}
+
+// Get the dynamic FfiConvert handle from the userData
+// This is intended to avoid lookup userdata and lua table every time. (eg: struct)
+// The userdata must live longer than the FfiConvert handle
+pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiConvert> {
+    if userdata.is::<CStructInfo>() {
+        Ok(userdata.to_pointer().cast::<CStructInfo>() as *const dyn FfiConvert)
+    } else if userdata.is::<CArrInfo>() {
+        Ok(userdata.to_pointer().cast::<CArrInfo>() as *const dyn FfiConvert)
+    } else if userdata.is::<CPtrInfo>() {
+        Ok(userdata.to_pointer().cast::<CPtrInfo>() as *const dyn FfiConvert)
+    } else {
+        ctype_helper::get_conv(userdata)
+    }
+}
+pub unsafe fn get_conv_list(table: &LuaTable) -> LuaResult<Vec<*const dyn FfiConvert>> {
+    create_list(table, |userdata| get_conv(userdata))
+}
+
+// Get libffi_type from ctype userdata
+pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
+    if userdata.is::<CStructInfo>() {
+        Ok(userdata.borrow::<CStructInfo>()?.get_middle_type())
+    } else if let Some(middle_type) = ctype_helper::get_middle_type(userdata)? {
+        Ok(middle_type)
+    } else if userdata.is::<CArrInfo>() {
+        Ok(userdata.borrow::<CArrInfo>()?.get_middle_type())
+    } else if userdata.is::<CPtrInfo>() {
+        Ok(CPtrInfo::get_middle_type())
+    } else if userdata.is::<CVoidInfo>() {
+        Ok(CVoidInfo::get_middle_type())
+    } else if userdata.is::<CFnInfo>() {
+        Ok(CFnInfo::get_middle_type())
+    } else {
+        Err(LuaError::external(format!(
+            "CStruct, CType, CFn, CVoid or CArr is required but got {}",
+            pretty_format_value(
+                // Since the data is in the Lua location,
+                // there is no problem with the clone.
+                &LuaValue::UserData(userdata.to_owned()),
+                &ValueFormatConfig::new()
+            )
+        )))
+    }
+}
+pub fn get_middle_type_list(table: &LuaTable) -> LuaResult<Vec<Type>> {
+    create_list(table, get_middle_type)
+}
+
+// Get type size from ctype userdata
+pub fn get_size(userdata: &LuaAnyUserData) -> LuaResult<usize> {
+    if userdata.is::<CStructInfo>() {
+        Ok(userdata.borrow::<CStructInfo>()?.get_size())
+    } else if userdata.is::<CArrInfo>() {
+        Ok(userdata.borrow::<CArrInfo>()?.get_size())
+    } else if userdata.is::<CPtrInfo>() {
+        Ok(userdata.borrow::<CPtrInfo>()?.get_size())
+    } else if userdata.is::<CVoidInfo>() {
+        Ok(userdata.borrow::<CVoidInfo>()?.get_size())
+    } else if userdata.is::<CFnInfo>() {
+        Ok(userdata.borrow::<CFnInfo>()?.get_size())
+    } else {
+        ctype_helper::get_size(userdata)
+    }
+}
+
+// Check lua table has void ctype userdata
+pub fn has_void(table: &LuaTable) -> LuaResult<bool> {
+    for i in 0..table.raw_len() {
+        let value: LuaValue = table.raw_get(i + 1)?;
+        if get_userdata(value)?.is::<CVoidInfo>() {
+            return Ok(false);
+        }
+    }
+    Ok(false)
+}
+
+// Stringify any c-type userdata recursively
+pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+    if userdata.is::<CStructInfo>() {
+        CStructInfo::stringify(lua, userdata)
+    } else if userdata.is::<CArrInfo>() {
+        CArrInfo::stringify(lua, userdata)
+    } else if userdata.is::<CPtrInfo>() {
+        CPtrInfo::stringify(lua, userdata)
+    } else if userdata.is::<CFnInfo>() {
+        CFnInfo::stringify(lua, userdata)
+    } else if userdata.is::<CVoidInfo>() {
+        CVoidInfo::stringify()
+    } else if let Some(name) = ctype_helper::get_name(userdata)? {
+        Ok(String::from(name))
+    } else {
+        Ok(String::from("unknown"))
+    }
+}
+
+// Get name tag from ctype userdata
+pub fn get_tag_name(userdata: &LuaAnyUserData) -> LuaResult<String> {
+    Ok(if userdata.is::<CStructInfo>() {
+        String::from("CStructInfo")
+    } else if userdata.is::<CArrInfo>() {
+        String::from("CArrInfo")
+    } else if userdata.is::<CPtrInfo>() {
+        String::from("CPtrInfo")
+    } else if userdata.is::<CFnInfo>() {
+        String::from("CFnInfo")
+    } else if userdata.is::<CVoidInfo>() {
+        String::from("CVoidInfo")
+    } else if ctype_helper::is_ctype(userdata) {
+        String::from("CTypeInfo")
+    } else {
+        String::from("Unknown")
+    })
+}
+
+// Emulate 'print' for ctype userdata, but simplified
+// Used for print struct field, cfn arguments, etc...
+pub fn pretty_format(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+    if ctype_helper::is_ctype(userdata) {
+        stringify(lua, userdata)
+    } else {
+        Ok(format!(
+            "<{}({})>",
+            get_tag_name(userdata)?,
+            stringify(lua, userdata)?
+        ))
+    }
+}
