@@ -1,5 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use std::path::PathBuf;
+
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 use once_cell::sync::OnceCell;
@@ -13,6 +15,7 @@ use lune_roblox::{
 static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
 
 use lune_utils::TableBuilder;
+use roblox_install::RobloxStudio;
 
 /**
     Creates the `roblox` standard library module.
@@ -39,6 +42,10 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("getReflectionDatabase", get_reflection_database)?
         .with_function("implementProperty", implement_property)?
         .with_function("implementMethod", implement_method)?
+        .with_function("studioApplicationPath", studio_application_path)?
+        .with_function("studioContentPath", studio_content_path)?
+        .with_function("studioPluginPath", studio_plugin_path)?
+        .with_function("studioBuiltinPluginPath", studio_builtin_plugin_path)?
         .build_readonly()
 }
 
@@ -146,4 +153,32 @@ fn implement_method(
 ) -> LuaResult<()> {
     InstanceRegistry::insert_method(lua, &class_name, &method_name, method).into_lua_err()?;
     Ok(())
+}
+
+fn studio_application_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+    RobloxStudio::locate()
+        .map(RobloxStudio::application_path)
+        .map(ToOwned::to_owned)
+        .map_err(LuaError::external)
+}
+
+fn studio_content_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+    RobloxStudio::locate()
+        .map(RobloxStudio::content_path)
+        .map(ToOwned::to_owned)
+        .map_err(LuaError::external)
+}
+
+fn studio_plugin_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+    RobloxStudio::locate()
+        .map(RobloxStudio::plugins_path)
+        .map(ToOwned::to_owned)
+        .map_err(LuaError::external)
+}
+
+fn studio_builtin_plugin_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+    RobloxStudio::locate()
+        .map(RobloxStudio::built_in_plugins_path)
+        .map(ToOwned::to_owned)
+        .map_err(LuaError::external)
 }
