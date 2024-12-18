@@ -1,7 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::path::PathBuf;
-
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 use once_cell::sync::OnceCell;
@@ -155,30 +153,26 @@ fn implement_method(
     Ok(())
 }
 
-fn studio_application_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+fn studio_application_path(_: &Lua, _: ()) -> LuaResult<String> {
     RobloxStudio::locate()
-        .map(RobloxStudio::application_path)
-        .map(ToOwned::to_owned)
+        .map(|rs| rs.application_path().display().to_string())
         .map_err(LuaError::external)
 }
 
-fn studio_content_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+fn studio_content_path(_: &Lua, _: ()) -> LuaResult<String> {
     RobloxStudio::locate()
-        .map(RobloxStudio::content_path)
-        .map(ToOwned::to_owned)
+        .map(|rs| rs.content_path().display().to_string())
         .map_err(LuaError::external)
 }
 
-fn studio_plugin_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+fn studio_plugin_path(_: &Lua, _: ()) -> LuaResult<String> {
     RobloxStudio::locate()
-        .map(RobloxStudio::plugins_path)
-        .map(ToOwned::to_owned)
+        .map(|rs| rs.plugins_path().display().to_string())
         .map_err(LuaError::external)
 }
 
-fn studio_builtin_plugin_path(_: &Lua, _: ()) -> LuaResult<PathBuf> {
+fn studio_builtin_plugin_path(_: &Lua, _: ()) -> LuaResult<String> {
     RobloxStudio::locate()
-        .map(RobloxStudio::built_in_plugins_path)
-        .map(ToOwned::to_owned)
+        .map(|rs| rs.built_in_plugins_path().display().to_string())
         .map_err(LuaError::external)
 }
