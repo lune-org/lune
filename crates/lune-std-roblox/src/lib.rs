@@ -13,6 +13,7 @@ use lune_roblox::{
 static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
 
 use lune_utils::TableBuilder;
+use roblox_install::RobloxStudio;
 
 /**
     Creates the `roblox` standard library module.
@@ -39,6 +40,10 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("getReflectionDatabase", get_reflection_database)?
         .with_function("implementProperty", implement_property)?
         .with_function("implementMethod", implement_method)?
+        .with_function("studioApplicationPath", studio_application_path)?
+        .with_function("studioContentPath", studio_content_path)?
+        .with_function("studioPluginPath", studio_plugin_path)?
+        .with_function("studioBuiltinPluginPath", studio_builtin_plugin_path)?
         .build_readonly()
 }
 
@@ -146,4 +151,28 @@ fn implement_method(
 ) -> LuaResult<()> {
     InstanceRegistry::insert_method(lua, &class_name, &method_name, method).into_lua_err()?;
     Ok(())
+}
+
+fn studio_application_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.application_path().display().to_string())
+        .map_err(LuaError::external)
+}
+
+fn studio_content_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.content_path().display().to_string())
+        .map_err(LuaError::external)
+}
+
+fn studio_plugin_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.plugins_path().display().to_string())
+        .map_err(LuaError::external)
+}
+
+fn studio_builtin_plugin_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.built_in_plugins_path().display().to_string())
+        .map_err(LuaError::external)
 }
