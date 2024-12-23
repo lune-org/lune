@@ -47,5 +47,5 @@ if not tzHour or not tzMinute then
 	error("Failed to extract timezone components from RFC 2822 date string")
 end
 
-assert(tzHour and tonumber(tzHour) and tonumber(tzHour) <= 14, "Timezone hour offset must be between -14 and +14")
+assert(tzHour and tonumber(tzHour) >= -14 and tonumber(tzHour) <= 14, "Timezone hour offset must be between -14 and +14")
 assert(tzMinute and tonumber(tzMinute) >= 0 and tonumber(tzMinute) < 60, "Timezone minute offset must be between 0 and 59")
