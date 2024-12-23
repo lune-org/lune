@@ -90,11 +90,13 @@ create_tests! {
     datetime_format_local_time: "datetime/formatLocalTime",
     datetime_format_universal_time: "datetime/formatUniversalTime",
     datetime_from_iso_date: "datetime/fromIsoDate",
+    datetime_from_rfc_date: "datetime/fromRfcDate",
     datetime_from_local_time: "datetime/fromLocalTime",
     datetime_from_universal_time: "datetime/fromUniversalTime",
     datetime_from_unix_timestamp: "datetime/fromUnixTimestamp",
     datetime_now: "datetime/now",
     datetime_to_iso_date: "datetime/toIsoDate",
+    datetime_to_rfc_date: "datetime/toRfcDate",
     datetime_to_local_time: "datetime/toLocalTime",
     datetime_to_universal_time: "datetime/toUniversalTime",
 }
