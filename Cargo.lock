@@ -1714,6 +1714,7 @@ dependencies = [
  "dunce",
  "mlua",
  "once_cell",
+ "parking_lot",
  "path-clean",
  "pathdiff",
  "tokio",
