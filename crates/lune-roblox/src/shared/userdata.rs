@@ -23,7 +23,7 @@ pub fn make_list_writer() -> Box<ListWriter> {
     })
 }
 
-/**
+/*
     Userdata metamethod implementations
 
     Note that many of these return [`LuaResult`] even though they don't

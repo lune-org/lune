@@ -334,7 +334,7 @@ impl<'lua> LuaSchedulerExt<'lua> for Lua {
     }
 }
 
-impl<'lua> LuaSpawnExt<'lua> for Lua {
+impl LuaSpawnExt<'_> for Lua {
     fn spawn<F, T>(&self, fut: F) -> Task<T>
     where
         F: Future<Output = T> + Send + 'static,

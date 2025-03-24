@@ -60,7 +60,7 @@ where
     }
 }
 
-/**
+/*
     Conversion methods between `DateTimeValues` and plain lua tables
 
     Note that the `IntoLua` implementation here uses a read-only table,
@@ -117,7 +117,7 @@ impl IntoLua<'_> for DateTimeValues {
     }
 }
 
-/**
+/*
     Conversion methods between chrono's timezone-aware `DateTime` to
     and from our non-timezone-aware `DateTimeValues` values struct
 */
