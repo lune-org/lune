@@ -1742,6 +1742,7 @@ dependencies = [
  "dunce",
  "mlua",
  "once_cell",
+ "parking_lot",
  "path-clean",
  "pathdiff",
  "semver 1.0.23",
