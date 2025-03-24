@@ -1,4 +1,4 @@
-use std::process::ExitCode;
+use std::{env, process::ExitCode};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -41,7 +41,15 @@ impl RunCommand {
         };
 
         // Create a new lune runtime with all globals & run the script
-        let mut rt = Runtime::new().with_args(self.script_args);
+        let mut rt = Runtime::new()
+            .with_args(self.script_args)
+            // Enable JIT compilation unless it was requested to be disabled
+            .with_jit(
+                !matches!(
+                    env::var("LUNE_LUAU_JIT").ok(), 
+                    Some(jit_enabled) if jit_enabled == "0" || jit_enabled == "false" || jit_enabled == "off"
+                )
+             );
 
         let result = rt
             .run(&script_display_name, strip_shebang(script_contents))
