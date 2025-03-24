@@ -4,6 +4,7 @@ mod table_builder;
 mod version_string;
 
 pub mod fmt;
+pub mod jit;
 pub mod path;
 
 pub use self::table_builder::TableBuilder;
