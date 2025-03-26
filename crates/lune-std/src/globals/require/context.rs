@@ -150,9 +150,9 @@ impl RequireContext {
         self.get_from_cache(lua, abs_path.as_ref())
     }
 
-    async fn load<'lua>(
+    async fn load(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         abs_path: impl AsRef<Path>,
         rel_path: impl AsRef<Path>,
     ) -> LuaResult<LuaRegistryKey> {

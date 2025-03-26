@@ -117,7 +117,7 @@ impl<'lua> FromLua<'lua> for CompressDecompressFormat {
 
     Errors when the compression fails.
 */
-pub async fn compress<'lua>(
+pub async fn compress(
     source: impl AsRef<[u8]>,
     format: CompressDecompressFormat,
     level: Option<i32>,
@@ -163,7 +163,7 @@ pub async fn compress<'lua>(
 
     Errors when the decompression fails.
 */
-pub async fn decompress<'lua>(
+pub async fn decompress(
     source: impl AsRef<[u8]>,
     format: CompressDecompressFormat,
 ) -> LuaResult<Vec<u8>> {

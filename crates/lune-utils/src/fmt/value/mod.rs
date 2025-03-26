@@ -1,11 +1,9 @@
-use std::{
-    collections::HashSet,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashSet, sync::Arc};
 
 use console::{colors_enabled as get_colors_enabled, set_colors_enabled};
 use mlua::prelude::*;
 use once_cell::sync::Lazy;
+use parking_lot::ReentrantMutex;
 
 mod basic;
 mod config;
@@ -20,7 +18,7 @@ pub use self::config::ValueFormatConfig;
 // NOTE: Since the setting for colors being enabled is global,
 // and these functions may be called in parallel, we use this global
 // lock to make sure that we don't mess up the colors for other threads.
-static COLORS_LOCK: Lazy<Arc<Mutex<()>>> = Lazy::new(|| Arc::new(Mutex::new(())));
+static COLORS_LOCK: Lazy<Arc<ReentrantMutex<()>>> = Lazy::new(|| Arc::new(ReentrantMutex::new(())));
 
 /**
     Formats a Lua value into a pretty string using the given config.
@@ -28,7 +26,7 @@ static COLORS_LOCK: Lazy<Arc<Mutex<()>>> = Lazy::new(|| Arc::new(Mutex::new(()))
 #[must_use]
 #[allow(clippy::missing_panics_doc)]
 pub fn pretty_format_value(value: &LuaValue, config: &ValueFormatConfig) -> String {
-    let _guard = COLORS_LOCK.lock().unwrap();
+    let _guard = COLORS_LOCK.lock();
 
     let were_colors_enabled = get_colors_enabled();
     set_colors_enabled(were_colors_enabled && config.colors_enabled);
@@ -48,7 +46,7 @@ pub fn pretty_format_value(value: &LuaValue, config: &ValueFormatConfig) -> Stri
 #[must_use]
 #[allow(clippy::missing_panics_doc)]
 pub fn pretty_format_multi_value(values: &LuaMultiValue, config: &ValueFormatConfig) -> String {
-    let _guard = COLORS_LOCK.lock().unwrap();
+    let _guard = COLORS_LOCK.lock();
 
     let were_colors_enabled = get_colors_enabled();
     set_colors_enabled(were_colors_enabled && config.colors_enabled);

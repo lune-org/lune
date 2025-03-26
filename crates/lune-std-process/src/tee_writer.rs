@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<'a, W> AsyncWrite for AsyncTeeWriter<'a, W>
+impl<W> AsyncWrite for AsyncTeeWriter<'_, W>
 where
     W: AsyncWrite + Unpin,
 {

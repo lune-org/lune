@@ -41,7 +41,7 @@ where
 }
 
 fn remove_matching_prop(inst: &mut DomInstance, ty: DomType, name: &'static str) {
-    if inst.properties.get(name).map_or(false, |u| u.ty() == ty) {
+    if inst.properties.get(name).is_some_and(|u| u.ty() == ty) {
         inst.properties.remove(name);
     }
 }

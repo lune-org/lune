@@ -64,8 +64,8 @@ pub fn discover_script_path(path: impl AsRef<str>, in_home_dir: bool) -> Result<
     // NOTE: We use metadata directly here to try to
     // avoid accessing the file path more than once
     let file_meta = file_path.metadata();
-    let is_file = file_meta.as_ref().map_or(false, Metadata::is_file);
-    let is_dir = file_meta.as_ref().map_or(false, Metadata::is_dir);
+    let is_file = file_meta.as_ref().is_ok_and(Metadata::is_file);
+    let is_dir = file_meta.as_ref().is_ok_and(Metadata::is_dir);
     let is_abs = file_path.is_absolute();
     let ext = file_path.extension();
     if is_file {
