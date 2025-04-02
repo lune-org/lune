@@ -167,6 +167,7 @@ create_tests! {
     roblox_datatype_color3: "roblox/datatypes/Color3",
     roblox_datatype_color_sequence: "roblox/datatypes/ColorSequence",
     roblox_datatype_color_sequence_keypoint: "roblox/datatypes/ColorSequenceKeypoint",
+    roblox_datatype_content: "roblox/datatypes/Content",
     roblox_datatype_enum: "roblox/datatypes/Enum",
     roblox_datatype_faces: "roblox/datatypes/Faces",
     roblox_datatype_font: "roblox/datatypes/Font",
