@@ -1,6 +1,6 @@
 use rbx_dom_weak::{
     types::{Ref as DomRef, VariantType as DomType},
-    Instance as DomInstance, WeakDom,
+    ustr, Instance as DomInstance, WeakDom,
 };
 
 use crate::shared::instance::class_is_a;
@@ -18,8 +18,8 @@ pub fn postprocess_dom_for_model(dom: &mut WeakDom) {
         remove_matching_prop(inst, DomType::UniqueId, "HistoryId");
         // Similar story with ScriptGuid - this is used
         // in the studio-only cloud script drafts feature
-        if class_is_a(&inst.class, "LuaSourceContainer").unwrap_or(false) {
-            inst.properties.remove("ScriptGuid");
+        if class_is_a(inst.class, "LuaSourceContainer").unwrap_or(false) {
+            inst.properties.remove(&ustr("ScriptGuid"));
         }
     });
 }
@@ -41,6 +41,7 @@ where
 }
 
 fn remove_matching_prop(inst: &mut DomInstance, ty: DomType, name: &'static str) {
+    let name = &ustr(name);
     if inst.properties.get(name).is_some_and(|u| u.ty() == ty) {
         inst.properties.remove(name);
     }

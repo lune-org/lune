@@ -51,7 +51,7 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                 DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
                 DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
                 DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(s)?)),
-                DomValue::Content(s) => Ok(LuaValue::String(
+                DomValue::ContentId(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
 

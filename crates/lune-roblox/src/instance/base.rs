@@ -71,7 +71,7 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         "FindFirstAncestorWhichIsA",
         |lua, this, class_name: String| {
             ensure_not_destroyed(this)?;
-            this.find_ancestor(|child| class_is_a(&child.class, &class_name).unwrap_or(false))
+            this.find_ancestor(|child| class_is_a(child.class, &class_name).unwrap_or(false))
                 .into_lua(lua)
         },
     );
@@ -104,7 +104,7 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         |lua, this, (class_name, recursive): (String, Option<bool>)| {
             ensure_not_destroyed(this)?;
             let predicate =
-                |child: &DomInstance| class_is_a(&child.class, &class_name).unwrap_or(false);
+                |child: &DomInstance| class_is_a(child.class, &class_name).unwrap_or(false);
             if matches!(recursive, Some(true)) {
                 this.find_descendant(predicate).into_lua(lua)
             } else {
@@ -113,7 +113,7 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
         },
     );
     m.add_method("IsA", |_, this, class_name: String| {
-        Ok(class_is_a(&this.class_name, class_name).unwrap_or(false))
+        Ok(class_is_a(this.class_name, class_name).unwrap_or(false))
     });
     m.add_method(
         "IsAncestorOf",
@@ -230,7 +230,7 @@ fn instance_property_get<'lua>(
         return this.get_name().into_lua(lua);
     }
 
-    if let Some(info) = find_property_info(&this.class_name, &prop_name) {
+    if let Some(info) = find_property_info(this.class_name, &prop_name) {
         if let Some(prop) = this.get_property(&prop_name) {
             if let DomValue::Enum(enum_value) = prop {
                 let enum_name = info.enum_name.ok_or_else(|| {
@@ -275,7 +275,7 @@ fn instance_property_get<'lua>(
     } else if let Some(inst) = this.find_child(|inst| inst.name == prop_name) {
         Ok(LuaValue::UserData(lua.create_userdata(inst)?))
     } else if let Some(getter) = InstanceRegistry::find_property_getter(lua, this, &prop_name) {
-        getter.call(this.clone())
+        getter.call(*this)
     } else if let Some(method) = InstanceRegistry::find_method(lua, this, &prop_name) {
         Ok(LuaValue::Function(method))
     } else {
@@ -321,13 +321,13 @@ fn instance_property_set<'lua>(
             }
             type Parent<'lua> = Option<LuaUserDataRef<'lua, Instance>>;
             let parent = Parent::from_lua(prop_value, lua)?;
-            this.set_parent(parent.map(|p| p.clone()));
+            this.set_parent(parent.map(|p| *p));
             return Ok(());
         }
         _ => {}
     }
 
-    if let Some(info) = find_property_info(&this.class_name, &prop_name) {
+    if let Some(info) = find_property_info(this.class_name, &prop_name) {
         if let Some(enum_name) = info.enum_name {
             match LuaUserDataRef::<EnumItem>::from_lua(prop_value, lua) {
                 Ok(given_enum) if given_enum.parent.desc.name == enum_name => {
@@ -354,7 +354,7 @@ fn instance_property_set<'lua>(
             )))
         }
     } else if let Some(setter) = InstanceRegistry::find_property_setter(lua, this, &prop_name) {
-        setter.call((this.clone(), prop_value))
+        setter.call((*this, prop_value))
     } else {
         Err(LuaError::RuntimeError(format!(
             "{prop_name} is not a valid member of {this}",
