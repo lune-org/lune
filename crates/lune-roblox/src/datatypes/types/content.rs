@@ -23,8 +23,21 @@ impl LuaExportsTable<'_> for Content {
     fn create_exports_table(lua: &'_ Lua) -> LuaResult<LuaTable<'_>> {
         let from_uri = |_, uri: String| Ok(Self(ContentType::Uri(uri)));
 
-        let from_object =
-            |_, obj: LuaUserDataRef<Instance>| Ok(Self(ContentType::Object(obj.dom_ref)));
+        let from_object = |_, obj: LuaUserDataRef<Instance>| {
+            let database = rbx_reflection_database::get();
+            let instance_descriptor = database
+                .classes
+                .get("Instance")
+                .expect("the reflection database should always have Instance in it");
+            let param_descriptor = database.classes.get(obj.get_class_name()).expect(
+                "you should not be able to construct an Instance that is not known to Lune",
+            );
+            if database.has_superclass(param_descriptor, instance_descriptor) {
+                Err(LuaError::runtime("the provided object is a descendant class of 'Instance', expected one that was only an 'Object'"))
+            } else {
+                Ok(Content(ContentType::Object(obj.dom_ref)))
+            }
+        };
 
         TableBuilder::new(lua)?
             .with_value("none", Content(ContentType::None))?
