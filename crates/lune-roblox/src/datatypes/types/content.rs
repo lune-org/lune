@@ -102,10 +102,19 @@ impl fmt::Display for Content {
     }
 }
 
-impl TryFrom<DomContent> for Content {
-    type Error = LuaError;
+impl From<DomContent> for Content {
+    fn from(value: DomContent) -> Self {
+        Self(value.value().clone())
+    }
+}
 
-    fn try_from(value: DomContent) -> Result<Self, Self::Error> {
-        Ok(Self(value.value().clone()))
+impl From<Content> for DomContent {
+    fn from(value: Content) -> Self {
+        match value.0 {
+            ContentType::None => Self::none(),
+            ContentType::Uri(uri) => Self::from_uri(uri),
+            ContentType::Object(referent) => Self::from_referent(referent),
+            other => unimplemented!("unknown variant of ContentType: {other:?}"),
+        }
     }
 }
