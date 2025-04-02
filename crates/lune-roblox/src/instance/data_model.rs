@@ -48,7 +48,7 @@ fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> Lua
         Ok(service)
     } else {
         let service = Instance::new_orphaned(service_name);
-        service.set_parent(Some(this.clone()));
+        service.set_parent(Some(*this));
         Ok(service)
     }
 }
