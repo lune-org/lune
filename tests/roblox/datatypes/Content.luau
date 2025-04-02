@@ -49,3 +49,16 @@ assert(
 	not pcall(Content.fromObject, Instance.new("Folder")),
 	"Content.fromObject accepted an Instance as an argument"
 )
+
+assert(
+	tostring(Content.none) == "Content(None)",
+	`expected tostring(Content.none) to be Content(None), it was actually {Content.none}`
+)
+assert(
+	tostring(uri) == "Content(Uri=test uri)",
+	`expected tostring(URI Content) to be Content(Uri=...), it was actually {uri}`
+)
+assert(
+	tostring(object) == "Content(Object)",
+	`expected tostring(Object Content) to be Content(Object), it was actually {object}`
+)
