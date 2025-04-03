@@ -59,8 +59,10 @@ end
 	stdio.write("All on the same line")
 	stdio.ewrite("\nAnd some error text, too")
 
-	-- Reading the entire input from stdin
-	local input = stdio.readToEnd()
+	-- Reading from stdin, either line-by-line or the entire input
+	local firstLine = stdio.readLine()
+	local secondLine = stdio.readLine()
+	local remaining = stdio.readToEnd()
 	```
 ]=]
 local stdio = {}
@@ -155,6 +157,18 @@ function stdio.ewrite(s: string) end
     @return The input from stdin
 ]=]
 function stdio.readToEnd(): string
+	return nil :: any
+end
+
+--[=[
+    @within Stdio
+    @tag must_use
+
+    Reads a single line from stdin.
+
+    @return The input from stdin
+]=]
+function stdio.readLine(): string
 	return nil :: any
 end
 
