@@ -20,7 +20,8 @@ assert(not pcall(Content.fromUri), "Content.fromUri accepted no argument")
 assert(not pcall(Content.fromUri, false), "Content.fromUri accepted a boolean argument")
 assert(not pcall(Content.fromUri, Enum), "Content.fromUri accepted a UserData as an argument")
 assert(
-	not pcall(Content.fromUri, buffer.create(0), "Content.fromUri accepted a buffer as an argument")
+	not pcall(Content.fromUri, buffer.create(0)),
+	"Content.fromUri accepted a buffer as an argument"
 )
 
 -- It feels weird that this is allowed because `EditableImage` is very much
@@ -38,11 +39,8 @@ assert(
 	"Content.fromObject accepted a non-Instance/Object UserData as an argument"
 )
 assert(
-	not pcall(
-		Content.fromObject,
-		buffer.create(0),
-		"Content.fromObject accepted a buffer as an argument"
-	)
+	not pcall(Content.fromObject, buffer.create(0)),
+	"Content.fromObject accepted a buffer as an argument"
 )
 
 assert(
