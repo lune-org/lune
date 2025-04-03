@@ -19,6 +19,7 @@ impl DomValueExt for DomType {
             Color3uint8 => "Color3uint8",
             ColorSequence => "ColorSequence",
             Content => "Content",
+            ContentId => "ContentId",
             Enum => "Enum",
             EnumItem => "EnumItem",
             Faces => "Faces",

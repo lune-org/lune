@@ -104,8 +104,8 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
                 (LuaValue::String(s), DomType::BinaryString) => {
                     Ok(DomValue::BinaryString(s.as_ref().into()))
                 }
-                (LuaValue::String(s), DomType::Content) => {
-                    Ok(DomValue::Content(s.to_str()?.to_string().into()))
+                (LuaValue::String(s), DomType::ContentId) => {
+                    Ok(DomValue::ContentId(s.to_str()?.to_string().into()))
                 }
 
                 // NOTE: Some values are either optional or default and we
@@ -200,6 +200,7 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
             DomValue::Color3(value)         => dom_to_userdata!(lua, value => Color3),
             DomValue::Color3uint8(value)    => dom_to_userdata!(lua, value => Color3),
             DomValue::ColorSequence(value)  => dom_to_userdata!(lua, value => ColorSequence),
+            DomValue::Content(value)        => dom_to_userdata!(lua, value => Content),
             DomValue::EnumItem(value)       => dom_to_userdata!(lua, value => EnumItem),
             DomValue::Faces(value)          => dom_to_userdata!(lua, value => Faces),
             DomValue::Font(value)           => dom_to_userdata!(lua, value => Font),
@@ -257,6 +258,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 DomType::Color3         => userdata_to_dom!(self as Color3         => dom::Color3),
                 DomType::Color3uint8    => userdata_to_dom!(self as Color3         => dom::Color3uint8),
                 DomType::ColorSequence  => userdata_to_dom!(self as ColorSequence  => dom::ColorSequence),
+                DomType::Content        => userdata_to_dom!(self as Content        => dom::Content),
                 DomType::EnumItem       => userdata_to_dom!(self as EnumItem       => dom::EnumItem),
                 DomType::Faces          => userdata_to_dom!(self as Faces          => dom::Faces),
                 DomType::Font           => userdata_to_dom!(self as Font           => dom::Font),
