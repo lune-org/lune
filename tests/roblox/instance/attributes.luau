@@ -16,6 +16,7 @@ local UDim2 = roblox.UDim2
 local Vector2 = roblox.Vector2
 local Vector3 = roblox.Vector3
 local Instance = roblox.Instance
+local Enum = roblox.Enum
 
 local modelFile = fs.readFile("tests/roblox/rbx-test-files/models/attributes/binary.rbxm")
 local model = roblox.deserializeModel(modelFile)[1]
@@ -114,3 +115,12 @@ model.Parent = game
 local placeFile = roblox.serializePlace(game)
 fs.writeDir("bin/roblox")
 fs.writeFile("bin/roblox/attributes.rbxl", placeFile)
+
+local enum_attr = Instance.new("Folder")
+enum_attr:SetAttribute("Foo", Enum.NormalId.Front)
+assert(enum_attr:GetAttribute("Foo") == Enum.NormalId.Front)
+
+local enum_attr_ser = roblox.serializeModel({ enum_attr })
+local enum_attr_de = roblox.deserializeModel(enum_attr_ser)
+
+assert(enum_attr_de[1]:GetAttribute("Foo") == Enum.NormalId.Front)
