@@ -111,7 +111,6 @@ impl From<EnumItem> for DomEnumItem {
 
 impl From<DomEnumItem> for EnumItem {
     fn from(value: DomEnumItem) -> Self {
-        println!("dom enum item: {value:?}");
         EnumItem::from_enum_name_and_value(value.ty, value.value)
             .expect("cannot convert rbx_type::EnumItem with unknown type into EnumItem")
     }
