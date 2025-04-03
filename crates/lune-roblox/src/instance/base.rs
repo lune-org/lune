@@ -331,7 +331,7 @@ fn instance_property_set<'lua>(
         if let Some(enum_name) = info.enum_name {
             match LuaUserDataRef::<EnumItem>::from_lua(prop_value, lua) {
                 Ok(given_enum) if given_enum.parent.desc.name == enum_name => {
-                    this.set_property(prop_name, DomValue::Enum((*given_enum).clone().into()));
+                    this.set_property(prop_name, DomValue::EnumItem((*given_enum).clone().into()));
                     Ok(())
                 }
                 Ok(given_enum) => Err(LuaError::RuntimeError(format!(

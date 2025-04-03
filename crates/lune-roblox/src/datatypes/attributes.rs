@@ -47,6 +47,7 @@ pub fn ensure_valid_attribute_value(value: &DomValue) -> LuaResult<()> {
             | DomType::CFrame
             | DomType::Color3
             | DomType::ColorSequence
+            | DomType::EnumItem
             | DomType::Float32
             | DomType::Float64
             | DomType::Font

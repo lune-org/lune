@@ -21,6 +21,7 @@ impl DomValueExt for DomType {
             Content => "Content",
             ContentId => "ContentId",
             Enum => "Enum",
+            EnumItem => "EnumItem",
             Faces => "Faces",
             Float32 => "Float32",
             Float64 => "Float64",
