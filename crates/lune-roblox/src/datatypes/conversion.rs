@@ -315,7 +315,6 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 value if value.is::<CFrame>()         => userdata_to_dom!(value as CFrame         => dom::CFrame),
                 value if value.is::<Color3>()         => userdata_to_dom!(value as Color3         => dom::Color3),
                 value if value.is::<ColorSequence>()  => userdata_to_dom!(value as ColorSequence  => dom::ColorSequence),
-                value if value.is::<Enum>()           => userdata_to_dom!(value as EnumItem       => dom::EnumItem),
                 value if value.is::<EnumItem>()       => userdata_to_dom!(value as EnumItem       => dom::EnumItem),
                 value if value.is::<Faces>()          => userdata_to_dom!(value as Faces          => dom::Faces),
                 value if value.is::<Font>()           => userdata_to_dom!(value as Font           => dom::Font),
