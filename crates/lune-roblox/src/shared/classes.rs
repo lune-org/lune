@@ -122,7 +122,7 @@ pub(crate) fn get_or_create_property_ref_instance(
         Ok(inst)
     } else {
         let inst = Instance::new_orphaned(class_name);
-        inst.set_parent(Some(this.clone()));
+        inst.set_parent(Some(*this));
         this.set_property(prop_name, DomValue::Ref(inst.dom_ref));
         Ok(inst)
     }

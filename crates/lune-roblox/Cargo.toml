@@ -20,10 +20,10 @@ rand = "0.8"
 thiserror = "1.0"
 once_cell = "1.17"
 
-rbx_binary = "0.7.7"
-rbx_dom_weak = "2.9.0"
-rbx_reflection = "4.7.0"
-rbx_reflection_database = "0.2.12"
-rbx_xml = "0.13.5"
+rbx_binary = "1.0.0"
+rbx_dom_weak = "3.0.0"
+rbx_reflection = "5.0.0"
+rbx_reflection_database = "1.0.0"
+rbx_xml = "1.0.0"
 
 lune-utils = { version = "0.1.3", path = "../lune-utils" }

@@ -77,7 +77,7 @@ async fn serialize_place<'lua>(
     lua: &'lua Lua,
     (data_model, as_xml): (LuaUserDataRef<'lua, Instance>, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
-    let data_model = (*data_model).clone();
+    let data_model = *data_model;
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_data_model_instance(data_model)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
@@ -94,7 +94,7 @@ async fn serialize_model<'lua>(
     lua: &'lua Lua,
     (instances, as_xml): (Vec<LuaUserDataRef<'lua, Instance>>, Option<bool>),
 ) -> LuaResult<LuaString<'lua>> {
-    let instances = instances.iter().map(|i| (*i).clone()).collect();
+    let instances = instances.iter().map(|i| **i).collect();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_instance_array(instances)?;
         let bytes = doc.to_bytes_with_format(match as_xml {

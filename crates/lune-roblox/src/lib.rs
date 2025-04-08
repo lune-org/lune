@@ -25,6 +25,7 @@ fn create_all_exports(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
         export::<Color3>(lua)?,
         export::<ColorSequence>(lua)?,
         export::<ColorSequenceKeypoint>(lua)?,
+        export::<Content>(lua)?,
         export::<Faces>(lua)?,
         export::<Font>(lua)?,
         export::<NumberRange>(lua)?,

@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rbx_dom_weak::types::Enum as DomEnum;
+use rbx_dom_weak::types::EnumItem as DomEnumItem;
 
 use super::{super::*, Enum};
 
@@ -100,8 +100,18 @@ impl PartialEq for EnumItem {
     }
 }
 
-impl From<EnumItem> for DomEnum {
+impl From<EnumItem> for DomEnumItem {
     fn from(v: EnumItem) -> Self {
-        DomEnum::from_u32(v.value)
+        DomEnumItem {
+            ty: v.parent.desc.name.to_string(),
+            value: v.value,
+        }
+    }
+}
+
+impl From<DomEnumItem> for EnumItem {
+    fn from(value: DomEnumItem) -> Self {
+        EnumItem::from_enum_name_and_value(value.ty, value.value)
+            .expect("cannot convert rbx_type::EnumItem with unknown type into EnumItem")
     }
 }

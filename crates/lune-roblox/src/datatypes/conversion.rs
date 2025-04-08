@@ -51,7 +51,7 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                 DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
                 DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
                 DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(s)?)),
-                DomValue::Content(s) => Ok(LuaValue::String(
+                DomValue::ContentId(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
 
@@ -104,8 +104,8 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
                 (LuaValue::String(s), DomType::BinaryString) => {
                     Ok(DomValue::BinaryString(s.as_ref().into()))
                 }
-                (LuaValue::String(s), DomType::Content) => {
-                    Ok(DomValue::Content(s.to_str()?.to_string().into()))
+                (LuaValue::String(s), DomType::ContentId) => {
+                    Ok(DomValue::ContentId(s.to_str()?.to_string().into()))
                 }
 
                 // NOTE: Some values are either optional or default and we
@@ -200,6 +200,8 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
             DomValue::Color3(value)         => dom_to_userdata!(lua, value => Color3),
             DomValue::Color3uint8(value)    => dom_to_userdata!(lua, value => Color3),
             DomValue::ColorSequence(value)  => dom_to_userdata!(lua, value => ColorSequence),
+            DomValue::Content(value)        => dom_to_userdata!(lua, value => Content),
+            DomValue::EnumItem(value)       => dom_to_userdata!(lua, value => EnumItem),
             DomValue::Faces(value)          => dom_to_userdata!(lua, value => Faces),
             DomValue::Font(value)           => dom_to_userdata!(lua, value => Font),
             DomValue::NumberRange(value)    => dom_to_userdata!(lua, value => NumberRange),
@@ -256,7 +258,8 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 DomType::Color3         => userdata_to_dom!(self as Color3         => dom::Color3),
                 DomType::Color3uint8    => userdata_to_dom!(self as Color3         => dom::Color3uint8),
                 DomType::ColorSequence  => userdata_to_dom!(self as ColorSequence  => dom::ColorSequence),
-                DomType::Enum           => userdata_to_dom!(self as EnumItem       => dom::Enum),
+                DomType::Content        => userdata_to_dom!(self as Content        => dom::Content),
+                DomType::EnumItem       => userdata_to_dom!(self as EnumItem       => dom::EnumItem),
                 DomType::Faces          => userdata_to_dom!(self as Faces          => dom::Faces),
                 DomType::Font           => userdata_to_dom!(self as Font           => dom::Font),
                 DomType::NumberRange    => userdata_to_dom!(self as NumberRange    => dom::NumberRange),
@@ -314,7 +317,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 value if value.is::<CFrame>()         => userdata_to_dom!(value as CFrame         => dom::CFrame),
                 value if value.is::<Color3>()         => userdata_to_dom!(value as Color3         => dom::Color3),
                 value if value.is::<ColorSequence>()  => userdata_to_dom!(value as ColorSequence  => dom::ColorSequence),
-                value if value.is::<Enum>()           => userdata_to_dom!(value as EnumItem       => dom::Enum),
+                value if value.is::<EnumItem>()       => userdata_to_dom!(value as EnumItem       => dom::EnumItem),
                 value if value.is::<Faces>()          => userdata_to_dom!(value as Faces          => dom::Faces),
                 value if value.is::<Font>()           => userdata_to_dom!(value as Font           => dom::Font),
                 value if value.is::<Instance>()       => userdata_to_dom!(value as Instance       => dom::Ref),
