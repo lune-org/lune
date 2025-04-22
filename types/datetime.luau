@@ -274,7 +274,7 @@ export type DateTime = typeof(DateTime)
 	print(now:toIsoDate())
 
 	-- Formats the current moment in time as an RFC 2822 string
-	print(now:toRfcDate())
+	print(now:toRfc2822())
 
 	-- Formats the current moment in time, using the local
 	-- time, the French locale, and the specified time string
