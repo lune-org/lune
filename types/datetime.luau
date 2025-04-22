@@ -203,7 +203,7 @@ end
 
 	@return string -- The RFC 2822 formatted string
 ]=]
-function DateTime.toRfcDate(self: DateTime): string
+function DateTime.toRfc2822(self: DateTime): string
 	return nil :: any
 end
 
@@ -416,6 +416,7 @@ end
 	@tag Constructor
 
 	Creates a new `DateTime` from an ISO 8601 date-time string.
+	This function behaves the same as `fromRfc3339`.
 
 	### Errors
 
@@ -439,6 +440,30 @@ end
 	@within DateTime
 	@tag Constructor
 
+	Creates a new `DateTime` from an RFC 3339 date-time string.
+
+	### Errors
+
+	This constructor is fallible and may throw an error if the given
+	string does not strictly follow the RFC 3339 date-time string format.
+
+	Some examples of valid RFC 3339 date-time strings are:
+
+	- `2020-02-22T18:12:08Z`
+	- `2000-01-31T12:34:56+05:00`
+	- `1970-01-01T00:00:00.055Z`
+
+	@param rfc3339Date -- An RFC 3339 formatted string
+	@return DateTime -- The new DateTime object
+]=]
+function dateTime.fromRfc3339(rfc3339Date: string): DateTime
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+	@tag Constructor
+
 	Creates a new `DateTime` from an RFC 2822 date-time string.
 
 	### Errors
@@ -452,10 +477,10 @@ end
 	- `Tue, 1 Jul 2003 10:52:37 +0200`
 	- `Mon, 23 Dec 2024 01:58:48 GMT`
 
-	@param rfcDate -- An RFC 2822 formatted string
+	@param rfc2822Date -- An RFC 2822 formatted string
 	@return DateTime -- The new DateTime object
 ]=]
-function dateTime.fromRfcDate(rfcDate: string): DateTime
+function dateTime.fromRfc2822(rfc2822Date: string): DateTime
 	return nil :: any
 end
 

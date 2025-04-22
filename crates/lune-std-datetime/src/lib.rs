@@ -22,8 +22,11 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("fromIsoDate", |_, iso_date: String| {
             Ok(DateTime::from_iso_date(iso_date)?)
         })?
-        .with_function("fromRfcDate", |_, rfc_date: String| {
-            Ok(DateTime::from_rfc_date(rfc_date)?)
+        .with_function("fromRfc3339", |_, iso_date: String| {
+            Ok(DateTime::from_iso_date(iso_date)?)
+        })?
+        .with_function("fromRfc2822", |_, rfc_date: String| {
+            Ok(DateTime::from_rfc_2822_date(rfc_date)?)
         })?
         .with_function("fromLocalTime", |_, values| {
             Ok(DateTime::from_local_time(&values)?)

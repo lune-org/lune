@@ -183,7 +183,7 @@ impl DateTime {
 
         Returns an error if the input string is not a valid RFC 2822 date-time.
     */
-    pub fn from_rfc_date(rfc_date: impl AsRef<str>) -> DateTimeResult<Self> {
+    pub fn from_rfc_2822_date(rfc_date: impl AsRef<str>) -> DateTimeResult<Self> {
         let inner = ChronoDateTime::parse_from_rfc2822(rfc_date.as_ref())?.with_timezone(&Utc);
         Ok(Self { inner })
     }
@@ -222,7 +222,7 @@ impl DateTime {
         See [`chrono::DateTime::to_rfc2822`] for additional details.
     */
     #[must_use]
-    pub fn to_rfc_date(self) -> String {
+    pub fn to_rfc_2822_date(self) -> String {
         self.inner.to_rfc2822()
     }
 }
@@ -255,7 +255,8 @@ impl LuaUserData for DateTime {
         );
         // Normal methods
         methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_iso_date()));
-        methods.add_method("toRfcDate", |_, this, ()| Ok(this.to_rfc_date()));
+        methods.add_method("toRfc3339", |_, this, ()| Ok(this.to_iso_date()));
+        methods.add_method("toRfc2822", |_, this, ()| Ok(this.to_rfc_2822_date()));
         methods.add_method(
             "formatUniversalTime",
             |_, this, (format, locale): (Option<String>, Option<String>)| {

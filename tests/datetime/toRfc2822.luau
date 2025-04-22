@@ -1,7 +1,7 @@
 local DateTime = require("@lune/datetime")
 
 local now = DateTime.now()
-local nowRfc = now:toRfcDate()
+local nowRfc = now:toRfc2822()
 
 assert(type(nowRfc) == "string", "toRfcDate should return a string")
 assert(
@@ -19,8 +19,18 @@ end
 
 -- Validate month
 local validMonths = {
-	Jan = true, Feb = true, Mar = true, Apr = true, May = true, Jun = true,
-	Jul = true, Aug = true, Sep = true, Oct = true, Nov = true, Dec = true,
+	Jan = true,
+	Feb = true,
+	Mar = true,
+	Apr = true,
+	May = true,
+	Jun = true,
+	Jul = true,
+	Aug = true,
+	Sep = true,
+	Oct = true,
+	Nov = true,
+	Dec = true,
 }
 assert(validMonths[month], "Month must be a valid RFC 2822 month abbreviation")
 
@@ -38,8 +48,14 @@ if not hour or not minute or not second then
 end
 
 assert(hour and tonumber(hour) >= 0 and tonumber(hour) < 24, "Hour must be between 0 and 23")
-assert(minute and tonumber(minute) >= 0 and tonumber(minute) < 60, "Minute must be between 0 and 59")
-assert(second and tonumber(second) >= 0 and tonumber(second) < 60, "Second must be between 0 and 59")
+assert(
+	minute and tonumber(minute) >= 0 and tonumber(minute) < 60,
+	"Minute must be between 0 and 59"
+)
+assert(
+	second and tonumber(second) >= 0 and tonumber(second) < 60,
+	"Second must be between 0 and 59"
+)
 
 -- Validate timezone
 local tzHour, tzMinute = timezone:match("^([+-]%d%d)(%d%d)$")
@@ -47,5 +63,11 @@ if not tzHour or not tzMinute then
 	error("Failed to extract timezone components from RFC 2822 date string")
 end
 
-assert(tzHour and tonumber(tzHour) >= -14 and tonumber(tzHour) <= 14, "Timezone hour offset must be between -14 and +14")
-assert(tzMinute and tonumber(tzMinute) >= 0 and tonumber(tzMinute) < 60, "Timezone minute offset must be between 0 and 59")
+assert(
+	tzHour and tonumber(tzHour) >= -14 and tonumber(tzHour) <= 14,
+	"Timezone hour offset must be between -14 and +14"
+)
+assert(
+	tzMinute and tonumber(tzMinute) >= 0 and tonumber(tzMinute) < 60,
+	"Timezone minute offset must be between 0 and 59"
+)
