@@ -1,8 +1,9 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use std::sync::OnceLock;
+
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
-use once_cell::sync::OnceCell;
 
 use lune_roblox::{
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
@@ -10,7 +11,7 @@ use lune_roblox::{
     reflection::Database as ReflectionDatabase,
 };
 
-static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
+static REFLECTION_DATABASE: OnceLock<ReflectionDatabase> = OnceLock::new();
 
 use lune_utils::TableBuilder;
 use roblox_install::RobloxStudio;

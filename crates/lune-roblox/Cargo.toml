@@ -18,7 +18,6 @@ mlua = { version = "0.9.9", features = ["luau"] }
 glam = "0.27"
 rand = "0.8"
 thiserror = "1.0"
-once_cell = "1.17"
 
 rbx_binary = "1.0.0"
 rbx_dom_weak = "3.0.0"
