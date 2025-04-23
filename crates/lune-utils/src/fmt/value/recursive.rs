@@ -19,13 +19,13 @@ const INDENT: &str = "    ";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct LuaValueId(usize);
 
-impl From<&LuaValue<'_>> for LuaValueId {
-    fn from(value: &LuaValue<'_>) -> Self {
+impl From<&LuaValue> for LuaValueId {
+    fn from(value: &LuaValue) -> Self {
         Self(value.to_pointer() as usize)
     }
 }
 
-impl From<&LuaTable<'_>> for LuaValueId {
+impl From<&LuaTable> for LuaValueId {
     fn from(table: &LuaTable) -> Self {
         Self(table.to_pointer() as usize)
     }

@@ -26,11 +26,11 @@ pub struct Faces {
     pub(crate) front: bool,
 }
 
-impl LuaExportsTable<'_> for Faces {
+impl LuaExportsTable for Faces {
     const EXPORT_NAME: &'static str = "Faces";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let faces_new = |_, args: LuaMultiValue| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let faces_new = |_: &Lua, args: LuaMultiValue| {
             let mut right = false;
             let mut top = false;
             let mut back = false;
@@ -87,7 +87,7 @@ impl LuaExportsTable<'_> for Faces {
 }
 
 impl LuaUserData for Faces {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Right", |_, this| Ok(this.right));
         fields.add_field_method_get("Top", |_, this| Ok(this.top));
         fields.add_field_method_get("Back", |_, this| Ok(this.back));
@@ -96,7 +96,7 @@ impl LuaUserData for Faces {
         fields.add_field_method_get("Front", |_, this| Ok(this.front));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

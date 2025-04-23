@@ -7,8 +7,8 @@ const FORMAT_CONFIG: ValueFormatConfig = ValueFormatConfig::new()
     .with_max_depth(4)
     .with_colors_enabled(true);
 
-pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
-    let f = lua.create_function(|_, args: LuaMultiValue| {
+pub fn create(lua: Lua) -> LuaResult<LuaValue> {
+    let f = lua.create_function(|_: &Lua, args: LuaMultiValue| {
         let formatted = format!(
             "{}\n{}\n",
             Label::Warn,
@@ -19,5 +19,5 @@ pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
         stdout.flush()?;
         Ok(())
     })?;
-    f.into_lua(lua)
+    f.into_lua(&lua)
 }

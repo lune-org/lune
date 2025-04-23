@@ -59,7 +59,7 @@ impl Metadata {
         let mut patched_bin = fs::read(base_exe_path).await?;
 
         // Compile luau input into bytecode
-        let bytecode = compiler.compile(script_contents.into());
+        let bytecode = compiler.compile(script_contents.into())?;
 
         // Append the bytecode / metadata to the end
         let meta = Self { bytecode };

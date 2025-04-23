@@ -5,30 +5,24 @@ use mlua::Error::ExternalError;
 
 use super::context::*;
 
-pub(super) async fn require<'lua, 'ctx>(
-    lua: &'lua Lua,
-    ctx: &'ctx RequireContext,
+pub(super) async fn require(
+    lua: Lua,
+    ctx: &RequireContext,
     source: &str,
     path: &str,
-) -> LuaResult<LuaMultiValue<'lua>>
-where
-    'lua: 'ctx,
-{
+) -> LuaResult<LuaMultiValue> {
     let (abs_path, rel_path) = RequireContext::resolve_paths(source, path)?;
     require_abs_rel(lua, ctx, abs_path, rel_path).await
 }
 
-pub(super) async fn require_abs_rel<'lua, 'ctx>(
-    lua: &'lua Lua,
-    ctx: &'ctx RequireContext,
+pub(super) async fn require_abs_rel(
+    lua: Lua,
+    ctx: &RequireContext,
     abs_path: PathBuf, // Absolute to filesystem
     rel_path: PathBuf, // Relative to CWD (for displaying)
-) -> LuaResult<LuaMultiValue<'lua>>
-where
-    'lua: 'ctx,
-{
+) -> LuaResult<LuaMultiValue> {
     // 1. Try to require the exact path
-    match require_inner(lua, ctx, &abs_path, &rel_path).await {
+    match require_inner(lua.clone(), ctx, &abs_path, &rel_path).await {
         Ok(res) => return Ok(res),
         Err(err) => {
             if !is_file_not_found_error(&err) {
@@ -41,7 +35,7 @@ where
     // 3. Try to require the path with an added "lua" extension
     for extension in ["luau", "lua"] {
         match require_inner(
-            lua,
+            lua.clone(),
             ctx,
             &append_extension(&abs_path, extension),
             &append_extension(&rel_path, extension),
@@ -66,7 +60,7 @@ where
     // 5. Try to require the init path with an added "lua" extension
     for extension in ["luau", "lua"] {
         match require_inner(
-            lua,
+            lua.clone(),
             ctx,
             &append_extension(&abs_init, extension),
             &append_extension(&rel_init, extension),
@@ -89,15 +83,12 @@ where
     )))
 }
 
-async fn require_inner<'lua, 'ctx>(
-    lua: &'lua Lua,
-    ctx: &'ctx RequireContext,
+async fn require_inner(
+    lua: Lua,
+    ctx: &RequireContext,
     abs_path: impl AsRef<Path>,
     rel_path: impl AsRef<Path>,
-) -> LuaResult<LuaMultiValue<'lua>>
-where
-    'lua: 'ctx,
-{
+) -> LuaResult<LuaMultiValue> {
     let abs_path = abs_path.as_ref();
     let rel_path = rel_path.as_ref();
 

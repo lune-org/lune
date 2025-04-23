@@ -2,13 +2,11 @@
 
 use mlua::prelude::*;
 
-use lune_utils::{jit::JitStatus, TableBuilder};
+use lune_utils::{jit::JitEnablement, TableBuilder};
 
 mod options;
 
 use self::options::{LuauCompileOptions, LuauLoadOptions};
-
-const BYTECODE_ERROR_BYTE: u8 = 0;
 
 /**
     Creates the `luau` standard library module.
@@ -17,33 +15,30 @@ const BYTECODE_ERROR_BYTE: u8 = 0;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("compile", compile_source)?
         .with_function("load", load_source)?
         .build_readonly()
 }
 
-fn compile_source<'lua>(
-    lua: &'lua Lua,
-    (source, options): (LuaString<'lua>, LuauCompileOptions),
-) -> LuaResult<LuaString<'lua>> {
-    let bytecode = options.into_compiler().compile(source);
-
-    match bytecode.first() {
-        Some(&BYTECODE_ERROR_BYTE) => Err(LuaError::RuntimeError(
-            String::from_utf8_lossy(&bytecode).into_owned(),
-        )),
-        Some(_) => lua.create_string(bytecode),
-        None => panic!("Compiling resulted in empty bytecode"),
-    }
+fn compile_source(
+    lua: &Lua,
+    (source, options): (LuaString, LuauCompileOptions),
+) -> LuaResult<LuaString> {
+    options
+        .into_compiler()
+        .compile(source.as_bytes())
+        .and_then(|s| lua.create_string(s))
 }
 
-fn load_source<'lua>(
-    lua: &'lua Lua,
-    (source, options): (LuaString<'lua>, LuauLoadOptions),
-) -> LuaResult<LuaFunction<'lua>> {
-    let mut chunk = lua.load(source.as_bytes()).set_name(options.debug_name);
+fn load_source(
+    lua: &Lua,
+    (source, options): (LuaString, LuauLoadOptions),
+) -> LuaResult<LuaFunction> {
+    let mut chunk = lua
+        .load(source.as_bytes().to_vec())
+        .set_name(options.debug_name);
     let env_changed = options.environment.is_some();
 
     if let Some(custom_environment) = options.environment {
@@ -56,10 +51,10 @@ fn load_source<'lua>(
                 environment.set(key, value)?;
             }
 
-            if let Some(global_metatable) = lua.globals().get_metatable() {
+            if let Some(global_metatable) = lua.globals().metatable() {
                 environment.set_metatable(Some(global_metatable));
             }
-        } else if let Some(custom_metatable) = custom_environment.get_metatable() {
+        } else if let Some(custom_metatable) = custom_environment.metatable() {
             // Since we don't need to set the global metatable,
             // we can just set a custom metatable if it exists
             environment.set_metatable(Some(custom_metatable));
@@ -79,7 +74,7 @@ fn load_source<'lua>(
     lua.enable_jit(options.codegen_enabled && !env_changed);
     let function = chunk.into_function()?;
     lua.enable_jit(
-        lua.app_data_ref::<JitStatus>()
+        lua.app_data_ref::<JitEnablement>()
             .ok_or(LuaError::runtime(
                 "Failed to get current JitStatus ref from AppData",
             ))?

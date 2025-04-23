@@ -22,16 +22,17 @@ pub struct Region3 {
     pub(crate) max: Vec3,
 }
 
-impl LuaExportsTable<'_> for Region3 {
+impl LuaExportsTable for Region3 {
     const EXPORT_NAME: &'static str = "Region3";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let region3_new = |_, (min, max): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
-            Ok(Region3 {
-                min: min.0,
-                max: max.0,
-            })
-        };
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let region3_new =
+            |_: &Lua, (min, max): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+                Ok(Region3 {
+                    min: min.0,
+                    max: max.0,
+                })
+            };
 
         TableBuilder::new(lua)?
             .with_function("new", region3_new)?
@@ -40,14 +41,14 @@ impl LuaExportsTable<'_> for Region3 {
 }
 
 impl LuaUserData for Region3 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("CFrame", |_, this| {
             Ok(CFrame(Mat4::from_translation(this.min.lerp(this.max, 0.5))))
         });
         fields.add_field_method_get("Size", |_, this| Ok(Vector3(this.max - this.min)));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("ExpandToGrid", |_, this, resolution: f32| {
             Ok(Region3 {

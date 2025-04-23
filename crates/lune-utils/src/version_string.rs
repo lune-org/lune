@@ -33,7 +33,7 @@ fn create_luau_version_string() -> Arc<String> {
 
         let luau_version_full = temp_lua
             .globals()
-            .get::<_, LuaString>("_VERSION")
+            .get::<LuaString>("_VERSION")
             .expect("Missing _VERSION global");
 
         luau_version_full

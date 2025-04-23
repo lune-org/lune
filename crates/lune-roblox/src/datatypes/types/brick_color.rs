@@ -24,16 +24,16 @@ pub struct BrickColor {
     pub(crate) rgb: (u8, u8, u8),
 }
 
-impl LuaExportsTable<'_> for BrickColor {
+impl LuaExportsTable for BrickColor {
     const EXPORT_NAME: &'static str = "BrickColor";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         type ArgsNumber = u16;
         type ArgsName = String;
         type ArgsRgb = (u8, u8, u8);
-        type ArgsColor3<'lua> = LuaUserDataRef<'lua, Color3>;
+        type ArgsColor3 = LuaUserDataRef<Color3>;
 
-        let brick_color_new = |lua, args: LuaMultiValue| {
+        let brick_color_new = |lua: &Lua, args: LuaMultiValue| {
             if let Ok(number) = ArgsNumber::from_lua_multi(args.clone(), lua) {
                 Ok(color_from_number(number))
             } else if let Ok(name) = ArgsName::from_lua_multi(args.clone(), lua) {
@@ -50,7 +50,7 @@ impl LuaExportsTable<'_> for BrickColor {
             }
         };
 
-        let brick_color_palette = |_, index: u16| {
+        let brick_color_palette = |_: &Lua, index: u16| {
             if index == 0 {
                 Err(LuaError::RuntimeError("Invalid index".to_string()))
             } else if let Some(number) = BRICK_COLOR_PALETTE.get((index - 1) as usize) {
@@ -60,7 +60,7 @@ impl LuaExportsTable<'_> for BrickColor {
             }
         };
 
-        let brick_color_random = |_, ()| {
+        let brick_color_random = |_: &Lua, ()| {
             let number = BRICK_COLOR_PALETTE.choose(&mut rand::thread_rng());
             Ok(color_from_number(*number.unwrap()))
         };
@@ -71,7 +71,7 @@ impl LuaExportsTable<'_> for BrickColor {
             .with_function("random", brick_color_random)?;
 
         for (name, number) in BRICK_COLOR_CONSTRUCTORS {
-            let f = |_, ()| Ok(color_from_number(*number));
+            let f = |_: &Lua, ()| Ok(color_from_number(*number));
             builder = builder.with_function(*name, f)?;
         }
 
@@ -80,7 +80,7 @@ impl LuaExportsTable<'_> for BrickColor {
 }
 
 impl LuaUserData for BrickColor {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Number", |_, this| Ok(this.number));
         fields.add_field_method_get("Name", |_, this| Ok(this.name));
         fields.add_field_method_get("R", |_, this| Ok(this.rgb.0 as f32 / 255f32));
@@ -92,7 +92,7 @@ impl LuaUserData for BrickColor {
         fields.add_field_method_get("Color", |_, this| Ok(Color3::from(*this)));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

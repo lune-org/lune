@@ -62,14 +62,14 @@ impl FromStr for ProcessSpawnOptionsStdioKind {
     }
 }
 
-impl<'lua> FromLua<'lua> for ProcessSpawnOptionsStdioKind {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for ProcessSpawnOptionsStdioKind {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         match value {
             LuaValue::Nil => Ok(Self::default()),
             LuaValue::String(s) => s.to_str()?.parse(),
             _ => Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "ProcessSpawnOptionsStdioKind",
+                to: "ProcessSpawnOptionsStdioKind".to_string(),
                 message: Some(format!(
                     "Invalid spawn options stdio kind - expected string, got {}",
                     value.type_name()

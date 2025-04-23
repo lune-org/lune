@@ -12,11 +12,11 @@ use super::Instance;
 
 pub const CLASS_NAME: &str = "DataModel";
 
-pub fn add_fields<'lua, F: LuaUserDataFields<'lua, Instance>>(f: &mut F) {
+pub fn add_fields<F: LuaUserDataFields<Instance>>(f: &mut F) {
     add_class_restricted_getter(f, CLASS_NAME, "Workspace", data_model_get_workspace);
 }
 
-pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
+pub fn add_methods<M: LuaUserDataMethods<Instance>>(m: &mut M) {
     add_class_restricted_method(m, CLASS_NAME, "GetService", data_model_get_service);
     add_class_restricted_method(m, CLASS_NAME, "FindService", data_model_find_service);
 }

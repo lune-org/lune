@@ -16,13 +16,13 @@ use lune_utils::TableBuilder;
 
     Errors when out of memory, or if default Lua globals are missing.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    let fns = Functions::new(lua)?;
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
+    let fns = Functions::new(lua.clone())?;
 
     // Create wait & delay functions
     let task_wait = lua.create_async_function(wait)?;
-    let task_delay_env = TableBuilder::new(lua)?
-        .with_value("select", lua.globals().get::<_, LuaFunction>("select")?)?
+    let task_delay_env = TableBuilder::new(lua.clone())?
+        .with_value("select", lua.globals().get::<LuaFunction>("select")?)?
         .with_value("spawn", fns.spawn.clone())?
         .with_value("defer", fns.defer.clone())?
         .with_value("wait", task_wait.clone())?
@@ -49,7 +49,7 @@ return defer(function(...)
 end, ...)
 ";
 
-async fn wait(_: &Lua, secs: Option<f64>) -> LuaResult<f64> {
+async fn wait(_: Lua, secs: Option<f64>) -> LuaResult<f64> {
     let duration = Duration::from_secs_f64(secs.unwrap_or_default());
 
     let before = Instant::now();

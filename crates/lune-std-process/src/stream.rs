@@ -27,18 +27,21 @@ impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
 }
 
 impl<R: AsyncRead + Unpin + 'static> LuaUserData for ChildProcessReader<R> {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_async_method_mut("read", |lua, this, chunk_size: Option<usize>| async move {
-            let buf = this.read(chunk_size).await?;
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
+        methods.add_async_method_mut(
+            "read",
+            |lua, mut this, chunk_size: Option<usize>| async move {
+                let buf = this.read(chunk_size).await?;
 
-            if buf.is_empty() {
-                return Ok(LuaValue::Nil);
-            }
+                if buf.is_empty() {
+                    return Ok(LuaValue::Nil);
+                }
 
-            Ok(LuaValue::String(lua.create_string(buf)?))
-        });
+                Ok(LuaValue::String(lua.create_string(buf)?))
+            },
+        );
 
-        methods.add_async_method_mut("readToEnd", |lua, this, ()| async {
+        methods.add_async_method_mut("readToEnd", |lua, mut this, ()| async move {
             Ok(lua.create_string(this.read_to_end().await?))
         });
     }
@@ -52,7 +55,9 @@ impl<W: AsyncWrite + Unpin> ChildProcessWriter<W> {
 }
 
 impl<W: AsyncWrite + Unpin + 'static> LuaUserData for ChildProcessWriter<W> {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_async_method_mut("write", |_, this, data| async { this.write(data).await });
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
+        methods.add_async_method_mut("write", |_, mut this, data| async move {
+            this.write(data).await
+        });
     }
 }

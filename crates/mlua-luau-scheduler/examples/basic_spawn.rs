@@ -48,7 +48,7 @@ pub fn main() -> LuaResult<()> {
     )?;
 
     // Load the main script into a scheduler
-    let sched = Scheduler::new(&lua);
+    let sched = Scheduler::new(lua.clone());
     let main = lua.load(MAIN_SCRIPT);
     sched.push_thread_front(main, ())?;
 

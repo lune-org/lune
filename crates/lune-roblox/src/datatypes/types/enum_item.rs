@@ -62,26 +62,26 @@ impl EnumItem {
 }
 
 impl LuaUserData for EnumItem {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.name.clone()));
         fields.add_field_method_get("Value", |_, this| Ok(this.value));
         fields.add_field_method_get("EnumType", |_, this| Ok(this.parent.clone()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 
-impl<'lua> FromLua<'lua> for EnumItem {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for EnumItem {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::UserData(ud) = value {
             Ok(ud.borrow::<EnumItem>()?.to_owned())
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "EnumItem",
+                to: "EnumItem".to_string(),
                 message: None,
             })
         }

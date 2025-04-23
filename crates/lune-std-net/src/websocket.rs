@@ -108,11 +108,11 @@ impl<T> LuaUserData for NetWebSocket<T>
 where
     T: AsyncRead + AsyncWrite + Unpin + 'static,
 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("closeCode", |_, this| Ok(this.get_close_code()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_async_method("close", |_, this, code: Option<u16>| async move {
             this.close(code).await
         });

@@ -6,16 +6,13 @@ use crate::luaurc::LuauRc;
 
 use super::context::*;
 
-pub(super) async fn require<'lua, 'ctx>(
-    lua: &'lua Lua,
-    ctx: &'ctx RequireContext,
+pub(super) async fn require(
+    lua: Lua,
+    ctx: &RequireContext,
     source: &str,
     alias: &str,
     path: &str,
-) -> LuaResult<LuaMultiValue<'lua>>
-where
-    'lua: 'ctx,
-{
+) -> LuaResult<LuaMultiValue> {
     let alias = alias.to_ascii_lowercase();
 
     let parent = clean_path_and_make_absolute(source)

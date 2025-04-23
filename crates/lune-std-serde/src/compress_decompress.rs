@@ -84,8 +84,8 @@ impl CompressDecompressFormat {
     }
 }
 
-impl<'lua> FromLua<'lua> for CompressDecompressFormat {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for CompressDecompressFormat {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
                 "brotli" => Ok(Self::Brotli),
@@ -94,7 +94,7 @@ impl<'lua> FromLua<'lua> for CompressDecompressFormat {
                 "zlib" => Ok(Self::ZLib),
                 kind => Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "CompressDecompressFormat",
+                    to: "CompressDecompressFormat".to_string(),
                     message: Some(format!(
                         "Invalid format '{kind}', valid formats are:  brotli, gzip, lz4, zlib"
                     )),
@@ -103,7 +103,7 @@ impl<'lua> FromLua<'lua> for CompressDecompressFormat {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "CompressDecompressFormat",
+                to: "CompressDecompressFormat".to_string(),
                 message: None,
             })
         }

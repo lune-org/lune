@@ -35,14 +35,14 @@ impl Default for RequestConfigOptions {
     }
 }
 
-impl<'lua> FromLua<'lua> for RequestConfigOptions {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for RequestConfigOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::Nil = value {
             // Nil means default options
             Ok(Self::default())
         } else if let LuaValue::Table(tab) = value {
             // Table means custom options
-            let decompress = match tab.get::<_, Option<bool>>("decompress") {
+            let decompress = match tab.get::<Option<bool>>("decompress") {
                 Ok(decomp) => Ok(decomp.unwrap_or(true)),
                 Err(_) => Err(LuaError::RuntimeError(
                     "Invalid option value for 'decompress' in request config options".to_string(),
@@ -53,7 +53,7 @@ impl<'lua> FromLua<'lua> for RequestConfigOptions {
             // Anything else is invalid
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "RequestConfigOptions",
+                to: "RequestConfigOptions".to_string(),
                 message: Some(format!(
                     "Invalid request config options - expected table or nil, got {}",
                     value.type_name()
@@ -73,7 +73,7 @@ pub struct RequestConfig {
     pub options: RequestConfigOptions,
 }
 
-impl FromLua<'_> for RequestConfig {
+impl FromLua for RequestConfig {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         // If we just got a string we assume its a GET request to a given url
         if let LuaValue::String(s) = value {
@@ -88,27 +88,27 @@ impl FromLua<'_> for RequestConfig {
         } else if let LuaValue::Table(tab) = value {
             // If we got a table we are able to configure the entire request
             // Extract url
-            let url = match tab.get::<_, LuaString>("url") {
+            let url = match tab.get::<LuaString>("url") {
                 Ok(config_url) => Ok(config_url.to_string_lossy().to_string()),
                 Err(_) => Err(LuaError::runtime("Missing 'url' in request config")),
             }?;
             // Extract method
-            let method = match tab.get::<_, LuaString>("method") {
+            let method = match tab.get::<LuaString>("method") {
                 Ok(config_method) => config_method.to_string_lossy().trim().to_ascii_uppercase(),
                 Err(_) => "GET".to_string(),
             };
             // Extract query
-            let query = match tab.get::<_, LuaTable>("query") {
+            let query = match tab.get::<LuaTable>("query") {
                 Ok(tab) => table_to_hash_map(tab, "query")?,
                 Err(_) => HashMap::new(),
             };
             // Extract headers
-            let headers = match tab.get::<_, LuaTable>("headers") {
+            let headers = match tab.get::<LuaTable>("headers") {
                 Ok(tab) => table_to_hash_map(tab, "headers")?,
                 Err(_) => HashMap::new(),
             };
             // Extract body
-            let body = match tab.get::<_, BString>("body") {
+            let body = match tab.get::<BString>("body") {
                 Ok(config_body) => Some(config_body.as_bytes().to_owned()),
                 Err(_) => None,
             };
@@ -129,7 +129,7 @@ impl FromLua<'_> for RequestConfig {
                 ))),
             }?;
             // Parse any extra options given
-            let options = match tab.get::<_, LuaValue>("options") {
+            let options = match tab.get::<LuaValue>("options") {
                 Ok(opts) => RequestConfigOptions::from_lua(opts, lua)?,
                 Err(_) => RequestConfigOptions::default(),
             };
@@ -146,7 +146,7 @@ impl FromLua<'_> for RequestConfig {
             // Anything else is invalid
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "RequestConfig",
+                to: "RequestConfig".to_string(),
                 message: Some(format!(
                     "Invalid request config - expected string or table, got {}",
                     value.type_name()
@@ -159,14 +159,14 @@ impl FromLua<'_> for RequestConfig {
 // Net serve config
 
 #[derive(Debug)]
-pub struct ServeConfig<'a> {
+pub struct ServeConfig {
     pub address: IpAddr,
-    pub handle_request: LuaFunction<'a>,
-    pub handle_web_socket: Option<LuaFunction<'a>>,
+    pub handle_request: LuaFunction,
+    pub handle_web_socket: Option<LuaFunction>,
 }
 
-impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
-    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for ServeConfig {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         if let LuaValue::Function(f) = &value {
             // Single function = request handler, rest is default
             Ok(ServeConfig {
@@ -190,7 +190,7 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
                             .parse()
                             .map_err(|_e| LuaError::FromLuaConversionError {
                                 from: value.type_name(),
-                                to: "ServeConfig",
+                                to: "ServeConfig".to_string(),
                                 message: Some(format!(
                                     "IP address format is incorrect - \
                                     expected an IP in the form 'http://0.0.0.0' or '0.0.0.0', \
@@ -213,7 +213,7 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
             } else {
                 Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "ServeConfig",
+                    to: "ServeConfig".to_string(),
                     message: Some(String::from(
                         "Invalid serve config - expected table with 'handleRequest' or 'handleWebSocket' function",
                     )),
@@ -223,7 +223,7 @@ impl<'lua> FromLua<'lua> for ServeConfig<'lua> {
             // Anything else is invalid
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "ServeConfig",
+                to: "ServeConfig".to_string(),
                 message: None,
             })
         }

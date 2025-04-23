@@ -17,7 +17,7 @@ pub use self::date_time::DateTime;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("fromIsoDate", |_, iso_date: String| {
             Ok(DateTime::from_iso_date(iso_date)?)

@@ -23,10 +23,10 @@ use roblox_install::RobloxStudio;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     let mut roblox_constants = Vec::new();
 
-    let roblox_module = lune_roblox::module(lua)?;
+    let roblox_module = lune_roblox::module(lua.clone())?;
     for pair in roblox_module.pairs::<LuaValue, LuaValue>() {
         roblox_constants.push(pair?);
     }
@@ -48,36 +48,30 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn deserialize_place<'lua>(
-    lua: &'lua Lua,
-    contents: LuaString<'lua>,
-) -> LuaResult<LuaValue<'lua>> {
+async fn deserialize_place(lua: Lua, contents: LuaString) -> LuaResult<LuaValue> {
     let bytes = contents.as_bytes().to_vec();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_bytes(bytes, DocumentKind::Place)?;
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await.into_lua_err()?.into_lua(lua)
+    fut.await.into_lua_err()?.into_lua(&lua)
 }
 
-async fn deserialize_model<'lua>(
-    lua: &'lua Lua,
-    contents: LuaString<'lua>,
-) -> LuaResult<LuaValue<'lua>> {
+async fn deserialize_model(lua: Lua, contents: LuaString) -> LuaResult<LuaValue> {
     let bytes = contents.as_bytes().to_vec();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_bytes(bytes, DocumentKind::Model)?;
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await.into_lua_err()?.into_lua(lua)
+    fut.await.into_lua_err()?.into_lua(&lua)
 }
 
-async fn serialize_place<'lua>(
-    lua: &'lua Lua,
-    (data_model, as_xml): (LuaUserDataRef<'lua, Instance>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
+async fn serialize_place(
+    lua: Lua,
+    (data_model, as_xml): (LuaUserDataRef<Instance>, Option<bool>),
+) -> LuaResult<LuaString> {
     let data_model = *data_model;
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_data_model_instance(data_model)?;
@@ -91,10 +85,10 @@ async fn serialize_place<'lua>(
     lua.create_string(bytes)
 }
 
-async fn serialize_model<'lua>(
-    lua: &'lua Lua,
-    (instances, as_xml): (Vec<LuaUserDataRef<'lua, Instance>>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
+async fn serialize_model(
+    lua: Lua,
+    (instances, as_xml): (Vec<LuaUserDataRef<Instance>>, Option<bool>),
+) -> LuaResult<LuaString> {
     let instances = instances.iter().map(|i| **i).collect();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_instance_array(instances)?;

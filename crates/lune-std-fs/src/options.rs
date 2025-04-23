@@ -5,8 +5,8 @@ pub struct FsWriteOptions {
     pub(crate) overwrite: bool,
 }
 
-impl<'lua> FromLua<'lua> for FsWriteOptions {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for FsWriteOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         Ok(match value {
             LuaValue::Nil => Self { overwrite: false },
             LuaValue::Boolean(b) => Self { overwrite: b },
@@ -19,7 +19,7 @@ impl<'lua> FromLua<'lua> for FsWriteOptions {
             _ => {
                 return Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "FsWriteOptions",
+                    to: "FsWriteOptions".to_string(),
                     message: Some(format!(
                         "Invalid write options - expected boolean or table, got {}",
                         value.type_name()

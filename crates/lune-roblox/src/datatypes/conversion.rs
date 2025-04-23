@@ -6,7 +6,7 @@ use crate::{datatypes::extension::DomValueExt, instance::Instance};
 
 use super::*;
 
-pub(crate) trait LuaToDomValue<'lua> {
+pub(crate) trait LuaToDomValue {
     /**
         Converts a lua value into a weak dom value.
 
@@ -15,16 +15,16 @@ pub(crate) trait LuaToDomValue<'lua> {
     */
     fn lua_to_dom_value(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue>;
 }
 
-pub(crate) trait DomValueToLua<'lua>: Sized {
+pub(crate) trait DomValueToLua: Sized {
     /**
         Converts a weak dom value into a lua value.
     */
-    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self>;
+    fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self>;
 }
 
 /*
@@ -37,8 +37,8 @@ pub(crate) trait DomValueToLua<'lua>: Sized {
 
 */
 
-impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
-    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
+impl DomValueToLua for LuaValue {
+    fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self> {
         use rbx_dom_weak::types as dom;
 
         match LuaAnyUserData::dom_value_to_lua(lua, variant) {
@@ -76,10 +76,10 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
     }
 }
 
-impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
+impl LuaToDomValue for LuaValue {
     fn lua_to_dom_value(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue> {
         use rbx_dom_weak::types as dom;
@@ -102,7 +102,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
                     Ok(DomValue::String(s.to_str()?.to_string()))
                 }
                 (LuaValue::String(s), DomType::BinaryString) => {
-                    Ok(DomValue::BinaryString(s.as_ref().into()))
+                    Ok(DomValue::BinaryString(s.as_bytes().to_vec().into()))
                 }
                 (LuaValue::String(s), DomType::ContentId) => {
                     Ok(DomValue::ContentId(s.to_str()?.to_string().into()))
@@ -186,9 +186,9 @@ macro_rules! userdata_to_dom {
     };
 }
 
-impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
+impl DomValueToLua for LuaAnyUserData {
     #[rustfmt::skip]
-    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
+    fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self> {
 		use super::types::*;
 
         use rbx_dom_weak::types as dom;
@@ -235,13 +235,9 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
     }
 }
 
-impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
+impl LuaToDomValue for LuaAnyUserData {
     #[rustfmt::skip]
-    fn lua_to_dom_value(
-        &self,
-        _: &'lua Lua,
-        variant_type: Option<DomType>,
-    ) -> DomConversionResult<DomValue> {
+    fn lua_to_dom_value(&self, _: &Lua, variant_type: Option<DomType>) -> DomConversionResult<DomValue> {
         use super::types::*;
 
         use rbx_dom_weak::types as dom;
@@ -279,13 +275,13 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
 	            // NOTE: The none and default variants of these types are handled in
 				// LuaToDomValue for the LuaValue type instead, allowing for nil/default
                 DomType::OptionalCFrame => {
-                    return match self.borrow::<CFrame>() {
+                    match self.borrow::<CFrame>() {
                         Err(_) => unreachable!("Invalid use of conversion method, should be using LuaValue"),
                         Ok(value) => Ok(DomValue::OptionalCFrame(Some(dom::CFrame::from(*value)))),
                     }
                 }
                 DomType::PhysicalProperties => {
-                    return match self.borrow::<PhysicalProperties>() {
+                    match self.borrow::<PhysicalProperties>() {
                         Err(_) => unreachable!("Invalid use of conversion method, should be using LuaValue"),
                         Ok(value) => {
                             let props = dom::CustomPhysicalProperties::from(*value);

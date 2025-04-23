@@ -13,7 +13,7 @@ const REQUIRE_IMPL: &str = r"
 return require(source(), ...)
 ";
 
-pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
+pub fn create(lua: Lua) -> LuaResult<LuaValue> {
     lua.set_app_data(RequireContext::new());
 
     /*
@@ -48,7 +48,7 @@ pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
         },
     })?;
 
-    let require_env = TableBuilder::new(lua)?
+    let require_env = TableBuilder::new(lua.clone())?
         .with_value("source", get_source_fn)?
         .with_value("require", require_fn)?
         .build_readonly()?;
@@ -57,13 +57,10 @@ pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
         .set_name("require")
         .set_environment(require_env)
         .into_function()?
-        .into_lua(lua)
+        .into_lua(&lua)
 }
 
-async fn require<'lua>(
-    lua: &'lua Lua,
-    (source, path): (LuaString<'lua>, LuaString<'lua>),
-) -> LuaResult<LuaMultiValue<'lua>> {
+async fn require(lua: Lua, (source, path): (LuaString, LuaString)) -> LuaResult<LuaMultiValue> {
     let source = source
         .to_str()
         .into_lua_err()
@@ -77,8 +74,9 @@ async fn require<'lua>(
         .to_string();
 
     let context = lua
-        .app_data_ref()
-        .expect("Failed to get RequireContext from app data");
+        .app_data_ref::<RequireContext>()
+        .expect("Failed to get RequireContext from app data")
+        .clone();
 
     if let Some(builtin_name) = path.strip_prefix("@lune/").map(str::to_ascii_lowercase) {
         library::require(lua, &context, &builtin_name)

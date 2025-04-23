@@ -28,11 +28,11 @@ pub struct Color3 {
     pub(crate) b: f32,
 }
 
-impl LuaExportsTable<'_> for Color3 {
+impl LuaExportsTable for Color3 {
     const EXPORT_NAME: &'static str = "Color3";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let color3_from_rgb = |_, (r, g, b): (Option<u8>, Option<u8>, Option<u8>)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let color3_from_rgb = |_: &Lua, (r, g, b): (Option<u8>, Option<u8>, Option<u8>)| {
             Ok(Color3 {
                 r: (r.unwrap_or_default() as f32) / 255f32,
                 g: (g.unwrap_or_default() as f32) / 255f32,
@@ -40,7 +40,7 @@ impl LuaExportsTable<'_> for Color3 {
             })
         };
 
-        let color3_from_hsv = |_, (h, s, v): (f32, f32, f32)| {
+        let color3_from_hsv = |_: &Lua, (h, s, v): (f32, f32, f32)| {
             // https://axonflux.com/handy-rgb-to-hsl-and-rgb-to-hsv-color-model-c
             let i = (h * 6.0).floor();
             let f = h * 6.0 - i;
@@ -61,7 +61,7 @@ impl LuaExportsTable<'_> for Color3 {
             Ok(Color3 { r, g, b })
         };
 
-        let color3_from_hex = |_, hex: String| {
+        let color3_from_hex = |_: &Lua, hex: String| {
             let trimmed = hex.trim_start_matches('#').to_ascii_uppercase();
             let chars = if trimmed.len() == 3 {
                 (
@@ -94,7 +94,7 @@ impl LuaExportsTable<'_> for Color3 {
             }
         };
 
-        let color3_new = |_, (r, g, b): (Option<f32>, Option<f32>, Option<f32>)| {
+        let color3_new = |_: &Lua, (r, g, b): (Option<f32>, Option<f32>, Option<f32>)| {
             Ok(Color3 {
                 r: r.unwrap_or_default(),
                 g: g.unwrap_or_default(),
@@ -111,14 +111,14 @@ impl LuaExportsTable<'_> for Color3 {
     }
 }
 
-impl<'lua> FromLua<'lua> for Color3 {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for Color3 {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::UserData(ud) = value {
             Ok(*ud.borrow::<Color3>()?)
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "Color3",
+                to: "Color3".to_string(),
                 message: None,
             })
         }
@@ -126,13 +126,13 @@ impl<'lua> FromLua<'lua> for Color3 {
 }
 
 impl LuaUserData for Color3 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("R", |_, this| Ok(this.r));
         fields.add_field_method_get("G", |_, this| Ok(this.g));
         fields.add_field_method_get("B", |_, this| Ok(this.b));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method(
             "Lerp",

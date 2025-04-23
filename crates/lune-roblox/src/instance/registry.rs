@@ -58,11 +58,11 @@ impl InstanceRegistry {
 
         - If the method already exists in the registry.
     */
-    pub fn insert_method<'lua>(
-        lua: &'lua Lua,
+    pub fn insert_method(
+        lua: &Lua,
         class_name: &str,
         method_name: &str,
-        method: LuaFunction<'lua>,
+        method: LuaFunction,
     ) -> Result<(), InstanceRegistryError> {
         let registry = Self::get_or_create(lua);
 
@@ -94,11 +94,11 @@ impl InstanceRegistry {
 
         - If the property already exists in the registry.
     */
-    pub fn insert_property_getter<'lua>(
-        lua: &'lua Lua,
+    pub fn insert_property_getter(
+        lua: &Lua,
         class_name: &str,
         property_name: &str,
-        property_getter: LuaFunction<'lua>,
+        property_getter: LuaFunction,
     ) -> Result<(), InstanceRegistryError> {
         let registry = Self::get_or_create(lua);
 
@@ -130,11 +130,11 @@ impl InstanceRegistry {
 
         - If the property already exists in the registry.
     */
-    pub fn insert_property_setter<'lua>(
-        lua: &'lua Lua,
+    pub fn insert_property_setter(
+        lua: &Lua,
         class_name: &str,
         property_name: &str,
-        property_setter: LuaFunction<'lua>,
+        property_setter: LuaFunction,
     ) -> Result<(), InstanceRegistryError> {
         let registry = Self::get_or_create(lua);
 
@@ -165,11 +165,7 @@ impl InstanceRegistry {
         Returns `None` if the method is not found.
     */
     #[must_use]
-    pub fn find_method<'lua>(
-        lua: &'lua Lua,
-        instance: &Instance,
-        method_name: &str,
-    ) -> Option<LuaFunction<'lua>> {
+    pub fn find_method(lua: &Lua, instance: &Instance, method_name: &str) -> Option<LuaFunction> {
         let registry = Self::get_or_create(lua);
         let methods = registry
             .methods
@@ -192,11 +188,11 @@ impl InstanceRegistry {
         Returns `None` if the property getter is not found.
     */
     #[must_use]
-    pub fn find_property_getter<'lua>(
-        lua: &'lua Lua,
+    pub fn find_property_getter(
+        lua: &Lua,
         instance: &Instance,
         property_name: &str,
-    ) -> Option<LuaFunction<'lua>> {
+    ) -> Option<LuaFunction> {
         let registry = Self::get_or_create(lua);
         let getters = registry
             .getters
@@ -219,11 +215,11 @@ impl InstanceRegistry {
         Returns `None` if the property setter is not found.
     */
     #[must_use]
-    pub fn find_property_setter<'lua>(
-        lua: &'lua Lua,
+    pub fn find_property_setter(
+        lua: &Lua,
         instance: &Instance,
         property_name: &str,
-    ) -> Option<LuaFunction<'lua>> {
+    ) -> Option<LuaFunction> {
         let registry = Self::get_or_create(lua);
         let setters = registry
             .setters

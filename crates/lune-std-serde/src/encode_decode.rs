@@ -28,8 +28,8 @@ pub enum EncodeDecodeFormat {
     Toml,
 }
 
-impl<'lua> FromLua<'lua> for EncodeDecodeFormat {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for EncodeDecodeFormat {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
                 "json" => Ok(Self::Json),
@@ -37,7 +37,7 @@ impl<'lua> FromLua<'lua> for EncodeDecodeFormat {
                 "toml" => Ok(Self::Toml),
                 kind => Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "EncodeDecodeFormat",
+                    to: "EncodeDecodeFormat".to_string(),
                     message: Some(format!(
                         "Invalid format '{kind}', valid formats are:  json, yaml, toml"
                     )),
@@ -46,7 +46,7 @@ impl<'lua> FromLua<'lua> for EncodeDecodeFormat {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "EncodeDecodeFormat",
+                to: "EncodeDecodeFormat".to_string(),
                 message: None,
             })
         }
@@ -89,11 +89,7 @@ impl From<(EncodeDecodeFormat, bool)> for EncodeDecodeConfig {
 
     Errors when the encoding fails.
 */
-pub fn encode<'lua>(
-    value: LuaValue<'lua>,
-    lua: &'lua Lua,
-    config: EncodeDecodeConfig,
-) -> LuaResult<LuaString<'lua>> {
+pub fn encode(value: LuaValue, lua: &Lua, config: EncodeDecodeConfig) -> LuaResult<LuaString> {
     let bytes = match config.format {
         EncodeDecodeFormat::Json => {
             let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;

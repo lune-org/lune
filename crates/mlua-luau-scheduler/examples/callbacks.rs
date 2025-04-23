@@ -20,7 +20,7 @@ pub fn main() -> LuaResult<()> {
     let lua = Lua::new();
 
     // Create a new scheduler with custom callbacks
-    let sched = Scheduler::new(&lua);
+    let sched = Scheduler::new(lua.clone());
     sched.set_error_callback(|e| {
         println!(
             "Captured error from Lua!\n{}\n{e}\n{}",

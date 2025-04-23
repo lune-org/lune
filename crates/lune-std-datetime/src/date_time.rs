@@ -228,14 +228,14 @@ impl DateTime {
 }
 
 impl LuaUserData for DateTime {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("unixTimestamp", |_, this| Ok(this.inner.timestamp()));
         fields.add_field_method_get("unixTimestampMillis", |_, this| {
             Ok(this.inner.timestamp_millis())
         });
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Metamethods to compare DateTime as instants in time
         methods.add_meta_method(
             LuaMetaMethod::Eq,

@@ -10,7 +10,7 @@ use lune_utils::TableBuilder;
 pub fn create_user_agent_header(lua: &Lua) -> LuaResult<String> {
     let version_global = lua
         .globals()
-        .get::<_, LuaString>("_VERSION")
+        .get::<LuaString>("_VERSION")
         .expect("Missing _VERSION global");
 
     let version_global_str = version_global
@@ -46,13 +46,13 @@ pub fn header_map_to_table(
         });
     }
 
-    let mut builder = TableBuilder::new(lua)?;
+    let mut builder = TableBuilder::new(lua.clone())?;
     for (name, mut values) in res_headers {
         if values.len() == 1 {
             let value = values.pop().unwrap().into_lua(lua)?;
             builder = builder.with_value(name, value)?;
         } else {
-            let values = TableBuilder::new(lua)?
+            let values = TableBuilder::new(lua.clone())?
                 .with_sequential_values(values)?
                 .build_readonly()?
                 .into_lua(lua)?;

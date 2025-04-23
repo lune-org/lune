@@ -38,7 +38,7 @@ impl ReplCommand {
         let mut prompt_state = PromptState::Regular;
         let mut source_code = String::new();
 
-        let mut lune_instance = Runtime::new();
+        let mut lune_instance = Runtime::new()?;
 
         loop {
             let prompt = match prompt_state {

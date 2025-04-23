@@ -43,7 +43,7 @@ impl LuaResponse {
     }
 }
 
-impl FromLua<'_> for LuaResponse {
+impl FromLua for LuaResponse {
     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         match value {
             // Plain strings from the handler are plaintext responses
@@ -64,7 +64,7 @@ impl FromLua<'_> for LuaResponse {
                     for pair in headers.pairs::<String, LuaString>() {
                         let (h, v) = pair?;
                         let name = HeaderName::from_str(&h).into_lua_err()?;
-                        let value = HeaderValue::from_bytes(v.as_bytes()).into_lua_err()?;
+                        let value = HeaderValue::from_bytes(&v.as_bytes()).into_lua_err()?;
                         headers_map.insert(name, value);
                     }
                 }
@@ -81,7 +81,7 @@ impl FromLua<'_> for LuaResponse {
             // Anything else is an error
             value => Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "NetServeResponse",
+                to: "NetServeResponse".to_string(),
                 message: None,
             }),
         }

@@ -15,7 +15,7 @@ pub struct ThreadId {
     inner: usize,
 }
 
-impl From<&LuaThread<'_>> for ThreadId {
+impl From<&LuaThread> for ThreadId {
     fn from(thread: &LuaThread) -> Self {
         Self {
             inner: thread.to_pointer() as usize,

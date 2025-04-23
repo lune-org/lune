@@ -20,7 +20,7 @@ use crate::{
 use super::{data_model, registry::InstanceRegistry, Instance};
 
 #[allow(clippy::too_many_lines)]
-pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
+pub fn add_methods<M: LuaUserDataMethods<Instance>>(m: &mut M) {
     m.add_meta_method(LuaMetaMethod::ToString, |lua, this, ()| {
         ensure_not_destroyed(this)?;
         userdata_impl_to_string(lua, this, ())
@@ -211,11 +211,7 @@ fn ensure_not_destroyed(inst: &Instance) -> LuaResult<()> {
     3. Get a current child of the instance
     4. No valid property or instance found, throw error
 */
-fn instance_property_get<'lua>(
-    lua: &'lua Lua,
-    this: &Instance,
-    prop_name: String,
-) -> LuaResult<LuaValue<'lua>> {
+fn instance_property_get(lua: &Lua, this: &Instance, prop_name: String) -> LuaResult<LuaValue> {
     match prop_name.as_str() {
         "ClassName" => return this.get_class_name().into_lua(lua),
         "Parent" => {
@@ -295,10 +291,10 @@ fn instance_property_get<'lua>(
         2a. Set a strict enum from a given EnumItem OR
         2b. Set a normal property from a given value
 */
-fn instance_property_set<'lua>(
-    lua: &'lua Lua,
+fn instance_property_set(
+    lua: &Lua,
     this: &mut Instance,
-    (prop_name, prop_value): (String, LuaValue<'lua>),
+    (prop_name, prop_value): (String, LuaValue),
 ) -> LuaResult<()> {
     ensure_not_destroyed(this)?;
 
@@ -319,7 +315,7 @@ fn instance_property_set<'lua>(
                     "Failed to set Parent - DataModel can not be reparented".to_string(),
                 ));
             }
-            type Parent<'lua> = Option<LuaUserDataRef<'lua, Instance>>;
+            type Parent = Option<LuaUserDataRef<Instance>>;
             let parent = Parent::from_lua(prop_value, lua)?;
             this.set_parent(parent.map(|p| *p));
             return Ok(());

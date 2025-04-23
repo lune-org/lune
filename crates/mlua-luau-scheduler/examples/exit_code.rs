@@ -18,8 +18,8 @@ pub fn main() -> LuaResult<()> {
 
     // Set up persistent Lua environment
     let lua = Lua::new();
-    let sched = Scheduler::new(&lua);
-    let fns = Functions::new(&lua)?;
+    let sched = Scheduler::new(lua.clone());
+    let fns = Functions::new(lua.clone())?;
 
     lua.globals().set("exit", fns.exit)?;
 

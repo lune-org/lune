@@ -32,12 +32,12 @@ impl Ray {
     }
 }
 
-impl LuaExportsTable<'_> for Ray {
+impl LuaExportsTable for Ray {
     const EXPORT_NAME: &'static str = "Ray";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         let ray_new =
-            |_, (origin, direction): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+            |_: &Lua, (origin, direction): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
                 Ok(Ray {
                     origin: origin.0,
                     direction: direction.0,
@@ -51,7 +51,7 @@ impl LuaExportsTable<'_> for Ray {
 }
 
 impl LuaUserData for Ray {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Origin", |_, this| Ok(Vector3(this.origin)));
         fields.add_field_method_get("Direction", |_, this| Ok(Vector3(this.direction)));
         fields.add_field_method_get("Unit", |_, this| {
@@ -62,7 +62,7 @@ impl LuaUserData for Ray {
         });
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("ClosestPoint", |_, this, to: LuaUserDataRef<Vector3>| {
             Ok(Vector3(this.closest_point(to.0)))

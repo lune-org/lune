@@ -32,17 +32,17 @@ impl Rect {
     }
 }
 
-impl LuaExportsTable<'_> for Rect {
+impl LuaExportsTable for Rect {
     const EXPORT_NAME: &'static str = "Rect";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        type ArgsVector2s<'lua> = (
-            Option<LuaUserDataRef<'lua, Vector2>>,
-            Option<LuaUserDataRef<'lua, Vector2>>,
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        type ArgsVector2s = (
+            Option<LuaUserDataRef<Vector2>>,
+            Option<LuaUserDataRef<Vector2>>,
         );
         type ArgsNums = (Option<f32>, Option<f32>, Option<f32>, Option<f32>);
 
-        let rect_new = |lua, args: LuaMultiValue| {
+        let rect_new = |lua: &Lua, args: LuaMultiValue| {
             if let Ok((min, max)) = ArgsVector2s::from_lua_multi(args.clone(), lua) {
                 Ok(Rect::new(
                     min.map(|m| *m).unwrap_or_default().0,
@@ -67,14 +67,14 @@ impl LuaExportsTable<'_> for Rect {
 }
 
 impl LuaUserData for Rect {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Min", |_, this| Ok(Vector2(this.min)));
         fields.add_field_method_get("Max", |_, this| Ok(Vector2(this.max)));
         fields.add_field_method_get("Width", |_, this| Ok(this.max.x - this.min.x));
         fields.add_field_method_get("Height", |_, this| Ok(this.max.y - this.min.y));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);

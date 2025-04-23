@@ -21,15 +21,15 @@ pub struct NumberSequence {
     pub(crate) keypoints: Vec<NumberSequenceKeypoint>,
 }
 
-impl LuaExportsTable<'_> for NumberSequence {
+impl LuaExportsTable for NumberSequence {
     const EXPORT_NAME: &'static str = "NumberSequence";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         type ArgsColor = f32;
         type ArgsColors = (f32, f32);
-        type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, NumberSequenceKeypoint>>;
+        type ArgsKeypoints = Vec<LuaUserDataRef<NumberSequenceKeypoint>>;
 
-        let number_sequence_new = |lua, args: LuaMultiValue| {
+        let number_sequence_new = |lua: &Lua, args: LuaMultiValue| {
             if let Ok(value) = ArgsColor::from_lua_multi(args.clone(), lua) {
                 Ok(NumberSequence {
                     keypoints: vec![
@@ -79,11 +79,11 @@ impl LuaExportsTable<'_> for NumberSequence {
 }
 
 impl LuaUserData for NumberSequence {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Keypoints", |_, this| Ok(this.keypoints.clone()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Copy, Default)]
-pub struct JitStatus(bool);
+pub struct JitEnablement(bool);
 
-impl JitStatus {
+impl JitEnablement {
     #[must_use]
     pub fn new(enabled: bool) -> Self {
         Self(enabled)
@@ -17,13 +17,13 @@ impl JitStatus {
     }
 }
 
-impl From<JitStatus> for bool {
-    fn from(val: JitStatus) -> Self {
+impl From<JitEnablement> for bool {
+    fn from(val: JitEnablement) -> Self {
         val.enabled()
     }
 }
 
-impl From<bool> for JitStatus {
+impl From<bool> for JitEnablement {
     fn from(val: bool) -> Self {
         Self::new(val)
     }

@@ -58,7 +58,7 @@ impl LuaCaptures {
 }
 
 impl LuaUserData for LuaCaptures {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("get", |_, this, index: usize| {
             Ok(this
                 .captures()
@@ -85,7 +85,7 @@ impl LuaUserData for LuaCaptures {
         });
     }
 
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_meta_field(LuaMetaMethod::Type, "RegexCaptures");
     }
 }

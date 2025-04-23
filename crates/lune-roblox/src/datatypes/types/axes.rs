@@ -21,11 +21,11 @@ pub struct Axes {
     pub(crate) z: bool,
 }
 
-impl LuaExportsTable<'_> for Axes {
+impl LuaExportsTable for Axes {
     const EXPORT_NAME: &'static str = "Axes";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let axes_new = |_, args: LuaMultiValue| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let axes_new = |_: &Lua, args: LuaMultiValue| {
             let mut x = false;
             let mut y = false;
             let mut z = false;
@@ -76,7 +76,7 @@ impl LuaExportsTable<'_> for Axes {
 }
 
 impl LuaUserData for Axes {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("X", |_, this| Ok(this.x));
         fields.add_field_method_get("Y", |_, this| Ok(this.y));
         fields.add_field_method_get("Z", |_, this| Ok(this.z));
@@ -88,7 +88,7 @@ impl LuaUserData for Axes {
         fields.add_field_method_get("Back", |_, this| Ok(this.z));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

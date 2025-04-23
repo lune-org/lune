@@ -20,7 +20,7 @@ pub use self::hash::HashOptions;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_function("encode", serde_encode)?
         .with_function("decode", serde_decode)?
@@ -31,10 +31,10 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn serde_encode<'lua>(
-    lua: &'lua Lua,
-    (format, value, pretty): (EncodeDecodeFormat, LuaValue<'lua>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
+fn serde_encode(
+    lua: &Lua,
+    (format, value, pretty): (EncodeDecodeFormat, LuaValue, Option<bool>),
+) -> LuaResult<LuaString> {
     let config = EncodeDecodeConfig::from((format, pretty.unwrap_or_default()));
     encode(value, lua, config)
 }
@@ -45,7 +45,7 @@ fn serde_decode(lua: &Lua, (format, bs): (EncodeDecodeFormat, BString)) -> LuaRe
 }
 
 async fn serde_compress(
-    lua: &Lua,
+    lua: Lua,
     (format, bs, level): (CompressDecompressFormat, BString, Option<i32>),
 ) -> LuaResult<LuaString> {
     let bytes = compress(bs, format, level).await?;
@@ -53,7 +53,7 @@ async fn serde_compress(
 }
 
 async fn serde_decompress(
-    lua: &Lua,
+    lua: Lua,
     (format, bs): (CompressDecompressFormat, BString),
 ) -> LuaResult<LuaString> {
     let bytes = decompress(bs, format).await?;

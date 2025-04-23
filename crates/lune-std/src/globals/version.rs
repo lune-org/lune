@@ -6,13 +6,13 @@ struct Version(String);
 
 impl LuaUserData for Version {}
 
-pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
+pub fn create(lua: Lua) -> LuaResult<LuaValue> {
     let v = match lua.app_data_ref::<Version>() {
         Some(v) => v.0.to_string(),
         None => env!("CARGO_PKG_VERSION").to_string(),
     };
     let s = get_version_string(v);
-    lua.create_string(s)?.into_lua(lua)
+    lua.create_string(s)?.into_lua(&lua)
 }
 
 /**

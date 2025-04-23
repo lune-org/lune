@@ -20,11 +20,11 @@ pub struct NumberRange {
     pub(crate) max: f32,
 }
 
-impl LuaExportsTable<'_> for NumberRange {
+impl LuaExportsTable for NumberRange {
     const EXPORT_NAME: &'static str = "NumberRange";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let number_range_new = |_, (min, max): (f32, Option<f32>)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let number_range_new = |_: &Lua, (min, max): (f32, Option<f32>)| {
             Ok(match max {
                 Some(max) => NumberRange {
                     min: min.min(max),
@@ -41,12 +41,12 @@ impl LuaExportsTable<'_> for NumberRange {
 }
 
 impl LuaUserData for NumberRange {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Min", |_, this| Ok(this.min));
         fields.add_field_method_get("Max", |_, this| Ok(this.max));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

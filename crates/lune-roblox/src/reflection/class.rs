@@ -85,7 +85,7 @@ impl DatabaseClass {
 }
 
 impl LuaUserData for DatabaseClass {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.get_name()));
         fields.add_field_method_get("Superclass", |_, this| Ok(this.get_superclass()));
         fields.add_field_method_get("Properties", |_, this| Ok(this.get_properties()));
@@ -108,7 +108,7 @@ impl LuaUserData for DatabaseClass {
         fields.add_field_method_get("Tags", |_, this| Ok(this.get_tags_str()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

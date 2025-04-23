@@ -118,6 +118,7 @@ impl From<LuaError> for ErrorComponents {
 
         // Extract any additional "context" messages before the actual error(s)
         // The Arc is necessary here because mlua wraps all inner errors in an Arc
+        #[allow(clippy::arc_with_non_send_sync)]
         let mut error = Arc::new(error);
         let mut messages = Vec::new();
         while let LuaError::WithContext {
@@ -193,5 +194,11 @@ impl From<LuaError> for ErrorComponents {
         }
 
         ErrorComponents { messages, trace }
+    }
+}
+
+impl From<Box<LuaError>> for ErrorComponents {
+    fn from(value: Box<LuaError>) -> Self {
+        Self::from(*value)
     }
 }

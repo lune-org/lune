@@ -29,11 +29,11 @@ use lune_std_serde::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     NetClientBuilder::new()
-        .headers(&[("User-Agent", create_user_agent_header(lua)?)])?
+        .headers(&[("User-Agent", create_user_agent_header(&lua)?)])?
         .build()?
-        .into_registry(lua);
+        .into_registry(&lua);
     TableBuilder::new(lua)?
         .with_function("jsonEncode", net_json_encode)?
         .with_function("jsonDecode", net_json_decode)?
@@ -45,10 +45,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn net_json_encode<'lua>(
-    lua: &'lua Lua,
-    (val, pretty): (LuaValue<'lua>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
+fn net_json_encode(lua: &Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<LuaString> {
     let config = EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()));
     encode(val, lua, config)
 }
@@ -58,44 +55,41 @@ fn net_json_decode(lua: &Lua, json: BString) -> LuaResult<LuaValue> {
     decode(json, lua, config)
 }
 
-async fn net_request(lua: &Lua, config: RequestConfig) -> LuaResult<LuaTable> {
-    let client = NetClient::from_registry(lua);
+async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<LuaTable> {
+    let client = NetClient::from_registry(&lua);
     // NOTE: We spawn the request as a background task to free up resources in lua
     let res = lua.spawn(async move { client.request(config).await });
-    res.await?.into_lua_table(lua)
+    res.await?.into_lua_table(&lua)
 }
 
-async fn net_socket(lua: &Lua, url: String) -> LuaResult<LuaValue> {
+async fn net_socket(lua: Lua, url: String) -> LuaResult<LuaValue> {
     let (ws, _) = tokio_tungstenite::connect_async(url).await.into_lua_err()?;
-    NetWebSocket::new(ws).into_lua(lua)
+    NetWebSocket::new(ws).into_lua(&lua)
 }
 
-async fn net_serve<'lua>(
-    lua: &'lua Lua,
-    (port, config): (u16, ServeConfig<'lua>),
-) -> LuaResult<LuaTable<'lua>> {
+async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<LuaTable> {
     serve(lua, port, config).await
 }
 
-fn net_url_encode<'lua>(
-    lua: &'lua Lua,
-    (lua_string, as_binary): (LuaString<'lua>, Option<bool>),
-) -> LuaResult<LuaValue<'lua>> {
+fn net_url_encode(
+    lua: &Lua,
+    (lua_string, as_binary): (LuaString, Option<bool>),
+) -> LuaResult<LuaValue> {
     if matches!(as_binary, Some(true)) {
-        urlencoding::encode_binary(lua_string.as_bytes()).into_lua(lua)
+        urlencoding::encode_binary(&lua_string.as_bytes()).into_lua(lua)
     } else {
-        urlencoding::encode(lua_string.to_str()?).into_lua(lua)
+        urlencoding::encode(&lua_string.to_str()?).into_lua(lua)
     }
 }
 
-fn net_url_decode<'lua>(
-    lua: &'lua Lua,
-    (lua_string, as_binary): (LuaString<'lua>, Option<bool>),
-) -> LuaResult<LuaValue<'lua>> {
+fn net_url_decode(
+    lua: &Lua,
+    (lua_string, as_binary): (LuaString, Option<bool>),
+) -> LuaResult<LuaValue> {
     if matches!(as_binary, Some(true)) {
-        urlencoding::decode_binary(lua_string.as_bytes()).into_lua(lua)
+        urlencoding::decode_binary(&lua_string.as_bytes()).into_lua(lua)
     } else {
-        urlencoding::decode(lua_string.to_str()?)
+        urlencoding::decode(&lua_string.to_str()?)
             .map_err(|e| LuaError::RuntimeError(format!("Encountered invalid encoding - {e}")))?
             .into_lua(lua)
     }

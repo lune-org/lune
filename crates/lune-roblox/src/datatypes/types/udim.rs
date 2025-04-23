@@ -27,11 +27,11 @@ impl UDim {
     }
 }
 
-impl LuaExportsTable<'_> for UDim {
+impl LuaExportsTable for UDim {
     const EXPORT_NAME: &'static str = "UDim";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let udim_new = |_, (scale, offset): (Option<f32>, Option<i32>)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let udim_new = |_: &Lua, (scale, offset): (Option<f32>, Option<i32>)| {
             Ok(UDim {
                 scale: scale.unwrap_or_default(),
                 offset: offset.unwrap_or_default(),
@@ -45,12 +45,12 @@ impl LuaExportsTable<'_> for UDim {
 }
 
 impl LuaUserData for UDim {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Scale", |_, this| Ok(this.scale));
         fields.add_field_method_get("Offset", |_, this| Ok(this.offset));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);

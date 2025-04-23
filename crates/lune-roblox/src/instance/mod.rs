@@ -723,11 +723,11 @@ impl Instance {
     }
 }
 
-impl LuaExportsTable<'_> for Instance {
+impl LuaExportsTable for Instance {
     const EXPORT_NAME: &'static str = "Instance";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let instance_new = |lua, class_name: String| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let instance_new = |lua: &Lua, class_name: String| {
             if class_exists(&class_name) {
                 Instance::new_orphaned(class_name).into_lua(lua)
             } else {
@@ -756,12 +756,12 @@ impl LuaExportsTable<'_> for Instance {
     instance registry, and register properties + methods from the lua side
 */
 impl LuaUserData for Instance {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         data_model::add_fields(fields);
         workspace::add_fields(fields);
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         base::add_methods(methods);
         data_model::add_methods(methods);
         terrain::add_methods(methods);

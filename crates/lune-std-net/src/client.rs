@@ -119,7 +119,7 @@ impl NetClient {
 
 impl LuaUserData for NetClient {}
 
-impl FromLua<'_> for NetClient {
+impl FromLua for NetClient {
     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::UserData(ud) = value {
             if let Ok(ctx) = ud.borrow::<NetClient>() {
@@ -149,7 +149,7 @@ pub struct NetClientResponse {
 
 impl NetClientResponse {
     pub fn into_lua_table(self, lua: &Lua) -> LuaResult<LuaTable> {
-        TableBuilder::new(lua)?
+        TableBuilder::new(lua.clone())?
             .with_value("ok", self.ok)?
             .with_value("statusCode", self.status_code)?
             .with_value("statusMessage", self.status_message)?

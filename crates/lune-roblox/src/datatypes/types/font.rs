@@ -40,11 +40,11 @@ impl Font {
     }
 }
 
-impl LuaExportsTable<'_> for Font {
+impl LuaExportsTable for Font {
     const EXPORT_NAME: &'static str = "Font";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let font_from_enum = |_, value: LuaUserDataRef<EnumItem>| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let font_from_enum = |_: &Lua, value: LuaUserDataRef<EnumItem>| {
             if value.parent.desc.name == "Font" {
                 match Font::from_enum_item(&value) {
                     Some(props) => Ok(props),
@@ -62,7 +62,7 @@ impl LuaExportsTable<'_> for Font {
         };
 
         let font_from_name =
-            |_, (file, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
+            |_: &Lua, (file, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
                 Ok(Font {
                     family: format!("rbxasset://fonts/families/{file}.json"),
                     weight: weight.unwrap_or_default(),
@@ -72,7 +72,7 @@ impl LuaExportsTable<'_> for Font {
             };
 
         let font_from_id =
-            |_, (id, weight, style): (i32, Option<FontWeight>, Option<FontStyle>)| {
+            |_: &Lua, (id, weight, style): (i32, Option<FontWeight>, Option<FontStyle>)| {
                 Ok(Font {
                     family: format!("rbxassetid://{id}"),
                     weight: weight.unwrap_or_default(),
@@ -82,7 +82,7 @@ impl LuaExportsTable<'_> for Font {
             };
 
         let font_new =
-            |_, (family, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
+            |_: &Lua, (family, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
                 Ok(Font {
                     family,
                     weight: weight.unwrap_or_default(),
@@ -101,7 +101,7 @@ impl LuaExportsTable<'_> for Font {
 }
 
 impl LuaUserData for Font {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         // Getters
         fields.add_field_method_get("Family", |_, this| Ok(this.family.clone()));
         fields.add_field_method_get("Weight", |_, this| Ok(this.weight));
@@ -126,7 +126,7 @@ impl LuaUserData for Font {
         });
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
@@ -282,8 +282,8 @@ impl std::fmt::Display for FontWeight {
     }
 }
 
-impl<'lua> FromLua<'lua> for FontWeight {
-    fn from_lua(lua_value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for FontWeight {
+    fn from_lua(lua_value: LuaValue, _: &Lua) -> LuaResult<Self> {
         let mut message = None;
         if let LuaValue::UserData(ud) = &lua_value {
             let value = ud.borrow::<EnumItem>()?;
@@ -304,18 +304,18 @@ impl<'lua> FromLua<'lua> for FontWeight {
         }
         Err(LuaError::FromLuaConversionError {
             from: lua_value.type_name(),
-            to: "Enum.FontWeight",
+            to: "Enum.FontWeight".to_string(),
             message,
         })
     }
 }
 
-impl<'lua> IntoLua<'lua> for FontWeight {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl IntoLua for FontWeight {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match EnumItem::from_enum_name_and_name("FontWeight", self.to_string()) {
             Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
             None => Err(LuaError::ToLuaConversionError {
-                from: "FontWeight",
+                from: "FontWeight".to_string(),
                 to: "EnumItem",
                 message: Some(format!("Found unknown Enum.FontWeight value '{self}'")),
             }),
@@ -376,8 +376,8 @@ impl std::fmt::Display for FontStyle {
     }
 }
 
-impl<'lua> FromLua<'lua> for FontStyle {
-    fn from_lua(lua_value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for FontStyle {
+    fn from_lua(lua_value: LuaValue, _: &Lua) -> LuaResult<Self> {
         let mut message = None;
         if let LuaValue::UserData(ud) = &lua_value {
             let value = ud.borrow::<EnumItem>()?;
@@ -398,18 +398,18 @@ impl<'lua> FromLua<'lua> for FontStyle {
         }
         Err(LuaError::FromLuaConversionError {
             from: lua_value.type_name(),
-            to: "Enum.FontStyle",
+            to: "Enum.FontStyle".to_string(),
             message,
         })
     }
 }
 
-impl<'lua> IntoLua<'lua> for FontStyle {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl IntoLua for FontStyle {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match EnumItem::from_enum_name_and_name("FontStyle", self.to_string()) {
             Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
             None => Err(LuaError::ToLuaConversionError {
-                from: "FontStyle",
+                from: "FontStyle".to_string(),
                 to: "EnumItem",
                 message: Some(format!("Found unknown Enum.FontStyle value '{self}'")),
             }),

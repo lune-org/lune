@@ -22,12 +22,12 @@ pub struct Region3int16 {
     pub(crate) max: IVec3,
 }
 
-impl LuaExportsTable<'_> for Region3int16 {
+impl LuaExportsTable for Region3int16 {
     const EXPORT_NAME: &'static str = "Region3int16";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         let region3int16_new =
-            |_, (min, max): (LuaUserDataRef<Vector3int16>, LuaUserDataRef<Vector3int16>)| {
+            |_: &Lua, (min, max): (LuaUserDataRef<Vector3int16>, LuaUserDataRef<Vector3int16>)| {
                 Ok(Region3int16 {
                     min: min.0,
                     max: max.0,
@@ -41,12 +41,12 @@ impl LuaExportsTable<'_> for Region3int16 {
 }
 
 impl LuaUserData for Region3int16 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Min", |_, this| Ok(Vector3int16(this.min)));
         fields.add_field_method_get("Max", |_, this| Ok(Vector3int16(this.max)));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

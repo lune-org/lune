@@ -68,12 +68,12 @@ where
     a fixed point in time, and we guarantee that it doesn't change
 */
 
-impl FromLua<'_> for DateTimeValues {
+impl FromLua for DateTimeValues {
     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if !value.is_table() {
             return Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "DateTimeValues",
+                to: "DateTimeValues".to_string(),
                 message: Some("value must be a table".to_string()),
             });
         }
@@ -93,16 +93,16 @@ impl FromLua<'_> for DateTimeValues {
             Ok(dt) => Ok(dt),
             Err(e) => Err(LuaError::FromLuaConversionError {
                 from: "table",
-                to: "DateTimeValues",
+                to: "DateTimeValues".to_string(),
                 message: Some(e.to_string()),
             }),
         }
     }
 }
 
-impl IntoLua<'_> for DateTimeValues {
+impl IntoLua for DateTimeValues {
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
-        let tab = TableBuilder::new(lua)?
+        let tab = TableBuilder::new(lua.clone())?
             .with_value("year", self.year)?
             .with_values(vec![
                 ("month", self.month),

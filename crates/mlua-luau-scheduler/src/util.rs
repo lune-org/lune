@@ -10,10 +10,10 @@ use tracing::instrument;
     Otherwise returns the values yielded by the thread, or the error that caused it to stop.
 */
 #[instrument(level = "trace", name = "Scheduler::run_until_yield", skip_all)]
-pub(crate) async fn run_until_yield<'lua>(
-    thread: LuaThread<'lua>,
-    args: LuaMultiValue<'lua>,
-) -> Option<LuaResult<LuaMultiValue<'lua>>> {
+pub(crate) async fn run_until_yield(
+    thread: LuaThread,
+    args: LuaMultiValue,
+) -> Option<LuaResult<LuaMultiValue>> {
     let mut stream = thread.into_async(args);
     /*
         NOTE: It is very important that we drop the thread/stream as
@@ -83,11 +83,7 @@ pub(crate) struct ThreadWithArgs {
 }
 
 impl ThreadWithArgs {
-    pub fn new<'lua>(
-        lua: &'lua Lua,
-        thread: LuaThread<'lua>,
-        args: LuaMultiValue<'lua>,
-    ) -> LuaResult<Self> {
+    pub fn new(lua: &Lua, thread: LuaThread, args: LuaMultiValue) -> LuaResult<Self> {
         let argsv = args.into_vec();
 
         let key_thread = lua.create_registry_value(thread)?;
@@ -99,7 +95,7 @@ impl ThreadWithArgs {
         })
     }
 
-    pub fn into_inner(self, lua: &Lua) -> (LuaThread<'_>, LuaMultiValue<'_>) {
+    pub fn into_inner(self, lua: &Lua) -> (LuaThread, LuaMultiValue) {
         let thread = lua.registry_value(&self.key_thread).unwrap();
         let argsv = lua.registry_value(&self.key_args).unwrap();
 
@@ -118,13 +114,13 @@ impl ThreadWithArgs {
     [`LuaThreadOrFunction::into_thread`] may be used to convert the value into a Lua thread.
 */
 #[derive(Clone)]
-pub(crate) enum LuaThreadOrFunction<'lua> {
-    Thread(LuaThread<'lua>),
-    Function(LuaFunction<'lua>),
+pub(crate) enum LuaThreadOrFunction {
+    Thread(LuaThread),
+    Function(LuaFunction),
 }
 
-impl<'lua> LuaThreadOrFunction<'lua> {
-    pub(super) fn into_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+impl LuaThreadOrFunction {
+    pub(super) fn into_thread(self, lua: &Lua) -> LuaResult<LuaThread> {
         match self {
             Self::Thread(t) => Ok(t),
             Self::Function(f) => lua.create_thread(f),
@@ -132,14 +128,14 @@ impl<'lua> LuaThreadOrFunction<'lua> {
     }
 }
 
-impl<'lua> FromLua<'lua> for LuaThreadOrFunction<'lua> {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for LuaThreadOrFunction {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         match value {
             LuaValue::Thread(t) => Ok(Self::Thread(t)),
             LuaValue::Function(f) => Ok(Self::Function(f)),
             value => Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "LuaThreadOrFunction",
+                to: "LuaThreadOrFunction".to_string(),
                 message: Some("Expected thread or function".to_string()),
             }),
         }

@@ -22,8 +22,8 @@ pub(super) struct ProcessSpawnOptions {
     pub stdio: ProcessSpawnOptionsStdio,
 }
 
-impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for ProcessSpawnOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         let mut this = Self::default();
         let value = match value {
             LuaValue::Nil => return Ok(this),
@@ -31,7 +31,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
             _ => {
                 return Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "ProcessSpawnOptions",
+                    to: "ProcessSpawnOptions".to_string(),
                     message: Some(format!(
                         "Invalid spawn options - expected table, got {}",
                         value.type_name()
@@ -49,7 +49,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
         match value.get("cwd")? {
             LuaValue::Nil => {}
             LuaValue::String(s) => {
-                let mut cwd = PathBuf::from(s.to_str()?);
+                let mut cwd = PathBuf::from(s.to_str()?.to_string());
                 if let Ok(stripped) = cwd.strip_prefix("~") {
                     let user_dirs = UserDirs::new().ok_or_else(|| {
                         LuaError::runtime(

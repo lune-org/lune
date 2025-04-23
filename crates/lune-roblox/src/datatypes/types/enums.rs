@@ -13,7 +13,7 @@ use super::{super::*, Enum};
 pub struct Enums;
 
 impl LuaUserData for Enums {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("GetEnums", |_, _, ()| {
             let db = rbx_reflection_database::get();

@@ -100,11 +100,7 @@ impl RequireContext {
 
         Will panic if the path has not been cached, use [`is_cached`] first.
     */
-    pub fn get_from_cache<'lua>(
-        &self,
-        lua: &'lua Lua,
-        abs_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
+    pub fn get_from_cache(&self, lua: Lua, abs_path: impl AsRef<Path>) -> LuaResult<LuaMultiValue> {
         let results = self
             .results
             .try_lock()
@@ -129,11 +125,11 @@ impl RequireContext {
 
         Will panic if the path has not been cached, use [`is_cached`] first.
     */
-    pub async fn wait_for_cache<'lua>(
+    pub async fn wait_for_cache(
         &self,
-        lua: &'lua Lua,
+        lua: Lua,
         abs_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
+    ) -> LuaResult<LuaMultiValue> {
         let mut thread_recv = {
             let pending = self
                 .pending
@@ -152,7 +148,7 @@ impl RequireContext {
 
     async fn load(
         &self,
-        lua: &Lua,
+        lua: Lua,
         abs_path: impl AsRef<Path>,
         rel_path: impl AsRef<Path>,
     ) -> LuaResult<LuaRegistryKey> {
@@ -188,12 +184,12 @@ impl RequireContext {
     /**
         Loads (requires) the file at the given path.
     */
-    pub async fn load_with_caching<'lua>(
+    pub async fn load_with_caching(
         &self,
-        lua: &'lua Lua,
+        lua: Lua,
         abs_path: impl AsRef<Path>,
         rel_path: impl AsRef<Path>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
+    ) -> LuaResult<LuaMultiValue> {
         let abs_path = abs_path.as_ref();
         let rel_path = rel_path.as_ref();
 
@@ -205,7 +201,7 @@ impl RequireContext {
             .insert(abs_path.to_path_buf(), broadcast_tx);
 
         // Try to load at this abs path
-        let load_res = self.load(lua, abs_path, rel_path).await;
+        let load_res = self.load(lua.clone(), abs_path, rel_path).await;
         let load_val = match &load_res {
             Err(e) => Err(e.clone()),
             Ok(k) => {
@@ -241,11 +237,7 @@ impl RequireContext {
     /**
         Loads (requires) the library with the given name.
     */
-    pub fn load_library<'lua>(
-        &self,
-        lua: &'lua Lua,
-        name: impl AsRef<str>,
-    ) -> LuaResult<LuaMultiValue<'lua>> {
+    pub fn load_library(&self, lua: Lua, name: impl AsRef<str>) -> LuaResult<LuaMultiValue> {
         let library: LuneStandardLibrary = match name.as_ref().parse() {
             Err(e) => return Err(LuaError::runtime(e)),
             Ok(b) => b,
@@ -268,7 +260,7 @@ impl RequireContext {
             };
         }
 
-        let result = library.module(lua);
+        let result = library.module(lua.clone());
 
         cache.insert(
             library,

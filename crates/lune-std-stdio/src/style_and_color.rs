@@ -88,7 +88,7 @@ impl FromStr for ColorKind {
     }
 }
 
-impl FromLua<'_> for ColorKind {
+impl FromLua for ColorKind {
     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = value {
             let s = s.to_str()?;
@@ -96,7 +96,7 @@ impl FromLua<'_> for ColorKind {
                 Ok(color) => Ok(color),
                 Err(()) => Err(LuaError::FromLuaConversionError {
                     from: "string",
-                    to: "ColorKind",
+                    to: "ColorKind".to_string(),
                     message: Some(format!(
                         "Invalid color kind '{s}'\nValid kinds are: {}",
                         Self::ALL
@@ -110,7 +110,7 @@ impl FromLua<'_> for ColorKind {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "ColorKind",
+                to: "ColorKind".to_string(),
                 message: None,
             })
         }
@@ -165,7 +165,7 @@ impl FromStr for StyleKind {
     }
 }
 
-impl FromLua<'_> for StyleKind {
+impl FromLua for StyleKind {
     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = value {
             let s = s.to_str()?;
@@ -173,7 +173,7 @@ impl FromLua<'_> for StyleKind {
                 Ok(style) => Ok(style),
                 Err(()) => Err(LuaError::FromLuaConversionError {
                     from: "string",
-                    to: "StyleKind",
+                    to: "StyleKind".to_string(),
                     message: Some(format!(
                         "Invalid style kind '{s}'\nValid kinds are: {}",
                         Self::ALL
@@ -187,7 +187,7 @@ impl FromLua<'_> for StyleKind {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "StyleKind",
+                to: "StyleKind".to_string(),
                 message: None,
             })
         }

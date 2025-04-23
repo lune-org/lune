@@ -39,7 +39,7 @@ use lune_utils::path::get_current_dir;
     Errors when out of memory.
 */
 #[allow(clippy::missing_panics_doc)]
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     let mut cwd_str = get_current_dir()
         .to_str()
         .expect("cwd should be valid UTF-8")
@@ -60,13 +60,13 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .app_data_ref::<Vec<String>>()
         .ok_or_else(|| LuaError::runtime("Missing args vec in Lua app data"))?
         .clone();
-    let args_tab = TableBuilder::new(lua)?
+    let args_tab = TableBuilder::new(lua.clone())?
         .with_sequential_values(args_vec)?
         .build_readonly()?;
     // Create proxied table for env that gets & sets real env vars
-    let env_tab = TableBuilder::new(lua)?
+    let env_tab = TableBuilder::new(lua.clone())?
         .with_metatable(
-            TableBuilder::new(lua)?
+            TableBuilder::new(lua.clone())?
                 .with_function(LuaMetaMethod::Index.name(), process_env_get)?
                 .with_function(LuaMetaMethod::NewIndex.name(), process_env_set)?
                 .with_function(LuaMetaMethod::Iter.name(), process_env_iter)?
@@ -74,7 +74,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         )?
         .build_readonly()?;
     // Create our process exit function, the scheduler crate provides this
-    let fns = Functions::new(lua)?;
+    let fns = Functions::new(lua.clone())?;
     let process_exit = fns.exit;
     // Create the full process table
     TableBuilder::new(lua)?
@@ -90,10 +90,7 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-fn process_env_get<'lua>(
-    lua: &'lua Lua,
-    (_, key): (LuaValue<'lua>, String),
-) -> LuaResult<LuaValue<'lua>> {
+fn process_env_get(lua: &Lua, (_, key): (LuaValue, String)) -> LuaResult<LuaValue> {
     match env::var_os(key) {
         Some(value) => {
             let raw_value = RawOsString::new(value);
@@ -105,10 +102,7 @@ fn process_env_get<'lua>(
     }
 }
 
-fn process_env_set<'lua>(
-    _: &'lua Lua,
-    (_, key, value): (LuaValue<'lua>, String, Option<String>),
-) -> LuaResult<()> {
+fn process_env_set(_: &Lua, (_, key, value): (LuaValue, String, Option<String>)) -> LuaResult<()> {
     // Make sure key is valid, otherwise set_var will panic
     if key.is_empty() {
         Err(LuaError::RuntimeError("Key must not be empty".to_string()))
@@ -136,10 +130,7 @@ fn process_env_set<'lua>(
     }
 }
 
-fn process_env_iter<'lua>(
-    lua: &'lua Lua,
-    (_, ()): (LuaValue<'lua>, ()),
-) -> LuaResult<LuaFunction<'lua>> {
+fn process_env_iter(lua: &Lua, (_, ()): (LuaValue, ())) -> LuaResult<LuaFunction> {
     let mut vars = env::vars_os().collect::<Vec<_>>().into_iter();
     lua.create_function_mut(move |lua, (): ()| match vars.next() {
         Some((key, value)) => {
@@ -155,7 +146,7 @@ fn process_env_iter<'lua>(
 }
 
 async fn process_exec(
-    lua: &Lua,
+    lua: Lua,
     (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
     let res = lua
@@ -178,7 +169,7 @@ async fn process_exec(
         .unwrap_or(i32::from(!res.stderr.is_empty()));
 
     // Construct and return a readonly lua table with results
-    TableBuilder::new(lua)?
+    TableBuilder::new(lua.clone())?
         .with_value("ok", code == 0)?
         .with_value("code", code)?
         .with_value("stdout", lua.create_string(&res.stdout)?)?
@@ -225,7 +216,7 @@ fn process_create(
         }
     });
 
-    TableBuilder::new(lua)?
+    TableBuilder::new(lua.clone())?
         .with_value("stdout", ChildProcessReader(stdout))?
         .with_value("stderr", ChildProcessReader(stderr))?
         .with_value("stdin", ChildProcessWriter(stdin))?

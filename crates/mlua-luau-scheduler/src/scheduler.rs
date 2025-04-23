@@ -43,8 +43,8 @@ Cannot set error callback when scheduler is running!\
     A scheduler for running Lua threads and async tasks.
 */
 #[derive(Clone)]
-pub struct Scheduler<'lua> {
-    lua: &'lua Lua,
+pub struct Scheduler {
+    lua: Lua,
     queue_spawn: SpawnedThreadQueue,
     queue_defer: DeferredThreadQueue,
     error_callback: ThreadErrorCallback,
@@ -53,7 +53,7 @@ pub struct Scheduler<'lua> {
     exit: Exit,
 }
 
-impl<'lua> Scheduler<'lua> {
+impl Scheduler {
     /**
         Creates a new scheduler for the given Lua state.
 
@@ -64,7 +64,7 @@ impl<'lua> Scheduler<'lua> {
         Panics if the given Lua state already has a scheduler attached to it.
     */
     #[must_use]
-    pub fn new(lua: &'lua Lua) -> Scheduler<'lua> {
+    pub fn new(lua: Lua) -> Scheduler {
         let queue_spawn = SpawnedThreadQueue::new();
         let queue_defer = DeferredThreadQueue::new();
         let error_callback = ThreadErrorCallback::default();
@@ -197,10 +197,10 @@ impl<'lua> Scheduler<'lua> {
     */
     pub fn push_thread_front(
         &self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
-        let id = self.queue_spawn.push_item(self.lua, thread, args)?;
+        let id = self.queue_spawn.push_item(&self.lua, thread, args)?;
         self.result_map.track(id);
         Ok(id)
     }
@@ -224,10 +224,10 @@ impl<'lua> Scheduler<'lua> {
     */
     pub fn push_thread_back(
         &self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
-        let id = self.queue_defer.push_item(self.lua, thread, args)?;
+        let id = self.queue_defer.push_item(&self.lua, thread, args)?;
         self.result_map.track(id);
         Ok(id)
     }
@@ -247,8 +247,8 @@ impl<'lua> Scheduler<'lua> {
         Any subsequent calls after this method returns `Some` will return `None`.
     */
     #[must_use]
-    pub fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue<'lua>>> {
-        self.result_map.remove(id).map(|r| r.value(self.lua))
+    pub fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>> {
+        self.result_map.remove(id).map(|r| r.value(&self.lua))
     }
 
     /**
@@ -321,7 +321,7 @@ impl<'lua> Scheduler<'lua> {
         */
         let fut = async {
             let result_map = self.result_map.clone();
-            let process_thread = |thread: LuaThread<'lua>, args| {
+            let process_thread = |thread: LuaThread, args| {
                 // NOTE: Thread may have been cancelled from Lua
                 // before we got here, so we need to check it again
                 if thread.status() == LuaThreadStatus::Resumable {
@@ -342,7 +342,7 @@ impl<'lua> Scheduler<'lua> {
                                     self.error_callback.call(e);
                                 }
                                 if thread.status() != LuaThreadStatus::Resumable {
-                                    let thread_res = ThreadResult::new(res, self.lua);
+                                    let thread_res = ThreadResult::new(res, &self.lua);
                                     result_map_inner.unwrap().insert(id, thread_res);
                                 }
                             }
@@ -398,14 +398,14 @@ impl<'lua> Scheduler<'lua> {
                 let mut num_futures = 0;
                 {
                     let _span = trace_span!("Scheduler::drain_spawned").entered();
-                    for (thread, args) in self.queue_spawn.drain_items(self.lua) {
+                    for (thread, args) in self.queue_spawn.drain_items(&self.lua) {
                         process_thread(thread, args);
                         num_spawned += 1;
                     }
                 }
                 {
                     let _span = trace_span!("Scheduler::drain_deferred").entered();
-                    for (thread, args) in self.queue_defer.drain_items(self.lua) {
+                    for (thread, args) in self.queue_defer.drain_items(&self.lua) {
                         process_thread(thread, args);
                         num_deferred += 1;
                     }
@@ -451,7 +451,7 @@ impl<'lua> Scheduler<'lua> {
     }
 }
 
-impl Drop for Scheduler<'_> {
+impl Drop for Scheduler {
     fn drop(&mut self) {
         if panicking() {
             // Do not cause further panics if already panicking, as

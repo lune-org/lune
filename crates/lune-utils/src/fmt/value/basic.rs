@@ -56,6 +56,8 @@ pub(crate) fn format_value_styled(value: &LuaValue, prefer_plain: bool) -> Strin
                 format!(r#""{s}""#)
             })
             .to_string(),
+        LuaValue::Other(_) => COLOR_MAGENTA.apply_to("<unknown>").to_string(),
+        LuaValue::Buffer(_) => COLOR_MAGENTA.apply_to("<buffer>").to_string(),
         LuaValue::Vector(_) => COLOR_MAGENTA.apply_to("<vector>").to_string(),
         LuaValue::Thread(_) => COLOR_MAGENTA.apply_to("<thread>").to_string(),
         LuaValue::Function(_) => COLOR_MAGENTA.apply_to("<function>").to_string(),

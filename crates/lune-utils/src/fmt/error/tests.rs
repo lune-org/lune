@@ -8,9 +8,7 @@ fn new_lua_runtime_error() -> LuaResult<()> {
     lua.globals()
         .set(
             "f",
-            LuaFunction::wrap(|_, (): ()| {
-                Err::<(), _>(LuaError::runtime("oh no, a runtime error"))
-            }),
+            LuaFunction::wrap(|(): ()| Err::<(), _>(LuaError::runtime("oh no, a runtime error"))),
         )
         .unwrap();
 

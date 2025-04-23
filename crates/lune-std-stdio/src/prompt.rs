@@ -49,15 +49,15 @@ impl fmt::Display for PromptKind {
     }
 }
 
-impl<'lua> FromLua<'lua> for PromptKind {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for PromptKind {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::Nil = value {
             Ok(Self::default())
         } else if let LuaValue::String(s) = value {
             let s = s.to_str()?;
             s.parse().map_err(|()| LuaError::FromLuaConversionError {
                 from: "string",
-                to: "PromptKind",
+                to: "PromptKind".to_string(),
                 message: Some(format!(
                     "Invalid prompt kind '{s}', valid kinds are:\n{}",
                     PromptKind::ALL
@@ -70,7 +70,7 @@ impl<'lua> FromLua<'lua> for PromptKind {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: "nil",
-                to: "PromptKind",
+                to: "PromptKind".to_string(),
                 message: None,
             })
         }
@@ -85,8 +85,8 @@ pub struct PromptOptions {
     pub options: Option<Vec<String>>,
 }
 
-impl<'lua> FromLuaMulti<'lua> for PromptOptions {
-    fn from_lua_multi(mut values: LuaMultiValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+impl FromLuaMulti for PromptOptions {
+    fn from_lua_multi(mut values: LuaMultiValue, lua: &Lua) -> LuaResult<Self> {
         // Argument #1 - prompt kind (optional)
         let kind = values
             .pop_front()
@@ -118,7 +118,7 @@ impl<'lua> FromLuaMulti<'lua> for PromptOptions {
                 value => {
                     return Err(LuaError::FromLuaConversionError {
                         from: value.type_name(),
-                        to: "PromptOptions",
+                        to: "PromptOptions".to_string(),
                         message: Some("Argument #3 must be a boolean, table, or nil".to_string()),
                     })
                 }
@@ -133,14 +133,14 @@ impl<'lua> FromLuaMulti<'lua> for PromptOptions {
         if matches!(kind, PromptKind::Confirm) && text.is_none() {
             return Err(LuaError::FromLuaConversionError {
                 from: "nil",
-                to: "PromptOptions",
+                to: "PromptOptions".to_string(),
                 message: Some("Argument #2 missing or nil".to_string()),
             });
         }
         if matches!(kind, PromptKind::Select | PromptKind::MultiSelect) && options.is_none() {
             return Err(LuaError::FromLuaConversionError {
                 from: "nil",
-                to: "PromptOptions",
+                to: "PromptOptions".to_string(),
                 message: Some("Argument #3 missing or nil".to_string()),
             });
         }
@@ -164,8 +164,8 @@ pub enum PromptResult {
     None,
 }
 
-impl<'lua> IntoLua<'lua> for PromptResult {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl IntoLua for PromptResult {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         Ok(match self {
             Self::String(s) => LuaValue::String(lua.create_string(&s)?),
             Self::Boolean(b) => LuaValue::Boolean(b),

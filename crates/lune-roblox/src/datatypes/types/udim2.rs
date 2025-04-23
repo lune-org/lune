@@ -24,30 +24,27 @@ pub struct UDim2 {
     pub(crate) y: UDim,
 }
 
-impl LuaExportsTable<'_> for UDim2 {
+impl LuaExportsTable for UDim2 {
     const EXPORT_NAME: &'static str = "UDim2";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let udim2_from_offset = |_, (x, y): (Option<i32>, Option<i32>)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let udim2_from_offset = |_: &Lua, (x, y): (Option<i32>, Option<i32>)| {
             Ok(UDim2 {
                 x: UDim::new(0f32, x.unwrap_or_default()),
                 y: UDim::new(0f32, y.unwrap_or_default()),
             })
         };
 
-        let udim2_from_scale = |_, (x, y): (Option<f32>, Option<f32>)| {
+        let udim2_from_scale = |_: &Lua, (x, y): (Option<f32>, Option<f32>)| {
             Ok(UDim2 {
                 x: UDim::new(x.unwrap_or_default(), 0),
                 y: UDim::new(y.unwrap_or_default(), 0),
             })
         };
 
-        type ArgsUDims<'lua> = (
-            Option<LuaUserDataRef<'lua, UDim>>,
-            Option<LuaUserDataRef<'lua, UDim>>,
-        );
+        type ArgsUDims = (Option<LuaUserDataRef<UDim>>, Option<LuaUserDataRef<UDim>>);
         type ArgsNums = (Option<f32>, Option<i32>, Option<f32>, Option<i32>);
-        let udim2_new = |lua, args: LuaMultiValue| {
+        let udim2_new = |lua: &Lua, args: LuaMultiValue| {
             if let Ok((x, y)) = ArgsUDims::from_lua_multi(args.clone(), lua) {
                 Ok(UDim2 {
                     x: x.map(|x| *x).unwrap_or_default(),
@@ -75,14 +72,14 @@ impl LuaExportsTable<'_> for UDim2 {
 }
 
 impl LuaUserData for UDim2 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("X", |_, this| Ok(this.x));
         fields.add_field_method_get("Y", |_, this| Ok(this.y));
         fields.add_field_method_get("Width", |_, this| Ok(this.x));
         fields.add_field_method_get("Height", |_, this| Ok(this.y));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method(
             "Lerp",

@@ -6,7 +6,7 @@ use super::Instance;
 
 pub const CLASS_NAME: &str = "Workspace";
 
-pub fn add_fields<'lua, F: LuaUserDataFields<'lua, Instance>>(f: &mut F) {
+pub fn add_fields<F: LuaUserDataFields<Instance>>(f: &mut F) {
     add_class_restricted_getter(f, CLASS_NAME, "Terrain", workspace_get_terrain);
     add_class_restricted_getter(f, CLASS_NAME, "CurrentCamera", workspace_get_camera);
 }

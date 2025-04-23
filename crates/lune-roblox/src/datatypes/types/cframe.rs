@@ -43,27 +43,28 @@ impl CFrame {
     }
 }
 
-impl LuaExportsTable<'_> for CFrame {
+impl LuaExportsTable for CFrame {
     const EXPORT_NAME: &'static str = "CFrame";
 
     #[allow(clippy::too_many_lines)]
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let cframe_angles = |_, (rx, ry, rz): (f32, f32, f32)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let cframe_angles = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
         };
 
-        let cframe_from_axis_angle =
-            |_, (v, r): (LuaUserDataRef<Vector3>, f32)| Ok(CFrame(Mat4::from_axis_angle(v.0, r)));
+        let cframe_from_axis_angle = |_: &Lua, (v, r): (LuaUserDataRef<Vector3>, f32)| {
+            Ok(CFrame(Mat4::from_axis_angle(v.0, r)))
+        };
 
-        let cframe_from_euler_angles_xyz = |_, (rx, ry, rz): (f32, f32, f32)| {
+        let cframe_from_euler_angles_xyz = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
         };
 
-        let cframe_from_euler_angles_yxz = |_, (rx, ry, rz): (f32, f32, f32)| {
+        let cframe_from_euler_angles_yxz = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
         };
 
-        let cframe_from_matrix = |_,
+        let cframe_from_matrix = |_: &Lua,
                                   (pos, rx, ry, rz): (
             LuaUserDataRef<Vector3>,
             LuaUserDataRef<Vector3>,
@@ -79,11 +80,11 @@ impl LuaExportsTable<'_> for CFrame {
             )))
         };
 
-        let cframe_from_orientation = |_, (rx, ry, rz): (f32, f32, f32)| {
+        let cframe_from_orientation = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
         };
 
-        let cframe_look_at = |_,
+        let cframe_look_at = |_: &Lua,
                               (from, to, up): (
             LuaUserDataRef<Vector3>,
             LuaUserDataRef<Vector3>,
@@ -97,18 +98,18 @@ impl LuaExportsTable<'_> for CFrame {
         };
 
         // Dynamic args constructor
-        type ArgsPos<'lua> = LuaUserDataRef<'lua, Vector3>;
-        type ArgsLook<'lua> = (
-            LuaUserDataRef<'lua, Vector3>,
-            LuaUserDataRef<'lua, Vector3>,
-            Option<LuaUserDataRef<'lua, Vector3>>,
+        type ArgsPos = LuaUserDataRef<Vector3>;
+        type ArgsLook = (
+            LuaUserDataRef<Vector3>,
+            LuaUserDataRef<Vector3>,
+            Option<LuaUserDataRef<Vector3>>,
         );
 
         type ArgsPosXYZ = (f32, f32, f32);
         type ArgsPosXYZQuat = (f32, f32, f32, f32, f32, f32, f32);
         type ArgsMatrix = (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
 
-        let cframe_new = |lua, args: LuaMultiValue| match args.len() {
+        let cframe_new = |lua: &Lua, args: LuaMultiValue| match args.len() {
             0 => Ok(CFrame(Mat4::IDENTITY)),
 
             1 => match ArgsPos::from_lua_multi(args, lua) {
@@ -174,7 +175,7 @@ impl LuaExportsTable<'_> for CFrame {
 }
 
 impl LuaUserData for CFrame {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Position", |_, this| Ok(Vector3(this.position())));
         fields.add_field_method_get("Rotation", |_, this| {
             Ok(CFrame(Mat4::from_cols(
@@ -200,7 +201,7 @@ impl LuaUserData for CFrame {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Inverse", |_, this, ()| Ok(this.inverse()));
         methods.add_method(
@@ -326,7 +327,7 @@ impl LuaUserData for CFrame {
             }
             Err(LuaError::FromLuaConversionError {
                 from: rhs.type_name(),
-                to: "userdata",
+                to: "userdata".to_string(),
                 message: Some(format!(
                     "Expected CFrame or Vector3, got {}",
                     rhs.type_name()

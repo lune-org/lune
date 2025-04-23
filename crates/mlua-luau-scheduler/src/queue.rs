@@ -27,11 +27,11 @@ impl ThreadQueue {
         Self { queue, event }
     }
 
-    pub fn push_item<'lua>(
+    pub fn push_item(
         &self,
-        lua: &'lua Lua,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        lua: &Lua,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
         let thread = thread.into_lua_thread(lua)?;
         let args = args.into_lua_multi(lua)?;
@@ -50,7 +50,7 @@ impl ThreadQueue {
     pub fn drain_items<'outer, 'lua>(
         &'outer self,
         lua: &'lua Lua,
-    ) -> impl Iterator<Item = (LuaThread<'lua>, LuaMultiValue<'lua>)> + 'outer
+    ) -> impl Iterator<Item = (LuaThread, LuaMultiValue)> + 'outer
     where
         'lua: 'outer,
     {

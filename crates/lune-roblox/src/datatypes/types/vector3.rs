@@ -24,11 +24,11 @@ use super::{super::*, EnumItem};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3(pub Vec3);
 
-impl LuaExportsTable<'_> for Vector3 {
+impl LuaExportsTable for Vector3 {
     const EXPORT_NAME: &'static str = "Vector3";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let vector3_from_axis = |_, normal_id: LuaUserDataRef<EnumItem>| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let vector3_from_axis = |_: &Lua, normal_id: LuaUserDataRef<EnumItem>| {
             if normal_id.parent.desc.name == "Axis" {
                 Ok(match normal_id.name.as_str() {
                     "X" => Vector3(Vec3::X),
@@ -48,7 +48,7 @@ impl LuaExportsTable<'_> for Vector3 {
             }
         };
 
-        let vector3_from_normal_id = |_, normal_id: LuaUserDataRef<EnumItem>| {
+        let vector3_from_normal_id = |_: &Lua, normal_id: LuaUserDataRef<EnumItem>| {
             if normal_id.parent.desc.name == "NormalId" {
                 Ok(match normal_id.name.as_str() {
                     "Left" => Vector3(Vec3::X),
@@ -71,7 +71,7 @@ impl LuaExportsTable<'_> for Vector3 {
             }
         };
 
-        let vector3_new = |_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
+        let vector3_new = |_: &Lua, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
             Ok(Vector3(Vec3 {
                 x: x.unwrap_or_default(),
                 y: y.unwrap_or_default(),
@@ -93,7 +93,7 @@ impl LuaExportsTable<'_> for Vector3 {
 }
 
 impl LuaUserData for Vector3 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Magnitude", |_, this| Ok(this.0.length()));
         fields.add_field_method_get("Unit", |_, this| Ok(Vector3(this.0.normalize())));
         fields.add_field_method_get("X", |_, this| Ok(this.0.x));
@@ -101,7 +101,7 @@ impl LuaUserData for Vector3 {
         fields.add_field_method_get("Z", |_, this| Ok(this.0.z));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector3>| {
             Ok(this.0.angle_between(rhs.0))

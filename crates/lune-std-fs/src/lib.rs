@@ -24,7 +24,7 @@ use self::options::FsWriteOptions;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_async_function("readFile", fs_read_file)?
         .with_async_function("readDir", fs_read_dir)?
@@ -40,13 +40,13 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn fs_read_file(lua: &Lua, path: String) -> LuaResult<LuaString> {
+async fn fs_read_file(lua: Lua, path: String) -> LuaResult<LuaString> {
     let bytes = fs::read(&path).await.into_lua_err()?;
 
     lua.create_string(bytes)
 }
 
-async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
+async fn fs_read_dir(_: Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
     let mut dir = fs::read_dir(&path).await.into_lua_err()?;
     while let Some(dir_entry) = dir.next_entry().await.into_lua_err()? {
@@ -62,23 +62,23 @@ async fn fs_read_dir(_: &Lua, path: String) -> LuaResult<Vec<String>> {
     Ok(dir_strings)
 }
 
-async fn fs_write_file(_: &Lua, (path, contents): (String, BString)) -> LuaResult<()> {
+async fn fs_write_file(_: Lua, (path, contents): (String, BString)) -> LuaResult<()> {
     fs::write(&path, contents.as_bytes()).await.into_lua_err()
 }
 
-async fn fs_write_dir(_: &Lua, path: String) -> LuaResult<()> {
+async fn fs_write_dir(_: Lua, path: String) -> LuaResult<()> {
     fs::create_dir_all(&path).await.into_lua_err()
 }
 
-async fn fs_remove_file(_: &Lua, path: String) -> LuaResult<()> {
+async fn fs_remove_file(_: Lua, path: String) -> LuaResult<()> {
     fs::remove_file(&path).await.into_lua_err()
 }
 
-async fn fs_remove_dir(_: &Lua, path: String) -> LuaResult<()> {
+async fn fs_remove_dir(_: Lua, path: String) -> LuaResult<()> {
     fs::remove_dir_all(&path).await.into_lua_err()
 }
 
-async fn fs_metadata(_: &Lua, path: String) -> LuaResult<FsMetadata> {
+async fn fs_metadata(_: Lua, path: String) -> LuaResult<FsMetadata> {
     match fs::metadata(path).await {
         Err(e) if e.kind() == IoErrorKind::NotFound => Ok(FsMetadata::not_found()),
         Ok(meta) => Ok(FsMetadata::from(meta)),
@@ -86,7 +86,7 @@ async fn fs_metadata(_: &Lua, path: String) -> LuaResult<FsMetadata> {
     }
 }
 
-async fn fs_is_file(_: &Lua, path: String) -> LuaResult<bool> {
+async fn fs_is_file(_: Lua, path: String) -> LuaResult<bool> {
     match fs::metadata(path).await {
         Err(e) if e.kind() == IoErrorKind::NotFound => Ok(false),
         Ok(meta) => Ok(meta.is_file()),
@@ -94,7 +94,7 @@ async fn fs_is_file(_: &Lua, path: String) -> LuaResult<bool> {
     }
 }
 
-async fn fs_is_dir(_: &Lua, path: String) -> LuaResult<bool> {
+async fn fs_is_dir(_: Lua, path: String) -> LuaResult<bool> {
     match fs::metadata(path).await {
         Err(e) if e.kind() == IoErrorKind::NotFound => Ok(false),
         Ok(meta) => Ok(meta.is_dir()),
@@ -102,7 +102,7 @@ async fn fs_is_dir(_: &Lua, path: String) -> LuaResult<bool> {
     }
 }
 
-async fn fs_move(_: &Lua, (from, to, options): (String, String, FsWriteOptions)) -> LuaResult<()> {
+async fn fs_move(_: Lua, (from, to, options): (String, String, FsWriteOptions)) -> LuaResult<()> {
     let path_from = PathBuf::from(from);
     if !path_from.exists() {
         return Err(LuaError::RuntimeError(format!(
@@ -121,6 +121,6 @@ async fn fs_move(_: &Lua, (from, to, options): (String, String, FsWriteOptions))
     Ok(())
 }
 
-async fn fs_copy(_: &Lua, (from, to, options): (String, String, FsWriteOptions)) -> LuaResult<()> {
+async fn fs_copy(_: Lua, (from, to, options): (String, String, FsWriteOptions)) -> LuaResult<()> {
     copy(from, to, options).await
 }

@@ -38,14 +38,14 @@ impl PhysicalProperties {
     }
 }
 
-impl LuaExportsTable<'_> for PhysicalProperties {
+impl LuaExportsTable for PhysicalProperties {
     const EXPORT_NAME: &'static str = "PhysicalProperties";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        type ArgsMaterial<'lua> = LuaUserDataRef<'lua, EnumItem>;
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        type ArgsMaterial = LuaUserDataRef<EnumItem>;
         type ArgsNumbers = (f32, f32, f32, Option<f32>, Option<f32>);
 
-        let physical_properties_new = |lua, args: LuaMultiValue| {
+        let physical_properties_new = |lua: &Lua, args: LuaMultiValue| {
             if let Ok(value) = ArgsMaterial::from_lua_multi(args.clone(), lua) {
                 if value.parent.desc.name == "Material" {
                     match PhysicalProperties::from_material(&value) {
@@ -86,7 +86,7 @@ impl LuaExportsTable<'_> for PhysicalProperties {
 }
 
 impl LuaUserData for PhysicalProperties {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Density", |_, this| Ok(this.density));
         fields.add_field_method_get("Friction", |_, this| Ok(this.friction));
         fields.add_field_method_get("FrictionWeight", |_, this| Ok(this.friction_weight));
@@ -94,7 +94,7 @@ impl LuaUserData for PhysicalProperties {
         fields.add_field_method_get("ElasticityWeight", |_, this| Ok(this.elasticity_weight));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

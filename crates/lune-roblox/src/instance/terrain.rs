@@ -10,7 +10,7 @@ use super::Instance;
 
 pub const CLASS_NAME: &str = "Terrain";
 
-pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(methods: &mut M) {
+pub fn add_methods<M: LuaUserDataMethods<Instance>>(methods: &mut M) {
     add_class_restricted_method(
         methods,
         CLASS_NAME,

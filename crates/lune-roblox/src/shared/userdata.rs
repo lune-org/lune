@@ -90,7 +90,7 @@ where
     }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),
@@ -115,7 +115,7 @@ where
     }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),
@@ -140,7 +140,7 @@ where
     }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),
@@ -171,7 +171,7 @@ where
     }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),
@@ -196,7 +196,7 @@ where
     }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),

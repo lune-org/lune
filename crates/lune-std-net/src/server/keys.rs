@@ -9,10 +9,10 @@ pub(super) struct SvcKeys {
 }
 
 impl SvcKeys {
-    pub(super) fn new<'lua>(
-        lua: &'lua Lua,
-        handle_request: LuaFunction<'lua>,
-        handle_websocket: Option<LuaFunction<'lua>>,
+    pub(super) fn new(
+        lua: Lua,
+        handle_request: LuaFunction,
+        handle_websocket: Option<LuaFunction>,
     ) -> LuaResult<Self> {
         static SERVE_COUNTER: AtomicUsize = AtomicUsize::new(0);
         let count = SERVE_COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -46,14 +46,11 @@ impl SvcKeys {
         self.key_websocket.is_some()
     }
 
-    pub(super) fn request_handler<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaFunction<'lua>> {
+    pub(super) fn request_handler(&self, lua: &Lua) -> LuaResult<LuaFunction> {
         lua.named_registry_value(self.key_request)
     }
 
-    pub(super) fn websocket_handler<'lua>(
-        &self,
-        lua: &'lua Lua,
-    ) -> LuaResult<Option<LuaFunction<'lua>>> {
+    pub(super) fn websocket_handler(&self, lua: &Lua) -> LuaResult<Option<LuaFunction>> {
         self.key_websocket
             .map(|key| lua.named_registry_value(key))
             .transpose()

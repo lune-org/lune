@@ -120,7 +120,7 @@ impl HashOptions {
             .secret
             .ok_or_else(|| LuaError::FromLuaConversionError {
                 from: "nil",
-                to: "string or buffer",
+                to: "string or buffer".to_string(),
                 message: Some("Argument #3 missing or nil".to_string()),
             })?;
 
@@ -174,8 +174,8 @@ impl HashOptions {
     }
 }
 
-impl<'lua> FromLua<'lua> for HashAlgorithm {
-    fn from_lua(value: LuaValue<'lua>, _lua: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for HashAlgorithm {
+    fn from_lua(value: LuaValue, _lua: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(str) = value {
             /*
                 Casing tends to vary for algorithms, so rather than force
@@ -200,7 +200,7 @@ impl<'lua> FromLua<'lua> for HashAlgorithm {
 
                 _ => Err(LuaError::FromLuaConversionError {
                     from: "string",
-                    to: "HashAlgorithm",
+                    to: "HashAlgorithm".to_string(),
                     message: Some(format!(
                         "Invalid hashing algorithm '{str}', valid kinds are:\n{}",
                         HashAlgorithm::ALL
@@ -214,22 +214,22 @@ impl<'lua> FromLua<'lua> for HashAlgorithm {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "HashAlgorithm",
+                to: "HashAlgorithm".to_string(),
                 message: None,
             })
         }
     }
 }
 
-impl<'lua> FromLuaMulti<'lua> for HashOptions {
-    fn from_lua_multi(mut values: LuaMultiValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+impl FromLuaMulti for HashOptions {
+    fn from_lua_multi(mut values: LuaMultiValue, lua: &Lua) -> LuaResult<Self> {
         let algorithm = values
             .pop_front()
             .map(|value| HashAlgorithm::from_lua(value, lua))
             .transpose()?
             .ok_or_else(|| LuaError::FromLuaConversionError {
                 from: "nil",
-                to: "HashAlgorithm",
+                to: "HashOptions".to_string(),
                 message: Some("Argument #1 missing or nil".to_string()),
             })?;
         let message = values
@@ -238,7 +238,7 @@ impl<'lua> FromLuaMulti<'lua> for HashOptions {
             .transpose()?
             .ok_or_else(|| LuaError::FromLuaConversionError {
                 from: "nil",
-                to: "string or buffer",
+                to: "string or buffer".to_string(),
                 message: Some("Argument #2 missing or nil".to_string()),
             })?;
         let secret = values

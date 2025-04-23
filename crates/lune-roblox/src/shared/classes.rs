@@ -6,14 +6,14 @@ use crate::instance::Instance;
 
 use super::instance::class_is_a;
 
-pub(crate) fn add_class_restricted_getter<'lua, F: LuaUserDataFields<'lua, Instance>, R, G>(
+pub(crate) fn add_class_restricted_getter<F: LuaUserDataFields<Instance>, R, G>(
     fields: &mut F,
     class_name: &'static str,
     field_name: &'static str,
     field_getter: G,
 ) where
-    R: IntoLua<'lua>,
-    G: 'static + Fn(&'lua Lua, &Instance) -> LuaResult<R>,
+    R: IntoLua,
+    G: 'static + Fn(&Lua, &Instance) -> LuaResult<R>,
 {
     fields.add_field_method_get(field_name, move |lua, this| {
         if class_is_a(this.get_class_name(), class_name).unwrap_or(false) {
@@ -27,14 +27,14 @@ pub(crate) fn add_class_restricted_getter<'lua, F: LuaUserDataFields<'lua, Insta
 }
 
 #[allow(dead_code)]
-pub(crate) fn add_class_restricted_setter<'lua, F: LuaUserDataFields<'lua, Instance>, A, G>(
+pub(crate) fn add_class_restricted_setter<F: LuaUserDataFields<Instance>, A, G>(
     fields: &mut F,
     class_name: &'static str,
     field_name: &'static str,
     field_getter: G,
 ) where
-    A: FromLua<'lua>,
-    G: 'static + Fn(&'lua Lua, &Instance, A) -> LuaResult<()>,
+    A: FromLua,
+    G: 'static + Fn(&Lua, &Instance, A) -> LuaResult<()>,
 {
     fields.add_field_method_set(field_name, move |lua, this, value| {
         if class_is_a(this.get_class_name(), class_name).unwrap_or(false) {
@@ -47,15 +47,15 @@ pub(crate) fn add_class_restricted_setter<'lua, F: LuaUserDataFields<'lua, Insta
     });
 }
 
-pub(crate) fn add_class_restricted_method<'lua, M: LuaUserDataMethods<'lua, Instance>, A, R, F>(
+pub(crate) fn add_class_restricted_method<M: LuaUserDataMethods<Instance>, A, R, F>(
     methods: &mut M,
     class_name: &'static str,
     method_name: &'static str,
     method: F,
 ) where
-    A: FromLuaMulti<'lua>,
-    R: IntoLuaMulti<'lua>,
-    F: 'static + Fn(&'lua Lua, &Instance, A) -> LuaResult<R>,
+    A: FromLuaMulti,
+    R: IntoLuaMulti,
+    F: 'static + Fn(&Lua, &Instance, A) -> LuaResult<R>,
 {
     methods.add_method(method_name, move |lua, this, args| {
         if class_is_a(this.get_class_name(), class_name).unwrap_or(false) {
@@ -68,21 +68,15 @@ pub(crate) fn add_class_restricted_method<'lua, M: LuaUserDataMethods<'lua, Inst
     });
 }
 
-pub(crate) fn add_class_restricted_method_mut<
-    'lua,
-    M: LuaUserDataMethods<'lua, Instance>,
-    A,
-    R,
-    F,
->(
+pub(crate) fn add_class_restricted_method_mut<M: LuaUserDataMethods<Instance>, A, R, F>(
     methods: &mut M,
     class_name: &'static str,
     method_name: &'static str,
     method: F,
 ) where
-    A: FromLuaMulti<'lua>,
-    R: IntoLuaMulti<'lua>,
-    F: 'static + Fn(&'lua Lua, &mut Instance, A) -> LuaResult<R>,
+    A: FromLuaMulti,
+    R: IntoLuaMulti,
+    F: 'static + Fn(&Lua, &mut Instance, A) -> LuaResult<R>,
 {
     methods.add_method_mut(method_name, move |lua, this, args| {
         if class_is_a(this.get_class_name(), class_name).unwrap_or(false) {

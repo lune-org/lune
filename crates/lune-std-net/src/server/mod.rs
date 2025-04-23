@@ -1,7 +1,4 @@
-use std::{
-    net::SocketAddr,
-    rc::{Rc, Weak},
-};
+use std::net::SocketAddr;
 
 use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
@@ -22,24 +19,14 @@ mod service;
 use keys::SvcKeys;
 use service::Svc;
 
-pub async fn serve<'lua>(
-    lua: &'lua Lua,
-    port: u16,
-    config: ServeConfig<'lua>,
-) -> LuaResult<LuaTable<'lua>> {
+pub async fn serve(lua: Lua, port: u16, config: ServeConfig) -> LuaResult<LuaTable> {
     let addr: SocketAddr = (config.address, port).into();
     let listener = TcpListener::bind(addr).await?;
 
-    let (lua_svc, lua_inner) = {
-        let rc = lua
-            .app_data_ref::<Weak<Lua>>()
-            .expect("Missing weak lua ref")
-            .upgrade()
-            .expect("Lua was dropped unexpectedly");
-        (Rc::clone(&rc), rc)
-    };
+    let lua_svc = lua.clone();
+    let lua_inner = lua.clone();
 
-    let keys = SvcKeys::new(lua, config.handle_request, config.handle_web_socket)?;
+    let keys = SvcKeys::new(lua.clone(), config.handle_request, config.handle_web_socket)?;
     let svc = Svc {
         lua: lua_svc,
         addr,

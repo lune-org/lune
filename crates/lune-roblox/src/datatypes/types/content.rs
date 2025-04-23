@@ -17,13 +17,13 @@ use super::{super::*, EnumItem};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Content(ContentType);
 
-impl LuaExportsTable<'_> for Content {
+impl LuaExportsTable for Content {
     const EXPORT_NAME: &'static str = "Content";
 
-    fn create_exports_table(lua: &'_ Lua) -> LuaResult<LuaTable<'_>> {
-        let from_uri = |_, uri: String| Ok(Self(ContentType::Uri(uri)));
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let from_uri = |_: &Lua, uri: String| Ok(Self(ContentType::Uri(uri)));
 
-        let from_object = |_, obj: LuaUserDataRef<Instance>| {
+        let from_object = |_: &Lua, obj: LuaUserDataRef<Instance>| {
             let database = rbx_reflection_database::get();
             let instance_descriptor = database
                 .classes
@@ -48,7 +48,7 @@ impl LuaExportsTable<'_> for Content {
 }
 
 impl LuaUserData for Content {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("SourceType", |_, this| {
             let variant_name = match &this.0 {
                 ContentType::None => "None",
@@ -81,14 +81,14 @@ impl LuaUserData for Content {
         });
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
 }
 
 impl fmt::Display for Content {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Regardless of the actual content of the Content, Roblox just emits
         // `Content` when casting it to a string. We do not do that.
         write!(f, "Content(")?;

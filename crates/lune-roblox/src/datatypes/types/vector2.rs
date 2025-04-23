@@ -21,11 +21,11 @@ use super::super::*;
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Vector2(pub Vec2);
 
-impl LuaExportsTable<'_> for Vector2 {
+impl LuaExportsTable for Vector2 {
     const EXPORT_NAME: &'static str = "Vector2";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let vector2_new = |_, (x, y): (Option<f32>, Option<f32>)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let vector2_new = |_: &Lua, (x, y): (Option<f32>, Option<f32>)| {
             Ok(Vector2(Vec2 {
                 x: x.unwrap_or_default(),
                 y: y.unwrap_or_default(),
@@ -43,14 +43,14 @@ impl LuaExportsTable<'_> for Vector2 {
 }
 
 impl LuaUserData for Vector2 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Magnitude", |_, this| Ok(this.0.length()));
         fields.add_field_method_get("Unit", |_, this| Ok(Vector2(this.0.normalize())));
         fields.add_field_method_get("X", |_, this| Ok(this.0.x));
         fields.add_field_method_get("Y", |_, this| Ok(this.0.y));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector2>| {
             Ok(this.0.angle_between(rhs.0))

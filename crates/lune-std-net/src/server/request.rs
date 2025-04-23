@@ -45,7 +45,7 @@ impl LuaRequest {
             })
             .collect::<LuaResult<_>>()?;
 
-        TableBuilder::new(lua)?
+        TableBuilder::new(lua.clone())?
             .with_value("method", method)?
             .with_value("path", path)?
             .with_value("query", query)?

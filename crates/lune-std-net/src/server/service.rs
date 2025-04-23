@@ -1,4 +1,4 @@
-use std::{future::Future, net::SocketAddr, pin::Pin, rc::Rc};
+use std::{future::Future, net::SocketAddr, pin::Pin};
 
 use http_body_util::{BodyExt, Full};
 use hyper::{
@@ -17,7 +17,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub(super) struct Svc {
-    pub(super) lua: Rc<Lua>,
+    pub(super) lua: Lua,
     pub(super) addr: SocketAddr,
     pub(super) keys: SvcKeys,
 }

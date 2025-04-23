@@ -25,7 +25,7 @@ use crate::{
     - Lua functions ([`LuaFunction`])
     - Lua chunks ([`LuaChunk`])
 */
-pub trait IntoLuaThread<'lua> {
+pub trait IntoLuaThread {
     /**
         Converts the value into a Lua thread.
 
@@ -33,32 +33,32 @@ pub trait IntoLuaThread<'lua> {
 
         Errors when out of memory.
     */
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>>;
+    fn into_lua_thread(self, lua: &Lua) -> LuaResult<LuaThread>;
 }
 
-impl<'lua> IntoLuaThread<'lua> for LuaThread<'lua> {
-    fn into_lua_thread(self, _: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+impl IntoLuaThread for LuaThread {
+    fn into_lua_thread(self, _: &Lua) -> LuaResult<LuaThread> {
         Ok(self)
     }
 }
 
-impl<'lua> IntoLuaThread<'lua> for LuaFunction<'lua> {
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+impl IntoLuaThread for LuaFunction {
+    fn into_lua_thread(self, lua: &Lua) -> LuaResult<LuaThread> {
         lua.create_thread(self)
     }
 }
 
-impl<'lua> IntoLuaThread<'lua> for LuaChunk<'lua, '_> {
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+impl IntoLuaThread for LuaChunk<'_> {
+    fn into_lua_thread(self, lua: &Lua) -> LuaResult<LuaThread> {
         lua.create_thread(self.into_function()?)
     }
 }
 
-impl<'lua, T> IntoLuaThread<'lua> for &T
+impl<T> IntoLuaThread for &T
 where
-    T: IntoLuaThread<'lua> + Clone,
+    T: IntoLuaThread + Clone,
 {
-    fn into_lua_thread(self, lua: &'lua Lua) -> LuaResult<LuaThread<'lua>> {
+    fn into_lua_thread(self, lua: &Lua) -> LuaResult<LuaThread> {
         self.clone().into_lua_thread(lua)
     }
 }
@@ -72,7 +72,7 @@ where
     - Pushing (spawning) and deferring (pushing to the back) lua threads
     - Tracking and getting the result of lua threads
 */
-pub trait LuaSchedulerExt<'lua> {
+pub trait LuaSchedulerExt {
     /**
         Sets the exit code of the current scheduler.
 
@@ -94,9 +94,9 @@ pub trait LuaSchedulerExt<'lua> {
         Panics if called outside of a running [`Scheduler`].
     */
     fn push_thread_front(
-        &'lua self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        &self,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId>;
 
     /**
@@ -109,9 +109,9 @@ pub trait LuaSchedulerExt<'lua> {
         Panics if called outside of a running [`Scheduler`].
     */
     fn push_thread_back(
-        &'lua self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        &self,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId>;
 
     /**
@@ -119,7 +119,7 @@ pub trait LuaSchedulerExt<'lua> {
 
         Must be called before waiting for a thread to complete or getting its result.
     */
-    fn track_thread(&'lua self, id: ThreadId);
+    fn track_thread(&self, id: ThreadId);
 
     /**
         Gets the result of the given thread.
@@ -130,7 +130,7 @@ pub trait LuaSchedulerExt<'lua> {
 
         Panics if called outside of a running [`Scheduler`].
     */
-    fn get_thread_result(&'lua self, id: ThreadId) -> Option<LuaResult<LuaMultiValue<'lua>>>;
+    fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>>;
 
     /**
         Waits for the given thread to complete.
@@ -141,7 +141,7 @@ pub trait LuaSchedulerExt<'lua> {
 
         Panics if called outside of a running [`Scheduler`].
     */
-    fn wait_for_thread(&'lua self, id: ThreadId) -> impl Future<Output = ()>;
+    fn wait_for_thread(&self, id: ThreadId) -> impl Future<Output = ()>;
 }
 
 /**
@@ -153,7 +153,7 @@ pub trait LuaSchedulerExt<'lua> {
     - Spawning background (`Send`) futures on the current executor
     - Spawning blocking tasks on a separate thread pool
 */
-pub trait LuaSpawnExt<'lua> {
+pub trait LuaSpawnExt {
     /**
         Spawns the given future on the current executor and returns its [`Task`].
 
@@ -182,7 +182,7 @@ pub trait LuaSpawnExt<'lua> {
                 })?
             )?;
 
-            let sched = Scheduler::new(&lua);
+            let sched = Scheduler::new(lua.clone());
             sched.push_thread_front(lua.load("spawnBackgroundTask()"), ());
             block_on(sched.run());
 
@@ -226,7 +226,7 @@ pub trait LuaSpawnExt<'lua> {
                 })?
             )?;
 
-            let sched = Scheduler::new(&lua);
+            let sched = Scheduler::new(lua.clone());
             sched.push_thread_front(lua.load("spawnLocalTask()"), ());
             block_on(sched.run());
 
@@ -268,7 +268,7 @@ pub trait LuaSpawnExt<'lua> {
                 })?
             )?;
 
-            let sched = Scheduler::new(&lua);
+            let sched = Scheduler::new(lua.clone());
             sched.push_thread_front(lua.load("spawnBlockingTask()"), ());
             block_on(sched.run());
 
@@ -282,7 +282,7 @@ pub trait LuaSpawnExt<'lua> {
         T: Send + 'static;
 }
 
-impl<'lua> LuaSchedulerExt<'lua> for Lua {
+impl LuaSchedulerExt for Lua {
     fn set_exit_code(&self, code: u8) {
         let exit = self
             .app_data_ref::<Exit>()
@@ -291,9 +291,9 @@ impl<'lua> LuaSchedulerExt<'lua> for Lua {
     }
 
     fn push_thread_front(
-        &'lua self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        &self,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
         let queue = self
             .app_data_ref::<SpawnedThreadQueue>()
@@ -302,9 +302,9 @@ impl<'lua> LuaSchedulerExt<'lua> for Lua {
     }
 
     fn push_thread_back(
-        &'lua self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        &self,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
         let queue = self
             .app_data_ref::<DeferredThreadQueue>()
@@ -312,21 +312,21 @@ impl<'lua> LuaSchedulerExt<'lua> for Lua {
         queue.push_item(self, thread, args)
     }
 
-    fn track_thread(&'lua self, id: ThreadId) {
+    fn track_thread(&self, id: ThreadId) {
         let map = self
             .app_data_ref::<ThreadResultMap>()
             .expect("lua threads can only be tracked from within an active scheduler");
         map.track(id);
     }
 
-    fn get_thread_result(&'lua self, id: ThreadId) -> Option<LuaResult<LuaMultiValue<'lua>>> {
+    fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>> {
         let map = self
             .app_data_ref::<ThreadResultMap>()
             .expect("lua threads results can only be retrieved from within an active scheduler");
         map.remove(id).map(|r| r.value(self))
     }
 
-    fn wait_for_thread(&'lua self, id: ThreadId) -> impl Future<Output = ()> {
+    fn wait_for_thread(&self, id: ThreadId) -> impl Future<Output = ()> {
         let map = self
             .app_data_ref::<ThreadResultMap>()
             .expect("lua threads results can only be retrieved from within an active scheduler");
@@ -334,7 +334,7 @@ impl<'lua> LuaSchedulerExt<'lua> for Lua {
     }
 }
 
-impl LuaSpawnExt<'_> for Lua {
+impl LuaSpawnExt for Lua {
     fn spawn<F, T>(&self, fut: F) -> Task<T>
     where
         F: Future<Output = T> + Send + 'static,

@@ -23,7 +23,7 @@ impl Enum {
 }
 
 impl LuaUserData for Enum {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("GetEnumItems", |_, this, ()| {
             Ok(this

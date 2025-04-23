@@ -49,7 +49,7 @@ impl LuneStandardGlobal {
     */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
-    pub fn create<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+    pub fn create(&self, lua: Lua) -> LuaResult<LuaValue> {
         let res = match self {
             Self::GTable => crate::globals::g_table::create(lua),
             Self::Print => crate::globals::print::create(lua),

@@ -19,8 +19,8 @@ impl From<ProcessSpawnOptionsStdioKind> for ProcessSpawnOptionsStdio {
     }
 }
 
-impl<'lua> FromLua<'lua> for ProcessSpawnOptionsStdio {
-    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for ProcessSpawnOptionsStdio {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         match value {
             LuaValue::Nil => Ok(Self::default()),
             LuaValue::String(s) => {
@@ -45,7 +45,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptionsStdio {
             }
             _ => Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "ProcessSpawnOptionsStdio",
+                to: "ProcessSpawnOptionsStdio".to_string(),
                 message: Some(format!(
                     "Invalid spawn options stdio - expected string or table, got {}",
                     value.type_name()

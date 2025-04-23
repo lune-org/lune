@@ -38,7 +38,7 @@ stdio = ["dep:lune-std-stdio"]
 task = ["dep:lune-std-task"]
 
 [dependencies]
-mlua = { version = "0.9.9", features = ["luau"] }
+mlua = { version = "0.10.3", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.0.2", path = "../mlua-luau-scheduler" }
 
 serde = { version = "1.0", features = ["derive"] }
