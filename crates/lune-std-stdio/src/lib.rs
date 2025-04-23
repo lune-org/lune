@@ -1,12 +1,17 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use lune_utils::fmt::{pretty_format_multi_value, ValueFormatConfig};
+use std::io::{stderr, stdin, stdout};
+
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
-use tokio::io::{stderr, stdin, stdout, AsyncReadExt, AsyncWriteExt};
+use blocking::Unblock;
+use futures_lite::prelude::*;
 
-use lune_utils::TableBuilder;
+use lune_utils::{
+    fmt::{pretty_format_multi_value, ValueFormatConfig},
+    TableBuilder,
+};
 
 mod prompt;
 mod style_and_color;
@@ -50,14 +55,14 @@ fn stdio_format(_: &Lua, args: LuaMultiValue) -> LuaResult<String> {
 }
 
 async fn stdio_write(_: Lua, s: LuaString) -> LuaResult<()> {
-    let mut stdout = stdout();
+    let mut stdout = Unblock::new(stdout());
     stdout.write_all(&s.as_bytes()).await?;
     stdout.flush().await?;
     Ok(())
 }
 
 async fn stdio_ewrite(_: Lua, s: LuaString) -> LuaResult<()> {
-    let mut stderr = stderr();
+    let mut stderr = Unblock::new(stderr());
     stderr.write_all(&s.as_bytes()).await?;
     stderr.flush().await?;
     Ok(())
@@ -73,7 +78,7 @@ async fn stdio_ewrite(_: Lua, s: LuaString) -> LuaResult<()> {
 
 async fn stdio_read_to_end(lua: Lua, (): ()) -> LuaResult<LuaString> {
     let mut input = Vec::new();
-    let mut stdin = stdin();
+    let mut stdin = Unblock::new(stdin());
     stdin.read_to_end(&mut input).await?;
     lua.create_string(&input)
 }

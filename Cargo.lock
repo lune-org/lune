@@ -1732,11 +1732,13 @@ dependencies = [
 name = "lune-std-stdio"
 version = "0.1.2"
 dependencies = [
+ "async-io",
+ "blocking",
  "dialoguer",
+ "futures-lite",
  "lune-utils",
  "mlua",
  "mlua-luau-scheduler",
- "tokio",
 ]
 
 [[package]]
