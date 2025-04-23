@@ -1,10 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use mlua::prelude::*;
-use once_cell::sync::Lazy;
 use semver::Version;
 
-static LUAU_VERSION: Lazy<Arc<String>> = Lazy::new(create_luau_version_string);
+static LUAU_VERSION: LazyLock<Arc<String>> = LazyLock::new(create_luau_version_string);
 
 /**
     Returns a Lune version string, in the format `Lune x.y.z+luau`.

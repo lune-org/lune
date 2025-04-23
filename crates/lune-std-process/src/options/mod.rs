@@ -62,7 +62,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
                     return Err(LuaError::runtime(
                         "Invalid value for option 'cwd' - path does not exist",
                     ));
-                };
+                }
                 this.cwd = Some(cwd);
             }
             value => {

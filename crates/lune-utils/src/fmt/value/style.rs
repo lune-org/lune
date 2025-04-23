@@ -1,9 +1,10 @@
+use std::sync::LazyLock;
+
 use console::Style;
-use once_cell::sync::Lazy;
 
-pub static COLOR_GREEN: Lazy<Style> = Lazy::new(|| Style::new().green());
-pub static COLOR_YELLOW: Lazy<Style> = Lazy::new(|| Style::new().yellow());
-pub static COLOR_MAGENTA: Lazy<Style> = Lazy::new(|| Style::new().magenta());
-pub static COLOR_CYAN: Lazy<Style> = Lazy::new(|| Style::new().cyan());
+pub static COLOR_GREEN: LazyLock<Style> = LazyLock::new(|| Style::new().green());
+pub static COLOR_YELLOW: LazyLock<Style> = LazyLock::new(|| Style::new().yellow());
+pub static COLOR_MAGENTA: LazyLock<Style> = LazyLock::new(|| Style::new().magenta());
+pub static COLOR_CYAN: LazyLock<Style> = LazyLock::new(|| Style::new().cyan());
 
-pub static STYLE_DIM: Lazy<Style> = Lazy::new(|| Style::new().dim());
+pub static STYLE_DIM: LazyLock<Style> = LazyLock::new(|| Style::new().dim());

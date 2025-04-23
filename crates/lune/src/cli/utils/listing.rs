@@ -1,17 +1,16 @@
 #![allow(clippy::match_same_arms)]
 
-use std::{cmp::Ordering, ffi::OsStr, fmt::Write as _, path::PathBuf};
+use std::{cmp::Ordering, ffi::OsStr, fmt::Write as _, path::PathBuf, sync::LazyLock};
 
 use anyhow::{bail, Result};
 use console::Style;
 use directories::UserDirs;
-use once_cell::sync::Lazy;
 use tokio::{fs, io};
 
 use super::files::{discover_script_path, parse_lune_description_from_file};
 
-pub static COLOR_BLUE: Lazy<Style> = Lazy::new(|| Style::new().blue());
-pub static STYLE_DIM: Lazy<Style> = Lazy::new(|| Style::new().dim());
+pub static COLOR_BLUE: LazyLock<Style> = LazyLock::new(|| Style::new().blue());
+pub static STYLE_DIM: LazyLock<Style> = LazyLock::new(|| Style::new().dim());
 
 pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)>> {
     let base_path = if in_home_dir {

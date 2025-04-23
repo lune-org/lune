@@ -87,7 +87,7 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
         to: type_name::<D>(),
@@ -112,7 +112,7 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
         to: type_name::<D>(),
@@ -137,7 +137,7 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
         to: type_name::<D>(),
@@ -168,7 +168,7 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
         to: type_name::<D>(),
@@ -193,7 +193,7 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
         to: type_name::<D>(),

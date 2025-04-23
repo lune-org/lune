@@ -1,14 +1,13 @@
 use std::{
     env::{current_dir, current_exe},
     path::{Path, PathBuf, MAIN_SEPARATOR},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
-use once_cell::sync::Lazy;
 use path_clean::PathClean;
 
-static CWD: Lazy<Arc<Path>> = Lazy::new(create_cwd);
-static EXE: Lazy<Arc<Path>> = Lazy::new(create_exe);
+static CWD: LazyLock<Arc<Path>> = LazyLock::new(create_cwd);
+static EXE: LazyLock<Arc<Path>> = LazyLock::new(create_exe);
 
 fn create_cwd() -> Arc<Path> {
     let mut cwd = current_dir()

@@ -266,7 +266,7 @@ impl RequireContext {
                     Ok(LuaMultiValue::from_vec(multi_vec))
                 }
             };
-        };
+        }
 
         let result = library.module(lua);
 

@@ -81,7 +81,7 @@ impl ReplCommand {
                     eprintln!("REPL ERROR: {err}");
                     return Ok(ExitCode::FAILURE);
                 }
-            };
+            }
 
             // TODO: Preserve context here somehow?
             let eval_result = lune_instance.run("REPL", &source_code).await;
@@ -97,7 +97,7 @@ impl ReplCommand {
                         eprintln!("{err}");
                     }
                 }
-            };
+            }
         }
 
         repl.save_history(history_file_path)?;

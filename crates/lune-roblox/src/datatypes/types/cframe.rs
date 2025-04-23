@@ -323,7 +323,7 @@ impl LuaUserData for CFrame {
                 } else if let Ok(vec) = ud.borrow::<Vector3>() {
                     return lua.create_userdata(*this * *vec);
                 }
-            };
+            }
             Err(LuaError::FromLuaConversionError {
                 from: rhs.type_name(),
                 to: "userdata",

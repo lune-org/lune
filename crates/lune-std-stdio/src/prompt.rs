@@ -192,7 +192,7 @@ pub fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
             let mut prompt = Confirm::with_theme(&theme);
             if let Some(b) = options.default_bool {
                 prompt = prompt.default(b);
-            };
+            }
             let result = prompt
                 .with_prompt(options.text.expect("Missing text in prompt options"))
                 .interact()

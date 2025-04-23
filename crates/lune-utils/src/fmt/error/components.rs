@@ -1,14 +1,15 @@
-use std::fmt;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{
+    fmt,
+    str::FromStr,
+    sync::{Arc, LazyLock},
+};
 
 use console::style;
 use mlua::prelude::*;
-use once_cell::sync::Lazy;
 
 use super::StackTrace;
 
-static STYLED_STACK_BEGIN: Lazy<String> = Lazy::new(|| {
+static STYLED_STACK_BEGIN: LazyLock<String> = LazyLock::new(|| {
     format!(
         "{}{}{}",
         style("[").dim(),
@@ -17,7 +18,7 @@ static STYLED_STACK_BEGIN: Lazy<String> = Lazy::new(|| {
     )
 });
 
-static STYLED_STACK_END: Lazy<String> = Lazy::new(|| {
+static STYLED_STACK_END: LazyLock<String> = LazyLock::new(|| {
     format!(
         "{}{}{}",
         style("[").dim(),

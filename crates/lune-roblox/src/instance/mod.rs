@@ -4,11 +4,10 @@ use std::{
     collections::{BTreeMap, VecDeque},
     fmt,
     hash::{Hash, Hasher},
-    sync::Mutex,
+    sync::{LazyLock, Mutex},
 };
 
 use mlua::prelude::*;
-use once_cell::sync::Lazy;
 use rbx_dom_weak::{
     types::{Attributes as DomAttributes, Ref as DomRef, Variant as DomValue},
     ustr, Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, Ustr, WeakDom,
@@ -31,8 +30,8 @@ pub mod registry;
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
 const PROPERTY_NAME_TAGS: &str = "Tags";
 
-static INTERNAL_DOM: Lazy<Mutex<WeakDom>> =
-    Lazy::new(|| Mutex::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
+static INTERNAL_DOM: LazyLock<Mutex<WeakDom>> =
+    LazyLock::new(|| Mutex::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
 
 #[derive(Debug, Clone, Copy)]
 pub struct Instance {
@@ -694,8 +693,7 @@ impl Instance {
         predicate callback and a breadth-first search.
 
         ### See Also
-        * [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant)
-            on the Roblox Developer Hub
+        * [`FindFirstDescendant`](https://create.roblox.com/docs/reference/engine/classes/Instance#FindFirstDescendant) on the Roblox Developer Hub
     */
     pub fn find_descendant<F>(&self, predicate: F) -> Option<Instance>
     where

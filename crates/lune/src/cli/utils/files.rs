@@ -1,16 +1,16 @@
 use std::{
     fs::Metadata,
     path::{PathBuf, MAIN_SEPARATOR},
+    sync::LazyLock,
 };
 
 use anyhow::{anyhow, bail, Result};
 use console::style;
 use directories::UserDirs;
-use once_cell::sync::Lazy;
 
 const LUNE_COMMENT_PREFIX: &str = "-->";
 
-static ERR_MESSAGE_HELP_NOTE: Lazy<String> = Lazy::new(|| {
+static ERR_MESSAGE_HELP_NOTE: LazyLock<String> = LazyLock::new(|| {
     format!(
         "To run this file, either:\n{}\n{}",
         format_args!(

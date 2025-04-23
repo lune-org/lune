@@ -76,7 +76,7 @@ impl FromLua<'_> for DateTimeValues {
                 to: "DateTimeValues",
                 message: Some("value must be a table".to_string()),
             });
-        };
+        }
 
         let value = value.as_table().unwrap();
         let values = Self {
