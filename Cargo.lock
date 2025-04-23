@@ -1760,7 +1760,6 @@ dependencies = [
  "path-clean",
  "pathdiff",
  "semver 1.0.23",
- "tokio",
 ]
 
 [[package]]

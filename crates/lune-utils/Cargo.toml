@@ -15,8 +15,6 @@ workspace = true
 [dependencies]
 mlua = { version = "0.10.3", features = ["luau", "async"] }
 
-tokio = { version = "1", default-features = false, features = ["fs"] }
-
 console = "0.15"
 dunce = "1.0"
 path-clean = "1.0"
