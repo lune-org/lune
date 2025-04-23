@@ -193,6 +193,24 @@ end
 	@within DateTime
 	@tag Method
 
+	Formats this `DateTime` as an RFC 2822 date-time string.
+
+	Some examples of RFC 2822 date-time strings are:
+
+	- `Fri, 21 Nov 1997 09:55:06 -0600`
+	- `Tue, 1 Jul 2003 10:52:37 +0200`
+	- `Mon, 23 Dec 2024 01:58:48 GMT`
+
+	@return string -- The RFC 2822 formatted string
+]=]
+function DateTime.toRfc2822(self: DateTime): string
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+	@tag Method
+
 	Extracts separated local date & time values from this `DateTime`.
 
 	The returned table contains the following values:
@@ -254,6 +272,9 @@ export type DateTime = typeof(DateTime)
 
 	-- Formats the current moment in time as an ISO 8601 string
 	print(now:toIsoDate())
+
+	-- Formats the current moment in time as an RFC 2822 string
+	print(now:toRfc2822())
 
 	-- Formats the current moment in time, using the local
 	-- time, the French locale, and the specified time string
@@ -395,6 +416,7 @@ end
 	@tag Constructor
 
 	Creates a new `DateTime` from an ISO 8601 date-time string.
+	This function behaves the same as `fromRfc3339`.
 
 	### Errors
 
@@ -411,6 +433,54 @@ end
 	@return DateTime -- The new DateTime object
 ]=]
 function dateTime.fromIsoDate(isoDate: string): DateTime
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+	@tag Constructor
+
+	Creates a new `DateTime` from an RFC 3339 date-time string.
+
+	### Errors
+
+	This constructor is fallible and may throw an error if the given
+	string does not strictly follow the RFC 3339 date-time string format.
+
+	Some examples of valid RFC 3339 date-time strings are:
+
+	- `2020-02-22T18:12:08Z`
+	- `2000-01-31T12:34:56+05:00`
+	- `1970-01-01T00:00:00.055Z`
+
+	@param rfc3339Date -- An RFC 3339 formatted string
+	@return DateTime -- The new DateTime object
+]=]
+function dateTime.fromRfc3339(rfc3339Date: string): DateTime
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+	@tag Constructor
+
+	Creates a new `DateTime` from an RFC 2822 date-time string.
+
+	### Errors
+
+	This constructor is fallible and may throw an error if the given
+	string does not strictly follow the RFC 2822 date-time string format.
+
+	Some examples of valid RFC 2822 date-time strings are:
+
+	- `Fri, 21 Nov 1997 09:55:06 -0600`
+	- `Tue, 1 Jul 2003 10:52:37 +0200`
+	- `Mon, 23 Dec 2024 01:58:48 GMT`
+
+	@param rfc2822Date -- An RFC 2822 formatted string
+	@return DateTime -- The new DateTime object
+]=]
+function dateTime.fromRfc2822(rfc2822Date: string): DateTime
 	return nil :: any
 end
 
