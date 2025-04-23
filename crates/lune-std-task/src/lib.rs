@@ -1,14 +1,12 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use async_io::Timer;
+use futures_lite::future::yield_now;
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::Functions;
-
-use tokio::{
-    task::yield_now,
-    time::{sleep, Instant},
-};
 
 use lune_utils::TableBuilder;
 
@@ -60,11 +58,17 @@ async fn wait(lua: Lua, secs: Option<f64>) -> LuaResult<f64> {
 }
 
 async fn wait_inner(_: Lua, secs: Option<f64>) -> LuaResult<f64> {
+    // One millisecond is a reasonable minimum sleep duration,
+    // anything lower than this runs the risk of completing the
+    // the below timer instantly, without giving control to the OS ...
     let duration = Duration::from_secs_f64(secs.unwrap_or_default());
-
+    let duration = duration.max(Duration::from_millis(1));
+    // ... however, we should still _guarantee_ that whatever
+    // coroutine that calls this sleep function always yields,
+    // even if the timer is able to complete without doing so
+    yield_now().await;
+    // We may then sleep as normal
     let before = Instant::now();
-    sleep(duration).await;
-    let after = Instant::now();
-
+    let after = Timer::after(duration).await;
     Ok((after - before).as_secs_f64())
 }
