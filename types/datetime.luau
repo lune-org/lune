@@ -163,17 +163,15 @@ end
 	@param locale -- The locale the time should be formatted in
 	@return string -- The formatting string
 ]=]
-function DateTime.formatUniversalTime(
-	self: DateTime,
-	formatString: string?,
-	locale: Locale?
-): string
+function DateTime.formatUniversalTime(self: DateTime, formatString: string?, locale: Locale?): string
 	return nil :: any
 end
 
 --[=[
 	@within DateTime
 	@tag Method
+
+	**DEPRECATED**: Use `DateTime.toRfc3339` instead.
 
 	Formats this `DateTime` as an ISO 8601 date-time string.
 
@@ -204,6 +202,24 @@ end
 	@return string -- The RFC 2822 formatted string
 ]=]
 function DateTime.toRfc2822(self: DateTime): string
+	return nil :: any
+end
+
+--[=[
+	@within DateTime
+	@tag Method
+
+	Formats this `DateTime` as an RFC 3339 date-time string.
+
+	Some examples of RFC 3339 date-time strings are:
+
+	- `2020-02-22T18:12:08Z`
+	- `2000-01-31T12:34:56+05:00`
+	- `1970-01-01T00:00:00.055Z`
+
+	@return string -- The RFC 3339 formatted string
+]=]
+function DateTime.toRfc3339(self: DateTime): string
 	return nil :: any
 end
 
@@ -270,8 +286,8 @@ export type DateTime = typeof(DateTime)
 	-- Creates a DateTime for the current exact moment in time
 	local now = DateTime.now()
 
-	-- Formats the current moment in time as an ISO 8601 string
-	print(now:toIsoDate())
+	-- Formats the current moment in time as an RFC 3339 string
+	print(now:toRfc3339())
 
 	-- Formats the current moment in time as an RFC 2822 string
 	print(now:toRfc2822())
@@ -415,8 +431,9 @@ end
 	@within DateTime
 	@tag Constructor
 
+	**DEPRECATED**: Use `DateTime.fromRfc3339` instead.
+
 	Creates a new `DateTime` from an ISO 8601 date-time string.
-	This function behaves the same as `fromRfc3339`.
 
 	### Errors
 

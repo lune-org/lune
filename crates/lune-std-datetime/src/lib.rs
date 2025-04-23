@@ -19,14 +19,14 @@ pub use self::date_time::DateTime;
 */
 pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
-        .with_function("fromIsoDate", |_, iso_date: String| {
-            Ok(DateTime::from_iso_date(iso_date)?)
+        .with_function("fromIsoDate", |_, date: String| {
+            Ok(DateTime::from_rfc_3339(date)?) // FUTURE: Remove this rfc3339 alias method
         })?
-        .with_function("fromRfc3339", |_, iso_date: String| {
-            Ok(DateTime::from_iso_date(iso_date)?)
+        .with_function("fromRfc3339", |_, date: String| {
+            Ok(DateTime::from_rfc_3339(date)?)
         })?
-        .with_function("fromRfc2822", |_, rfc_date: String| {
-            Ok(DateTime::from_rfc_2822_date(rfc_date)?)
+        .with_function("fromRfc2822", |_, date: String| {
+            Ok(DateTime::from_rfc_2822(date)?)
         })?
         .with_function("fromLocalTime", |_, values| {
             Ok(DateTime::from_local_time(&values)?)

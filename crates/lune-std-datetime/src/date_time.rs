@@ -159,7 +159,7 @@ impl DateTime {
     }
 
     /**
-        Parses a time string in the ISO 8601 format, such as
+        Parses a time string in the RFC 3339 format, such as
         `1996-12-19T16:39:57-08:00`, into a new `DateTime` struct.
 
         See [`chrono::DateTime::parse_from_rfc3339`] for additional details.
@@ -168,8 +168,8 @@ impl DateTime {
 
         Returns an error if the input string is not a valid RFC 3339 date-time.
     */
-    pub fn from_iso_date(iso_date: impl AsRef<str>) -> DateTimeResult<Self> {
-        let inner = ChronoDateTime::parse_from_rfc3339(iso_date.as_ref())?.with_timezone(&Utc);
+    pub fn from_rfc_3339(date: impl AsRef<str>) -> DateTimeResult<Self> {
+        let inner = ChronoDateTime::parse_from_rfc3339(date.as_ref())?.with_timezone(&Utc);
         Ok(Self { inner })
     }
 
@@ -183,8 +183,8 @@ impl DateTime {
 
         Returns an error if the input string is not a valid RFC 2822 date-time.
     */
-    pub fn from_rfc_2822_date(rfc_date: impl AsRef<str>) -> DateTimeResult<Self> {
-        let inner = ChronoDateTime::parse_from_rfc2822(rfc_date.as_ref())?.with_timezone(&Utc);
+    pub fn from_rfc_2822(date: impl AsRef<str>) -> DateTimeResult<Self> {
+        let inner = ChronoDateTime::parse_from_rfc2822(date.as_ref())?.with_timezone(&Utc);
         Ok(Self { inner })
     }
 
@@ -207,12 +207,12 @@ impl DateTime {
     }
 
     /**
-        Formats a time string in the ISO 8601 format, such as `1996-12-19T16:39:57-08:00`.
+        Formats a time string in the RFC 3339 format, such as `1996-12-19T16:39:57-08:00`.
 
         See [`chrono::DateTime::to_rfc3339`] for additional details.
     */
     #[must_use]
-    pub fn to_iso_date(self) -> String {
+    pub fn to_rfc_3339(self) -> String {
         self.inner.to_rfc3339()
     }
 
@@ -222,7 +222,7 @@ impl DateTime {
         See [`chrono::DateTime::to_rfc2822`] for additional details.
     */
     #[must_use]
-    pub fn to_rfc_2822_date(self) -> String {
+    pub fn to_rfc_2822(self) -> String {
         self.inner.to_rfc2822()
     }
 }
@@ -254,9 +254,9 @@ impl LuaUserData for DateTime {
             },
         );
         // Normal methods
-        methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_iso_date()));
-        methods.add_method("toRfc3339", |_, this, ()| Ok(this.to_iso_date()));
-        methods.add_method("toRfc2822", |_, this, ()| Ok(this.to_rfc_2822_date()));
+        methods.add_method("toIsoDate", |_, this, ()| Ok(this.to_rfc_3339())); // FUTURE: Remove this rfc3339 alias method
+        methods.add_method("toRfc3339", |_, this, ()| Ok(this.to_rfc_3339()));
+        methods.add_method("toRfc2822", |_, this, ()| Ok(this.to_rfc_2822()));
         methods.add_method(
             "formatUniversalTime",
             |_, this, (format, locale): (Option<String>, Option<String>)| {

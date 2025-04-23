@@ -1,35 +1,26 @@
 local DateTime = require("@lune/datetime")
 
 local now = DateTime.now()
-local nowIso = now:toIsoDate()
+local nowRfc = now:toRfc3339()
 
 -- Make sure we have separator characters, T to separate date & time, + or Z to separate timezone
 
-local dateTimeSplitIdx = string.find(nowIso, "T")
-local timezoneSplitIdx = string.find(nowIso, "+")
-local timezoneZeroedIdx = string.find(nowIso, "Z")
+local dateTimeSplitIdx = string.find(nowRfc, "T")
+local timezoneSplitIdx = string.find(nowRfc, "+")
+local timezoneZeroedIdx = string.find(nowRfc, "Z")
 
-assert(dateTimeSplitIdx ~= nil, "Missing date & time separator 'T' in iso 8601 string")
-assert(
-	timezoneSplitIdx ~= nil or timezoneZeroedIdx ~= nil,
-	"Missing timezone separator '+' or 'Z' in iso date string"
-)
+assert(dateTimeSplitIdx ~= nil, "Missing date & time separator 'T' in RFC 3339 string")
+assert(timezoneSplitIdx ~= nil or timezoneZeroedIdx ~= nil, "Missing timezone separator '+' or 'Z' in RFC 3339 string")
 
 -- Split date (before T) by dashes, split time (after T, before + or Z)
 -- by colons, we should then get 3 substrings for each of date & time
 
-local dateParts = string.split(string.sub(nowIso, 1, dateTimeSplitIdx - 1), "-")
-local timeParts = string.split(
-	string.sub(
-		nowIso,
-		dateTimeSplitIdx + 1,
-		((timezoneSplitIdx or timezoneZeroedIdx) :: number) - 1
-	),
-	":"
-)
+local dateParts = string.split(string.sub(nowRfc, 1, dateTimeSplitIdx - 1), "-")
+local timeParts =
+	string.split(string.sub(nowRfc, dateTimeSplitIdx + 1, ((timezoneSplitIdx or timezoneZeroedIdx) :: number) - 1), ":")
 
-assert(#dateParts == 3, "Date partial of iso 8601 should consist of 3 substrings, separated by '-'")
-assert(#timeParts == 3, "Time partial of iso 8601 should consist of 3 substrings, separated by ':'")
+assert(#dateParts == 3, "Date partial of RFC 3339 should consist of 3 substrings, separated by '-'")
+assert(#timeParts == 3, "Time partial of RFC 3339 should consist of 3 substrings, separated by ':'")
 
 -- date should be in format YYYY:MM::DD
 -- time should be in format HH:MM:SS with optional fraction for seconds
@@ -51,22 +42,13 @@ assert(
 
 if timezoneZeroedIdx ~= nil then
 	-- No timezone offset
-	assert(
-		timezoneZeroedIdx == #nowIso,
-		"Timezone specifier 'Z' must be at the last character in iso 8601 string"
-	)
+	assert(timezoneZeroedIdx == #nowRfc, "Timezone specifier 'Z' must be at the last character in RFC 3339 string")
 elseif timezoneSplitIdx ~= nil then
 	-- Timezone offset
-	local timezoneParts = string.split(string.sub(nowIso, timezoneSplitIdx + 1), ":")
+	local timezoneParts = string.split(string.sub(nowRfc, timezoneSplitIdx + 1), ":")
 	assert(#timezoneParts == 2, "Timezone partial should consist of 2 substings, separated by ':'")
-	assert(
-		string.match(timezoneParts[1], "^%d%d$"),
-		"Timezone partial should have 2 digits for hour"
-	)
-	assert(
-		string.match(timezoneParts[2], "^%d%d$"),
-		"Timezone partial should have 2 digits for minute"
-	)
+	assert(string.match(timezoneParts[1], "^%d%d$"), "Timezone partial should have 2 digits for hour")
+	assert(string.match(timezoneParts[2], "^%d%d$"), "Timezone partial should have 2 digits for minute")
 else
 	error("unreachable")
 end
