@@ -5,7 +5,10 @@ use std::time::Duration;
 use mlua::prelude::*;
 use mlua_luau_scheduler::Functions;
 
-use tokio::time::{sleep, Instant};
+use tokio::{
+    task::yield_now,
+    time::{sleep, Instant},
+};
 
 use lune_utils::TableBuilder;
 
@@ -49,7 +52,14 @@ return defer(function(...)
 end, ...)
 ";
 
-async fn wait(_: Lua, secs: Option<f64>) -> LuaResult<f64> {
+async fn wait(lua: Lua, secs: Option<f64>) -> LuaResult<f64> {
+    // NOTE: We must guarantee that the task.wait API always yields
+    // from a lua perspective, even if sleep/timer completes instantly
+    yield_now().await;
+    wait_inner(lua, secs).await
+}
+
+async fn wait_inner(_: Lua, secs: Option<f64>) -> LuaResult<f64> {
     let duration = Duration::from_secs_f64(secs.unwrap_or_default());
 
     let before = Instant::now();

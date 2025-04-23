@@ -4,6 +4,7 @@
 use std::time::{Duration, Instant};
 
 use async_io::{block_on, Timer};
+use futures_lite::future::yield_now;
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::Scheduler;
@@ -22,6 +23,10 @@ pub fn main() -> LuaResult<()> {
     lua.globals().set(
         "sleep",
         lua.create_async_function(|_, duration: f64| async move {
+            // Guarantee that the coroutine that calls this sleep function
+            // always yields, even if the timer completes without doing so
+            yield_now().await;
+            // We may then sleep as normal
             let before = Instant::now();
             let after = Timer::after(Duration::from_secs_f64(duration)).await;
             Ok((after - before).as_secs_f64())
