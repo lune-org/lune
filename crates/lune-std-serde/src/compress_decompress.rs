@@ -2,14 +2,12 @@ use std::io::{copy as copy_std, Cursor, Read as _, Write as _};
 
 use mlua::prelude::*;
 
+use blocking::unblock;
+use futures_lite::io::{copy, BufReader};
 use lz4::{Decoder, EncoderBuilder};
-use tokio::{
-    io::{copy, BufReader},
-    task::spawn_blocking,
-};
 
 use async_compression::{
-    tokio::bufread::{
+    futures::bufread::{
         BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
     },
     Level::Best as CompressionQuality,
@@ -124,10 +122,7 @@ pub async fn compress(
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return spawn_blocking(move || compress_lz4(source))
-            .await
-            .into_lua_err()?
-            .into_lua_err();
+        return unblock(move || compress_lz4(source)).await.into_lua_err();
     }
 
     let mut bytes = Vec::new();
@@ -169,10 +164,7 @@ pub async fn decompress(
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return spawn_blocking(move || decompress_lz4(source))
-            .await
-            .into_lua_err()?
-            .into_lua_err();
+        return unblock(move || decompress_lz4(source)).await.into_lua_err();
     }
 
     let mut bytes = Vec::new();

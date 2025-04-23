@@ -183,9 +183,9 @@ dependencies = [
  "brotli",
  "flate2",
  "futures-core",
+ "futures-io",
  "memchr",
  "pin-project-lite",
- "tokio",
 ]
 
 [[package]]
@@ -1711,8 +1711,10 @@ version = "0.1.2"
 dependencies = [
  "async-compression",
  "blake3",
+ "blocking",
  "bstr",
  "digest",
+ "futures-lite",
  "hmac",
  "lune-utils",
  "lz4",
@@ -1724,7 +1726,6 @@ dependencies = [
  "sha1 0.10.6",
  "sha2",
  "sha3",
- "tokio",
  "toml",
 ]
 
