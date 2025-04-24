@@ -41,9 +41,12 @@ task = ["dep:lune-std-task"]
 mlua = { version = "0.10.3", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.0.2", path = "../mlua-luau-scheduler" }
 
+async-channel = "2.3"
+async-fs = "2.1"
+async-lock = "3.4"
+
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", default-features = false, features = ["fs", "sync"] }
 
 lune-utils = { version = "0.1.3", path = "../lune-utils" }
 

@@ -7,13 +7,9 @@ use std::{
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSchedulerExt;
 
-use tokio::{
-    fs::read,
-    sync::{
-        broadcast::{self, Sender},
-        Mutex as AsyncMutex,
-    },
-};
+use async_channel::{unbounded, Receiver};
+use async_fs::read;
+use async_lock::Mutex as AsyncMutex;
 
 use lune_utils::path::{clean_path, clean_path_and_make_absolute};
 
@@ -29,7 +25,7 @@ use crate::library::LuneStandardLibrary;
 pub(super) struct RequireContext {
     libraries: Arc<AsyncMutex<HashMap<LuneStandardLibrary, LuaResult<LuaRegistryKey>>>>,
     results: Arc<AsyncMutex<HashMap<PathBuf, LuaResult<LuaRegistryKey>>>>,
-    pending: Arc<AsyncMutex<HashMap<PathBuf, Sender<()>>>>,
+    pending: Arc<AsyncMutex<HashMap<PathBuf, Receiver<()>>>>,
 }
 
 impl RequireContext {
@@ -160,15 +156,15 @@ impl RequireContext {
         lua: Lua,
         abs_path: impl AsRef<Path>,
     ) -> LuaResult<LuaMultiValue> {
-        let mut thread_recv = {
+        let thread_recv = {
             let pending = self
                 .pending
                 .try_lock()
                 .expect("RequireContext may not be used from multiple threads");
-            let thread_id = pending
+            let thread_recv = pending
                 .get(abs_path.as_ref())
                 .expect("Path is not currently pending require");
-            thread_id.subscribe()
+            thread_recv.clone()
         };
 
         thread_recv.recv().await.into_lua_err()?;
@@ -224,11 +220,11 @@ impl RequireContext {
         let rel_path = rel_path.as_ref();
 
         // Set this abs path as currently pending
-        let (broadcast_tx, _) = broadcast::channel(1);
+        let (broadcast_tx, broadcast_rx) = unbounded();
         self.pending
             .try_lock()
             .expect("RequireContext may not be used from multiple threads")
-            .insert(abs_path.to_path_buf(), broadcast_tx);
+            .insert(abs_path.to_path_buf(), broadcast_rx);
 
         // Try to load at this abs path
         let load_res = self.load(lua.clone(), abs_path, rel_path).await;
@@ -253,13 +249,12 @@ impl RequireContext {
         // Remove the pending thread id from the require context,
         // broadcast a message to let any listeners know that this
         // path has now finished the require process and is cached
-        let broadcast_tx = self
-            .pending
+        self.pending
             .try_lock()
             .expect("RequireContext may not be used from multiple threads")
             .remove(abs_path)
             .expect("Pending require broadcaster was unexpectedly removed");
-        broadcast_tx.send(()).ok();
+        broadcast_tx.send(()).await.ok();
 
         load_val
     }

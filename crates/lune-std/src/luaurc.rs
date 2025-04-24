@@ -4,9 +4,9 @@ use std::{
     sync::Arc,
 };
 
+use async_fs::read;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use tokio::fs::read;
 
 use lune_utils::path::{clean_path, clean_path_and_make_absolute};
 

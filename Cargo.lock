@@ -1735,6 +1735,9 @@ dependencies = [
 name = "lune-std"
 version = "0.1.5"
 dependencies = [
+ "async-channel",
+ "async-fs",
+ "async-lock",
  "lune-std-datetime",
  "lune-std-fs",
  "lune-std-luau",
@@ -1750,7 +1753,6 @@ dependencies = [
  "mlua-luau-scheduler",
  "serde",
  "serde_json",
- "tokio",
 ]
 
 [[package]]
