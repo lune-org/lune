@@ -53,7 +53,7 @@ impl LuaUserData for Vector2 {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector2>| {
-            Ok(this.0.angle_between(rhs.0))
+            Ok(this.0.angle_to(rhs.0))
         });
         methods.add_method("Cross", |_, this, rhs: LuaUserDataRef<Vector2>| {
             let this_v3 = Vec3::new(this.0.x, this.0.y, 0f32);

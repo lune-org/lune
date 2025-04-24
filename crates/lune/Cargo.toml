@@ -44,7 +44,7 @@ std = [
     "std-task",
 ]
 
-cli = ["dep:clap", "dep:rustyline", "dep:zip_next"]
+cli = ["dep:clap", "dep:rustyline", "dep:zip"]
 
 [lints]
 workspace = true
@@ -56,11 +56,11 @@ mlua-luau-scheduler = { version = "0.0.2", path = "../mlua-luau-scheduler" }
 anyhow = "1.0"
 console = "0.15"
 dialoguer = "0.11"
-directories = "5.0"
+directories = "6.0"
 futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -76,5 +76,5 @@ lune-utils = { version = "0.1.3", path = "../lune-utils" }
 ### CLI
 
 clap = { optional = true, version = "4.1", features = ["derive"] }
-rustyline = { optional = true, version = "14.0" }
-zip_next = { optional = true, version = "1.1" }
+rustyline = { optional = true, version = "15.0" }
+zip = { optional = true, version = "2.6" }

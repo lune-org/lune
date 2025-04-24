@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rand::seq::SliceRandom;
+use rand::prelude::*;
 use rbx_dom_weak::types::BrickColor as DomBrickColor;
 
 use lune_utils::TableBuilder;
@@ -61,7 +61,7 @@ impl LuaExportsTable for BrickColor {
         };
 
         let brick_color_random = |_: &Lua, ()| {
-            let number = BRICK_COLOR_PALETTE.choose(&mut rand::thread_rng());
+            let number = BRICK_COLOR_PALETTE.choose(&mut rand::rng());
             Ok(color_from_number(*number.unwrap()))
         };
 

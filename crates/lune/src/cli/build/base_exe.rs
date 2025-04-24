@@ -63,7 +63,7 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
     // archive is a somewhat slow / blocking operation
     let binary_file_name = format!("lune{}", target.exe_suffix());
     let binary_file_handle = task::spawn_blocking(move || {
-        let mut archive = zip_next::ZipArchive::new(zip_file)?;
+        let mut archive = zip::ZipArchive::new(zip_file)?;
 
         let mut binary = Vec::new();
         archive

@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 mlua = { version = "0.10.3", features = ["luau"] }
 
-thiserror = "1.0"
+thiserror = "2.0"
 chrono = "0.4.38"
 chrono_lc = "0.1.6"
 

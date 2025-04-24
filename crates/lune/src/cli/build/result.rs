@@ -14,7 +14,7 @@ pub enum BuildError {
     #[error("failed to download lune binary: {0}")]
     Download(#[from] reqwest::Error),
     #[error("failed to unzip lune binary: {0}")]
-    Unzip(#[from] zip_next::result::ZipError),
+    Unzip(#[from] zip::result::ZipError),
     #[error("panicked while unzipping lune binary: {0}")]
     UnzipJoin(#[from] tokio::task::JoinError),
     #[error("io error: {0}")]

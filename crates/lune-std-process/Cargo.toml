@@ -16,7 +16,7 @@ workspace = true
 mlua = { version = "0.10.3", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.0.2", path = "../mlua-luau-scheduler" }
 
-directories = "5.0"
+directories = "6.0"
 pin-project = "1.0"
 os_str_bytes = { version = "7.0", features = ["conversions"] }
 
