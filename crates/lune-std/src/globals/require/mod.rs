@@ -85,7 +85,11 @@ async fn require(lua: Lua, (source, path): (LuaString, LuaString)) -> LuaResult<
             "Require with custom alias must contain '/' delimiter",
         ))?;
         alias::require(lua, &context, &source, alias, path).await
-    } else {
+    } else if path.starts_with("./") || path.starts_with("../") {
         path::require(lua, &context, &source, &path).await
+    } else {
+        Err(LuaError::runtime(
+            "Require path must start with \"./\", \"../\" or \"@\"",
+        ))
     }
 }
