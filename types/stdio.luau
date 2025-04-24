@@ -1,13 +1,4 @@
-export type Color =
-	"reset"
-	| "black"
-	| "red"
-	| "green"
-	| "yellow"
-	| "blue"
-	| "purple"
-	| "cyan"
-	| "white"
+export type Color = "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white"
 export type Style = "reset" | "bold" | "dim"
 
 type PromptFn = (
@@ -58,6 +49,9 @@ end
 	stdio.write("World! ")
 	stdio.write("All on the same line")
 	stdio.ewrite("\nAnd some error text, too")
+
+	-- Reading a single line from stdin
+	local line = stdio.readLine()
 
 	-- Reading the entire input from stdin
 	local input = stdio.readToEnd()
@@ -145,6 +139,20 @@ function stdio.write(s: string) end
 	@param s The string to write to stderr
 ]=]
 function stdio.ewrite(s: string) end
+
+--[=[
+    @within Stdio
+    @tag must_use
+
+    Reads a single line from stdin.
+
+    If stdin is closed, returns all input up until its closure.
+
+    @return The input from stdin
+]=]
+function stdio.readLine(): string
+	return nil :: any
+end
 
 --[=[
     @within Stdio

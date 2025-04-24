@@ -1776,6 +1776,7 @@ name = "lune-std-stdio"
 version = "0.1.2"
 dependencies = [
  "async-io",
+ "async-lock",
  "blocking",
  "dialoguer",
  "futures-lite",

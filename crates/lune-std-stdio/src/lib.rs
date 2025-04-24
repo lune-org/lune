@@ -1,12 +1,16 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::io::{stderr, stdin, stdout};
+use std::{
+    io::{stderr, stdin, stdout, Stdin},
+    sync::{Arc, LazyLock},
+};
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
+use async_lock::Mutex as AsyncMutex;
 use blocking::Unblock;
-use futures_lite::prelude::*;
+use futures_lite::{io::BufReader, prelude::*};
 
 use lune_utils::{
     fmt::{pretty_format_multi_value, ValueFormatConfig},
@@ -23,6 +27,12 @@ const FORMAT_CONFIG: ValueFormatConfig = ValueFormatConfig::new()
     .with_max_depth(4)
     .with_colors_enabled(false);
 
+static STDIN: LazyLock<Arc<AsyncMutex<BufReader<Unblock<Stdin>>>>> = LazyLock::new(|| {
+    let stdin = Unblock::new(stdin());
+    let reader = BufReader::new(stdin);
+    Arc::new(AsyncMutex::new(reader))
+});
+
 /**
     Creates the `stdio` standard library module.
 
@@ -37,6 +47,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         .with_function("format", stdio_format)?
         .with_async_function("write", stdio_write)?
         .with_async_function("ewrite", stdio_ewrite)?
+        .with_async_function("readLine", stdio_read_line)?
         .with_async_function("readToEnd", stdio_read_to_end)?
         .with_async_function("prompt", stdio_prompt)?
         .build_readonly()
@@ -68,19 +79,18 @@ async fn stdio_ewrite(_: Lua, s: LuaString) -> LuaResult<()> {
     Ok(())
 }
 
-/*
-    FUTURE: Figure out how to expose some kind of "readLine" function using a buffered reader.
-
-    This is a bit tricky since we would want to be able to use **both** readLine and readToEnd
-    in the same script, doing something like readLine, readLine, readToEnd from lua, and
-    having that capture the first two lines and then read the rest of the input.
-*/
+async fn stdio_read_line(lua: Lua, (): ()) -> LuaResult<LuaString> {
+    let mut string = String::new();
+    let mut handle = STDIN.lock_arc().await;
+    handle.read_line(&mut string).await?;
+    lua.create_string(&string)
+}
 
 async fn stdio_read_to_end(lua: Lua, (): ()) -> LuaResult<LuaString> {
-    let mut input = Vec::new();
-    let mut stdin = Unblock::new(stdin());
-    stdin.read_to_end(&mut input).await?;
-    lua.create_string(&input)
+    let mut buffer = Vec::new();
+    let mut handle = STDIN.lock_arc().await;
+    handle.read_to_end(&mut buffer).await?;
+    lua.create_string(&buffer)
 }
 
 async fn stdio_prompt(lua: Lua, options: PromptOptions) -> LuaResult<PromptResult> {
