@@ -1,4 +1,13 @@
-export type Color = "reset" | "black" | "red" | "green" | "yellow" | "blue" | "purple" | "cyan" | "white"
+export type Color =
+	"reset"
+	| "black"
+	| "red"
+	| "green"
+	| "yellow"
+	| "blue"
+	| "purple"
+	| "cyan"
+	| "white"
 export type Style = "reset" | "bold" | "dim"
 
 type PromptFn = (
