@@ -15,9 +15,9 @@ use super::utils::files::{discover_script_path_including_lune_dirs, strip_sheban
 #[derive(Debug, Clone, Parser)]
 pub struct RunCommand {
     /// Script name or full path to the file to run
-    script_path: String,
+    pub(super) script_path: String,
     /// Arguments to pass to the script, stored in process.args
-    script_args: Vec<String>,
+    pub(super) script_args: Vec<String>,
 }
 
 impl RunCommand {
