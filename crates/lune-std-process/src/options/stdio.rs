@@ -1,3 +1,4 @@
+use bstr::BString;
 use mlua::prelude::*;
 
 use super::kind::ProcessSpawnOptionsStdioKind;
@@ -29,8 +30,8 @@ impl FromLua for ProcessSpawnOptionsStdio {
             LuaValue::Table(t) => {
                 let mut this = Self::default();
 
-                if let Some(stdin) = t.get("stdin")? {
-                    this.stdin = stdin;
+                if let Some(stdin) = t.get::<Option<BString>>("stdin")? {
+                    this.stdin = Some(stdin.to_vec());
                 }
 
                 if let Some(stdout) = t.get("stdout")? {

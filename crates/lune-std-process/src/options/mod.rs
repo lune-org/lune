@@ -118,21 +118,11 @@ impl FromLua for ProcessSpawnOptions {
         }
 
         /*
-            If we got options for stdio handling, parse those as well - note that
-            we accept a separate "stdin" value here for compatibility with older
-            scripts, but the user should preferrably pass it in the stdio table
+            If we got options for stdio handling, parse those as well
+
+            This may optionally contain configuration for any or all of: stdin, stdout, stderr
         */
         this.stdio = value.get("stdio")?;
-        match value.get("stdin")? {
-            LuaValue::Nil => {}
-            LuaValue::String(s) => this.stdio.stdin = Some(s.as_bytes().to_vec()),
-            value => {
-                return Err(LuaError::RuntimeError(format!(
-                    "Invalid type for option 'stdin' - expected 'string', got '{}'",
-                    value.type_name()
-                )))
-            }
-        }
 
         Ok(this)
     }

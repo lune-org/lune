@@ -2,27 +2,35 @@ export type OS = "linux" | "macos" | "windows"
 export type Arch = "x86_64" | "aarch64"
 export type Endianness = "big" | "little"
 
-export type StdioKind = "default" | "inherit" | "forward" | "none"
-export type StdioOptions = {
-	stdin: StdioKind?,
-	stdout: StdioKind?,
-	stderr: StdioKind?,
-}
-
 --[=[
-	@interface CreateOptions
+	@interface ExecStdioKind
 	@within Process
 
-	A dictionary of options for `process.create`, with the following available values:
+	Enum determining how to treat a standard input/output stream for `process.exec`.
 
-	* `cwd` - The current working directory for the process
-	* `env` - Extra environment variables to give to the process
-	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
+	Can be one of the following values:
+
+	* `default` - The default behavior, writing to the final result table only
+	* `inherit` - Inherit the stream from the parent process, writing to both the result table and the respective stream for the parent process
+	* `forward` - Forward the stream to the parent process, without writing to the result table, only respective stream for the parent process
+	* `none` - Do not create any input/output stream
 ]=]
-export type CreateOptions = {
-	cwd: string?,
-	env: { [string]: string }?,
-	shell: (boolean | string)?,
+export type ExecStdioKind = "default" | "inherit" | "forward" | "none"
+
+--[=[
+	@interface ExecStdioOptions
+	@within Process
+
+	A dictionary of stdio-specific options for `process.exec`, with the following available values:
+
+	* `stdin` - A buffer or string to write to the stdin of the process
+	* `stdout` - How to treat the stdout stream from the child process - see `ExecStdioKind` for more info
+	* `stderr` - How to treat the stderr stream from the child process - see `ExecStdioKind` for more info
+]=]
+export type ExecStdioOptions = {
+	stdin: (buffer | string)?,
+	stdout: ExecStdioKind?,
+	stderr: ExecStdioKind?,
 }
 
 --[=[
@@ -40,7 +48,23 @@ export type ExecOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
 	shell: (boolean | string)?,
-	stdio: (StdioKind | StdioOptions)?,
+	stdio: (ExecStdioKind | ExecStdioOptions)?,
+}
+
+--[=[
+	@interface CreateOptions
+	@within Process
+
+	A dictionary of options for `process.create`, with the following available values:
+
+	* `cwd` - The current working directory for the process
+	* `env` - Extra environment variables to give to the process
+	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
+]=]
+export type CreateOptions = {
+	cwd: string?,
+	env: { [string]: string }?,
+	shell: (boolean | string)?,
 }
 
 --[=[
