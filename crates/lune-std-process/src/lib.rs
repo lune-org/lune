@@ -1,25 +1,22 @@
 #![allow(clippy::cargo_common_metadata)]
 
 use std::{
-    cell::RefCell,
     env::{
         self,
         consts::{ARCH, OS},
     },
     path::MAIN_SEPARATOR,
     process::Stdio,
-    rc::Rc,
-    sync::Arc,
 };
 
 use mlua::prelude::*;
-
-use lune_utils::TableBuilder;
 use mlua_luau_scheduler::{Functions, LuaSpawnExt};
-use options::ProcessSpawnOptionsStdio;
+
+use async_process::Child;
+use futures_lite::prelude::*;
 use os_str_bytes::RawOsString;
-use stream::{ChildProcessReader, ChildProcessWriter};
-use tokio::{io::AsyncWriteExt, process::Child, sync::RwLock};
+
+use lune_utils::{path::get_current_dir, TableBuilder};
 
 mod options;
 mod stream;
@@ -28,8 +25,6 @@ mod wait_for_child;
 
 use self::options::ProcessSpawnOptions;
 use self::wait_for_child::wait_for_child;
-
-use lune_utils::path::get_current_dir;
 
 /**
     Creates the `process` standard library module.
@@ -179,69 +174,10 @@ async fn process_exec(
 
 #[allow(clippy::await_holding_refcell_ref)]
 fn process_create(
-    lua: &Lua,
-    (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
+    _lua: &Lua,
+    (_program, _args, _options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
-    // We do not want the user to provide stdio options for process.create,
-    // so we reset the options, regardless of what the user provides us
-    let mut spawn_options = options.clone();
-    spawn_options.stdio = ProcessSpawnOptionsStdio::default();
-
-    let (code_tx, code_rx) = tokio::sync::broadcast::channel(4);
-    let code_rx_rc = Rc::new(RefCell::new(code_rx));
-
-    let child = spawn_command(program, args, spawn_options)?;
-
-    let child_arc = Arc::new(RwLock::new(child));
-
-    let child_arc_clone = Arc::clone(&child_arc);
-    let mut child_lock = tokio::task::block_in_place(|| child_arc_clone.blocking_write());
-
-    let stdin = child_lock.stdin.take().unwrap();
-    let stdout = child_lock.stdout.take().unwrap();
-    let stderr = child_lock.stderr.take().unwrap();
-
-    let child_arc_inner = Arc::clone(&child_arc);
-
-    // Spawn a background task to wait for the child to exit and send the exit code
-    let status_handle = tokio::spawn(async move {
-        let res = child_arc_inner.write().await.wait().await;
-
-        if let Ok(output) = res {
-            let code = output.code().unwrap_or_default();
-
-            code_tx
-                .send(code)
-                .expect("ExitCode receiver was unexpectedly dropped");
-        }
-    });
-
-    TableBuilder::new(lua.clone())?
-        .with_value("stdout", ChildProcessReader(stdout))?
-        .with_value("stderr", ChildProcessReader(stderr))?
-        .with_value("stdin", ChildProcessWriter(stdin))?
-        .with_async_function("kill", move |_, ()| {
-            // First, stop the status task so the RwLock is dropped
-            status_handle.abort();
-            let child_arc_clone = Arc::clone(&child_arc);
-
-            // Then get another RwLock to write to the child process and kill it
-            async move { Ok(child_arc_clone.write().await.kill().await?) }
-        })?
-        .with_async_function("status", move |lua, ()| {
-            let code_rx_rc_clone = Rc::clone(&code_rx_rc);
-            async move {
-                // Exit code of 9 corresponds to SIGKILL, which should be the only case where
-                // the receiver gets suddenly dropped
-                let code = code_rx_rc_clone.borrow_mut().recv().await.unwrap_or(9);
-
-                TableBuilder::new(lua)?
-                    .with_value("code", code)?
-                    .with_value("ok", code == 0)?
-                    .build_readonly()
-            }
-        })?
-        .build_readonly()
+    Err(LuaError::runtime("unimplemented"))
 }
 
 async fn spawn_command_with_stdin(

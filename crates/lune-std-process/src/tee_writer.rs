@@ -4,8 +4,8 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures_lite::{io, prelude::*};
 use pin_project::pin_project;
-use tokio::io::{self, AsyncWrite};
 
 #[pin_project]
 pub struct AsyncTeeWriter<'a, W>
@@ -45,8 +45,7 @@ where
         let mut this = self.project();
         match this.writer.as_mut().poll_write(cx, buf) {
             Poll::Ready(res) => {
-                this.buffer
-                    .write_all(buf)
+                Write::write_all(&mut this.buffer, buf)
                     .expect("Failed to write to internal tee buffer");
                 Poll::Ready(res)
             }
@@ -58,7 +57,7 @@ where
         self.project().writer.as_mut().poll_flush(cx)
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        self.project().writer.as_mut().poll_shutdown(cx)
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.project().writer.as_mut().poll_close(cx)
     }
 }

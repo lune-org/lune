@@ -4,9 +4,10 @@ use std::{
     path::PathBuf,
 };
 
-use directories::UserDirs;
 use mlua::prelude::*;
-use tokio::process::Command;
+
+use async_process::Command;
+use directories::UserDirs;
 
 mod kind;
 mod stdio;

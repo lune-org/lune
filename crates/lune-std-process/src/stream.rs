@@ -1,21 +1,23 @@
 use bstr::BString;
-use bytes::BytesMut;
+use futures_lite::prelude::*;
 use mlua::prelude::*;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 const CHUNK_SIZE: usize = 8;
 
 #[derive(Debug, Clone)]
 pub struct ChildProcessReader<R: AsyncRead>(pub R);
+
 #[derive(Debug, Clone)]
 pub struct ChildProcessWriter<W: AsyncWrite>(pub W);
 
 impl<R: AsyncRead + Unpin> ChildProcessReader<R> {
     pub async fn read(&mut self, chunk_size: Option<usize>) -> LuaResult<Vec<u8>> {
-        let mut buf = BytesMut::with_capacity(chunk_size.unwrap_or(CHUNK_SIZE));
-        self.0.read_buf(&mut buf).await?;
+        let mut buf = vec![0u8; chunk_size.unwrap_or(CHUNK_SIZE)];
 
-        Ok(buf.to_vec())
+        let read = self.0.read(&mut buf).await?;
+        buf.truncate(read);
+
+        Ok(buf)
     }
 
     pub async fn read_to_end(&mut self) -> LuaResult<Vec<u8>> {

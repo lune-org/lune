@@ -1,11 +1,10 @@
-use std::process::ExitStatus;
+use std::{io::stdout, process::ExitStatus};
 
 use mlua::prelude::*;
-use tokio::{
-    io::{self, AsyncRead, AsyncReadExt},
-    process::Child,
-    task,
-};
+
+use async_process::Child;
+use blocking::Unblock;
+use futures_lite::{io, prelude::*};
 
 use super::{options::ProcessSpawnOptionsStdioKind, tee_writer::AsyncTeeWriter};
 
@@ -39,7 +38,7 @@ where
             let mut read_from =
                 read_from.expect("read_from must be Some when stdio kind is Inherit");
 
-            let mut stdout = io::stdout();
+            let mut stdout = Unblock::new(stdout());
             let mut tee = AsyncTeeWriter::new(&mut stdout);
 
             io::copy(&mut read_from, &mut tee).await.into_lua_err()?;
@@ -57,13 +56,13 @@ pub(super) async fn wait_for_child(
     let stdout_opt = child.stdout.take();
     let stderr_opt = child.stderr.take();
 
-    let stdout_task = task::spawn(read_with_stdio_kind(stdout_opt, stdout_kind));
-    let stderr_task = task::spawn(read_with_stdio_kind(stderr_opt, stderr_kind));
+    let stdout_task = read_with_stdio_kind(stdout_opt, stdout_kind);
+    let stderr_task = read_with_stdio_kind(stderr_opt, stderr_kind);
 
-    let status = child.wait().await.expect("Child process failed to start");
+    let status = child.status().await.into_lua_err()?;
 
-    let stdout_buffer = stdout_task.await.into_lua_err()??;
-    let stderr_buffer = stderr_task.await.into_lua_err()??;
+    let stdout_buffer = stdout_task.await.into_lua_err()?;
+    let stderr_buffer = stderr_task.await.into_lua_err()?;
 
     Ok(WaitForChildResult {
         status,
