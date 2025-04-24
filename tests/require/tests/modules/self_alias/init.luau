@@ -1,5 +1,5 @@
-local outer = require("./module")
 local inner = require("@self/module")
+local outer = require("./module")
 
 assert(type(outer) == "table", "Outer module is not a table")
 assert(type(inner) == "table", "Inner module is not a table")
