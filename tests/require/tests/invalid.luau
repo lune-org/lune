@@ -1,6 +1,6 @@
 local function test(path: string)
 	local success, message = pcall(function()
-		local _ = require(path) :: any
+		local _ = require("./" .. path) :: any
 	end)
 	if success then
 		error(string.format("Invalid require at path '%s' succeeded", path))

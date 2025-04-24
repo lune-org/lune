@@ -10,8 +10,9 @@ pub(super) async fn require(
     ctx: &RequireContext,
     source: &str,
     path: &str,
+    resolve_as_self: bool,
 ) -> LuaResult<LuaMultiValue> {
-    let (abs_path, rel_path) = RequireContext::resolve_paths(source, path)?;
+    let (abs_path, rel_path) = RequireContext::resolve_paths(source, path, resolve_as_self)?;
     require_abs_rel(lua, ctx, abs_path, rel_path).await
 }
 

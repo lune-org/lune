@@ -12,4 +12,8 @@ module = require("./modules/modules")
 assert(module.Foo == "Bar", "Required module did not contain correct values")
 assert(module.Hello == "World", "Required module did not contain correct values")
 
+module = require("./modules/self_alias")
+assert(module.Foo == "Bar", "Required module did not contain correct values")
+assert(module.Hello == "World", "Required module did not contain correct values")
+
 return true

@@ -80,13 +80,15 @@ async fn require(lua: Lua, (source, path): (LuaString, LuaString)) -> LuaResult<
 
     if let Some(builtin_name) = path.strip_prefix("@lune/").map(str::to_ascii_lowercase) {
         library::require(lua, &context, &builtin_name)
+    } else if let Some(self_path) = path.strip_prefix("@self/") {
+        path::require(lua, &context, &source, self_path, true).await
     } else if let Some(aliased_path) = path.strip_prefix('@') {
         let (alias, path) = aliased_path.split_once('/').ok_or(LuaError::runtime(
             "Require with custom alias must contain '/' delimiter",
         ))?;
         alias::require(lua, &context, &source, alias, path).await
     } else if path.starts_with("./") || path.starts_with("../") {
-        path::require(lua, &context, &source, &path).await
+        path::require(lua, &context, &source, &path, false).await
     } else {
         Err(LuaError::runtime(
             "Require path must start with \"./\", \"../\" or \"@\"",

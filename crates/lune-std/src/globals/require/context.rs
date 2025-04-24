@@ -55,15 +55,45 @@ impl RequireContext {
         This will resolve path segments such as `./`, `../`, ..., and
         if the resolved path is not an absolute path, will create an
         absolute path by prepending the current working directory.
+
+        If `resolve_as_self` is true, the given path should be a luau
+        module require path in the format of `@self/foo/bar/...` with the
+        `@self` prefix being stripped, and only `foo/bar/...` being passed.
     */
     pub fn resolve_paths(
         source: impl AsRef<str>,
         path: impl AsRef<str>,
+        resolve_as_self: bool,
     ) -> LuaResult<(PathBuf, PathBuf)> {
-        let path = PathBuf::from(source.as_ref())
+        let source = PathBuf::from(source.as_ref());
+        let path = PathBuf::from(path.as_ref());
+
+        let is_init_module = {
+            let is_init = path
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .is_some_and(|stem| stem.eq_ignore_ascii_case("init"));
+            let is_luau = is_init
+                && path
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .is_some_and(|ext| matches!(ext, "lua" | "luau"));
+            is_init && is_luau
+        };
+
+        let source = if is_init_module && !resolve_as_self {
+            source
+                .parent()
+                .ok_or_else(|| LuaError::runtime("Failed to get parent path of self"))?
+                .to_path_buf()
+        } else {
+            source
+        };
+
+        let path = source
             .parent()
             .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
-            .join(path.as_ref());
+            .join(path);
 
         let abs_path = clean_path_and_make_absolute(&path);
         let rel_path = clean_path(path);
