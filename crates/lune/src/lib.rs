@@ -5,4 +5,4 @@ mod rt;
 #[cfg(test)]
 mod tests;
 
-pub use crate::rt::{Runtime, RuntimeError, RuntimeResult};
+pub use crate::rt::{Runtime, RuntimeError, RuntimeResult, RuntimeReturnValues};

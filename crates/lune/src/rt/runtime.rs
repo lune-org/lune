@@ -12,6 +12,46 @@ use mlua_luau_scheduler::{Functions, Scheduler};
 use super::{RuntimeError, RuntimeResult};
 
 /**
+    Values returned by running a Lune runtime until completion.
+*/
+#[non_exhaustive]
+pub struct RuntimeReturnValues {
+    /// The exit code manually returned from the runtime, if any.
+    pub code: Option<u8>,
+    /// Whether any errors were thrown from threads
+    /// that were not the main thread, or not.
+    pub errored: bool,
+    /// The final values returned by the main thread.
+    pub values: LuaMultiValue,
+}
+
+impl RuntimeReturnValues {
+    /**
+        Returns the final, combined "status" of the runtime return values.
+
+        If no exit code was explicitly set by either the main thread,
+        or any threads it may have spawned, the status will be either:
+
+        - `0` if no threads errored
+        - `1` if any threads errored
+    */
+    #[must_use]
+    pub fn status(&self) -> u8 {
+        self.code.unwrap_or(u8::from(self.errored))
+    }
+
+    /**
+        Returns whether the run was considered successful, or not.
+
+        See [`RuntimeReturnValues::status`] for more information.
+    */
+    #[must_use]
+    pub fn success(&self) -> bool {
+        self.status() == 0
+    }
+}
+
+/**
     A Lune runtime.
 */
 pub struct Runtime {
@@ -125,7 +165,7 @@ impl Runtime {
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,
-    ) -> RuntimeResult<(u8, Vec<LuaValue>)> {
+    ) -> RuntimeResult<RuntimeReturnValues> {
         // Add error callback to format errors nicely + store status
         let got_any_error = Arc::new(AtomicBool::new(false));
         let got_any_inner = Arc::clone(&got_any_error);
@@ -148,16 +188,15 @@ impl Runtime {
         let main_thread_id = self.sched.push_thread_back(main, ())?;
         self.sched.run().await;
 
-        let main_thread_res = match self.sched.get_thread_result(main_thread_id) {
+        let main_thread_values = match self.sched.get_thread_result(main_thread_id) {
             Some(res) => res,
             None => LuaValue::Nil.into_lua_multi(&self.lua),
         }?;
 
-        Ok((
-            self.sched
-                .get_exit_code()
-                .unwrap_or(u8::from(got_any_error.load(Ordering::SeqCst))),
-            main_thread_res.into_vec(),
-        ))
+        Ok(RuntimeReturnValues {
+            code: self.sched.get_exit_code(),
+            errored: got_any_error.load(Ordering::SeqCst),
+            values: main_thread_values,
+        })
     }
 }

@@ -38,6 +38,6 @@ pub async fn run(patched_bin: impl AsRef<[u8]>) -> Result<ExitCode> {
             eprintln!("{err}");
             ExitCode::FAILURE
         }
-        Ok((code, _)) => ExitCode::from(code),
+        Ok(values) => ExitCode::from(values.status()),
     })
 }
