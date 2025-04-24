@@ -1,6 +1,6 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::process::ExitCode;
+use std::{io::stderr, process::ExitCode};
 
 #[cfg(feature = "cli")]
 pub(crate) mod cli;
@@ -17,6 +17,7 @@ async fn main() -> ExitCode {
         .with_target(true)
         .with_timer(tracing_subscriber::fmt::time::uptime())
         .with_level(true)
+        .with_writer(stderr)
         .init();
 
     if let Some(bin) = standalone::check().await {
