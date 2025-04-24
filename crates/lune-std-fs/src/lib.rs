@@ -3,9 +3,10 @@
 use std::io::ErrorKind as IoErrorKind;
 use std::path::PathBuf;
 
+use async_fs as fs;
 use bstr::{BString, ByteSlice};
+use futures_lite::prelude::*;
 use mlua::prelude::*;
-use tokio::fs;
 
 use lune_utils::TableBuilder;
 
@@ -59,7 +60,7 @@ async fn fs_read_file(lua: Lua, path: String) -> LuaResult<LuaString> {
 async fn fs_read_dir(_: Lua, path: String) -> LuaResult<Vec<String>> {
     let mut dir_strings = Vec::new();
     let mut dir = fs::read_dir(&path).await.into_lua_err()?;
-    while let Some(dir_entry) = dir.next_entry().await.into_lua_err()? {
+    while let Some(dir_entry) = dir.try_next().await.into_lua_err()? {
         if let Some(dir_name_str) = dir_entry.file_name().to_str() {
             dir_strings.push(dir_name_str.to_owned());
         } else {

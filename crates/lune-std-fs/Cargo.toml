@@ -15,9 +15,9 @@ workspace = true
 [dependencies]
 mlua = { version = "0.10.3", features = ["luau"] }
 
+async-fs = "2.1"
 bstr = "1.9"
-
-tokio = { version = "1", default-features = false, features = ["fs"] }
+futures-lite = "2.6"
 
 lune-utils = { version = "0.1.3", path = "../lune-utils" }
 lune-std-datetime = { version = "0.1.2", path = "../lune-std-datetime" }

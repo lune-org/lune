@@ -2,8 +2,9 @@ use std::collections::VecDeque;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
+use async_fs as fs;
+use futures_lite::prelude::*;
 use mlua::prelude::*;
-use tokio::fs;
 
 use super::options::FsWriteOptions;
 
@@ -24,8 +25,8 @@ async fn get_contents_at(root: PathBuf, _: FsWriteOptions) -> LuaResult<CopyCont
     })?;
 
     // Push initial children of the root path into the queue
-    let mut entries = fs::read_dir(&normalized_root).await?;
-    while let Some(entry) = entries.next_entry().await? {
+    let mut reader = fs::read_dir(&normalized_root).await?;
+    while let Some(entry) = reader.try_next().await? {
         queue.push_back((1, entry.path()));
     }
 
@@ -42,7 +43,7 @@ async fn get_contents_at(root: PathBuf, _: FsWriteOptions) -> LuaResult<CopyCont
         } else if meta.is_dir() {
             // FUTURE: Add an option in FsWriteOptions for max depth and limit it here
             let mut entries = fs::read_dir(&current_path).await?;
-            while let Some(entry) = entries.next_entry().await? {
+            while let Some(entry) = entries.try_next().await? {
                 queue.push_back((current_depth + 1, entry.path()));
             }
             dirs.push((current_depth, current_path));
