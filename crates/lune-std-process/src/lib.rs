@@ -10,21 +10,17 @@ use std::{
 };
 
 use mlua::prelude::*;
-use mlua_luau_scheduler::{Functions, LuaSpawnExt};
+use mlua_luau_scheduler::Functions;
 
-use async_process::Child;
-use futures_lite::prelude::*;
 use os_str_bytes::RawOsString;
 
 use lune_utils::{path::get_current_dir, TableBuilder};
 
+mod create;
+mod exec;
 mod options;
-mod stream;
-mod tee_writer;
-mod wait_for_child;
 
 use self::options::ProcessSpawnOptions;
-use self::wait_for_child::wait_for_child;
 
 /**
     Creates the `process` standard library module.
@@ -42,6 +38,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     if !cwd_str.ends_with(MAIN_SEPARATOR) {
         cwd_str.push(MAIN_SEPARATOR);
     }
+
     // Create constants for OS & processor architecture
     let os = lua.create_string(OS.to_lowercase())?;
     let arch = lua.create_string(ARCH.to_lowercase())?;
@@ -50,6 +47,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     } else {
         "little"
     })?;
+
     // Create readonly args array
     let args_vec = lua
         .app_data_ref::<Vec<String>>()
@@ -58,6 +56,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     let args_tab = TableBuilder::new(lua.clone())?
         .with_sequential_values(args_vec)?
         .build_readonly()?;
+
     // Create proxied table for env that gets & sets real env vars
     let env_tab = TableBuilder::new(lua.clone())?
         .with_metatable(
@@ -68,9 +67,11 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
                 .build_readonly()?,
         )?
         .build_readonly()?;
+
     // Create our process exit function, the scheduler crate provides this
     let fns = Functions::new(lua.clone())?;
     let process_exit = fns.exit;
+
     // Create the full process table
     TableBuilder::new(lua)?
         .with_value("os", os)?
@@ -142,66 +143,9 @@ fn process_env_iter(lua: &Lua, (_, ()): (LuaValue, ())) -> LuaResult<LuaFunction
 
 async fn process_exec(
     lua: Lua,
-    (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
+    (program, args, mut options): (String, Option<Vec<String>>, ProcessSpawnOptions),
 ) -> LuaResult<LuaTable> {
-    let res = lua
-        .spawn(async move {
-            let cmd = spawn_command_with_stdin(program, args, options.clone()).await?;
-            wait_for_child(cmd, options.stdio.stdout, options.stdio.stderr).await
-        })
-        .await?;
-
-    /*
-        NOTE: If an exit code was not given by the child process,
-        we default to 1 if it yielded any error output, otherwise 0
-
-        An exit code may be missing if the process was terminated by
-        some external signal, which is the only time we use this default
-    */
-    let code = res
-        .status
-        .code()
-        .unwrap_or(i32::from(!res.stderr.is_empty()));
-
-    // Construct and return a readonly lua table with results
-    TableBuilder::new(lua.clone())?
-        .with_value("ok", code == 0)?
-        .with_value("code", code)?
-        .with_value("stdout", lua.create_string(&res.stdout)?)?
-        .with_value("stderr", lua.create_string(&res.stderr)?)?
-        .build_readonly()
-}
-
-#[allow(clippy::await_holding_refcell_ref)]
-fn process_create(
-    _lua: &Lua,
-    (_program, _args, _options): (String, Option<Vec<String>>, ProcessSpawnOptions),
-) -> LuaResult<LuaTable> {
-    Err(LuaError::runtime("unimplemented"))
-}
-
-async fn spawn_command_with_stdin(
-    program: String,
-    args: Option<Vec<String>>,
-    mut options: ProcessSpawnOptions,
-) -> LuaResult<Child> {
     let stdin = options.stdio.stdin.take();
-
-    let mut child = spawn_command(program, args, options)?;
-
-    if let Some(stdin) = stdin {
-        let mut child_stdin = child.stdin.take().unwrap();
-        child_stdin.write_all(&stdin).await.into_lua_err()?;
-    }
-
-    Ok(child)
-}
-
-fn spawn_command(
-    program: String,
-    args: Option<Vec<String>>,
-    options: ProcessSpawnOptions,
-) -> LuaResult<Child> {
     let stdout = options.stdio.stdout;
     let stderr = options.stdio.stderr;
 
@@ -212,5 +156,19 @@ fn spawn_command(
         .stderr(stderr.as_stdio())
         .spawn()?;
 
-    Ok(child)
+    exec::exec(lua, child, stdin, stdout, stderr).await
+}
+
+fn process_create(
+    lua: &Lua,
+    (program, args, options): (String, Option<Vec<String>>, ProcessSpawnOptions),
+) -> LuaResult<LuaValue> {
+    let child = options
+        .into_command(program, args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    create::Child::new(lua, child).into_lua(lua)
 }

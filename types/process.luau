@@ -2,18 +2,15 @@ export type OS = "linux" | "macos" | "windows"
 export type Arch = "x86_64" | "aarch64"
 export type Endianness = "big" | "little"
 
-export type SpawnOptionsStdioKind = "default" | "inherit" | "forward" | "none"
-export type SpawnOptionsStdio = {
-	stdout: SpawnOptionsStdioKind?,
-	stderr: SpawnOptionsStdioKind?,
-}
-
-export type ExecuteOptionsStdio = SpawnOptionsStdio & {
-	stdin: string?,
+export type StdioKind = "default" | "inherit" | "forward" | "none"
+export type StdioOptions = {
+	stdin: StdioKind?,
+	stdout: StdioKind?,
+	stderr: StdioKind?,
 }
 
 --[=[
-	@interface SpawnOptions
+	@interface CreateOptions
 	@within Process
 
 	A dictionary of options for `process.create`, with the following available values:
@@ -21,16 +18,15 @@ export type ExecuteOptionsStdio = SpawnOptionsStdio & {
 	* `cwd` - The current working directory for the process
 	* `env` - Extra environment variables to give to the process
 	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
-	* `stdio` - How to treat output and error streams from the child process - see `SpawnOptionsStdioKind` and `SpawnOptionsStdio` for more info
 ]=]
-export type SpawnOptions = {
+export type CreateOptions = {
 	cwd: string?,
 	env: { [string]: string }?,
 	shell: (boolean | string)?,
 }
 
 --[=[
-	@interface ExecuteOptions
+	@interface ExecOptions
 	@within Process
 
 	A dictionary of options for `process.exec`, with the following available values:
@@ -38,12 +34,13 @@ export type SpawnOptions = {
 	* `cwd` - The current working directory for the process
 	* `env` - Extra environment variables to give to the process
 	* `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
-	* `stdio` - How to treat output and error streams from the child process - see `SpawnOptionsStdioKind` and `ExecuteOptionsStdio` for more info
-	* `stdin` - Optional standard input to pass to executed child process
+	* `stdio` - How to treat output and error streams from the child process - see `StdioKind` and `StdioOptions` for more info
 ]=]
-export type ExecuteOptions = SpawnOptions & {
-	stdio: (SpawnOptionsStdioKind | SpawnOptionsStdio)?,
-	stdin: string?, -- TODO: Remove this since it is now available in stdio above, breaking change
+export type ExecOptions = {
+	cwd: string?,
+	env: { [string]: string }?,
+	shell: (boolean | string)?,
+	stdio: (StdioKind | StdioOptions)?,
 }
 
 --[=[
@@ -57,8 +54,9 @@ local ChildProcessReader = {}
 --[=[
 	@within ChildProcessReader
 
-	Reads a chunk of data (specified length or a default of 8 bytes at a time) from 
-	the reader as a string. Returns nil if there is no more data to read.
+	Reads a chunk of data up to the specified length, or a default of 1KB at a time.
+
+	Returns nil if there is no more data to read.
 
 	This function may yield until there is new data to read from reader, if all data
 	till present has already been read, and the process has not exited.
@@ -101,6 +99,15 @@ function ChildProcessWriter:write(data: buffer | string): ()
 end
 
 --[=[
+	@within ChildProcessWriter
+
+	Closes the underlying I/O stream for the writer.
+]=]
+function ChildProcessWriter:close(): ()
+	return nil :: any
+end
+
+--[=[
 	@interface ChildProcess
 	@within Process
 
@@ -111,19 +118,22 @@ end
 	* `stdin` - A writer to write to the child process' stdin - see `ChildProcessWriter` for more info
 	* `stdout` - A reader to read from the child process' stdout - see `ChildProcessReader` for more info
 	* `stderr` - A reader to read from the child process' stderr - see `ChildProcessReader` for more info
-	* `kill` - A function that kills the child process
-	* `status` - A function that yields and returns the exit status of the child process
+	* `kill` - A method that kills the child process
+	* `status` - A method that yields and returns the exit status of the child process
 ]=]
 export type ChildProcess = {
 	stdin: typeof(ChildProcessWriter),
 	stdout: typeof(ChildProcessReader),
 	stderr: typeof(ChildProcessReader),
-	kill: () -> (),
-	status: () -> { ok: boolean, code: number },
+	kill: (self: ChildProcess) -> (),
+	status: (self: ChildProcess) -> {
+		ok: boolean,
+		code: number,
+	},
 }
 
 --[=[
-	@interface ExecuteResult
+	@interface ExecResult
 	@within Process
 
 	Result type for child processes in `process.exec`.
@@ -135,7 +145,7 @@ export type ChildProcess = {
 	* `stdout` - The full contents written to stdout by the child process, or an empty string if nothing was written
 	* `stderr` - The full contents written to stderr by the child process, or an empty string if nothing was written
 ]=]
-export type ExecuteResult = {
+export type ExecResult = {
 	ok: boolean,
 	code: number,
 	stdout: string,
@@ -189,7 +199,7 @@ export type ExecuteResult = {
 
 	-- Reading from the child process' stdout
 	local data = child.stdout:read()
-	print(buffer.tostring(data))
+	print(data)
 	```
 ]=]
 local process = {}
@@ -284,8 +294,8 @@ end
 --[=[
 	@within Process
 
-	Spawns a child process in the background that runs the program `program`, and immediately returns
-	readers and writers to communicate with it.
+	Spawns a child process in the background that runs the program `program`,
+	and immediately returns readers and writers to communicate with it.
 
 	In order to execute a command and wait for its output, see `process.exec`.
 
@@ -299,14 +309,14 @@ end
 	@param options A dictionary of options for the child process
 	@return A dictionary with the readers and writers to communicate with the child process
 ]=]
-function process.create(program: string, params: { string }?, options: SpawnOptions?): ChildProcess
+function process.create(program: string, params: { string }?, options: CreateOptions?): ChildProcess
 	return nil :: any
 end
 
 --[=[
 	@within Process
 
-	Executes a child process that will execute the command `program`, waiting for it to exit. 
+	Executes a child process that will execute the command `program`, waiting for it to exit.
 	Upon exit, it returns a dictionary that describes the final status and ouput of the child process.
 
 	In order to spawn a child process in the background, see `process.create`.
@@ -314,14 +324,14 @@ end
 	The second argument, `params`, can be passed as a list of string parameters to give to the program.
 
 	The third argument, `options`, can be passed as a dictionary of options to give to the child process.
-	Refer to the documentation for `ExecuteOptions` for specific option keys and their values.
+	Refer to the documentation for `ExecOptions` for specific option keys and their values.
 
 	@param program The program to Execute as a child process
 	@param params Additional parameters to pass to the program
 	@param options A dictionary of options for the child process
 	@return A dictionary representing the result of the child process
 ]=]
-function process.exec(program: string, params: { string }?, options: ExecuteOptions?): ExecuteResult
+function process.exec(program: string, params: { string }?, options: ExecOptions?): ExecResult
 	return nil :: any
 end
 

@@ -6,7 +6,8 @@ use async_process::Child;
 use blocking::Unblock;
 use futures_lite::{io, prelude::*};
 
-use super::{options::ProcessSpawnOptionsStdioKind, tee_writer::AsyncTeeWriter};
+use super::tee_writer::AsyncTeeWriter;
+use crate::options::ProcessSpawnOptionsStdioKind;
 
 #[derive(Debug, Clone)]
 pub(super) struct WaitForChildResult {

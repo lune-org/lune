@@ -1709,13 +1709,15 @@ dependencies = [
 name = "lune-std-process"
 version = "0.1.3"
 dependencies = [
- "async-io",
+ "async-channel",
+ "async-lock",
  "async-process",
  "blocking",
  "bstr",
  "bytes",
  "directories",
  "futures-lite",
+ "futures-util",
  "lune-utils",
  "mlua",
  "mlua-luau-scheduler",

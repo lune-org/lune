@@ -1,18 +1,32 @@
 local process = require("@lune/process")
 
--- Should be able to write and read from child process streams
+local expected = "hello, world"
 
-local msg = "hello, world"
+-- Stdout test
 
 local catChild = process.create("cat")
-catChild.stdin:write(msg)
+catChild.stdin:write(expected)
+catChild.stdin:close()
+local catOutput = catChild.stdout:read(#expected)
+
 assert(
-	msg == catChild.stdout:read(#msg),
-	"Failed to write to stdin or read from stdout of child process"
+	expected == catOutput,
+	"Failed to write to stdin or read from stdout of child process!"
+		.. `\nExpected: "{expected}"`
+		.. `\nReceived: "{catOutput}"`
 )
 
-local echoChild = if process.os == "windows"
-	then process.create("/c", { "echo", msg, "1>&2" }, { shell = "cmd" })
-	else process.create("echo", { msg, ">>/dev/stderr" }, { shell = true })
+-- Stderr test, needs to run in shell because there is no
+-- other good cross-platform way to simply write to stdout
 
-assert(msg == echoChild.stderr:read(#msg), "Failed to read from stderr of child process")
+local echoChild = if process.os == "windows"
+	then process.create("/c", { "echo", expected, "1>&2" }, { shell = "cmd" })
+	else process.create("echo", { expected, ">>/dev/stderr" }, { shell = true })
+local echoOutput = echoChild.stderr:read(#expected)
+
+assert(
+	expected == echoOutput,
+	"Failed to write to stdin or read from stderr of child process!"
+		.. `\nExpected: "{expected}"`
+		.. `\nReceived: "{echoOutput}"`
+)
