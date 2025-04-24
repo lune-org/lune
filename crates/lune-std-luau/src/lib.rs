@@ -8,6 +8,16 @@ mod options;
 
 use self::options::{LuauCompileOptions, LuauLoadOptions};
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `luau` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `luau` standard library module.
 

@@ -10,6 +10,16 @@ use mlua_luau_scheduler::Functions;
 
 use lune_utils::TableBuilder;
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `task` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `task` standard library module.
 

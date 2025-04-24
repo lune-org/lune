@@ -45,7 +45,7 @@ test-bin *ARGS:
 fmt:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	stylua .lune scripts tests types \
+	stylua .lune crates scripts tests \
 		--glob "tests/**/*.luau" \
 		--glob "!tests/roblox/rbx-test-files/**"
 	cargo fmt
@@ -55,7 +55,7 @@ fmt:
 fmt-check:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	stylua .lune scripts tests types \
+	stylua .lune crates scripts tests \
 		--glob "tests/**/*.luau" \
 		--glob "!tests/roblox/rbx-test-files/**"
 	cargo fmt --check
@@ -68,7 +68,7 @@ analyze:
 	luau-lsp analyze \
 		--settings=".vscode/settings.json" \
 		--ignore="tests/roblox/rbx-test-files/**" \
-		.lune scripts tests types
+		.lune crates scripts tests
 
 # Zips up the built binary into a single zip file
 [no-exit-message]

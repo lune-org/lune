@@ -163,11 +163,7 @@ end
 	@param locale -- The locale the time should be formatted in
 	@return string -- The formatting string
 ]=]
-function DateTime.formatUniversalTime(
-	self: DateTime,
-	formatString: string?,
-	locale: Locale?
-): string
+function DateTime.formatUniversalTime(self: DateTime, formatString: string?, locale: Locale?): string
 	return nil :: any
 end
 

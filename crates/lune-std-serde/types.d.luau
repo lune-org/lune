@@ -139,11 +139,7 @@ end
 	@param level The compression level to use, clamped to the format's limits. The best compression level is used by default
 	@return The compressed string
 ]=]
-function serde.compress(
-	format: CompressDecompressFormat,
-	s: buffer | string,
-	level: number?
-): string
+function serde.compress(format: CompressDecompressFormat, s: buffer | string, level: number?): string
 	return nil :: any
 end
 
@@ -193,11 +189,7 @@ end
 	@param message The message to hash
 	@return The hash as a base64 string
 ]=]
-function serde.hmac(
-	algorithm: HashAlgorithm,
-	message: string | buffer,
-	secret: string | buffer
-): string
+function serde.hmac(algorithm: HashAlgorithm, message: string | buffer, secret: string | buffer): string
 	return nil :: any
 end
 

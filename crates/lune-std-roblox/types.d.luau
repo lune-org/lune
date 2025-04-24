@@ -183,10 +183,7 @@ export type DataModelMetatable = {
 
 export type DataModel =
 	Instance
-	& typeof(setmetatable(
-		(nil :: any) :: DataModelProperties,
-		(nil :: any) :: { __index: DataModelMetatable }
-	))
+	& typeof(setmetatable((nil :: any) :: DataModelProperties, (nil :: any) :: { __index: DataModelMetatable }))
 
 --[=[
 	@class Roblox
@@ -491,11 +488,7 @@ end
 	@param methodName The name of the method to implement.
 	@param callback The function which will be called when the method is called.
 ]=]
-function roblox.implementMethod(
-	className: string,
-	methodName: string,
-	callback: (instance: Instance, ...any) -> ...any
-)
+function roblox.implementMethod(className: string, methodName: string, callback: (instance: Instance, ...any) -> ...any)
 	return nil :: any
 end
 

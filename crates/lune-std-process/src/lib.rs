@@ -22,6 +22,16 @@ mod options;
 
 use self::options::ProcessSpawnOptions;
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `process` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `process` standard library module.
 

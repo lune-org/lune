@@ -62,6 +62,29 @@ impl LuneStandardLibrary {
     }
 
     /**
+        Returns type definitions for the library.
+    */
+    #[must_use]
+    #[rustfmt::skip]
+    #[allow(unreachable_patterns)]
+    pub fn typedefs(&self) -> String {
+    	match self {
+            #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::typedefs(),
+            #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::typedefs(),
+            #[cfg(feature = "luau")]     Self::Luau     => lune_std_luau::typedefs(),
+            #[cfg(feature = "net")]      Self::Net      => lune_std_net::typedefs(),
+            #[cfg(feature = "task")]     Self::Task     => lune_std_task::typedefs(),
+            #[cfg(feature = "process")]  Self::Process  => lune_std_process::typedefs(),
+            #[cfg(feature = "regex")]    Self::Regex    => lune_std_regex::typedefs(),
+            #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::typedefs(),
+            #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::typedefs(),
+            #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::typedefs(),
+
+            _ => unreachable!("no standard library enabled"),
+        }
+    }
+
+    /**
         Creates the Lua module for the library.
 
         # Errors
@@ -71,7 +94,7 @@ impl LuneStandardLibrary {
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
     pub fn module(&self, lua: Lua) -> LuaResult<LuaMultiValue> {
-    	let mod_lua = lua.clone();
+        let mod_lua = lua.clone();
         let res: LuaResult<LuaTable> = match self {
             #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(mod_lua),
             #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::module(mod_lua),

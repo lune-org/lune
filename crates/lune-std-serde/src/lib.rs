@@ -13,6 +13,16 @@ pub use self::compress_decompress::{compress, decompress, CompressDecompressForm
 pub use self::encode_decode::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
 pub use self::hash::HashOptions;
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `serde` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `serde` standard library module.
 

@@ -1,4 +1,6 @@
-local DateTime = require("./datetime")
+--!nocheck
+
+local DateTime = require("@lune/datetime")
 type DateTime = DateTime.DateTime
 
 export type MetadataKind = "file" | "dir" | "symlink"

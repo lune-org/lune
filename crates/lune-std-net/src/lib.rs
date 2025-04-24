@@ -22,6 +22,16 @@ use self::{
 
 use lune_std_serde::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `net` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `net` standard library module.
 

@@ -17,6 +17,16 @@ use self::copy::copy;
 use self::metadata::FsMetadata;
 use self::options::FsWriteOptions;
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `fs` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `fs` standard library module.
 
