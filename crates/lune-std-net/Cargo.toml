@@ -16,24 +16,11 @@ workspace = true
 mlua = { version = "0.10.3", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.1.0", path = "../mlua-luau-scheduler" }
 
+async-io = "2.4"
+async-lock = "3.4"
+blocking = "1.6"
 bstr = "1.9"
-futures-util = "0.3"
-hyper = { version = "1.1", features = ["full"] }
-hyper-util = { version = "0.1", features = ["full"] }
-http = "1.0"
-http-body-util = { version = "0.1" }
-hyper-tungstenite = { version = "0.13" }
-reqwest = { version = "0.11", default-features = false, features = [
-    "rustls-tls",
-] }
-tokio-tungstenite = { version = "0.21", features = ["rustls-tls-webpki-roots"] }
-urlencoding = "2.1"
-
-tokio = { version = "1", default-features = false, features = [
-    "sync",
-    "net",
-    "macros",
-] }
+futures-lite = "2.6"
 
 lune-utils = { version = "0.2.0", path = "../lune-utils" }
 lune-std-serde = { version = "0.2.0", path = "../lune-std-serde" }
