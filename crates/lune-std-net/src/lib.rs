@@ -4,6 +4,11 @@ use mlua::prelude::*;
 
 use lune_utils::TableBuilder;
 
+mod request;
+mod serve;
+mod socket;
+mod url;
+
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 
 /**
