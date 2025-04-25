@@ -5,7 +5,10 @@ local expected = "Hello from child process!"
 -- NOTE: This requires "bash" to be installed even for Windows
 -- users, testing a simple cat from stdin to stdout using pwsh
 -- has unfortunately proved to be a significant challenge...
-local result = process.exec("bash", { "-c", "cat" }, { stdio = { stdin = expected } })
+local options = { stdio = { stdin = expected } }
+local result = if process.os == "windows"
+	then process.exec("powershell", { "-Command", "{ & bash -c cat }" }, options)
+	else process.exec("bash", { "-c", "cat" }, options)
 
 local resultStdout = result.stdout
 resultStdout = string.gsub(resultStdout, "^%s+", "") -- Trim leading whitespace
