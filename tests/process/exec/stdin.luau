@@ -2,10 +2,8 @@ local process = require("@lune/process")
 
 local expected = "Hello from child process!"
 
--- When passing stdin to powershell on windows we must "accept" using the double newline
-
 local result = if process.os == "windows"
-	then process.exec("powershell", { "echo" }, { stdio = { stdin = expected .. "\n\n" } })
+	then process.exec("powershell", { "-Command", "$input" }, { stdio = { stdin = expected } })
 	else process.exec("xargs", { "echo" }, { stdio = { stdin = expected } })
 
 local resultStdout = result.stdout
