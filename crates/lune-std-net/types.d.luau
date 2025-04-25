@@ -188,6 +188,7 @@ export type WebSocket = {
 
 	```lua
 	local net = require("@lune/net")
+	local serde = require("@lune/serde")
 
 	-- Sending a web request
 	local response = net.request("https://www.google.com")
@@ -200,14 +201,14 @@ export type WebSocket = {
 		url = "https://dummyjson.com/products/add",
 		method = "POST",
 		headers = { ["Content-Type"] = "application/json" },
-		body = net.jsonEncode({
+		body = serde.encode("json", {
 			title = "Cool Pencil",
 		})
 	})
-	local product = net.jsonDecode(response.body)
+	local product = serde.decode("json", response.body)
 	print(product.id, "-", product.title)
 
-	-- Starting up a webserver
+	-- Starting up an http server
 	net.serve(8080, function(request)
 		return {
 			status = 200,
@@ -260,33 +261,6 @@ end
 	@param handlerOrConfig The handler function or config to use for the server
 ]=]
 function net.serve(port: number, handlerOrConfig: ServeHttpHandler | ServeConfig): ServeHandle
-	return nil :: any
-end
-
---[=[
-	@within Net
-	@tag must_use
-
-	Encodes the given value as JSON.
-
-	@param value The value to encode as JSON
-	@param pretty If the encoded JSON string should include newlines and spaces. Defaults to false
-	@return The encoded JSON string
-]=]
-function net.jsonEncode(value: any, pretty: boolean?): string
-	return nil :: any
-end
-
---[=[
-	@within Net
-	@tag must_use
-
-	Decodes the given JSON string into a lua value.
-
-	@param encoded The JSON string to decode
-	@return The decoded lua value
-]=]
-function net.jsonDecode(encoded: string): any
 	return nil :: any
 end
 

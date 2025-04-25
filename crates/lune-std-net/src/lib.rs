@@ -1,6 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use bstr::BString;
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -19,8 +18,6 @@ use self::{
     util::create_user_agent_header,
     websocket::NetWebSocket,
 };
-
-use lune_std_serde::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 
@@ -45,24 +42,12 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         .build()?
         .into_registry(&lua);
     TableBuilder::new(lua)?
-        .with_function("jsonEncode", net_json_encode)?
-        .with_function("jsonDecode", net_json_decode)?
         .with_async_function("request", net_request)?
         .with_async_function("socket", net_socket)?
         .with_async_function("serve", net_serve)?
         .with_function("urlEncode", net_url_encode)?
         .with_function("urlDecode", net_url_decode)?
         .build_readonly()
-}
-
-fn net_json_encode(lua: &Lua, (val, pretty): (LuaValue, Option<bool>)) -> LuaResult<LuaString> {
-    let config = EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()));
-    encode(val, lua, config)
-}
-
-fn net_json_decode(lua: &Lua, json: BString) -> LuaResult<LuaValue> {
-    let config = EncodeDecodeConfig::from(EncodeDecodeFormat::Json);
-    decode(json, lua, config)
 }
 
 async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<LuaTable> {

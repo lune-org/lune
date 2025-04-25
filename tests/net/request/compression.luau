@@ -1,4 +1,5 @@
 local net = require("@lune/net")
+local serde = require("@lune/serde")
 
 -- Should decompress automatically by default
 
@@ -17,7 +18,7 @@ assert(
 		.. tostring(response.statusMessage)
 )
 
-local success, json = pcall(net.jsonDecode, response.body)
+local success, json = pcall(serde.decode, "json" :: "json", response.body)
 assert(success, "Failed to decode json response\n" .. tostring(json))
 
 -- Content encoding header should no longer exist when automatically decompressed
@@ -45,7 +46,7 @@ assert(
 		.. tostring(response2.statusMessage)
 )
 
-local success2 = pcall(net.jsonDecode, response2.body)
+local success2 = pcall(serde.decode, "json" :: "json", response2.body)
 assert(not success2, "Decompression disabled still returned json response")
 
 -- Content encoding header should still exist when not automatically decompressed

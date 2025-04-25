@@ -1,5 +1,6 @@
 local net = require("@lune/net")
 local roblox = require("@lune/roblox")
+local serde = require("@lune/serde")
 
 roblox.implementMethod("HttpService", "GetAsync", function(_, url: string)
 	local response = net.request({
@@ -10,7 +11,7 @@ roblox.implementMethod("HttpService", "GetAsync", function(_, url: string)
 end)
 
 roblox.implementMethod("HttpService", "JSONDecode", function(_, value)
-	return net.jsonDecode(value)
+	return serde.decode("json", value)
 end)
 
 -- Reference: https://create.roblox.com/docs/reference/engine/classes/HttpService#GetAsync

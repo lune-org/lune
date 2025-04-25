@@ -1,10 +1,11 @@
 local fs = require("@lune/fs")
 local net = require("@lune/net")
+local serde = require("@lune/serde")
 
 local URL =
 	"https://gist.githubusercontent.com/Anaminus/49ac255a68e7a7bc3cdd72b602d5071f/raw/f1534dcae312dbfda716b7677f8ac338b565afc3/BrickColor.json"
 
-local json = net.jsonDecode(net.request(URL).body)
+local json = serde.decode("json", net.request(URL).body)
 
 local contents = ""
 

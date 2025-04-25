@@ -10,43 +10,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## `0.9.0`
 
-### Breaking changes
+This release has been a long time coming, and many breaking changes have been deferred until this version.
+If you are an existing Lune user upgrading to this version, you will **most likely** be affected - please read the full list of breaking changes below.
 
-- Added two new process spawning functions - `process.create` and `process.exec`, removing the previous `process.spawn` API completely. ([#211])
+### Breaking changes & additions
 
-  To migrate from `process.spawn`, use the new `process.exec` API which retains the same behavior as the old function.
+- The behavior of `require` has changed, according to the latest Luau RFCs and specifications.
+
+  For the full details, feel free to read documentation [here](https://github.com/luau-lang/rfcs), otherwise, the most notable changes here are:
+
+  - Paths passed to require must start with either `./`, `../` or `@` - require statements such as `require("foo")` **will now error** and must be changed to `require("./foo")`.
+  - The behavior of require from within `init.luau` and `init.lua` files has changed - previously `require("./foo")` would resolve
+    to the file or directory `foo` _as a **sibling** of the init file_, but will now resolve to the file or directory `foo` _which is a sibling of the **parent directory** of the init file_.
+    To require files inside of the same directory as the init file, the new `@self` alias must be used - like `require("@self/foo")`.
+
+- The main `lune run` subcommand will no longer sink flags passed to it - `lune run --` will now *literally* pass the string `--` as the first
+  value in `process.args`, and `--` is no longer necessary to be able to pass flag arguments such as `--foo` and `-b` properly to your Lune programs.
+
+- Two new process spawning functions - `process.create` and `process.exec` - replace the previous `process.spawn` API. ([#211])
+
+  To migrate from `process.spawn`, use the new `process.exec` API which retains the same behavior as the old function, with slight changes in how the `stdin` option is passed.
 
   The new `process.create` function is a non-blocking process creation API and can be used to interactively
-  read and write stdio of the process.
+  read and write to standard input and output streams of the child process.
 
   ```lua
   local child = process.create("program", {
-    "cli-argument",
-    "other-cli-argument"
+    "first-argument",
+    "second-argument"
   })
 
   -- Writing to stdin
   child.stdin:write("Hello from Lune!")
 
-  -- Reading from stdout
+  -- Reading partial data from stdout
   local data = child.stdout:read()
-  print(buffer.tostring(data))
+  print(data)
+
+  -- Reading the full stdout
+  local full = child.stdout:readToEnd()
+  print(full)
   ```
+
+- Removed `net.jsonEncode` and `net.jsonDecode` - please use the equivalent `serde.encode("json", ...)` and `serde.decode("json", ...)` instead
 
 - WebSocket methods in `net.socket` and `net.serve` now use standard Lua method calling convention and colon syntax.
   This means `socket.send(...)` is now `socket:send(...)`, `socket.close(...)` is now `socket:close(...)`, and so on.
 
-- `Runtime::run` now returns a more useful value instead of an `ExitCode` ([#178])
+- Various changes have been made to the Lune Rust crates:
+
+  - `Runtime::run` now returns a more useful value instead of an `ExitCode` ([#178])
+  - All Lune standard library crates now export a `typedefs` function that returns the source code for the respective standard library module type definitions
+  - All Lune crates now depend on `mlua` version `0.10` or above
+  - Most Lune crates have been migrated to the `smol` and `async-*` ecosystem instead of `tokio`, with a full migration expected soon (this will not break public types)
+  - The `roblox` crate re-export has been removed from the main `lune` crate - please depend on `lune-roblox` crate directly instead
+
+### Added
+
+- Added functions for getting Roblox Studio locations to the `roblox` standard library ([#284])
+- Added support for the `Content` datatype in the `roblox` standard library ([#305])
+- Added support for `EnumItem` instance attributes in the `roblox` standard library ([#306])
+- Added support for RFC 2822 dates in the `datetime` standard library using `fromRfc2822` ([#285]) - the `fromIsoDate`
+  function has also been deprecated (not removed yet) and `fromRfc3339` should instead be preferred for any new work.
+- Added a `readLine` function to the `stdio` standard library for reading line-by-line from stdin.
+- Added a way to disable JIT by setting the `LUNE_LUAU_JIT` environment variable to `false` before running Lune.
+- Added `process.endianness` constant ([#267])
 
 ### Changed
 
 - Documentation comments for several standard library properties have been improved ([#248], [#250])
 - Error messages no longer contain redundant or duplicate stack trace information
+- Updated to Luau version `0.663`
+- Updated to rbx-dom database version `0.670`
+
+### Fixed
+
+- Fixed deadlock in `stdio.format` calls in `__tostring` metamethods ([#288])
+- Fixed `task.wait` and `task.delay` not being guaranteed to yield when duration is set to zero or very small values
+- Fixed `__tostring` metamethods sometimes not being respected in `print` and `stdio.format` calls
 
 [#178]: https://github.com/lune-org/lune/pull/178
 [#211]: https://github.com/lune-org/lune/pull/211
 [#248]: https://github.com/lune-org/lune/pull/248
 [#250]: https://github.com/lune-org/lune/pull/250
+[#265]: https://github.com/lune-org/lune/pull/265
+[#267]: https://github.com/lune-org/lune/pull/267
+[#284]: https://github.com/lune-org/lune/pull/284
+[#285]: https://github.com/lune-org/lune/pull/285
+[#288]: https://github.com/lune-org/lune/pull/288
+[#305]: https://github.com/lune-org/lune/pull/305
+[#306]: https://github.com/lune-org/lune/pull/306
 
 ## `0.8.9` - October 7th, 2024
 

@@ -330,6 +330,7 @@ end
 
 	```lua
 	local roblox = require("@lune/roblox")
+	local serde = require("@lune/serde")
 	local net = require("@lune/net")
 
 	local cookie = roblox.getAuthCookie()
@@ -344,7 +345,7 @@ end
 		},
 	})
 
-	local responseTable = net.jsonDecode(response.body)
+	local responseTable = serde.decode("json", response.body)
 	local responseLocation = responseTable.locations[1].location
 	print("Download link to place: " .. responseLocation)
 	```
