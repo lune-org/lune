@@ -7,7 +7,7 @@ local expected = "Hello from child process!"
 -- has unfortunately proved to be a significant challenge...
 local options = { stdio = { stdin = expected } }
 local result = if process.os == "windows"
-	then process.exec("powershell", { "-Command", "{ & bash -c cat }" }, options)
+	then process.exec("powershell", { "-Command", "[System.Console]::In.ReadToEnd()" }, options)
 	else process.exec("bash", { "-c", "cat" }, options)
 
 local resultStdout = result.stdout
