@@ -7,7 +7,7 @@ repository = "https://github.com/lune-org/lune"
 description = "Luau-based async scheduler, using mlua and async-executor"
 readme = "README.md"
 keywords = ["async", "luau", "scheduler"]
-categories = ["async"]
+categories = ["asynchronous"]
 
 [lib]
 path = "src/lib.rs"
