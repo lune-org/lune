@@ -14,6 +14,7 @@ use super::{RuntimeError, RuntimeResult};
 /**
     Values returned by running a Lune runtime until completion.
 */
+#[derive(Debug)]
 #[non_exhaustive]
 pub struct RuntimeReturnValues {
     /// The exit code manually returned from the runtime, if any.
