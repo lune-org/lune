@@ -18,9 +18,16 @@ mlua-luau-scheduler = { version = "0.1.0", path = "../mlua-luau-scheduler" }
 
 async-io = "2.4"
 async-lock = "3.4"
+async-net = "2.0"
 blocking = "1.6"
 bstr = "1.9"
 futures-lite = "2.6"
+futures-rustls = "0.26"
+hyper = "1.6"
+rustls = "0.23"
+rustls-pki-types = "1.11"
+webpki = "0.22"
+webpki-roots = "0.26"
 
 lune-utils = { version = "0.2.0", path = "../lune-utils" }
 lune-std-serde = { version = "0.2.0", path = "../lune-std-serde" }
