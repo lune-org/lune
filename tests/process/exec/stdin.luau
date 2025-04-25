@@ -2,9 +2,10 @@ local process = require("@lune/process")
 
 local expected = "Hello from child process!"
 
-local result = if process.os == "windows"
-	then process.exec("powershell", { "-Command", "$input" }, { stdio = { stdin = expected } })
-	else process.exec("xargs", { "echo" }, { stdio = { stdin = expected } })
+-- NOTE: This requires "bash" to be installed even for Windows
+-- users, testing a simple cat from stdin to stdout using pwsh
+-- has unfortunately proved to be a significant challenge...
+local result = process.exec("bash", { "-c", "cat" }, { stdio = { stdin = expected } })
 
 local resultStdout = result.stdout
 resultStdout = string.gsub(resultStdout, "^%s+", "") -- Trim leading whitespace
