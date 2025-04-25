@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## `0.9.0`
+## `0.9.0` - April 25th, 2025
 
 This release has been a long time coming, and many breaking changes have been deferred until this version.
 If you are an existing Lune user upgrading to this version, you will **most likely** be affected - please read the full list of breaking changes below.
