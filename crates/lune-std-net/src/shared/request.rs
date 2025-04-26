@@ -1,14 +1,14 @@
 use http_body_util::Full;
+use url::Url;
 
 use hyper::{
-    body::Bytes,
+    body::{Bytes, Incoming},
     client::conn::http1::handshake,
-    header::{HeaderName, HeaderValue, USER_AGENT},
-    HeaderMap, Request as HyperRequest,
+    header::{HeaderName, HeaderValue, LOCATION, USER_AGENT},
+    HeaderMap, Method, Request as HyperRequest, Response as HyperResponse, Uri,
 };
 
 use mlua::prelude::*;
-use url::Url;
 
 use crate::{
     client::{config::RequestConfig, stream::HttpRequestStream},
@@ -19,13 +19,19 @@ use crate::{
     },
 };
 
+const MAX_REDIRECTS: usize = 10;
+
 #[derive(Debug, Clone)]
 pub struct Request {
     inner: HyperRequest<Full<Bytes>>,
+    redirects: usize,
     decompress: bool,
 }
 
 impl Request {
+    /**
+        Creates a new request that is ready to be sent from a request configuration.
+    */
     pub fn from_config(config: RequestConfig, lua: Lua) -> LuaResult<Self> {
         // 1. Parse the URL and make sure it is valid
         let mut url = Url::parse(&config.url).into_lua_err()?;
@@ -71,25 +77,55 @@ impl Request {
 
         add_default_headers(&lua, inner.headers_mut())?;
 
-        let decompress = config.options.decompress;
-        Ok(Self { inner, decompress })
+        Ok(Self {
+            inner,
+            redirects: 0,
+            decompress: config.options.decompress,
+        })
     }
 
-    pub async fn send(self, lua: Lua) -> LuaResult<Response> {
-        let stream = HttpRequestStream::connect(self.inner.uri()).await?;
+    /**
+        Sends the request and returns the final response.
 
-        let (mut sender, conn) = handshake(HyperIo::from(stream))
-            .await
-            .map_err(LuaError::external)?;
+        This will follow any redirects returned by the server,
+        modifying the request method and body as necessary.
+    */
+    pub async fn send(mut self, lua: Lua) -> LuaResult<Response> {
+        loop {
+            let stream = HttpRequestStream::connect(self.inner.uri()).await?;
 
-        HyperExecutor::execute(lua, conn);
+            let (mut sender, conn) = handshake(HyperIo::from(stream))
+                .await
+                .map_err(LuaError::external)?;
 
-        let incoming = sender
-            .send_request(self.inner)
-            .await
-            .map_err(LuaError::external)?;
+            HyperExecutor::execute(lua.clone(), conn);
 
-        Response::from_incoming(incoming, self.decompress).await
+            let incoming = sender
+                .send_request(self.inner.clone())
+                .await
+                .map_err(LuaError::external)?;
+
+            if let Some((replacement_method, replacement_uri)) =
+                check_redirect(&self.inner, &incoming)
+            {
+                if self.redirects >= MAX_REDIRECTS {
+                    return Err(LuaError::external("Too many redirects"));
+                }
+
+                if replacement_method == Method::GET {
+                    *self.inner.body_mut() = Full::default();
+                }
+
+                *self.inner.method_mut() = replacement_method;
+                *self.inner.uri_mut() = replacement_uri;
+
+                self.redirects += 1;
+
+                continue;
+            }
+
+            break Response::from_incoming(incoming, self.decompress).await;
+        }
     }
 }
 
@@ -101,4 +137,24 @@ fn add_default_headers(lua: &Lua, headers: &mut HeaderMap) -> LuaResult<()> {
     }
 
     Ok(())
+}
+
+fn check_redirect(
+    request: &HyperRequest<Full<Bytes>>,
+    response: &HyperResponse<Incoming>,
+) -> Option<(Method, Uri)> {
+    if !response.status().is_redirection() {
+        return None;
+    }
+
+    let location = response.headers().get(LOCATION)?;
+    let location = location.to_str().ok()?;
+    let location = location.parse().ok()?;
+
+    let method = match response.status().as_u16() {
+        301..=303 => Method::GET,
+        _ => request.method().clone(),
+    };
+
+    Some((method, location))
 }
