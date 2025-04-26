@@ -1,5 +1,5 @@
 use futures_lite::prelude::*;
-use http_body_util::BodyStream;
+use http_body_util::{BodyStream, Full};
 
 use hyper::{
     body::{Body, Bytes, Incoming},
@@ -12,6 +12,8 @@ use crate::shared::headers::header_map_to_table;
 
 #[derive(Debug, Clone)]
 pub struct Response {
+    // NOTE: We use Bytes instead of Full<Bytes> to avoid
+    // needing async when getting a reference to the body
     inner: HyperResponse<Bytes>,
     decompressed: bool,
 }
@@ -80,6 +82,22 @@ impl Response {
     */
     pub fn body(&self) -> &[u8] {
         self.inner.body()
+    }
+
+    /**
+        Returns the inner `hyper` response with its body
+        type modified to `Full<Bytes>` for sending.
+    */
+    pub fn as_full(&self) -> HyperResponse<Full<Bytes>> {
+        let mut builder = HyperResponse::builder().version(self.inner.version());
+
+        let headers = builder.headers_mut().expect("request was valid");
+        for (name, value) in self.inner.headers() {
+            headers.insert(name, value.clone());
+        }
+
+        let body = Full::new(self.inner.body().clone());
+        builder.body(body).expect("request was valid")
     }
 }
 
