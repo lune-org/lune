@@ -1,1 +1,2 @@
+mod hyper;
 mod stream;

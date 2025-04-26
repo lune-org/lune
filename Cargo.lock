@@ -1831,6 +1831,7 @@ dependencies = [
 name = "lune-std-net"
 version = "0.2.0"
 dependencies = [
+ "async-executor",
  "async-io",
  "async-lock",
  "async-net",
@@ -1843,6 +1844,7 @@ dependencies = [
  "lune-utils",
  "mlua",
  "mlua-luau-scheduler",
+ "pin-project-lite",
  "rustls 0.23.26",
  "rustls-pki-types",
  "webpki",
