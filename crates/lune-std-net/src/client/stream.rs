@@ -27,7 +27,7 @@ pub enum HttpRequestStream {
 }
 
 impl HttpRequestStream {
-    pub async fn connect(url: Uri) -> Result<Self, io::Error> {
+    pub async fn connect(url: &Uri) -> Result<Self, io::Error> {
         let Some(host) = url.host() else {
             return Err(make_err("unknown or missing host"));
         };

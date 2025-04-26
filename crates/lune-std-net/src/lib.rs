@@ -8,6 +8,10 @@ mod client;
 mod server;
 mod url;
 
+use self::client::{Request, Response};
+
+pub(crate) mod shared;
+
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 
 /**
@@ -27,10 +31,14 @@ pub fn typedefs() -> String {
 */
 pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
-        // .with_async_function("request", net_request)?
+        .with_async_function("request", net_request)?
         // .with_async_function("socket", net_socket)?
         // .with_async_function("serve", net_serve)?
         // .with_function("urlEncode", net_url_encode)?
         // .with_function("urlDecode", net_url_decode)?
         .build_readonly()
+}
+
+async fn net_request(lua: Lua, req: Request) -> LuaResult<Response> {
+    req.send(lua).await
 }

@@ -9,7 +9,7 @@ use std::{
 
 use async_io::Timer;
 use futures_lite::prelude::*;
-use hyper::rt::{self, ReadBufCursor};
+use hyper::rt::{self, Executor, ReadBufCursor};
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -20,9 +20,21 @@ pub struct HyperExecutor {
     lua: Lua,
 }
 
-impl From<Lua> for HyperExecutor {
-    fn from(lua: Lua) -> Self {
-        Self { lua }
+#[allow(dead_code)]
+impl HyperExecutor {
+    pub fn execute<Fut>(lua: Lua, fut: Fut)
+    where
+        Fut: Future + Send + 'static,
+        Fut::Output: Send + 'static,
+    {
+        let exec = if let Some(exec) = lua.app_data_ref::<Self>() {
+            exec
+        } else {
+            lua.set_app_data(Self { lua: lua.clone() });
+            lua.app_data_ref::<Self>().unwrap()
+        };
+
+        exec.execute(fut);
     }
 }
 
