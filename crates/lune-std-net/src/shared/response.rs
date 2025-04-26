@@ -2,7 +2,7 @@ use futures_lite::prelude::*;
 use http_body_util::BodyStream;
 
 use hyper::{
-    body::{Bytes, Incoming},
+    body::{Body, Bytes, Incoming},
     HeaderMap, Response as HyperResponse,
 };
 
@@ -23,8 +23,10 @@ impl Response {
     ) -> LuaResult<Self> {
         let (parts, body) = incoming.into_parts();
 
+        let size = body.size_hint().lower() as usize;
+        let buffer = Vec::<u8>::with_capacity(size);
         let body = BodyStream::new(body)
-            .try_fold(Vec::<u8>::new(), |mut body, chunk| {
+            .try_fold(buffer, |mut body, chunk| {
                 if let Some(chunk) = chunk.data_ref() {
                     body.extend_from_slice(chunk);
                 }
