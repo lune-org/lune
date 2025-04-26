@@ -17,6 +17,9 @@ pub struct Response {
 }
 
 impl Response {
+    /**
+        Creates a new response from a raw incoming response.
+    */
     pub async fn from_incoming(
         incoming: HyperResponse<Incoming>,
         decompressed: bool,
@@ -44,22 +47,37 @@ impl Response {
         })
     }
 
+    /**
+        Returns whether the request was successful or not.
+    */
     pub fn status_ok(&self) -> bool {
         self.inner.status().is_success()
     }
 
+    /**
+        Returns the status code of the response.
+    */
     pub fn status_code(&self) -> u16 {
         self.inner.status().as_u16()
     }
 
+    /**
+        Returns the status message of the response.
+    */
     pub fn status_message(&self) -> &str {
         self.inner.status().canonical_reason().unwrap_or_default()
     }
 
+    /**
+        Returns the headers of the response.
+    */
     pub fn headers(&self) -> &HeaderMap {
         self.inner.headers()
     }
 
+    /**
+        Returns the body of the response.
+    */
     pub fn body(&self) -> &[u8] {
         self.inner.body()
     }
