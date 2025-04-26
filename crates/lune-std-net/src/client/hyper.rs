@@ -15,7 +15,7 @@ use mlua_luau_scheduler::LuaSpawnExt;
 
 // Hyper executor that spawns futures onto our Lua scheduler
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HyperExecutor {
     lua: Lua,
 }
