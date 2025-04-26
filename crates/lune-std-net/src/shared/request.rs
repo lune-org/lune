@@ -22,6 +22,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Request {
     inner: HyperRequest<Full<Bytes>>,
+    decompress: bool,
 }
 
 impl Request {
@@ -67,8 +68,11 @@ impl Request {
         // 6. Finally, attach the body, verifying that the request
         //    is valid, and attach a user agent if not already set
         let mut inner = builder.body(body).into_lua_err()?;
+
         add_default_headers(&lua, inner.headers_mut())?;
-        Ok(Self { inner })
+
+        let decompress = config.options.decompress;
+        Ok(Self { inner, decompress })
     }
 
     pub async fn send(self, lua: Lua) -> LuaResult<Response> {
@@ -85,7 +89,7 @@ impl Request {
             .await
             .map_err(LuaError::external)?;
 
-        Response::from_incoming(incoming).await
+        Response::from_incoming(incoming, self.decompress).await
     }
 }
 

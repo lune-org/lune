@@ -13,10 +13,14 @@ use crate::shared::headers::header_map_to_table;
 #[derive(Debug, Clone)]
 pub struct Response {
     inner: HyperResponse<Bytes>,
+    decompressed: bool,
 }
 
 impl Response {
-    pub async fn from_incoming(incoming: HyperResponse<Incoming>) -> LuaResult<Self> {
+    pub async fn from_incoming(
+        incoming: HyperResponse<Incoming>,
+        decompressed: bool,
+    ) -> LuaResult<Self> {
         let (parts, body) = incoming.into_parts();
 
         let body = BodyStream::new(body)
@@ -32,7 +36,10 @@ impl Response {
         let bytes = Bytes::from(body);
         let inner = HyperResponse::from_parts(parts, bytes);
 
-        Ok(Self { inner })
+        Ok(Self {
+            inner,
+            decompressed,
+        })
     }
 
     pub fn status_ok(&self) -> bool {
@@ -64,7 +71,7 @@ impl LuaUserData for Response {
             lua.create_string(this.status_message())
         });
         fields.add_field_method_get("headers", |lua, this| {
-            header_map_to_table(lua, this.headers().clone(), false)
+            header_map_to_table(lua, this.headers().clone(), this.decompressed)
         });
         fields.add_field_method_get("body", |lua, this| lua.create_string(this.body()));
     }
