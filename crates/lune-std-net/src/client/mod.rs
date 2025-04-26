@@ -1,4 +1,2 @@
-mod request;
-mod stream;
-
-pub use self::request::{Request, Response};
+pub mod config;
+pub mod stream;

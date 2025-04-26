@@ -1,16 +1,15 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
-use lune_utils::TableBuilder;
-
-mod client;
-mod server;
-mod url;
-
-use self::client::{Request, Response};
-
+pub(crate) mod client;
+pub(crate) mod server;
 pub(crate) mod shared;
+pub(crate) mod url;
+
+use self::client::config::RequestConfig;
+use self::shared::{request::Request, response::Response};
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 
@@ -39,6 +38,8 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn net_request(lua: Lua, req: Request) -> LuaResult<Response> {
-    req.send(lua).await
+async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<Response> {
+    Request::from_config(config, lua.clone())?
+        .send(lua.clone())
+        .await
 }

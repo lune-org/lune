@@ -29,6 +29,7 @@ hyper = { version = "1.6", features = ["http1", "client", "server"] }
 pin-project-lite = "0.2"
 rustls = "0.23"
 rustls-pki-types = "1.11"
+url = "2.5"
 webpki = "0.22"
 webpki-roots = "0.26"
 
