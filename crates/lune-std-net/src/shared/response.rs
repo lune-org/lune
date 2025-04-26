@@ -14,8 +14,8 @@ use crate::shared::headers::header_map_to_table;
 pub struct Response {
     // NOTE: We use Bytes instead of Full<Bytes> to avoid
     // needing async when getting a reference to the body
-    inner: HyperResponse<Bytes>,
-    decompressed: bool,
+    pub(crate) inner: HyperResponse<Bytes>,
+    pub(crate) decompressed: bool,
 }
 
 impl Response {
