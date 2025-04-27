@@ -10,7 +10,7 @@ pub(crate) mod url;
 
 use self::{
     client::config::RequestConfig,
-    server::config::ServeConfig,
+    server::{config::ServeConfig, handle::ServeHandle},
     shared::{request::Request, response::Response},
 };
 
@@ -45,7 +45,7 @@ async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<Response> {
     self::client::send_request(Request::try_from(config)?, lua).await
 }
 
-async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<()> {
+async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<ServeHandle> {
     self::server::serve(lua, port, config).await
 }
 

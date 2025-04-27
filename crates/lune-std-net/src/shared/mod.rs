@@ -1,3 +1,4 @@
+pub mod futures;
 pub mod headers;
 pub mod hyper;
 pub mod incoming;

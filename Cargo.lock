@@ -1852,6 +1852,7 @@ dependencies = [
 name = "lune-std-net"
 version = "0.2.0"
 dependencies = [
+ "async-channel",
  "async-executor",
  "async-io",
  "async-lock",

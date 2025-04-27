@@ -16,6 +16,7 @@ workspace = true
 mlua = { version = "0.10.3", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.1.0", path = "../mlua-luau-scheduler" }
 
+async-channel = "2.3"
 async-executor = "1.13"
 async-io = "2.4"
 async-lock = "3.4"

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::SocketAddr};
 
 use http_body_util::Full;
 use url::Url;
@@ -24,7 +24,8 @@ pub struct Request {
     // NOTE: We use Bytes instead of Full<Bytes> to avoid
     // needing async when getting a reference to the body
     pub(crate) inner: HyperRequest<Bytes>,
-    pub(crate) redirects: usize,
+    pub(crate) address: Option<SocketAddr>,
+    pub(crate) redirects: Option<usize>,
     pub(crate) decompress: bool,
 }
 
@@ -42,9 +43,20 @@ impl Request {
 
         Ok(Self {
             inner: HyperRequest::from_parts(parts, body),
-            redirects: 0,
+            address: None,
+            redirects: None,
             decompress,
         })
+    }
+
+    /**
+        Attaches a socket address to the request.
+
+        This will make the `ip` and `port` fields available on the request.
+    */
+    pub fn with_address(mut self, address: SocketAddr) -> Self {
+        self.address = Some(address);
+        self
     }
 
     /**
@@ -154,7 +166,8 @@ impl TryFrom<RequestConfig> for Request {
 
         Ok(Self {
             inner,
-            redirects: 0,
+            address: None,
+            redirects: None,
             decompress: config.options.decompress,
         })
     }
@@ -162,6 +175,12 @@ impl TryFrom<RequestConfig> for Request {
 
 impl LuaUserData for Request {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
+        fields.add_field_method_get("ip", |_, this| {
+            Ok(this.address.map(|address| address.ip().to_string()))
+        });
+        fields.add_field_method_get("port", |_, this| {
+            Ok(this.address.map(|address| address.port()))
+        });
         fields.add_field_method_get("method", |_, this| Ok(this.method().to_string()));
         fields.add_field_method_get("path", |_, this| Ok(this.path().to_string()));
         fields.add_field_method_get("query", |lua, this| {

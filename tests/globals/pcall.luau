@@ -28,7 +28,7 @@ local handle = net.serve(PORT, function()
 end)
 
 task.delay(0.25, function()
-	handle.stop()
+	handle:stop()
 end)
 
 test(net.serve, PORT, function() end)

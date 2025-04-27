@@ -18,7 +18,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub(super) struct Service {
     pub(super) lua: Lua,
-    pub(super) address: SocketAddr,
+    pub(super) address: SocketAddr, // NOTE: This should be the remote address of the connected client
     pub(super) config: ServeConfig,
 }
 
@@ -29,11 +29,14 @@ impl HyperService<HyperRequest<Incoming>> for Service {
 
     fn call(&self, req: HyperRequest<Incoming>) -> Self::Future {
         let lua = self.lua.clone();
+        let address = self.address;
         let config = self.config.clone();
 
         Box::pin(async move {
             let handler = config.handle_request.clone();
-            let request = Request::from_incoming(req, true).await?;
+            let request = Request::from_incoming(req, true)
+                .await?
+                .with_address(address);
 
             let thread_id = lua.push_thread_back(handler, request)?;
             lua.track_thread(thread_id);

@@ -41,7 +41,7 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
             .into_lua_err()?;
 
         if let Some((new_method, new_uri)) = check_redirect(&request.inner, &incoming) {
-            if request.redirects >= MAX_REDIRECTS {
+            if request.redirects.is_some_and(|r| r >= MAX_REDIRECTS) {
                 return Err(LuaError::external("Too many redirects"));
             }
 
@@ -52,7 +52,7 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
             *request.inner.method_mut() = new_method;
             *request.inner.uri_mut() = new_uri;
 
-            request.redirects += 1;
+            *request.redirects.get_or_insert_default() += 1;
 
             continue;
         }
