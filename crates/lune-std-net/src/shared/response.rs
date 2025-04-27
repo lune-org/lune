@@ -21,36 +21,6 @@ pub struct Response {
 
 impl Response {
     /**
-        Creates a new response that is ready to be sent from a response configuration.
-    */
-    pub fn from_config(config: ResponseConfig, _lua: Lua) -> LuaResult<Self> {
-        // 1. Create the inner response builder
-        let mut builder = HyperResponse::builder().status(config.status);
-
-        // 2. Append any headers passed as a table - builder
-        //    headers may be None if builder is already invalid
-        if let Some(headers) = builder.headers_mut() {
-            for (key, values) in config.headers {
-                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
-                for value in values {
-                    let value = HeaderValue::from_str(&value).into_lua_err()?;
-                    headers.insert(key.clone(), value);
-                }
-            }
-        }
-
-        // 3. Convert response body bytes to the proper Body
-        //    type that Hyper expects, if we got any bytes
-        let body = config.body.map(Bytes::from).unwrap_or_default();
-
-        // 4. Finally, attach the body, verifying that the response is valid
-        Ok(Self {
-            inner: builder.body(body).into_lua_err()?,
-            decompressed: false,
-        })
-    }
-
-    /**
         Creates a new response from a raw incoming response.
     */
     pub async fn from_incoming(
@@ -130,6 +100,36 @@ impl Response {
 
         let body = Full::new(self.inner.body().clone());
         builder.body(body).expect("request was valid")
+    }
+}
+
+impl TryFrom<ResponseConfig> for Response {
+    type Error = LuaError;
+    fn try_from(config: ResponseConfig) -> Result<Self, Self::Error> {
+        // 1. Create the inner response builder
+        let mut builder = HyperResponse::builder().status(config.status);
+
+        // 2. Append any headers passed as a table - builder
+        //    headers may be None if builder is already invalid
+        if let Some(headers) = builder.headers_mut() {
+            for (key, values) in config.headers {
+                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
+                for value in values {
+                    let value = HeaderValue::from_str(&value).into_lua_err()?;
+                    headers.insert(key.clone(), value);
+                }
+            }
+        }
+
+        // 3. Convert response body bytes to the proper Body
+        //    type that Hyper expects, if we got any bytes
+        let body = config.body.map(Bytes::from).unwrap_or_default();
+
+        // 4. Finally, attach the body, verifying that the response is valid
+        Ok(Self {
+            inner: builder.body(body).into_lua_err()?,
+            decompressed: false,
+        })
     }
 }
 

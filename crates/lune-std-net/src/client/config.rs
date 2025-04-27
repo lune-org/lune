@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use bstr::{BString, ByteSlice};
-use hyper::Method;
+use hyper::{header::USER_AGENT, Method};
 use mlua::prelude::*;
 
-use crate::shared::headers::table_to_hash_map;
+use crate::shared::headers::{create_user_agent_header, table_to_hash_map};
 
 #[derive(Debug, Clone)]
 pub struct RequestConfigOptions {
@@ -86,7 +86,7 @@ impl FromLua for RequestConfig {
                 Err(_) => HashMap::new(),
             };
             // Extract headers
-            let headers = match tab.get::<LuaTable>("headers") {
+            let mut headers = match tab.get::<LuaTable>("headers") {
                 Ok(tab) => table_to_hash_map(tab, "headers")?,
                 Err(_) => HashMap::new(),
             };
@@ -118,6 +118,9 @@ impl FromLua for RequestConfig {
                 Err(_) => RequestConfigOptions::default(),
             };
 
+            // Finally, add any default headers, if applicable
+            add_default_headers(lua, &mut headers)?;
+
             // All good, validated and we got what we need
             Ok(Self {
                 url,
@@ -139,4 +142,13 @@ impl FromLua for RequestConfig {
             })
         }
     }
+}
+
+fn add_default_headers(lua: &Lua, headers: &mut HashMap<String, Vec<String>>) -> LuaResult<()> {
+    if !headers.contains_key(USER_AGENT.as_str()) {
+        let ua = create_user_agent_header(lua)?;
+        headers.insert(USER_AGENT.to_string(), vec![ua]);
+    }
+
+    Ok(())
 }

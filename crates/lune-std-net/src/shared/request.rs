@@ -6,7 +6,7 @@ use url::Url;
 
 use hyper::{
     body::{Body as _, Bytes, Incoming},
-    header::{HeaderName, HeaderValue, USER_AGENT},
+    header::{HeaderName, HeaderValue},
     HeaderMap, Method, Request as HyperRequest,
 };
 
@@ -14,7 +14,7 @@ use mlua::prelude::*;
 
 use crate::{
     client::config::RequestConfig,
-    shared::headers::{create_user_agent_header, hash_map_to_table, header_map_to_table},
+    shared::headers::{hash_map_to_table, header_map_to_table},
 };
 
 #[derive(Debug, Clone)]
@@ -27,57 +27,6 @@ pub struct Request {
 }
 
 impl Request {
-    /**
-        Creates a new request that is ready to be sent from a request configuration.
-    */
-    pub fn from_config(config: RequestConfig, lua: Lua) -> LuaResult<Self> {
-        // 1. Parse the URL and make sure it is valid
-        let mut url = Url::parse(&config.url).into_lua_err()?;
-
-        // 2. Append any query pairs passed as a table
-        {
-            let mut query = url.query_pairs_mut();
-            for (key, values) in config.query {
-                for value in values {
-                    query.append_pair(&key, &value);
-                }
-            }
-        }
-
-        // 3. Create the inner request builder
-        let mut builder = HyperRequest::builder()
-            .method(config.method)
-            .uri(url.as_str());
-
-        // 4. Append any headers passed as a table - builder
-        //    headers may be None if builder is already invalid
-        if let Some(headers) = builder.headers_mut() {
-            for (key, values) in config.headers {
-                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
-                for value in values {
-                    let value = HeaderValue::from_str(&value).into_lua_err()?;
-                    headers.insert(key.clone(), value);
-                }
-            }
-        }
-
-        // 5. Convert request body bytes to the proper Body
-        //    type that Hyper expects, if we got any bytes
-        let body = config.body.map(Bytes::from).unwrap_or_default();
-
-        // 6. Finally, attach the body, verifying that the request
-        //    is valid, and attach a user agent if not already set
-        let mut inner = builder.body(body).into_lua_err()?;
-
-        add_default_headers(&lua, inner.headers_mut())?;
-
-        Ok(Self {
-            inner,
-            redirects: 0,
-            decompress: config.options.decompress,
-        })
-    }
-
     /**
         Creates a new request from a raw incoming request.
     */
@@ -173,14 +122,52 @@ impl Request {
     }
 }
 
-fn add_default_headers(lua: &Lua, headers: &mut HeaderMap) -> LuaResult<()> {
-    if !headers.contains_key(USER_AGENT) {
-        let ua = create_user_agent_header(lua)?;
-        let ua = HeaderValue::from_str(&ua).into_lua_err()?;
-        headers.insert(USER_AGENT, ua);
-    }
+impl TryFrom<RequestConfig> for Request {
+    type Error = LuaError;
+    fn try_from(config: RequestConfig) -> Result<Self, Self::Error> {
+        // 1. Parse the URL and make sure it is valid
+        let mut url = Url::parse(&config.url).into_lua_err()?;
 
-    Ok(())
+        // 2. Append any query pairs passed as a table
+        {
+            let mut query = url.query_pairs_mut();
+            for (key, values) in config.query {
+                for value in values {
+                    query.append_pair(&key, &value);
+                }
+            }
+        }
+
+        // 3. Create the inner request builder
+        let mut builder = HyperRequest::builder()
+            .method(config.method)
+            .uri(url.as_str());
+
+        // 4. Append any headers passed as a table - builder
+        //    headers may be None if builder is already invalid
+        if let Some(headers) = builder.headers_mut() {
+            for (key, values) in config.headers {
+                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
+                for value in values {
+                    let value = HeaderValue::from_str(&value).into_lua_err()?;
+                    headers.insert(key.clone(), value);
+                }
+            }
+        }
+
+        // 5. Convert request body bytes to the proper Body
+        //    type that Hyper expects, if we got any bytes
+        let body = config.body.map(Bytes::from).unwrap_or_default();
+
+        // 6. Finally, attach the body, verifying that the request is valid
+        let inner = builder.body(body).into_lua_err()?;
+
+        Ok(Self {
+            inner,
+            redirects: 0,
+            decompress: config.options.decompress,
+        })
+    }
 }
 
 impl LuaUserData for Request {

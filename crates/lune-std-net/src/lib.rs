@@ -43,6 +43,5 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
 }
 
 async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<Response> {
-    let request = Request::from_config(config, lua.clone())?;
-    self::client::send_request(request, lua.clone()).await
+    self::client::send_request(Request::try_from(config)?, lua).await
 }
