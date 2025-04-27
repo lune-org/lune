@@ -8,8 +8,12 @@ pub(crate) mod server;
 pub(crate) mod shared;
 pub(crate) mod url;
 
-use self::client::config::RequestConfig;
-use self::shared::{request::Request, response::Response};
+#[allow(unused_imports)]
+use self::{
+    client::config::RequestConfig,
+    server::config::ResponseConfig,
+    shared::{request::Request, response::Response},
+};
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 
