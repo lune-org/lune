@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use futures_lite::prelude::*;
-use http_body_util::{BodyStream, Full};
+use http_body_util::Full;
 use url::Url;
 
 use hyper::{
-    body::{Body as _, Bytes, Incoming},
+    body::{Bytes, Incoming},
     header::{HeaderName, HeaderValue},
     HeaderMap, Method, Request as HyperRequest,
 };
@@ -14,7 +13,10 @@ use mlua::prelude::*;
 
 use crate::{
     client::config::RequestConfig,
-    shared::headers::{hash_map_to_table, header_map_to_table},
+    shared::{
+        headers::{hash_map_to_table, header_map_to_table},
+        incoming::handle_incoming_body,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -36,22 +38,10 @@ impl Request {
     ) -> LuaResult<Self> {
         let (parts, body) = incoming.into_parts();
 
-        let size = body.size_hint().lower() as usize;
-        let buffer = Vec::<u8>::with_capacity(size);
-        let body = BodyStream::new(body)
-            .try_fold(buffer, |mut body, chunk| {
-                if let Some(chunk) = chunk.data_ref() {
-                    body.extend_from_slice(chunk);
-                }
-                Ok(body)
-            })
-            .await
-            .into_lua_err()?;
-
-        // TODO: Decompress body if decompress is true and headers are present
+        let (body, decompress) = handle_incoming_body(&parts.headers, body, decompress).await?;
 
         Ok(Self {
-            inner: HyperRequest::from_parts(parts, Bytes::from(body)),
+            inner: HyperRequest::from_parts(parts, body),
             redirects: 0,
             decompress,
         })

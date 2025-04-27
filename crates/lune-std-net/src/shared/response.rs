@@ -1,15 +1,17 @@
-use futures_lite::prelude::*;
-use http_body_util::{BodyStream, Full};
+use http_body_util::Full;
 
 use hyper::{
-    body::{Body, Bytes, Incoming},
+    body::{Bytes, Incoming},
     header::{HeaderName, HeaderValue},
     HeaderMap, Response as HyperResponse,
 };
 
 use mlua::prelude::*;
 
-use crate::{server::config::ResponseConfig, shared::headers::header_map_to_table};
+use crate::{
+    server::config::ResponseConfig,
+    shared::{headers::header_map_to_table, incoming::handle_incoming_body},
+};
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -29,23 +31,11 @@ impl Response {
     ) -> LuaResult<Self> {
         let (parts, body) = incoming.into_parts();
 
-        let size = body.size_hint().lower() as usize;
-        let buffer = Vec::<u8>::with_capacity(size);
-        let body = BodyStream::new(body)
-            .try_fold(buffer, |mut body, chunk| {
-                if let Some(chunk) = chunk.data_ref() {
-                    body.extend_from_slice(chunk);
-                }
-                Ok(body)
-            })
-            .await
-            .into_lua_err()?;
-
-        // TODO: Decompress body if decompress is true and headers are present
+        let (body, decompressed) = handle_incoming_body(&parts.headers, body, decompress).await?;
 
         Ok(Self {
-            inner: HyperResponse::from_parts(parts, Bytes::from(body)),
-            decompressed: decompress,
+            inner: HyperResponse::from_parts(parts, body),
+            decompressed,
         })
     }
 
