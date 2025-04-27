@@ -18,6 +18,7 @@ use crate::{
 pub mod config;
 pub mod handle;
 pub mod service;
+pub mod upgrade;
 
 /**
     Starts an HTTP server using the given port and configuration.

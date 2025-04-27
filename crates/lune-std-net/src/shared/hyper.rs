@@ -8,8 +8,8 @@ use std::{
 };
 
 use async_io::Timer;
-use futures_lite::prelude::*;
-use hyper::rt::{self, Executor, ReadBufCursor};
+use futures_lite::{prelude::*, ready};
+use hyper::rt::{self, Executor, ReadBuf, ReadBufCursor};
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
 
@@ -94,7 +94,8 @@ impl Future for HyperSleep {
 
 impl rt::Sleep for HyperSleep {}
 
-// Hyper I/O wrapper for futures-lite types
+// Hyper I/O wrapper for bidirectional compatibility
+// between hyper & futures-lite async read/write traits
 
 pin_project_lite::pin_project! {
     #[derive(Debug)]
@@ -115,6 +116,8 @@ impl<T> HyperIo<T> {
         self.project().inner
     }
 }
+
+// Compat for futures-lite -> hyper runtime
 
 impl<T: AsyncRead> rt::Read for HyperIo<T> {
     fn poll_read(
@@ -166,6 +169,46 @@ impl<T: AsyncWrite> rt::Write for HyperIo<T> {
         cx: &mut Context<'_>,
         bufs: &[io::IoSlice<'_>],
     ) -> Poll<io::Result<usize>> {
+        self.pin_mut().poll_write_vectored(cx, bufs)
+    }
+}
+
+// Compat for hyper runtime -> futures-lite
+
+impl<T: rt::Read> AsyncRead for HyperIo<T> {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
+        let mut buf = ReadBuf::new(buf);
+        ready!(self.pin_mut().poll_read(cx, buf.unfilled()))?;
+        Poll::Ready(Ok(buf.filled().len()))
+    }
+}
+
+impl<T: rt::Write> AsyncWrite for HyperIo<T> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, std::io::Error>> {
+        self.pin_mut().poll_write(cx, buf)
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
+        self.pin_mut().poll_flush(cx)
+    }
+
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.pin_mut().poll_shutdown(cx)
+    }
+
+    fn poll_write_vectored(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[std::io::IoSlice<'_>],
+    ) -> Poll<Result<usize, std::io::Error>> {
         self.pin_mut().poll_write_vectored(cx, bufs)
     }
 }
