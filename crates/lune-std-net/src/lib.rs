@@ -8,10 +8,9 @@ pub(crate) mod server;
 pub(crate) mod shared;
 pub(crate) mod url;
 
-#[allow(unused_imports)]
 use self::{
     client::config::RequestConfig,
-    server::config::ResponseConfig,
+    server::config::ServeConfig,
     shared::{request::Request, response::Response},
 };
 
@@ -36,7 +35,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_async_function("request", net_request)?
         // .with_async_function("socket", net_socket)?
-        // .with_async_function("serve", net_serve)?
+        .with_async_function("serve", net_serve)?
         .with_function("urlEncode", net_url_encode)?
         .with_function("urlDecode", net_url_decode)?
         .build_readonly()
@@ -44,6 +43,10 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
 
 async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<Response> {
     self::client::send_request(Request::try_from(config)?, lua).await
+}
+
+async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<()> {
+    self::server::serve(lua, port, config).await
 }
 
 fn net_url_encode(
