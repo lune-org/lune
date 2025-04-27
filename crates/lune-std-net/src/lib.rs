@@ -9,9 +9,9 @@ pub(crate) mod shared;
 pub(crate) mod url;
 
 use self::{
-    client::config::RequestConfig,
+    client::{config::RequestConfig, ws_stream::WsStream},
     server::{config::ServeConfig, handle::ServeHandle},
-    shared::{request::Request, response::Response},
+    shared::{request::Request, response::Response, websocket::Websocket},
 };
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
@@ -34,7 +34,7 @@ pub fn typedefs() -> String {
 pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
         .with_async_function("request", net_request)?
-        // .with_async_function("socket", net_socket)?
+        .with_async_function("socket", net_socket)?
         .with_async_function("serve", net_serve)?
         .with_function("urlEncode", net_url_encode)?
         .with_function("urlDecode", net_url_decode)?
@@ -43,6 +43,11 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
 
 async fn net_request(lua: Lua, config: RequestConfig) -> LuaResult<Response> {
     self::client::send_request(Request::try_from(config)?, lua).await
+}
+
+async fn net_socket(_: Lua, url: String) -> LuaResult<Websocket<WsStream>> {
+    let url = url.parse().into_lua_err()?;
+    self::client::connect_websocket(url).await
 }
 
 async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<ServeHandle> {

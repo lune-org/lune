@@ -6,20 +6,32 @@ use hyper::{
 };
 
 use mlua::prelude::*;
+use url::Url;
 
 use crate::{
-    client::stream::HttpRequestStream,
+    client::{http_stream::HttpStream, ws_stream::WsStream},
     shared::{
         hyper::{HyperExecutor, HyperIo},
         request::Request,
         response::Response,
+        websocket::Websocket,
     },
 };
 
 pub mod config;
-pub mod stream;
+pub mod http_stream;
+pub mod rustls;
+pub mod ws_stream;
 
 const MAX_REDIRECTS: usize = 10;
+
+/**
+    Connects to a websocket at the given URL.
+*/
+pub async fn connect_websocket(url: Url) -> LuaResult<Websocket<WsStream>> {
+    let stream = WsStream::connect(url).await?;
+    Ok(Websocket::from(stream))
+}
 
 /**
     Sends the request and returns the final response.
@@ -28,8 +40,14 @@ const MAX_REDIRECTS: usize = 10;
     modifying the request method and body as necessary.
 */
 pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response> {
+    let url = request
+        .inner
+        .uri()
+        .to_string()
+        .parse::<Url>()
+        .expect("uri is valid");
     loop {
-        let stream = HttpRequestStream::connect(request.inner.uri()).await?;
+        let stream = HttpStream::connect(url.clone()).await?;
 
         let (mut sender, conn) = handshake(HyperIo::from(stream)).await.into_lua_err()?;
 
