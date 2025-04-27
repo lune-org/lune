@@ -1,15 +1,21 @@
-use http_body_util::Full;
+use std::collections::HashMap;
+
+use futures_lite::prelude::*;
+use http_body_util::{BodyStream, Full};
 use url::Url;
 
 use hyper::{
-    body::Bytes,
+    body::{Body as _, Bytes, Incoming},
     header::{HeaderName, HeaderValue, USER_AGENT},
-    HeaderMap, Request as HyperRequest,
+    HeaderMap, Method, Request as HyperRequest,
 };
 
 use mlua::prelude::*;
 
-use crate::{client::config::RequestConfig, shared::headers::create_user_agent_header};
+use crate::{
+    client::config::RequestConfig,
+    shared::headers::{create_user_agent_header, hash_map_to_table, header_map_to_table},
+};
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -73,6 +79,81 @@ impl Request {
     }
 
     /**
+        Creates a new request from a raw incoming request.
+    */
+    pub async fn from_incoming(
+        incoming: HyperRequest<Incoming>,
+        decompress: bool,
+    ) -> LuaResult<Self> {
+        let (parts, body) = incoming.into_parts();
+
+        let size = body.size_hint().lower() as usize;
+        let buffer = Vec::<u8>::with_capacity(size);
+        let body = BodyStream::new(body)
+            .try_fold(buffer, |mut body, chunk| {
+                if let Some(chunk) = chunk.data_ref() {
+                    body.extend_from_slice(chunk);
+                }
+                Ok(body)
+            })
+            .await
+            .into_lua_err()?;
+
+        // TODO: Decompress body if decompress is true and headers are present
+
+        Ok(Self {
+            inner: HyperRequest::from_parts(parts, Bytes::from(body)),
+            redirects: 0,
+            decompress,
+        })
+    }
+
+    /**
+        Returns the method of the request.
+    */
+    pub fn method(&self) -> Method {
+        self.inner.method().clone()
+    }
+
+    /**
+        Returns the path of the request.
+    */
+    pub fn path(&self) -> &str {
+        self.inner.uri().path()
+    }
+
+    /**
+        Returns the query parameters of the request.
+    */
+    pub fn query(&self) -> HashMap<String, Vec<String>> {
+        let uri = self.inner.uri();
+        let url = uri.to_string().parse::<Url>().expect("uri is valid");
+
+        let mut result = HashMap::<String, Vec<String>>::new();
+        for (key, value) in url.query_pairs() {
+            result
+                .entry(key.into_owned())
+                .or_default()
+                .push(value.into_owned());
+        }
+        result
+    }
+
+    /**
+        Returns the headers of the request.
+    */
+    pub fn headers(&self) -> &HeaderMap {
+        self.inner.headers()
+    }
+
+    /**
+        Returns the body of the request.
+    */
+    pub fn body(&self) -> &[u8] {
+        self.inner.body()
+    }
+
+    /**
         Returns the inner `hyper` request with its body
         type modified to `Full<Bytes>` for sending.
     */
@@ -82,10 +163,10 @@ impl Request {
             .method(self.inner.method())
             .uri(self.inner.uri());
 
-        let headers = builder.headers_mut().expect("request was valid");
-        for (name, value) in self.inner.headers() {
-            headers.insert(name, value.clone());
-        }
+        builder
+            .headers_mut()
+            .expect("request was valid")
+            .extend(self.inner.headers().clone());
 
         let body = Full::new(self.inner.body().clone());
         builder.body(body).expect("request was valid")
@@ -100,4 +181,18 @@ fn add_default_headers(lua: &Lua, headers: &mut HeaderMap) -> LuaResult<()> {
     }
 
     Ok(())
+}
+
+impl LuaUserData for Request {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
+        fields.add_field_method_get("method", |_, this| Ok(this.method().to_string()));
+        fields.add_field_method_get("path", |_, this| Ok(this.path().to_string()));
+        fields.add_field_method_get("query", |lua, this| {
+            hash_map_to_table(lua, this.query(), false)
+        });
+        fields.add_field_method_get("headers", |lua, this| {
+            header_map_to_table(lua, this.headers().clone(), this.decompress)
+        });
+        fields.add_field_method_get("body", |lua, this| lua.create_string(this.body()));
+    }
 }

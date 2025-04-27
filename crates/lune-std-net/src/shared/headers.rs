@@ -28,27 +28,50 @@ pub fn header_map_to_table(
     headers: HeaderMap,
     remove_content_headers: bool,
 ) -> LuaResult<LuaTable> {
-    let mut res_headers = HashMap::<String, Vec<String>>::new();
-    for (name, value) in &headers {
-        let name = name.as_str();
-        let value = value.to_str().unwrap().to_owned();
-        if let Some(existing) = res_headers.get_mut(name) {
-            existing.push(value);
-        } else {
-            res_headers.insert(name.to_owned(), vec![value]);
+    let mut string_map = HashMap::<String, Vec<String>>::new();
+
+    for (name, value) in headers {
+        if let Some(name) = name {
+            if let Ok(value) = value.to_str() {
+                string_map
+                    .entry(name.to_string())
+                    .or_default()
+                    .push(value.to_owned());
+            }
         }
     }
 
-    if remove_content_headers {
-        let content_encoding_header_str = CONTENT_ENCODING.as_str();
-        let content_length_header_str = CONTENT_LENGTH.as_str();
-        res_headers.retain(|name, _| {
-            name != content_encoding_header_str && name != content_length_header_str
-        });
+    hash_map_to_table(lua, string_map, remove_content_headers)
+}
+
+pub fn hash_map_to_table(
+    lua: &Lua,
+    map: impl IntoIterator<Item = (String, Vec<String>)>,
+    remove_content_headers: bool,
+) -> LuaResult<LuaTable> {
+    let mut string_map = HashMap::<String, Vec<String>>::new();
+    for (name, values) in map {
+        let name = name.as_str();
+
+        if remove_content_headers {
+            let content_encoding_header_str = CONTENT_ENCODING.as_str();
+            let content_length_header_str = CONTENT_LENGTH.as_str();
+            if name == content_encoding_header_str || name == content_length_header_str {
+                continue;
+            }
+        }
+
+        for value in values {
+            let value = value.as_str();
+            string_map
+                .entry(name.to_owned())
+                .or_default()
+                .push(value.to_owned());
+        }
     }
 
     let mut builder = TableBuilder::new(lua.clone())?;
-    for (name, mut values) in res_headers {
+    for (name, mut values) in string_map {
         if values.len() == 1 {
             let value = values.pop().unwrap().into_lua(lua)?;
             builder = builder.with_value(name, value)?;

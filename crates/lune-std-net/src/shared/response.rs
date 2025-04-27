@@ -3,12 +3,13 @@ use http_body_util::{BodyStream, Full};
 
 use hyper::{
     body::{Body, Bytes, Incoming},
+    header::{HeaderName, HeaderValue},
     HeaderMap, Response as HyperResponse,
 };
 
 use mlua::prelude::*;
 
-use crate::shared::headers::header_map_to_table;
+use crate::{server::config::ResponseConfig, shared::headers::header_map_to_table};
 
 #[derive(Debug, Clone)]
 pub struct Response {
@@ -20,11 +21,41 @@ pub struct Response {
 
 impl Response {
     /**
+        Creates a new response that is ready to be sent from a response configuration.
+    */
+    pub fn from_config(config: ResponseConfig, _lua: Lua) -> LuaResult<Self> {
+        // 1. Create the inner response builder
+        let mut builder = HyperResponse::builder().status(config.status);
+
+        // 2. Append any headers passed as a table - builder
+        //    headers may be None if builder is already invalid
+        if let Some(headers) = builder.headers_mut() {
+            for (key, values) in config.headers {
+                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
+                for value in values {
+                    let value = HeaderValue::from_str(&value).into_lua_err()?;
+                    headers.insert(key.clone(), value);
+                }
+            }
+        }
+
+        // 3. Convert response body bytes to the proper Body
+        //    type that Hyper expects, if we got any bytes
+        let body = config.body.map(Bytes::from).unwrap_or_default();
+
+        // 4. Finally, attach the body, verifying that the response is valid
+        Ok(Self {
+            inner: builder.body(body).into_lua_err()?,
+            decompressed: false,
+        })
+    }
+
+    /**
         Creates a new response from a raw incoming response.
     */
     pub async fn from_incoming(
         incoming: HyperResponse<Incoming>,
-        decompressed: bool,
+        decompress: bool,
     ) -> LuaResult<Self> {
         let (parts, body) = incoming.into_parts();
 
@@ -40,12 +71,11 @@ impl Response {
             .await
             .into_lua_err()?;
 
-        let bytes = Bytes::from(body);
-        let inner = HyperResponse::from_parts(parts, bytes);
+        // TODO: Decompress body if decompress is true and headers are present
 
         Ok(Self {
-            inner,
-            decompressed,
+            inner: HyperResponse::from_parts(parts, Bytes::from(body)),
+            decompressed: decompress,
         })
     }
 
@@ -89,12 +119,14 @@ impl Response {
         type modified to `Full<Bytes>` for sending.
     */
     pub fn as_full(&self) -> HyperResponse<Full<Bytes>> {
-        let mut builder = HyperResponse::builder().version(self.inner.version());
+        let mut builder = HyperResponse::builder()
+            .version(self.inner.version())
+            .status(self.inner.status());
 
-        let headers = builder.headers_mut().expect("request was valid");
-        for (name, value) in self.inner.headers() {
-            headers.insert(name, value.clone());
-        }
+        builder
+            .headers_mut()
+            .expect("request was valid")
+            .extend(self.inner.headers().clone());
 
         let body = Full::new(self.inner.body().clone());
         builder.body(body).expect("request was valid")
