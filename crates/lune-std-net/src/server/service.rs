@@ -32,12 +32,9 @@ impl HyperService<HyperRequest<Incoming>> for Service {
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
     fn call(&self, req: HyperRequest<Incoming>) -> Self::Future {
-        let lua = self.lua.clone();
-        let address = self.address;
-        let config = self.config.clone();
-
         if is_upgrade_request(&req) {
-            if let Some(handler) = config.handle_web_socket {
+            if let Some(handler) = self.config.handle_web_socket.clone() {
+                let lua = self.lua.clone();
                 return Box::pin(async move {
                     let response = match make_upgrade_response(&req) {
                         Ok(res) => res,
@@ -63,8 +60,11 @@ impl HyperService<HyperRequest<Incoming>> for Service {
             }
         }
 
+        let lua = self.lua.clone();
+        let address = self.address;
+        let handler = self.config.handle_request.clone();
         Box::pin(async move {
-            match handle_request(lua.clone(), config.handle_request, req, address).await {
+            match handle_request(lua, handler, req, address).await {
                 Ok(response) => Ok(response),
                 Err(_err) => {
                     // TODO: Propagare the error somehow?
