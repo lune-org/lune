@@ -1,10 +1,4 @@
-use std::{
-    net::SocketAddr,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::{cell::Cell, net::SocketAddr, rc::Rc};
 
 use async_net::TcpListener;
 use futures_lite::pin;
@@ -45,10 +39,10 @@ pub async fn serve(lua: Lua, port: u16, config: ServeConfig) -> LuaResult<ServeH
     lua.spawn_local({
         let lua = lua.clone();
         async move {
-            let handle_dropped = Arc::new(AtomicBool::new(false));
+            let handle_dropped = Rc::new(Cell::new(false));
             loop {
                 // 1. Keep accepting new connections until we should shutdown
-                let (conn, addr) = if handle_dropped.load(Ordering::SeqCst) {
+                let (conn, addr) = if handle_dropped.get() {
                     // 1a. Handle has been dropped, and we don't need to listen for shutdown
                     match listener.accept().await {
                         Ok(acc) => acc,
@@ -65,7 +59,7 @@ pub async fn serve(lua: Lua, port: u16, config: ServeConfig) -> LuaResult<ServeH
                             // NOTE #1: We will only get a RecvError if the serve handle is dropped,
                             // this means lua has garbage collected it and the user does not want
                             // to manually stop the server using the serve handle. Run forever.
-                            handle_dropped.store(true, Ordering::SeqCst);
+                            handle_dropped.set(true);
                             continue;
                         }
                         Either::Right(Ok(acc)) => acc,
@@ -84,14 +78,14 @@ pub async fn serve(lua: Lua, port: u16, config: ServeConfig) -> LuaResult<ServeH
                     let mut svc = service.clone();
                     svc.address = addr;
 
-                    let handle_dropped = Arc::clone(&handle_dropped);
+                    let handle_dropped = Rc::clone(&handle_dropped);
                     async move {
                         let conn = Http1Builder::new()
                             .timer(HyperTimer)
                             .keep_alive(true)
                             .serve_connection(io, svc)
                             .with_upgrades();
-                        if handle_dropped.load(Ordering::SeqCst) {
+                        if handle_dropped.get() {
                             if let Err(_err) = conn.await {
                                 // TODO: Propagate error somehow
                             }
@@ -105,7 +99,7 @@ pub async fn serve(lua: Lua, port: u16, config: ServeConfig) -> LuaResult<ServeH
                                 Either::Left(Ok(())) => conn.as_mut().graceful_shutdown(),
                                 Either::Left(Err(_)) => {
                                     // Same as note #1
-                                    handle_dropped.store(true, Ordering::SeqCst);
+                                    handle_dropped.set(true);
                                     if let Err(_err) = conn.await {
                                         // TODO: Propagate error somehow
                                     }
