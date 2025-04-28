@@ -7,7 +7,7 @@ local objValue1 = Instance.new("ObjectValue")
 local objValue2 = Instance.new("ObjectValue")
 
 objValue1.Name = "ObjectValue1"
-objValue2.Name = "ObjectValue2";
+objValue2.Name = "ObjectValue2"
 (objValue1 :: any).Value = root;
 (objValue2 :: any).Value = child
 objValue1.Parent = child

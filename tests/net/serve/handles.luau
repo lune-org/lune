@@ -12,7 +12,7 @@ end)
 -- Stopping is not guaranteed to happen instantly since it is async, but
 -- it should happen on the next yield, so we wait the minimum amount here
 
-handle:stop()
+handle.stop()
 task.wait()
 
 -- Sending a request to the stopped server should now error
