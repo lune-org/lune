@@ -13,7 +13,7 @@ use mlua_luau_scheduler::{LuaSchedulerExt, LuaSpawnExt};
 
 use crate::{
     server::{
-        config::{ResponseConfig, ServeConfig},
+        config::ServeConfig,
         upgrade::{is_upgrade_request, make_upgrade_response},
     },
     shared::{hyper::HyperIo, request::Request, response::Response, websocket::Websocket},
@@ -96,8 +96,7 @@ async fn handle_request(
         .get_thread_result(thread_id)
         .expect("Missing handler thread result")?;
 
-    let config = ResponseConfig::from_lua_multi(thread_res, &lua)?;
-    let response = Response::try_from(config)?;
+    let response = Response::from_lua_multi(thread_res, &lua)?;
     Ok(response.into_full())
 }
 

@@ -18,7 +18,6 @@ use crate::{
     },
 };
 
-pub mod config;
 pub mod http_stream;
 pub mod rustls;
 pub mod ws_stream;

@@ -86,33 +86,3 @@ pub fn hash_map_to_table(
 
     builder.build_readonly()
 }
-
-pub fn table_to_hash_map(
-    tab: LuaTable,
-    tab_origin_key: &'static str,
-) -> LuaResult<HashMap<String, Vec<String>>> {
-    let mut map = HashMap::new();
-
-    for pair in tab.pairs::<String, LuaValue>() {
-        let (key, value) = pair?;
-        match value {
-            LuaValue::String(s) => {
-                map.insert(key, vec![s.to_str()?.to_owned()]);
-            }
-            LuaValue::Table(t) => {
-                let mut values = Vec::new();
-                for value in t.sequence_values::<LuaString>() {
-                    values.push(value?.to_str()?.to_owned());
-                }
-                map.insert(key, values);
-            }
-            _ => {
-                return Err(LuaError::runtime(format!(
-                    "Value for '{tab_origin_key}' must be a string or array of strings",
-                )))
-            }
-        }
-    }
-
-    Ok(map)
-}

@@ -2,15 +2,16 @@ use http_body_util::Full;
 
 use hyper::{
     body::{Bytes, Incoming},
-    header::{HeaderName, HeaderValue},
-    HeaderMap, Response as HyperResponse,
+    header::{HeaderValue, CONTENT_TYPE},
+    HeaderMap, Response as HyperResponse, StatusCode,
 };
 
 use mlua::prelude::*;
 
-use crate::{
-    server::config::ResponseConfig,
-    shared::{headers::header_map_to_table, incoming::handle_incoming_body},
+use crate::shared::{
+    headers::header_map_to_table,
+    incoming::handle_incoming_body,
+    lua::{lua_table_to_header_map, lua_value_to_bytes},
 };
 
 #[derive(Debug, Clone)]
@@ -104,33 +105,55 @@ impl Response {
     }
 }
 
-impl TryFrom<ResponseConfig> for Response {
-    type Error = LuaError;
-    fn try_from(config: ResponseConfig) -> Result<Self, Self::Error> {
-        // 1. Create the inner response builder
-        let mut builder = HyperResponse::builder().status(config.status);
+impl FromLua for Response {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
+        if let Ok(body) = lua_value_to_bytes(&value) {
+            // String or buffer is always a 200 text/plain response
+            let mut response = HyperResponse::new(body);
+            response
+                .headers_mut()
+                .insert(CONTENT_TYPE, HeaderValue::from_static("text/plain"));
+            Ok(Self {
+                inner: response,
+                decompressed: false,
+            })
+        } else if let LuaValue::Table(tab) = value {
+            // Extract status (required)
+            let status = tab.get::<u16>("status")?;
+            let status = StatusCode::from_u16(status).into_lua_err()?;
 
-        // 2. Append any headers passed as a table - builder
-        //    headers may be None if builder is already invalid
-        if let Some(headers) = builder.headers_mut() {
-            for (key, values) in config.headers {
-                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
-                for value in values {
-                    let value = HeaderValue::from_str(&value).into_lua_err()?;
-                    headers.insert(key.clone(), value);
-                }
-            }
+            // Extract headers
+            let headers = tab.get::<Option<LuaTable>>("headers")?;
+            let headers = headers
+                .map(|t| lua_table_to_header_map(&t))
+                .transpose()?
+                .unwrap_or_default();
+
+            // Extract body
+            let body = tab.get::<LuaValue>("body")?;
+            let body = lua_value_to_bytes(&body)?;
+
+            // Build the full response
+            let mut response = HyperResponse::new(body);
+            response.headers_mut().extend(headers);
+            *response.status_mut() = status;
+
+            // All good, validated and we got what we need
+            Ok(Self {
+                inner: response,
+                decompressed: false,
+            })
+        } else {
+            // Anything else is invalid
+            Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "Response".to_string(),
+                message: Some(format!(
+                    "Invalid response - expected table/string/buffer, got {}",
+                    value.type_name()
+                )),
+            })
         }
-
-        // 3. Convert response body bytes to the proper Body
-        //    type that Hyper expects, if we got any bytes
-        let body = config.body.map(Bytes::from).unwrap_or_default();
-
-        // 4. Finally, attach the body, verifying that the response is valid
-        Ok(Self {
-            inner: builder.body(body).into_lua_err()?,
-            decompressed: false,
-        })
     }
 }
 

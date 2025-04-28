@@ -5,19 +5,55 @@ use url::Url;
 
 use hyper::{
     body::{Bytes, Incoming},
-    header::{HeaderName, HeaderValue},
     HeaderMap, Method, Request as HyperRequest,
 };
 
 use mlua::prelude::*;
 
-use crate::{
-    client::config::RequestConfig,
-    shared::{
-        headers::{hash_map_to_table, header_map_to_table},
-        incoming::handle_incoming_body,
-    },
+use crate::shared::{
+    headers::{hash_map_to_table, header_map_to_table},
+    incoming::handle_incoming_body,
+    lua::{lua_table_to_header_map, lua_value_to_bytes, lua_value_to_method},
 };
+
+#[derive(Debug, Clone)]
+pub struct RequestOptions {
+    pub decompress: bool,
+}
+
+impl Default for RequestOptions {
+    fn default() -> Self {
+        Self { decompress: true }
+    }
+}
+
+impl FromLua for RequestOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
+        if let LuaValue::Nil = value {
+            // Nil means default options
+            Ok(Self::default())
+        } else if let LuaValue::Table(tab) = value {
+            // Table means custom options
+            let decompress = match tab.get::<Option<bool>>("decompress") {
+                Ok(decomp) => Ok(decomp.unwrap_or(true)),
+                Err(_) => Err(LuaError::RuntimeError(
+                    "Invalid option value for 'decompress' in request options".to_string(),
+                )),
+            }?;
+            Ok(Self { decompress })
+        } else {
+            // Anything else is invalid
+            Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "RequestOptions".to_string(),
+                message: Some(format!(
+                    "Invalid request options - expected table or nil, got {}",
+                    value.type_name()
+                )),
+            })
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -135,52 +171,83 @@ impl Request {
     }
 }
 
-impl TryFrom<RequestConfig> for Request {
-    type Error = LuaError;
-    fn try_from(config: RequestConfig) -> Result<Self, Self::Error> {
-        // 1. Parse the URL and make sure it is valid
-        let mut url = Url::parse(&config.url).into_lua_err()?;
+impl FromLua for Request {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        if let LuaValue::String(s) = value {
+            // If we just got a string we assume
+            // its a GET request to a given url
+            let uri = s.to_str()?;
+            let uri = uri.parse().into_lua_err()?;
 
-        // 2. Append any query pairs passed as a table
-        {
-            let mut query = url.query_pairs_mut();
-            for (key, values) in config.query {
-                for value in values {
+            let mut request = HyperRequest::new(Bytes::new());
+            *request.uri_mut() = uri;
+
+            Ok(Self {
+                inner: request,
+                address: None,
+                redirects: None,
+                decompress: RequestOptions::default().decompress,
+            })
+        } else if let LuaValue::Table(tab) = value {
+            // If we got a table we are able to configure the
+            // entire request, maybe with extra options too
+            let options = match tab.get::<LuaValue>("options") {
+                Ok(opts) => RequestOptions::from_lua(opts, lua)?,
+                Err(_) => RequestOptions::default(),
+            };
+
+            // Extract url (required) + optional structured query params
+            let url = tab.get::<LuaString>("url")?;
+            let mut url = url.to_str()?.parse::<Url>().into_lua_err()?;
+            if let Some(t) = tab.get::<Option<LuaTable>>("query")? {
+                let mut query = url.query_pairs_mut();
+                for pair in t.pairs::<LuaString, LuaString>() {
+                    let (key, value) = pair?;
+                    let key = key.to_str()?;
+                    let value = value.to_str()?;
                     query.append_pair(&key, &value);
                 }
             }
+
+            // Extract method
+            let method = tab.get::<LuaValue>("method")?;
+            let method = lua_value_to_method(&method)?;
+
+            // Extract headers
+            let headers = tab.get::<Option<LuaTable>>("headers")?;
+            let headers = headers
+                .map(|t| lua_table_to_header_map(&t))
+                .transpose()?
+                .unwrap_or_default();
+
+            // Extract body
+            let body = tab.get::<LuaValue>("body")?;
+            let body = lua_value_to_bytes(&body)?;
+
+            // Build the full request
+            let mut request = HyperRequest::new(body);
+            request.headers_mut().extend(headers);
+            *request.uri_mut() = url.to_string().parse().unwrap();
+            *request.method_mut() = method;
+
+            // All good, validated and we got what we need
+            Ok(Self {
+                inner: request,
+                address: None,
+                redirects: None,
+                decompress: options.decompress,
+            })
+        } else {
+            // Anything else is invalid
+            Err(LuaError::FromLuaConversionError {
+                from: value.type_name(),
+                to: "Request".to_string(),
+                message: Some(format!(
+                    "Invalid request - expected string or table, got {}",
+                    value.type_name()
+                )),
+            })
         }
-
-        // 3. Create the inner request builder
-        let mut builder = HyperRequest::builder()
-            .method(config.method)
-            .uri(url.as_str());
-
-        // 4. Append any headers passed as a table - builder
-        //    headers may be None if builder is already invalid
-        if let Some(headers) = builder.headers_mut() {
-            for (key, values) in config.headers {
-                let key = HeaderName::from_bytes(key.as_bytes()).into_lua_err()?;
-                for value in values {
-                    let value = HeaderValue::from_str(&value).into_lua_err()?;
-                    headers.insert(key.clone(), value);
-                }
-            }
-        }
-
-        // 5. Convert request body bytes to the proper Body
-        //    type that Hyper expects, if we got any bytes
-        let body = config.body.map(Bytes::from).unwrap_or_default();
-
-        // 6. Finally, attach the body, verifying that the request is valid
-        let inner = builder.body(body).into_lua_err()?;
-
-        Ok(Self {
-            inner,
-            address: None,
-            redirects: None,
-            decompress: config.options.decompress,
-        })
     }
 }
 
