@@ -8,7 +8,7 @@ use crate::{
     result_map::ThreadResultMap,
     thread_id::ThreadId,
     traits::LuaSchedulerExt,
-    util::{is_poll_pending, LuaThreadOrFunction, ThreadResult},
+    util::{is_poll_pending, LuaThreadOrFunction},
 };
 
 const ERR_METADATA_NOT_ATTACHED: &str = "\
@@ -123,8 +123,7 @@ impl Functions {
                             if thread.status() != LuaThreadStatus::Resumable {
                                 let id = ThreadId::from(&thread);
                                 if resume_map.is_tracked(id) {
-                                    let res = ThreadResult::new(Ok(v.clone()), lua);
-                                    resume_map.insert(id, res);
+                                    resume_map.insert(id, Ok(v.clone()));
                                 }
                             }
                             (true, v).into_lua_multi(lua)
@@ -134,8 +133,7 @@ impl Functions {
                         // Not pending, store the error
                         let id = ThreadId::from(&thread);
                         if resume_map.is_tracked(id) {
-                            let res = ThreadResult::new(Err(e.clone()), lua);
-                            resume_map.insert(id, res);
+                            resume_map.insert(id, Err(e.clone()));
                         }
                         (false, e.to_string()).into_lua_multi(lua)
                     }
@@ -177,8 +175,7 @@ impl Functions {
                                 if thread.status() != LuaThreadStatus::Resumable {
                                     let id = ThreadId::from(&thread);
                                     if spawn_map.is_tracked(id) {
-                                        let res = ThreadResult::new(Ok(v), lua);
-                                        spawn_map.insert(id, res);
+                                        spawn_map.insert(id, Ok(v));
                                     }
                                 }
                             }
@@ -188,8 +185,7 @@ impl Functions {
                             // Not pending, store the error
                             let id = ThreadId::from(&thread);
                             if spawn_map.is_tracked(id) {
-                                let res = ThreadResult::new(Err(e), lua);
-                                spawn_map.insert(id, res);
+                                spawn_map.insert(id, Err(e));
                             }
                         }
                     }

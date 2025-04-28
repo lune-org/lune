@@ -21,7 +21,7 @@ use crate::{
     status::Status,
     thread_id::ThreadId,
     traits::IntoLuaThread,
-    util::{run_until_yield, ThreadResult},
+    util::run_until_yield,
 };
 
 const ERR_METADATA_ALREADY_ATTACHED: &str = "\
@@ -248,7 +248,7 @@ impl Scheduler {
     */
     #[must_use]
     pub fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>> {
-        self.result_map.remove(id).map(|r| r.value(&self.lua))
+        self.result_map.remove(id)
     }
 
     /**
@@ -286,7 +286,7 @@ impl Scheduler {
         */
         let local_exec = LocalExecutor::new();
         let main_exec = Arc::new(Executor::new());
-        let fut_queue = Rc::new(FuturesQueue::new());
+        let fut_queue = FuturesQueue::new();
 
         /*
             Store the main executor and queue in Lua, so that they may be used with LuaSchedulerExt.
@@ -299,12 +299,12 @@ impl Scheduler {
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
         assert!(
-            self.lua.app_data_ref::<WeakRc<FuturesQueue>>().is_none(),
+            self.lua.app_data_ref::<FuturesQueue>().is_none(),
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
 
         self.lua.set_app_data(Arc::downgrade(&main_exec));
-        self.lua.set_app_data(Rc::downgrade(&fut_queue.clone()));
+        self.lua.set_app_data(fut_queue.clone());
 
         /*
             Manually tick the Lua executor, while running under the main executor.
@@ -342,8 +342,7 @@ impl Scheduler {
                                     self.error_callback.call(e);
                                 }
                                 if thread.status() != LuaThreadStatus::Resumable {
-                                    let thread_res = ThreadResult::new(res, &self.lua);
-                                    result_map_inner.unwrap().insert(id, thread_res);
+                                    result_map_inner.unwrap().insert(id, res);
                                 }
                             }
                         } else {
@@ -398,14 +397,14 @@ impl Scheduler {
                 let mut num_futures = 0;
                 {
                     let _span = trace_span!("Scheduler::drain_spawned").entered();
-                    for (thread, args) in self.queue_spawn.drain_items(&self.lua) {
+                    for (thread, args) in self.queue_spawn.drain_items() {
                         process_thread(thread, args);
                         num_spawned += 1;
                     }
                 }
                 {
                     let _span = trace_span!("Scheduler::drain_deferred").entered();
-                    for (thread, args) in self.queue_defer.drain_items(&self.lua) {
+                    for (thread, args) in self.queue_defer.drain_items() {
                         process_thread(thread, args);
                         num_deferred += 1;
                     }

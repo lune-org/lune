@@ -78,66 +78,41 @@ impl HyperService<HyperRequest<Incoming>> for Service {
     }
 }
 
-#[tracing::instrument(skip_all)]
 async fn handle_request(
     lua: Lua,
     handler: LuaFunction,
     request: HyperRequest<Incoming>,
     address: SocketAddr,
 ) -> LuaResult<HyperResponse<Full<Bytes>>> {
-    let request = tracing::debug_span!("request")
-        .in_scope(|| async {
-            let request = Request::from_incoming(request, true)
-                .await?
-                .with_address(address);
-            Ok::<_, LuaError>(request)
-        })
-        .await?;
+    let request = Request::from_incoming(request, true)
+        .await?
+        .with_address(address);
 
-    let thread_res = tracing::debug_span!("run")
-        .in_scope(|| async {
-            let thread_id = lua.push_thread_back(handler, request)?;
-            lua.track_thread(thread_id);
-            lua.wait_for_thread(thread_id).await;
+    let thread_id = lua.push_thread_back(handler, request)?;
+    lua.track_thread(thread_id);
+    lua.wait_for_thread(thread_id).await;
 
-            let thread_res = lua
-                .get_thread_result(thread_id)
-                .expect("Missing handler thread result")?;
-            Ok::<_, LuaError>(thread_res)
-        })
-        .await?;
+    let thread_res = lua
+        .get_thread_result(thread_id)
+        .expect("Missing handler thread result")?;
 
-    let response = tracing::debug_span!("response").in_scope(|| {
-        let config = ResponseConfig::from_lua_multi(thread_res, &lua)?;
-        let response = Response::try_from(config)?;
-        Ok::<_, LuaError>(response.into_full())
-    })?;
-
-    Ok(response)
+    let config = ResponseConfig::from_lua_multi(thread_res, &lua)?;
+    let response = Response::try_from(config)?;
+    Ok(response.into_full())
 }
 
-#[tracing::instrument(skip_all)]
 async fn handle_websocket(
     lua: Lua,
     handler: LuaFunction,
     request: HyperRequest<Incoming>,
 ) -> LuaResult<()> {
-    let upgraded = tracing::debug_span!("upgrade")
-        .in_scope(|| async { hyper::upgrade::on(request).await.into_lua_err() })
-        .await?;
+    let upgraded = hyper::upgrade::on(request).await.into_lua_err()?;
 
-    let stream = tracing::debug_span!("stream")
-        .in_scope(|| async {
-            WebSocketStream::from_raw_socket(HyperIo::from(upgraded), Role::Server, None).await
-        })
-        .await;
+    let stream =
+        WebSocketStream::from_raw_socket(HyperIo::from(upgraded), Role::Server, None).await;
 
-    tracing::debug_span!("run")
-        .in_scope(|| async {
-            let websocket = Websocket::from(stream);
-            lua.push_thread_back(handler, websocket)
-        })
-        .await?;
+    let websocket = Websocket::from(stream);
+    lua.push_thread_back(handler, websocket)?;
 
     Ok(())
 }
