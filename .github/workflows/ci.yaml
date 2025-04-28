@@ -80,8 +80,11 @@ jobs:
           components: clippy
           targets: ${{ matrix.cargo-target }}
 
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
       - name: Install nextest
-        uses: taiki-e/install-action@v2
+        run: cargo binstall cargo-nextest
 
       - name: Build
         run: |
