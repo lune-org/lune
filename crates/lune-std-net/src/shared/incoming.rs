@@ -1,7 +1,6 @@
-use futures_lite::prelude::*;
-use http_body_util::BodyStream;
+use http_body_util::BodyExt;
 use hyper::{
-    body::{Body as _, Bytes, Incoming},
+    body::{Bytes, Incoming},
     header::CONTENT_ENCODING,
     HeaderMap,
 };
@@ -15,18 +14,7 @@ pub async fn handle_incoming_body(
     body: Incoming,
     should_decompress: bool,
 ) -> LuaResult<(Bytes, bool)> {
-    let size = body.size_hint().lower() as usize;
-    let buffer = Vec::<u8>::with_capacity(size);
-
-    let mut body = BodyStream::new(body)
-        .try_fold(buffer, |mut body, chunk| {
-            if let Some(chunk) = chunk.data_ref() {
-                body.extend_from_slice(chunk);
-            }
-            Ok(body)
-        })
-        .await
-        .into_lua_err()?;
+    let mut body = body.collect().await.into_lua_err()?.to_bytes();
 
     let was_decompressed = if should_decompress {
         let decompress_format = headers
@@ -34,7 +22,7 @@ pub async fn handle_incoming_body(
             .and_then(|value| value.to_str().ok())
             .and_then(CompressDecompressFormat::detect_from_header_str);
         if let Some(format) = decompress_format {
-            body = decompress(body, format).await?;
+            body = Bytes::from(decompress(body, format).await?);
             true
         } else {
             false
@@ -43,5 +31,5 @@ pub async fn handle_incoming_body(
         false
     };
 
-    Ok((Bytes::from(body), was_decompressed))
+    Ok((body, was_decompressed))
 }
