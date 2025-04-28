@@ -8,6 +8,7 @@ use std::{
 
 use async_channel::{unbounded, Receiver, Sender};
 
+use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -26,6 +27,27 @@ impl ServeHandle {
             sender,
         };
         (this, receiver)
+    }
+
+    // TODO: Remove this in the next major release to use colon/self
+    // based call syntax and userdata implementation below instead
+    pub fn into_lua_table(self, lua: Lua) -> LuaResult<LuaTable> {
+        let shutdown = self.shutdown.clone();
+        let sender = self.sender.clone();
+        TableBuilder::new(lua)?
+            .with_value("ip", self.addr.ip().to_string())?
+            .with_value("port", self.addr.port())?
+            .with_function("stop", move |_, ()| {
+                if shutdown.load(Ordering::SeqCst) {
+                    Err(LuaError::runtime("Server already stopped"))
+                } else {
+                    shutdown.store(true, Ordering::SeqCst);
+                    sender.try_send(()).ok();
+                    sender.close();
+                    Ok(())
+                }
+            })?
+            .build()
     }
 }
 

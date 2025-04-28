@@ -10,7 +10,7 @@ pub(crate) mod url;
 
 use self::{
     client::ws_stream::WsStream,
-    server::{config::ServeConfig, handle::ServeHandle},
+    server::config::ServeConfig,
     shared::{request::Request, response::Response, websocket::Websocket},
 };
 
@@ -50,8 +50,10 @@ async fn net_socket(_: Lua, url: String) -> LuaResult<Websocket<WsStream>> {
     self::client::connect_websocket(url).await
 }
 
-async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<ServeHandle> {
-    self::server::serve(lua, port, config).await
+async fn net_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<LuaTable> {
+    self::server::serve(lua.clone(), port, config)
+        .await?
+        .into_lua_table(lua)
 }
 
 fn net_url_encode(
