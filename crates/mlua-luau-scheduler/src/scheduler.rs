@@ -2,7 +2,7 @@
 
 use std::{
     cell::Cell,
-    rc::{Rc, Weak as WeakRc},
+    rc::Rc,
     sync::{Arc, Weak as WeakArc},
     thread::panicking,
 };
@@ -445,7 +445,7 @@ impl Scheduler {
             .remove_app_data::<WeakArc<Executor>>()
             .expect(ERR_METADATA_REMOVED);
         self.lua
-            .remove_app_data::<WeakRc<FuturesQueue>>()
+            .remove_app_data::<FuturesQueue>()
             .expect(ERR_METADATA_REMOVED);
     }
 }
