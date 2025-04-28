@@ -1,7 +1,7 @@
 use hyper::{
     body::{Bytes, Incoming},
     client::conn::http1::handshake,
-    header::LOCATION,
+    header::{HeaderValue, ACCEPT, CONTENT_LENGTH, HOST, LOCATION, USER_AGENT},
     Method, Request as HyperRequest, Response as HyperResponse, Uri,
 };
 
@@ -11,6 +11,7 @@ use url::Url;
 use crate::{
     client::{http_stream::HttpStream, ws_stream::WsStream},
     shared::{
+        headers::create_user_agent_header,
         hyper::{HyperExecutor, HyperIo},
         request::Request,
         response::Response,
@@ -45,6 +46,31 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
         .to_string()
         .parse::<Url>()
         .expect("uri is valid");
+
+    // Some headers are required by most if not
+    // all servers, make sure those are present...
+    if !request.headers().contains_key(HOST.as_str()) {
+        if let Some(host) = url.host_str() {
+            let host = HeaderValue::from_str(host).into_lua_err()?;
+            request.inner.headers_mut().insert(HOST, host);
+        }
+    }
+    if !request.headers().contains_key(USER_AGENT.as_str()) {
+        let ua = create_user_agent_header(&lua)?;
+        let ua = HeaderValue::from_str(&ua).into_lua_err()?;
+        request.inner.headers_mut().insert(USER_AGENT, ua);
+    }
+    if !request.headers().contains_key(CONTENT_LENGTH.as_str()) && request.method() != Method::GET {
+        let len = request.inner.body().len().to_string();
+        let len = HeaderValue::from_str(&len).into_lua_err()?;
+        request.inner.headers_mut().insert(CONTENT_LENGTH, len);
+    }
+    if !request.headers().contains_key(ACCEPT.as_str()) {
+        let accept = HeaderValue::from_static("*/*");
+        request.inner.headers_mut().insert(ACCEPT, accept);
+    }
+
+    // ... we can now safely continue and send the request
     loop {
         let stream = HttpStream::connect(url.clone()).await?;
 

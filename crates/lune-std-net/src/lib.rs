@@ -1,6 +1,5 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use hyper::header::{HeaderValue, USER_AGENT};
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
@@ -12,10 +11,7 @@ pub(crate) mod url;
 use self::{
     client::ws_stream::WsStream,
     server::{config::ServeConfig, handle::ServeHandle},
-    shared::{
-        headers::create_user_agent_header, request::Request, response::Response,
-        websocket::Websocket,
-    },
+    shared::{request::Request, response::Response, websocket::Websocket},
 };
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
@@ -45,12 +41,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         .build_readonly()
 }
 
-async fn net_request(lua: Lua, mut req: Request) -> LuaResult<Response> {
-    if !req.headers().contains_key(USER_AGENT.as_str()) {
-        let ua = create_user_agent_header(&lua)?;
-        let ua = HeaderValue::from_str(&ua).into_lua_err()?;
-        req.inner.headers_mut().insert(USER_AGENT, ua);
-    }
+async fn net_request(lua: Lua, req: Request) -> LuaResult<Response> {
     self::client::send_request(req, lua).await
 }
 
