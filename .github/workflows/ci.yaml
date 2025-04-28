@@ -2,15 +2,16 @@ name: CI
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 defaults:
   run:
     shell: bash
 
-jobs:
+env:
+  CARGO_TERM_COLOR: always
 
+jobs:
   fmt:
     name: Check formatting
     runs-on: ubuntu-latest
@@ -79,23 +80,23 @@ jobs:
           components: clippy
           targets: ${{ matrix.cargo-target }}
 
+      - name: Install nextest
+        uses: taiki-e/install-action@v2
+
       - name: Build
         run: |
-          cargo build \
-          --workspace \
+          cargo build --workspace \
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Lint
         run: |
-          cargo clippy \
-          --workspace \
+          cargo clippy --workspace \
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Test
         run: |
-          cargo test \
-          --lib --workspace \
+          cargo nextest run --lib \
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
