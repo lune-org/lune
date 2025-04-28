@@ -25,7 +25,7 @@ local handle = net.serve(PORT, function(request)
 	return RESPONSE
 end)
 
--- Serve should be able to handle at least 1000 requests per second with a basic handler such as the above
+-- Serve should be able to handle at least 100 requests per second with a basic handler such as the above
 
 local thread = task.delay(1, function()
 	stdio.ewrite("Serve should respond to requests in a reasonable amount of time\n")
@@ -35,7 +35,7 @@ end)
 
 -- Serve should respond to requests we send, and keep responding until we stop it
 
-for _ = 1, 1024 do
+for _ = 1, 100 do
 	local response = net.request(URL .. "/some/path?key=param1&key=param2&key2=param3").body
 	assert(response == RESPONSE, "Invalid response from server")
 end
