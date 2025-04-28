@@ -1913,6 +1913,7 @@ dependencies = [
  "pin-project-lite",
  "rustls 0.23.26",
  "rustls-pki-types",
+ "tracing",
  "url",
  "urlencoding",
  "webpki",
