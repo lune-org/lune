@@ -163,14 +163,6 @@ impl<T: AsyncWrite> rt::Write for HyperIo<T> {
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         self.pin_mut().poll_close(cx)
     }
-
-    fn poll_write_vectored(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        bufs: &[io::IoSlice<'_>],
-    ) -> Poll<io::Result<usize>> {
-        self.pin_mut().poll_write_vectored(cx, bufs)
-    }
 }
 
 // Compat for hyper runtime -> futures-lite
@@ -202,13 +194,5 @@ impl<T: rt::Write> AsyncWrite for HyperIo<T> {
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         self.pin_mut().poll_shutdown(cx)
-    }
-
-    fn poll_write_vectored(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        bufs: &[std::io::IoSlice<'_>],
-    ) -> Poll<Result<usize, std::io::Error>> {
-        self.pin_mut().poll_write_vectored(cx, bufs)
     }
 }

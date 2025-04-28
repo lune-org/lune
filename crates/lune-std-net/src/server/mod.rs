@@ -81,6 +81,7 @@ pub async fn serve(lua: Lua, port: u16, config: ServeConfig) -> LuaResult<ServeH
                     let handle_dropped = Rc::clone(&handle_dropped);
                     async move {
                         let conn = Http1Builder::new()
+                            .writev(false)
                             .timer(HyperTimer)
                             .keep_alive(true)
                             .serve_connection(io, svc)
