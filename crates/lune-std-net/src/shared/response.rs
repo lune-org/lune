@@ -9,8 +9,8 @@ use hyper::{
 use mlua::prelude::*;
 
 use crate::shared::{
+    body::{bytes_to_full, handle_incoming_body},
     headers::header_map_to_table,
-    incoming::handle_incoming_body,
     lua::{lua_table_to_header_map, lua_value_to_bytes},
 };
 
@@ -90,7 +90,7 @@ impl Response {
             .expect("request was valid")
             .extend(self.inner.headers().clone());
 
-        let body = Full::new(self.inner.body().clone());
+        let body = bytes_to_full(self.inner.body().clone());
         builder.body(body).expect("request was valid")
     }
 
@@ -101,7 +101,7 @@ impl Response {
     #[allow(dead_code)]
     pub fn into_full(self) -> HyperResponse<Full<Bytes>> {
         let (parts, body) = self.inner.into_parts();
-        HyperResponse::from_parts(parts, Full::new(body))
+        HyperResponse::from_parts(parts, bytes_to_full(body))
     }
 }
 

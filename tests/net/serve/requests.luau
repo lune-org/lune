@@ -3,7 +3,7 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
-local PORT = 8083
+local PORT = 8084
 local URL = `http://127.0.0.1:{PORT}`
 local RESPONSE = "Hello, lune!"
 

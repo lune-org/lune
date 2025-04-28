@@ -1,7 +1,7 @@
 local net = require("@lune/net")
 local task = require("@lune/task")
 
-local PORT = 8083
+local PORT = 8082
 local URL = `http://127.0.0.1:{PORT}`
 local RESPONSE = "Hello, lune!"
 

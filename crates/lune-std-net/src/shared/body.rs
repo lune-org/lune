@@ -1,4 +1,4 @@
-use http_body_util::BodyExt;
+use http_body_util::{BodyExt, Full};
 use hyper::{
     body::{Bytes, Incoming},
     header::CONTENT_ENCODING,
@@ -32,4 +32,12 @@ pub async fn handle_incoming_body(
     };
 
     Ok((body, was_decompressed))
+}
+
+pub fn bytes_to_full(bytes: Bytes) -> Full<Bytes> {
+    if bytes.is_empty() {
+        Full::default()
+    } else {
+        Full::new(bytes)
+    }
 }
