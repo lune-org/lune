@@ -30,12 +30,8 @@ pub async fn handle_incoming_body(
 
     let was_decompressed = if should_decompress {
         let decompress_format = headers
-            .iter()
-            .find(|(name, _)| {
-                name.as_str()
-                    .eq_ignore_ascii_case(CONTENT_ENCODING.as_str())
-            })
-            .and_then(|(_, value)| value.to_str().ok())
+            .get(CONTENT_ENCODING)
+            .and_then(|value| value.to_str().ok())
             .and_then(CompressDecompressFormat::detect_from_header_str);
         if let Some(format) = decompress_format {
             body = decompress(body, format).await?;
