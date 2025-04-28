@@ -99,7 +99,7 @@ async fn handle_request(
     let config = ResponseConfig::from_lua_multi(thread_res, &lua)?;
     let response = Response::try_from(config)?;
 
-    Ok(response.as_full())
+    Ok(response.into_full())
 }
 
 async fn handle_websocket(

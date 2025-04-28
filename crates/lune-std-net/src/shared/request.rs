@@ -105,9 +105,10 @@ impl Request {
     }
 
     /**
-        Returns the inner `hyper` request with its body
+        Clones the inner `hyper` request with its body
         type modified to `Full<Bytes>` for sending.
     */
+    #[allow(dead_code)]
     pub fn as_full(&self) -> HyperRequest<Full<Bytes>> {
         let mut builder = HyperRequest::builder()
             .version(self.inner.version())
@@ -121,6 +122,16 @@ impl Request {
 
         let body = Full::new(self.inner.body().clone());
         builder.body(body).expect("request was valid")
+    }
+
+    /**
+        Takes the inner `hyper` request with its body
+        type modified to `Full<Bytes>` for sending.
+    */
+    #[allow(dead_code)]
+    pub fn into_full(self) -> HyperRequest<Full<Bytes>> {
+        let (parts, body) = self.inner.into_parts();
+        HyperRequest::from_parts(parts, Full::new(body))
     }
 }
 
