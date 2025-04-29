@@ -1,62 +1,38 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicU16, Ordering},
-    Arc,
+use std::{
+    error::Error,
+    sync::{
+        atomic::{AtomicBool, AtomicU16, Ordering},
+        Arc,
+    },
 };
 
+use async_lock::Mutex as AsyncMutex;
+use async_tungstenite::tungstenite::{
+    protocol::{frame::coding::CloseCode, CloseFrame},
+    Message as TungsteniteMessage, Result as TungsteniteResult, Utf8Bytes,
+};
 use bstr::{BString, ByteSlice};
+use futures::{
+    stream::{SplitSink, SplitStream},
+    Sink, SinkExt, Stream, StreamExt,
+};
+use hyper::body::Bytes;
+
 use mlua::prelude::*;
 
-use futures_util::{
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::Mutex as AsyncMutex,
-};
-
-use hyper_tungstenite::{
-    tungstenite::{
-        protocol::{frame::coding::CloseCode as WsCloseCode, CloseFrame as WsCloseFrame},
-        Message as WsMessage,
-    },
-    WebSocketStream,
-};
-
-#[derive(Debug)]
-pub struct NetWebSocket<T> {
+#[derive(Debug, Clone)]
+pub struct Websocket<T> {
     close_code_exists: Arc<AtomicBool>,
     close_code_value: Arc<AtomicU16>,
-    read_stream: Arc<AsyncMutex<SplitStream<WebSocketStream<T>>>>,
-    write_stream: Arc<AsyncMutex<SplitSink<WebSocketStream<T>, WsMessage>>>,
+    read_stream: Arc<AsyncMutex<SplitStream<T>>>,
+    write_stream: Arc<AsyncMutex<SplitSink<T, TungsteniteMessage>>>,
 }
 
-impl<T> Clone for NetWebSocket<T> {
-    fn clone(&self) -> Self {
-        Self {
-            close_code_exists: Arc::clone(&self.close_code_exists),
-            close_code_value: Arc::clone(&self.close_code_value),
-            read_stream: Arc::clone(&self.read_stream),
-            write_stream: Arc::clone(&self.write_stream),
-        }
-    }
-}
-
-impl<T> NetWebSocket<T>
+impl<T> Websocket<T>
 where
-    T: AsyncRead + AsyncWrite + Unpin + 'static,
+    T: Stream<Item = TungsteniteResult<TungsteniteMessage>> + Sink<TungsteniteMessage> + 'static,
+    <T as Sink<TungsteniteMessage>>::Error: Into<Box<dyn Error + Send + Sync + 'static>>,
 {
-    pub fn new(value: WebSocketStream<T>) -> Self {
-        let (write, read) = value.split();
-
-        Self {
-            close_code_exists: Arc::new(AtomicBool::new(false)),
-            close_code_value: Arc::new(AtomicU16::new(0)),
-            read_stream: Arc::new(AsyncMutex::new(read)),
-            write_stream: Arc::new(AsyncMutex::new(write)),
-        }
-    }
-
     fn get_close_code(&self) -> Option<u16> {
         if self.close_code_exists.load(Ordering::Relaxed) {
             Some(self.close_code_value.load(Ordering::Relaxed))
@@ -70,12 +46,12 @@ where
         self.close_code_value.store(code, Ordering::Relaxed);
     }
 
-    pub async fn send(&self, msg: WsMessage) -> LuaResult<()> {
+    pub async fn send(&self, msg: TungsteniteMessage) -> LuaResult<()> {
         let mut ws = self.write_stream.lock().await;
         ws.send(msg).await.into_lua_err()
     }
 
-    pub async fn next(&self) -> LuaResult<Option<WsMessage>> {
+    pub async fn next(&self) -> LuaResult<Option<TungsteniteMessage>> {
         let mut ws = self.read_stream.lock().await;
         ws.next().await.transpose().into_lua_err()
     }
@@ -85,15 +61,15 @@ where
             return Err(LuaError::runtime("Socket has already been closed"));
         }
 
-        self.send(WsMessage::Close(Some(WsCloseFrame {
+        self.send(TungsteniteMessage::Close(Some(CloseFrame {
             code: match code {
-                Some(code) if (1000..=4999).contains(&code) => WsCloseCode::from(code),
+                Some(code) if (1000..=4999).contains(&code) => CloseCode::from(code),
                 Some(code) => {
                     return Err(LuaError::runtime(format!(
                         "Close code must be between 1000 and 4999, got {code}"
                     )))
                 }
-                None => WsCloseCode::Normal,
+                None => CloseCode::Normal,
             },
             reason: "".into(),
         })))
@@ -104,9 +80,27 @@ where
     }
 }
 
-impl<T> LuaUserData for NetWebSocket<T>
+impl<T> From<T> for Websocket<T>
 where
-    T: AsyncRead + AsyncWrite + Unpin + 'static,
+    T: Stream<Item = TungsteniteResult<TungsteniteMessage>> + Sink<TungsteniteMessage> + 'static,
+    <T as Sink<TungsteniteMessage>>::Error: Into<Box<dyn Error + Send + Sync + 'static>>,
+{
+    fn from(value: T) -> Self {
+        let (write, read) = value.split();
+
+        Self {
+            close_code_exists: Arc::new(AtomicBool::new(false)),
+            close_code_value: Arc::new(AtomicU16::new(0)),
+            read_stream: Arc::new(AsyncMutex::new(read)),
+            write_stream: Arc::new(AsyncMutex::new(write)),
+        }
+    }
+}
+
+impl<T> LuaUserData for Websocket<T>
+where
+    T: Stream<Item = TungsteniteResult<TungsteniteMessage>> + Sink<TungsteniteMessage> + 'static,
+    <T as Sink<TungsteniteMessage>>::Error: Into<Box<dyn Error + Send + Sync + 'static>>,
 {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("closeCode", |_, this| Ok(this.get_close_code()));
@@ -121,10 +115,10 @@ where
             "send",
             |_, this, (string, as_binary): (BString, Option<bool>)| async move {
                 this.send(if as_binary.unwrap_or_default() {
-                    WsMessage::Binary(string.as_bytes().to_vec())
+                    TungsteniteMessage::Binary(Bytes::from(string.to_vec()))
                 } else {
                     let s = string.to_str().into_lua_err()?;
-                    WsMessage::Text(s.to_string())
+                    TungsteniteMessage::Text(Utf8Bytes::from(s))
                 })
                 .await
             },
@@ -133,14 +127,14 @@ where
         methods.add_async_method("next", |lua, this, (): ()| async move {
             let msg = this.next().await?;
 
-            if let Some(WsMessage::Close(Some(frame))) = msg.as_ref() {
+            if let Some(TungsteniteMessage::Close(Some(frame))) = msg.as_ref() {
                 this.set_close_code(frame.code.into());
             }
 
             Ok(match msg {
-                Some(WsMessage::Binary(bin)) => LuaValue::String(lua.create_string(bin)?),
-                Some(WsMessage::Text(txt)) => LuaValue::String(lua.create_string(txt)?),
-                Some(WsMessage::Close(_)) | None => LuaValue::Nil,
+                Some(TungsteniteMessage::Binary(bin)) => LuaValue::String(lua.create_string(bin)?),
+                Some(TungsteniteMessage::Text(txt)) => LuaValue::String(lua.create_string(txt)?),
+                Some(TungsteniteMessage::Close(_)) | None => LuaValue::Nil,
                 // Ignore ping/pong/frame messages, they are handled by tungstenite
                 msg => unreachable!("Unhandled message: {:?}", msg),
             })

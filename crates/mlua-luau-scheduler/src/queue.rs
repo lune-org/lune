@@ -1,12 +1,15 @@
-use std::{pin::Pin, rc::Rc};
+use std::{
+    ops::{Deref, DerefMut},
+    pin::Pin,
+    rc::Rc,
+};
 
 use concurrent_queue::ConcurrentQueue;
-use derive_more::{Deref, DerefMut};
 use event_listener::Event;
 use futures_lite::{Future, FutureExt};
 use mlua::prelude::*;
 
-use crate::{traits::IntoLuaThread, util::ThreadWithArgs, ThreadId};
+use crate::{traits::IntoLuaThread, ThreadId};
 
 /**
     Queue for storing [`LuaThread`]s with associated arguments.
@@ -16,15 +19,13 @@ use crate::{traits::IntoLuaThread, util::ThreadWithArgs, ThreadId};
 */
 #[derive(Debug, Clone)]
 pub(crate) struct ThreadQueue {
-    queue: Rc<ConcurrentQueue<ThreadWithArgs>>,
-    event: Rc<Event>,
+    inner: Rc<ThreadQueueInner>,
 }
 
 impl ThreadQueue {
     pub fn new() -> Self {
-        let queue = Rc::new(ConcurrentQueue::unbounded());
-        let event = Rc::new(Event::new());
-        Self { queue, event }
+        let inner = Rc::new(ThreadQueueInner::new());
+        Self { inner }
     }
 
     pub fn push_item(
@@ -38,32 +39,25 @@ impl ThreadQueue {
 
         tracing::trace!("pushing item to queue with {} args", args.len());
         let id = ThreadId::from(&thread);
-        let stored = ThreadWithArgs::new(lua, thread, args)?;
 
-        self.queue.push(stored).into_lua_err()?;
-        self.event.notify(usize::MAX);
+        let _ = self.inner.queue.push((thread, args));
+        self.inner.event.notify(usize::MAX);
 
         Ok(id)
     }
 
     #[inline]
-    pub fn drain_items<'outer, 'lua>(
-        &'outer self,
-        lua: &'lua Lua,
-    ) -> impl Iterator<Item = (LuaThread, LuaMultiValue)> + 'outer
-    where
-        'lua: 'outer,
-    {
-        self.queue.try_iter().map(|stored| stored.into_inner(lua))
+    pub fn drain_items(&self) -> impl Iterator<Item = (LuaThread, LuaMultiValue)> + '_ {
+        self.inner.queue.try_iter()
     }
 
     #[inline]
     pub async fn wait_for_item(&self) {
-        if self.queue.is_empty() {
-            let listener = self.event.listen();
+        if self.inner.queue.is_empty() {
+            let listener = self.inner.event.listen();
             // NOTE: Need to check again, we could have gotten
             // new queued items while creating our listener
-            if self.queue.is_empty() {
+            if self.inner.queue.is_empty() {
                 listener.await;
             }
         }
@@ -71,14 +65,14 @@ impl ThreadQueue {
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.queue.is_empty()
+        self.inner.queue.is_empty()
     }
 }
 
 /**
     Alias for [`ThreadQueue`], providing a newtype to store in Lua app data.
 */
-#[derive(Debug, Clone, Deref, DerefMut)]
+#[derive(Debug, Clone)]
 pub(crate) struct SpawnedThreadQueue(ThreadQueue);
 
 impl SpawnedThreadQueue {
@@ -87,15 +81,41 @@ impl SpawnedThreadQueue {
     }
 }
 
+impl Deref for SpawnedThreadQueue {
+    type Target = ThreadQueue;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for SpawnedThreadQueue {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 /**
     Alias for [`ThreadQueue`], providing a newtype to store in Lua app data.
 */
-#[derive(Debug, Clone, Deref, DerefMut)]
+#[derive(Debug, Clone)]
 pub(crate) struct DeferredThreadQueue(ThreadQueue);
 
 impl DeferredThreadQueue {
     pub fn new() -> Self {
         Self(ThreadQueue::new())
+    }
+}
+
+impl Deref for DeferredThreadQueue {
+    type Target = ThreadQueue;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for DeferredThreadQueue {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -109,31 +129,60 @@ pub type LocalBoxFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
 */
 #[derive(Debug, Clone)]
 pub(crate) struct FuturesQueue<'fut> {
-    queue: Rc<ConcurrentQueue<LocalBoxFuture<'fut>>>,
-    event: Rc<Event>,
+    inner: Rc<FuturesQueueInner<'fut>>,
 }
 
 impl<'fut> FuturesQueue<'fut> {
     pub fn new() -> Self {
-        let queue = Rc::new(ConcurrentQueue::unbounded());
-        let event = Rc::new(Event::new());
-        Self { queue, event }
+        let inner = Rc::new(FuturesQueueInner::new());
+        Self { inner }
     }
 
     pub fn push_item(&self, fut: impl Future<Output = ()> + 'fut) {
-        let _ = self.queue.push(fut.boxed_local());
-        self.event.notify(usize::MAX);
+        let _ = self.inner.queue.push(fut.boxed_local());
+        self.inner.event.notify(usize::MAX);
     }
 
     pub fn drain_items<'outer>(
         &'outer self,
     ) -> impl Iterator<Item = LocalBoxFuture<'fut>> + 'outer {
-        self.queue.try_iter()
+        self.inner.queue.try_iter()
     }
 
     pub async fn wait_for_item(&self) {
-        if self.queue.is_empty() {
-            self.event.listen().await;
+        if self.inner.queue.is_empty() {
+            self.inner.event.listen().await;
         }
+    }
+}
+
+// Inner structs without ref counting so that outer structs
+// have only a single ref counter for extremely cheap clones
+
+#[derive(Debug)]
+struct ThreadQueueInner {
+    queue: ConcurrentQueue<(LuaThread, LuaMultiValue)>,
+    event: Event,
+}
+
+impl ThreadQueueInner {
+    fn new() -> Self {
+        let queue = ConcurrentQueue::unbounded();
+        let event = Event::new();
+        Self { queue, event }
+    }
+}
+
+#[derive(Debug)]
+struct FuturesQueueInner<'fut> {
+    queue: ConcurrentQueue<LocalBoxFuture<'fut>>,
+    event: Event,
+}
+
+impl FuturesQueueInner<'_> {
+    pub fn new() -> Self {
+        let queue = ConcurrentQueue::unbounded();
+        let event = Event::new();
+        Self { queue, event }
     }
 }

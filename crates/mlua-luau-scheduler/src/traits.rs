@@ -323,7 +323,7 @@ impl LuaSchedulerExt for Lua {
         let map = self
             .app_data_ref::<ThreadResultMap>()
             .expect("lua threads results can only be retrieved from within an active scheduler");
-        map.remove(id).map(|r| r.value(self))
+        map.remove(id)
     }
 
     fn wait_for_thread(&self, id: ThreadId) -> impl Future<Output = ()> {
@@ -354,10 +354,8 @@ impl LuaSpawnExt for Lua {
         F: Future<Output = ()> + 'static,
     {
         let queue = self
-            .app_data_ref::<WeakRc<FuturesQueue>>()
-            .expect("tasks can only be spawned within an active scheduler")
-            .upgrade()
-            .expect("executor was dropped");
+            .app_data_ref::<FuturesQueue>()
+            .expect("tasks can only be spawned within an active scheduler");
         trace!("spawning local task on executor");
         queue.push_item(fut);
     }

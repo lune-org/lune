@@ -1,82 +1,117 @@
 use std::{future::Future, net::SocketAddr, pin::Pin};
 
-use http_body_util::{BodyExt, Full};
+use async_tungstenite::{tungstenite::protocol::Role, WebSocketStream};
+use http_body_util::Full;
 use hyper::{
     body::{Bytes, Incoming},
-    service::Service,
-    Request, Response,
+    service::Service as HyperService,
+    Request as HyperRequest, Response as HyperResponse, StatusCode,
 };
-use hyper_tungstenite::{is_upgrade_request, upgrade};
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{LuaSchedulerExt, LuaSpawnExt};
 
-use super::{
-    super::websocket::NetWebSocket, keys::SvcKeys, request::LuaRequest, response::LuaResponse,
+use crate::{
+    server::{
+        config::ServeConfig,
+        upgrade::{is_upgrade_request, make_upgrade_response},
+    },
+    shared::{hyper::HyperIo, request::Request, response::Response, websocket::Websocket},
 };
 
 #[derive(Debug, Clone)]
-pub(super) struct Svc {
+pub(super) struct Service {
     pub(super) lua: Lua,
-    pub(super) addr: SocketAddr,
-    pub(super) keys: SvcKeys,
+    pub(super) address: SocketAddr, // NOTE: This must be the remote address of the connected client
+    pub(super) config: ServeConfig,
 }
 
-impl Service<Request<Incoming>> for Svc {
-    type Response = Response<Full<Bytes>>;
+impl HyperService<HyperRequest<Incoming>> for Service {
+    type Response = HyperResponse<Full<Bytes>>;
     type Error = LuaError;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
-    fn call(&self, req: Request<Incoming>) -> Self::Future {
-        let lua = self.lua.clone();
-        let addr = self.addr;
-        let keys = self.keys;
+    fn call(&self, req: HyperRequest<Incoming>) -> Self::Future {
+        if is_upgrade_request(&req) {
+            if let Some(handler) = self.config.handle_web_socket.clone() {
+                let lua = self.lua.clone();
+                return Box::pin(async move {
+                    let response = match make_upgrade_response(&req) {
+                        Ok(res) => res,
+                        Err(err) => {
+                            return Ok(HyperResponse::builder()
+                                .status(StatusCode::BAD_REQUEST)
+                                .body(Full::new(Bytes::from(err.to_string())))
+                                .unwrap())
+                        }
+                    };
 
-        if keys.has_websocket_handler() && is_upgrade_request(&req) {
-            Box::pin(async move {
-                let (res, sock) = upgrade(req, None).into_lua_err()?;
+                    lua.spawn_local({
+                        let lua = lua.clone();
+                        async move {
+                            if let Err(_err) = handle_websocket(lua, handler, req).await {
+                                // TODO: Propagate the error somehow?
+                            }
+                        }
+                    });
 
-                let lua_inner = lua.clone();
-                lua.spawn_local(async move {
-                    let sock = sock.await.unwrap();
-                    let lua_sock = NetWebSocket::new(sock);
-                    let lua_val = lua_sock.into_lua(&lua_inner).unwrap();
-
-                    let handler_websocket: LuaFunction =
-                        keys.websocket_handler(&lua_inner).unwrap().unwrap();
-
-                    lua_inner
-                        .push_thread_back(handler_websocket, lua_val)
-                        .unwrap();
+                    Ok(response)
                 });
-
-                Ok(res)
-            })
-        } else {
-            let (head, body) = req.into_parts();
-
-            Box::pin(async move {
-                let handler_request: LuaFunction = keys.request_handler(&lua).unwrap();
-
-                let body = body.collect().await.into_lua_err()?;
-                let body = body.to_bytes().to_vec();
-
-                let lua_req = LuaRequest {
-                    _remote_addr: addr,
-                    head,
-                    body,
-                };
-                let lua_req_table = lua_req.into_lua_table(&lua)?;
-
-                let thread_id = lua.push_thread_back(handler_request, lua_req_table)?;
-                lua.track_thread(thread_id);
-                lua.wait_for_thread(thread_id).await;
-                let thread_res = lua
-                    .get_thread_result(thread_id)
-                    .expect("Missing handler thread result")?;
-
-                LuaResponse::from_lua_multi(thread_res, &lua)?.into_response()
-            })
+            }
         }
+
+        let lua = self.lua.clone();
+        let address = self.address;
+        let handler = self.config.handle_request.clone();
+        Box::pin(async move {
+            match handle_request(lua, handler, req, address).await {
+                Ok(response) => Ok(response),
+                Err(_err) => {
+                    // TODO: Propagate the error somehow?
+                    Ok(HyperResponse::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Full::new(Bytes::from("Lune: Internal server error")))
+                        .unwrap())
+                }
+            }
+        })
     }
+}
+
+async fn handle_request(
+    lua: Lua,
+    handler: LuaFunction,
+    request: HyperRequest<Incoming>,
+    address: SocketAddr,
+) -> LuaResult<HyperResponse<Full<Bytes>>> {
+    let request = Request::from_incoming(request, true)
+        .await?
+        .with_address(address);
+
+    let thread_id = lua.push_thread_back(handler, request)?;
+    lua.track_thread(thread_id);
+    lua.wait_for_thread(thread_id).await;
+
+    let thread_res = lua
+        .get_thread_result(thread_id)
+        .expect("Missing handler thread result")?;
+
+    let response = Response::from_lua_multi(thread_res, &lua)?;
+    Ok(response.into_full())
+}
+
+async fn handle_websocket(
+    lua: Lua,
+    handler: LuaFunction,
+    request: HyperRequest<Incoming>,
+) -> LuaResult<()> {
+    let upgraded = hyper::upgrade::on(request).await.into_lua_err()?;
+
+    let stream =
+        WebSocketStream::from_raw_socket(HyperIo::from(upgraded), Role::Server, None).await;
+
+    let websocket = Websocket::from(stream);
+    lua.push_thread_back(handler, websocket)?;
+
+    Ok(())
 }

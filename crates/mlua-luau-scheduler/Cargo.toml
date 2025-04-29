@@ -16,13 +16,12 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-async-executor = "1.8"
-blocking = "1.5"
-concurrent-queue = "2.4"
-derive_more = "0.99"
-event-listener = "4.0"
-futures-lite = "2.2"
-rustc-hash = "1.1"
+async-executor = "1.13"
+blocking = "1.6"
+concurrent-queue = "2.5"
+event-listener = "5.4"
+futures-lite = "2.6"
+rustc-hash = "2.1"
 tracing = "0.1"
 
 mlua = { version = "0.10.3", features = [
@@ -34,7 +33,7 @@ mlua = { version = "0.10.3", features = [
 
 [dev-dependencies]
 async-fs = "2.1"
-async-io = "2.3"
+async-io = "2.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-tracy = "0.11"
 
