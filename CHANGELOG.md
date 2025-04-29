@@ -8,6 +8,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.9.1` - April 29th, 2025
+
+### Added
+
+- Added support for automatic decompression of HTTP requests in `net.serve` ([#310])
+
+### Fixed
+
+- Fixed `net.serve` no longer serving requests if the returned `ServeHandle` is discarded ([#310])
+- Fixed `net.serve` having various performance issues ([#310])
+- Fixed Lune still running after cancelling a task such as `task.delay(5, ...)` and all tasks having completed
+
+[#310]: https://github.com/lune-org/lune/pull/310
+
 ## `0.9.0` - April 25th, 2025
 
 The next major version of Lune has finally been released!

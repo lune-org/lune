@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-datetime"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -19,4 +19,4 @@ thiserror = "2.0"
 chrono = "0.4.38"
 chrono_lc = "0.1.6"
 
-lune-utils = { version = "0.2.0", path = "../lune-utils" }
+lune-utils = { version = "0.2.1", path = "../lune-utils" }

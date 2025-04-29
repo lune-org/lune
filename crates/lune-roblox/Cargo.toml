@@ -1,6 +1,6 @@
 [package]
 name = "lune-roblox"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -25,4 +25,4 @@ rbx_reflection = "5.0"
 rbx_reflection_database = "1.0"
 rbx_xml = "1.0"
 
-lune-utils = { version = "0.2.0", path = "../lune-utils" }
+lune-utils = { version = "0.2.1", path = "../lune-utils" }
