@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    ffi::c_void,
+    hash::{Hash, Hasher},
+};
 
 use mlua::prelude::*;
 
@@ -12,13 +15,13 @@ use mlua::prelude::*;
 */
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ThreadId {
-    inner: usize,
+    inner: *const c_void,
 }
 
 impl From<&LuaThread> for ThreadId {
     fn from(thread: &LuaThread) -> Self {
         Self {
-            inner: thread.to_pointer() as usize,
+            inner: thread.to_pointer(),
         }
     }
 }
