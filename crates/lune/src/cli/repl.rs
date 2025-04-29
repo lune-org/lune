@@ -1,6 +1,7 @@
 use std::{path::PathBuf, process::ExitCode};
 
 use anyhow::{Context, Result};
+use async_fs as fs;
 use clap::Parser;
 use directories::UserDirs;
 use rustyline::{error::ReadlineError, DefaultEditor};
@@ -28,7 +29,7 @@ impl ReplCommand {
             .home_dir()
             .join(".lune_history");
         if !history_file_path.exists() {
-            tokio::fs::write(history_file_path, &[]).await?;
+            fs::write(history_file_path, &[]).await?;
         }
 
         let mut repl = DefaultEditor::new()?;

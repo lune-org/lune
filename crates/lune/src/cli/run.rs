@@ -1,11 +1,10 @@
-use std::{env, process::ExitCode};
+use std::{env, io::stdin, process::ExitCode};
 
 use anyhow::{Context, Result};
+use async_fs::read as read_to_vec;
+use blocking::Unblock;
 use clap::Parser;
-use tokio::{
-    fs::read as read_to_vec,
-    io::{stdin, AsyncReadExt as _},
-};
+use futures_lite::prelude::*;
 
 use lune::Runtime;
 
@@ -27,7 +26,7 @@ impl RunCommand {
         // (dash) as the script name to run to the cli
         let (script_display_name, script_contents) = if &self.script_path == "-" {
             let mut stdin_contents = Vec::new();
-            stdin()
+            Unblock::new(stdin())
                 .read_to_end(&mut stdin_contents)
                 .await
                 .context("Failed to read script contents from stdin")?;

@@ -1,11 +1,14 @@
 #![allow(clippy::match_same_arms)]
 
-use std::{cmp::Ordering, ffi::OsStr, fmt::Write as _, path::PathBuf, sync::LazyLock};
+use std::{
+    cmp::Ordering, ffi::OsStr, fmt::Write as _, io::ErrorKind, path::PathBuf, sync::LazyLock,
+};
 
 use anyhow::{bail, Result};
+use async_fs as fs;
 use console::Style;
 use directories::UserDirs;
-use tokio::{fs, io};
+use futures_lite::prelude::*;
 
 use super::files::{discover_script_path, parse_lune_description_from_file};
 
@@ -25,7 +28,7 @@ pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)
     match lune_dir {
         Ok(mut dir) => {
             let mut files = Vec::new();
-            while let Some(entry) = dir.next_entry().await? {
+            while let Some(entry) = dir.try_next().await? {
                 let meta = entry.metadata().await?;
                 if meta.is_file() {
                     let contents = fs::read(entry.path()).await?;
@@ -77,7 +80,7 @@ pub async fn find_lune_scripts(in_home_dir: bool) -> Result<Vec<(String, String)
                 .collect();
             Ok(parsed)
         }
-        Err(e) if matches!(e.kind(), io::ErrorKind::NotFound) => {
+        Err(e) if matches!(e.kind(), ErrorKind::NotFound) => {
             bail!("No lune directory was found.")
         }
         Err(e) => {

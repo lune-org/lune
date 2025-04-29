@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
-use tokio::{fs, io::AsyncWriteExt};
+use async_fs as fs;
+use futures_lite::prelude::*;
 
 /**
     Removes the source file extension from the given path, if it has one.
@@ -32,6 +33,7 @@ pub async fn write_executable_file_to(
 
     #[cfg(unix)]
     {
+        use fs::unix::OpenOptionsExt;
         options.mode(0o755); // Read & execute for all, write for owner
     }
 

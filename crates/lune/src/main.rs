@@ -9,8 +9,7 @@ pub(crate) mod standalone;
 
 use lune_utils::fmt::Label;
 
-#[tokio::main(flavor = "multi_thread")]
-async fn main() -> ExitCode {
+fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .compact()
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
@@ -20,24 +19,26 @@ async fn main() -> ExitCode {
         .with_writer(stderr)
         .init();
 
-    if let Some(bin) = standalone::check().await {
-        return standalone::run(bin).await.unwrap();
-    }
+    async_io::block_on(async {
+        if let Some(bin) = standalone::check().await {
+            return standalone::run(bin).await.unwrap();
+        }
 
-    #[cfg(feature = "cli")]
-    {
-        match cli::Cli::new().run().await {
-            Ok(code) => code,
-            Err(err) => {
-                eprintln!("{}\n{err:?}", Label::Error);
-                ExitCode::FAILURE
+        #[cfg(feature = "cli")]
+        {
+            match cli::Cli::new().run().await {
+                Ok(code) => code,
+                Err(err) => {
+                    eprintln!("{}\n{err:?}", Label::Error);
+                    ExitCode::FAILURE
+                }
             }
         }
-    }
 
-    #[cfg(not(feature = "cli"))]
-    {
-        eprintln!("{}\nCLI feature is disabled", Label::Error);
-        ExitCode::FAILURE
-    }
+        #[cfg(not(feature = "cli"))]
+        {
+            eprintln!("{}\nCLI feature is disabled", Label::Error);
+            ExitCode::FAILURE
+        }
+    })
 }

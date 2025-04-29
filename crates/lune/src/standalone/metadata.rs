@@ -1,8 +1,8 @@
 use std::{env, path::PathBuf, sync::LazyLock};
 
 use anyhow::{bail, Result};
+use async_fs as fs;
 use mlua::Compiler as LuaCompiler;
-use tokio::fs;
 
 pub static CURRENT_EXE: LazyLock<PathBuf> =
     LazyLock::new(|| env::current_exe().expect("failed to get current exe"));

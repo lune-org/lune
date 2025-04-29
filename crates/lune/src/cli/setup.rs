@@ -1,11 +1,10 @@
 use std::{borrow::BorrowMut, env::current_dir, io::ErrorKind, path::PathBuf, process::ExitCode};
 
 use anyhow::{Context, Result};
+use async_fs as fs;
 use clap::Parser;
 use directories::UserDirs;
-use futures_util::future::try_join_all;
 use thiserror::Error;
-use tokio::fs;
 
 // TODO: Use a library that supports json with comments since VSCode settings may contain comments
 use serde_json::Value as JsonValue;
@@ -157,16 +156,12 @@ async fn generate_typedef_files_from_definitions() -> Result<String> {
         files_to_write.push((name, path, builtin.typedefs()));
     }
 
-    // Write all dirs and files only when we know generation was successful
-    let futs_dirs = dirs_to_write
-        .drain(..)
-        .map(fs::create_dir_all)
-        .collect::<Vec<_>>();
-    let futs_files = files_to_write
-        .iter()
-        .map(|(_, path, contents)| fs::write(path, contents))
-        .collect::<Vec<_>>();
-    try_join_all(futs_dirs).await?;
-    try_join_all(futs_files).await?;
+    // Write all dirs and files
+    for dir in dirs_to_write {
+        fs::create_dir_all(dir).await?;
+    }
+    for (_name, path, contents) in files_to_write {
+        fs::write(path, contents).await?;
+    }
     Ok(version_string.to_string())
 }

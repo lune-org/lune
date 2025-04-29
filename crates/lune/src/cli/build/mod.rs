@@ -1,9 +1,9 @@
 use std::{path::PathBuf, process::ExitCode};
 
 use anyhow::{bail, Context, Result};
+use async_fs as fs;
 use clap::Parser;
 use console::style;
-use tokio::fs;
 
 use crate::standalone::metadata::Metadata;
 

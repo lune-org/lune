@@ -3,7 +3,8 @@ use std::{
     path::PathBuf,
 };
 
-use tokio::{fs, task};
+use async_fs as fs;
+use blocking::unblock;
 
 use crate::standalone::metadata::CURRENT_EXE;
 
@@ -44,25 +45,30 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
     // Try to request to download the zip file from the target url,
     // making sure transient errors are handled gracefully and
     // with a different error message than "not found"
-    let response = reqwest::get(release_url).await?;
-    if !response.status().is_success() {
-        if response.status().as_u16() == 404 {
+    let (res_status, res_body) = unblock(move || {
+        let mut res = ureq::get(release_url).call()?;
+        let body = res.body_mut().read_to_vec()?;
+        Ok::<_, BuildError>((res.status(), body))
+    })
+    .await?;
+
+    if !res_status.is_success() {
+        if res_status.as_u16() == 404 {
             return Err(BuildError::ReleaseTargetNotFound(target));
         }
-        return Err(BuildError::Download(
-            response.error_for_status().unwrap_err(),
-        ));
+        return Err(BuildError::Download(ureq::Error::StatusCode(
+            res_status.as_u16(),
+        )));
     }
 
-    // Receive the full zip file
-    let zip_bytes = response.bytes().await?.to_vec();
-    let zip_file = Cursor::new(zip_bytes);
+    // Start reading the zip file
+    let zip_file = Cursor::new(res_body);
 
     // Look for and extract the binary file from the zip file
     // NOTE: We use spawn_blocking here since reading a zip
     // archive is a somewhat slow / blocking operation
     let binary_file_name = format!("lune{}", target.exe_suffix());
-    let binary_file_handle = task::spawn_blocking(move || {
+    let binary_file_handle = unblock(move || {
         let mut archive = zip::ZipArchive::new(zip_file)?;
 
         let mut binary = Vec::new();
@@ -73,7 +79,7 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
 
         Ok::<_, BuildError>(binary)
     });
-    let binary_file_contents = binary_file_handle.await??;
+    let binary_file_contents = binary_file_handle.await?;
 
     // Finally, write the extracted binary to the cache
     if !CACHE_DIR.exists() {

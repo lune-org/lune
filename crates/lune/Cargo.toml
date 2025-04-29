@@ -26,7 +26,7 @@ std-luau = ["dep:lune-std", "lune-std/luau"]
 std-net = ["dep:lune-std", "lune-std/net"]
 std-process = ["dep:lune-std", "lune-std/process"]
 std-regex = ["dep:lune-std", "lune-std/regex"]
-std-roblox = ["dep:lune-std", "lune-std/roblox", "dep:lune-roblox"]
+std-roblox = ["dep:lune-std", "lune-std/roblox"]
 std-serde = ["dep:lune-std", "lune-std/serde"]
 std-stdio = ["dep:lune-std", "lune-std/stdio"]
 std-task = ["dep:lune-std", "lune-std/task"]
@@ -57,20 +57,20 @@ anyhow = "1.0"
 console = "0.15"
 dialoguer = "0.11"
 directories = "6.0"
-futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
 
+async-io = "2.4"
+async-fs = "2.1"
+blocking = "1.6"
+futures-lite = "2.6"
+ureq = { version = "3.0", default-features = false, features = ["rustls", "gzip"] }
+
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.11", default-features = false, features = [
-    "rustls-tls",
-] }
 
 lune-std = { optional = true, version = "0.2.0", path = "../lune-std" }
-lune-roblox = { optional = true, version = "0.2.0", path = "../lune-roblox" }
 lune-utils = { version = "0.2.0", path = "../lune-utils" }
 
 ### CLI

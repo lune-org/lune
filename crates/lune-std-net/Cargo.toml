@@ -28,9 +28,9 @@ futures = { version = "0.3", default-features = false, features = ["std"] }
 futures-lite = "2.6"
 futures-rustls = "0.26"
 http-body-util = "0.1"
-hyper = { version = "1.6", features = ["http1", "client", "server"] }
+hyper = { version = "1.6", default-features = false, features = ["http1", "client", "server"] }
 pin-project-lite = "0.2"
-rustls = "0.23"
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
 rustls-pki-types = "1.11"
 url = "2.5"
 urlencoding = "2.1"
