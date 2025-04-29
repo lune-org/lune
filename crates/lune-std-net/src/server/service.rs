@@ -1,17 +1,16 @@
 use std::{future::Future, net::SocketAddr, pin::Pin};
 
 use async_tungstenite::{tungstenite::protocol::Role, WebSocketStream};
-use http_body_util::Full;
 use hyper::{
-    body::{Bytes, Incoming},
-    service::Service as HyperService,
-    Request as HyperRequest, Response as HyperResponse, StatusCode,
+    body::Incoming, service::Service as HyperService, Request as HyperRequest,
+    Response as HyperResponse, StatusCode,
 };
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{LuaSchedulerExt, LuaSpawnExt};
 
 use crate::{
+    body::ReadableBody,
     server::{
         config::ServeConfig,
         upgrade::{is_upgrade_request, make_upgrade_response},
@@ -27,7 +26,7 @@ pub(super) struct Service {
 }
 
 impl HyperService<HyperRequest<Incoming>> for Service {
-    type Response = HyperResponse<Full<Bytes>>;
+    type Response = HyperResponse<ReadableBody>;
     type Error = LuaError;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
@@ -41,7 +40,7 @@ impl HyperService<HyperRequest<Incoming>> for Service {
                         Err(err) => {
                             return Ok(HyperResponse::builder()
                                 .status(StatusCode::BAD_REQUEST)
-                                .body(Full::new(Bytes::from(err.to_string())))
+                                .body(ReadableBody::from(err.to_string()))
                                 .unwrap())
                         }
                     };
@@ -70,7 +69,7 @@ impl HyperService<HyperRequest<Incoming>> for Service {
                     // TODO: Propagate the error somehow?
                     Ok(HyperResponse::builder()
                         .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .body(Full::new(Bytes::from("Lune: Internal server error")))
+                        .body(ReadableBody::from("Lune: Internal server error"))
                         .unwrap())
                 }
             }
@@ -83,7 +82,7 @@ async fn handle_request(
     handler: LuaFunction,
     request: HyperRequest<Incoming>,
     address: SocketAddr,
-) -> LuaResult<HyperResponse<Full<Bytes>>> {
+) -> LuaResult<HyperResponse<ReadableBody>> {
     let request = Request::from_incoming(request, true)
         .await?
         .with_address(address);
@@ -97,7 +96,7 @@ async fn handle_request(
         .expect("Missing handler thread result")?;
 
     let response = Response::from_lua_multi(thread_res, &lua)?;
-    Ok(response.into_full())
+    Ok(response.into_inner())
 }
 
 async fn handle_websocket(

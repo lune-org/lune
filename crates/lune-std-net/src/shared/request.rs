@@ -1,19 +1,17 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-use http_body_util::Full;
 use url::Url;
 
-use hyper::{
-    body::{Bytes, Incoming},
-    HeaderMap, Method, Request as HyperRequest,
-};
+use hyper::{body::Incoming, HeaderMap, Method, Request as HyperRequest};
 
 use mlua::prelude::*;
 
-use crate::shared::{
-    body::{bytes_to_full, handle_incoming_body},
-    headers::{hash_map_to_table, header_map_to_table},
-    lua::{lua_table_to_header_map, lua_value_to_bytes, lua_value_to_method},
+use crate::{
+    body::{handle_incoming_body, ReadableBody},
+    shared::{
+        headers::{hash_map_to_table, header_map_to_table},
+        lua::{lua_table_to_header_map, lua_value_to_method},
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -57,9 +55,7 @@ impl FromLua for RequestOptions {
 
 #[derive(Debug, Clone)]
 pub struct Request {
-    // NOTE: We use Bytes instead of Full<Bytes> to avoid
-    // needing async when getting a reference to the body
-    pub(crate) inner: HyperRequest<Bytes>,
+    pub(crate) inner: HyperRequest<ReadableBody>,
     pub(crate) address: Option<SocketAddr>,
     pub(crate) redirects: Option<usize>,
     pub(crate) decompress: bool,
@@ -78,7 +74,7 @@ impl Request {
         let (body, decompress) = handle_incoming_body(&parts.headers, body, decompress).await?;
 
         Ok(Self {
-            inner: HyperRequest::from_parts(parts, body),
+            inner: HyperRequest::from_parts(parts, ReadableBody::from(body)),
             address: None,
             redirects: None,
             decompress,
@@ -137,37 +133,23 @@ impl Request {
         Returns the body of the request.
     */
     pub fn body(&self) -> &[u8] {
-        self.inner.body()
+        self.inner.body().as_slice()
     }
 
     /**
-        Clones the inner `hyper` request with its body
-        type modified to `Full<Bytes>` for sending.
+        Clones the inner `hyper` request.
     */
     #[allow(dead_code)]
-    pub fn as_full(&self) -> HyperRequest<Full<Bytes>> {
-        let mut builder = HyperRequest::builder()
-            .version(self.inner.version())
-            .method(self.inner.method())
-            .uri(self.inner.uri());
-
-        builder
-            .headers_mut()
-            .expect("request was valid")
-            .extend(self.inner.headers().clone());
-
-        let body = bytes_to_full(self.inner.body().clone());
-        builder.body(body).expect("request was valid")
+    pub fn clone_inner(&self) -> HyperRequest<ReadableBody> {
+        self.inner.clone()
     }
 
     /**
-        Takes the inner `hyper` request with its body
-        type modified to `Full<Bytes>` for sending.
+        Takes the inner `hyper` request by ownership.
     */
     #[allow(dead_code)]
-    pub fn into_full(self) -> HyperRequest<Full<Bytes>> {
-        let (parts, body) = self.inner.into_parts();
-        HyperRequest::from_parts(parts, bytes_to_full(body))
+    pub fn into_inner(self) -> HyperRequest<ReadableBody> {
+        self.inner
     }
 }
 
@@ -179,7 +161,7 @@ impl FromLua for Request {
             let uri = s.to_str()?;
             let uri = uri.parse().into_lua_err()?;
 
-            let mut request = HyperRequest::new(Bytes::new());
+            let mut request = HyperRequest::new(ReadableBody::empty());
             *request.uri_mut() = uri;
 
             Ok(Self {
@@ -221,8 +203,7 @@ impl FromLua for Request {
                 .unwrap_or_default();
 
             // Extract body
-            let body = tab.get::<LuaValue>("body")?;
-            let body = lua_value_to_bytes(&body)?;
+            let body = tab.get::<ReadableBody>("body")?;
 
             // Build the full request
             let mut request = HyperRequest::new(body);

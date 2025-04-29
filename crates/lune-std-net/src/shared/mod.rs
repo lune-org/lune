@@ -1,4 +1,3 @@
-pub mod body;
 pub mod futures;
 pub mod headers;
 pub mod hyper;

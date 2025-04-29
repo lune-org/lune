@@ -1,25 +1,9 @@
 use hyper::{
-    body::Bytes,
     header::{HeaderName, HeaderValue},
     HeaderMap, Method,
 };
-use mlua::prelude::*;
 
-pub fn lua_value_to_bytes(value: &LuaValue) -> LuaResult<Bytes> {
-    match value {
-        LuaValue::Nil => Ok(Bytes::new()),
-        LuaValue::Buffer(buf) => Ok(Bytes::from(buf.to_vec())),
-        LuaValue::String(str) => Ok(Bytes::copy_from_slice(&str.as_bytes())),
-        v => Err(LuaError::FromLuaConversionError {
-            from: v.type_name(),
-            to: "Bytes".to_string(),
-            message: Some(format!(
-                "Invalid body - expected string or buffer, got {}",
-                v.type_name()
-            )),
-        }),
-    }
-}
+use mlua::prelude::*;
 
 pub fn lua_value_to_method(value: &LuaValue) -> LuaResult<Method> {
     match value {

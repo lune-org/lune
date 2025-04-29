@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Significantly improved performance of `net.request` and `net.serve` when handling large request bodies
+
 ## `0.9.1` - April 29th, 2025
 
 ### Added

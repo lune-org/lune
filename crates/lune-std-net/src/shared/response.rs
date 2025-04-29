@@ -1,24 +1,19 @@
-use http_body_util::Full;
-
 use hyper::{
-    body::{Bytes, Incoming},
+    body::Incoming,
     header::{HeaderValue, CONTENT_TYPE},
     HeaderMap, Response as HyperResponse, StatusCode,
 };
 
 use mlua::prelude::*;
 
-use crate::shared::{
-    body::{bytes_to_full, handle_incoming_body},
-    headers::header_map_to_table,
-    lua::{lua_table_to_header_map, lua_value_to_bytes},
+use crate::{
+    body::{handle_incoming_body, ReadableBody},
+    shared::{headers::header_map_to_table, lua::lua_table_to_header_map},
 };
 
 #[derive(Debug, Clone)]
 pub struct Response {
-    // NOTE: We use Bytes instead of Full<Bytes> to avoid
-    // needing async when getting a reference to the body
-    pub(crate) inner: HyperResponse<Bytes>,
+    pub(crate) inner: HyperResponse<ReadableBody>,
     pub(crate) decompressed: bool,
 }
 
@@ -35,7 +30,7 @@ impl Response {
         let (body, decompressed) = handle_incoming_body(&parts.headers, body, decompress).await?;
 
         Ok(Self {
-            inner: HyperResponse::from_parts(parts, body),
+            inner: HyperResponse::from_parts(parts, ReadableBody::from(body)),
             decompressed,
         })
     }
@@ -72,42 +67,29 @@ impl Response {
         Returns the body of the response.
     */
     pub fn body(&self) -> &[u8] {
-        self.inner.body()
+        self.inner.body().as_slice()
     }
 
     /**
-        Clones the inner `hyper` response with its body
-        type modified to `Full<Bytes>` for sending.
+        Clones the inner `hyper` response.
     */
     #[allow(dead_code)]
-    pub fn as_full(&self) -> HyperResponse<Full<Bytes>> {
-        let mut builder = HyperResponse::builder()
-            .version(self.inner.version())
-            .status(self.inner.status());
-
-        builder
-            .headers_mut()
-            .expect("request was valid")
-            .extend(self.inner.headers().clone());
-
-        let body = bytes_to_full(self.inner.body().clone());
-        builder.body(body).expect("request was valid")
+    pub fn clone_inner(&self) -> HyperResponse<ReadableBody> {
+        self.inner.clone()
     }
 
     /**
-        Takes the inner `hyper` response with its body
-        type modified to `Full<Bytes>` for sending.
+        Takes the inner `hyper` response by ownership.
     */
     #[allow(dead_code)]
-    pub fn into_full(self) -> HyperResponse<Full<Bytes>> {
-        let (parts, body) = self.inner.into_parts();
-        HyperResponse::from_parts(parts, bytes_to_full(body))
+    pub fn into_inner(self) -> HyperResponse<ReadableBody> {
+        self.inner
     }
 }
 
 impl FromLua for Response {
-    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
-        if let Ok(body) = lua_value_to_bytes(&value) {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        if let Ok(body) = ReadableBody::from_lua(value.clone(), lua) {
             // String or buffer is always a 200 text/plain response
             let mut response = HyperResponse::new(body);
             response
@@ -130,8 +112,7 @@ impl FromLua for Response {
                 .unwrap_or_default();
 
             // Extract body
-            let body = tab.get::<LuaValue>("body")?;
-            let body = lua_value_to_bytes(&body)?;
+            let body = tab.get::<ReadableBody>("body")?;
 
             // Build the full response
             let mut response = HyperResponse::new(body);

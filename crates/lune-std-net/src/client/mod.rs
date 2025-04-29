@@ -1,5 +1,6 @@
+use http_body_util::Full;
 use hyper::{
-    body::{Bytes, Incoming},
+    body::Incoming,
     client::conn::http1::handshake,
     header::{HeaderValue, ACCEPT, CONTENT_LENGTH, HOST, LOCATION, USER_AGENT},
     Method, Request as HyperRequest, Response as HyperResponse, Uri,
@@ -9,6 +10,7 @@ use mlua::prelude::*;
 use url::Url;
 
 use crate::{
+    body::ReadableBody,
     client::{http_stream::HttpStream, ws_stream::WsStream},
     shared::{
         headers::create_user_agent_header,
@@ -61,7 +63,7 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
         request.inner.headers_mut().insert(USER_AGENT, ua);
     }
     if !request.headers().contains_key(CONTENT_LENGTH.as_str()) && request.method() != Method::GET {
-        let len = request.inner.body().len().to_string();
+        let len = request.body().len().to_string();
         let len = HeaderValue::from_str(&len).into_lua_err()?;
         request.inner.headers_mut().insert(CONTENT_LENGTH, len);
     }
@@ -78,18 +80,19 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
 
         HyperExecutor::execute(lua.clone(), conn);
 
-        let incoming = sender
-            .send_request(request.as_full())
-            .await
-            .into_lua_err()?;
+        let (parts, body) = request.clone_inner().into_parts();
+        let data = HyperRequest::from_parts(parts, Full::new(body.into_bytes()));
+        let incoming = sender.send_request(data).await.into_lua_err()?;
 
-        if let Some((new_method, new_uri)) = check_redirect(&request.inner, &incoming) {
+        if let Some((new_method, new_uri)) =
+            check_redirect(request.inner.method().clone(), &incoming)
+        {
             if request.redirects.is_some_and(|r| r >= MAX_REDIRECTS) {
                 return Err(LuaError::external("Too many redirects"));
             }
 
             if new_method == Method::GET {
-                *request.inner.body_mut() = Bytes::new();
+                *request.inner.body_mut() = ReadableBody::empty();
             }
 
             *request.inner.method_mut() = new_method;
@@ -104,10 +107,7 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
     }
 }
 
-fn check_redirect(
-    request: &HyperRequest<Bytes>,
-    response: &HyperResponse<Incoming>,
-) -> Option<(Method, Uri)> {
+fn check_redirect(method: Method, response: &HyperResponse<Incoming>) -> Option<(Method, Uri)> {
     if !response.status().is_redirection() {
         return None;
     }
@@ -118,7 +118,7 @@ fn check_redirect(
 
     let method = match response.status().as_u16() {
         301..=303 => Method::GET,
-        _ => request.method().clone(),
+        _ => method,
     };
 
     Some((method, location))

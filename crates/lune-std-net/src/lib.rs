@@ -3,6 +3,7 @@
 use lune_utils::TableBuilder;
 use mlua::prelude::*;
 
+pub(crate) mod body;
 pub(crate) mod client;
 pub(crate) mod server;
 pub(crate) mod shared;

@@ -1,11 +1,12 @@
 use async_tungstenite::tungstenite::{error::ProtocolError, handshake::derive_accept_key};
-use http_body_util::Full;
 
 use hyper::{
-    body::{Bytes, Incoming},
+    body::Incoming,
     header::{HeaderName, CONNECTION, UPGRADE},
     HeaderMap, Request as HyperRequest, Response as HyperResponse, StatusCode,
 };
+
+use crate::body::ReadableBody;
 
 const SEC_WEBSOCKET_VERSION: HeaderName = HeaderName::from_static("sec-websocket-version");
 const SEC_WEBSOCKET_KEY: HeaderName = HeaderName::from_static("sec-websocket-key");
@@ -31,7 +32,7 @@ pub fn is_upgrade_request(request: &HyperRequest<Incoming>) -> bool {
 
 pub fn make_upgrade_response(
     request: &HyperRequest<Incoming>,
-) -> Result<HyperResponse<Full<Bytes>>, ProtocolError> {
+) -> Result<HyperResponse<ReadableBody>, ProtocolError> {
     let key = request
         .headers()
         .get(SEC_WEBSOCKET_KEY)
@@ -50,6 +51,6 @@ pub fn make_upgrade_response(
         .header(CONNECTION, "upgrade")
         .header(UPGRADE, "websocket")
         .header(SEC_WEBSOCKET_ACCEPT, derive_accept_key(key.as_bytes()))
-        .body(Full::new(Bytes::from("switching to websocket protocol")))
+        .body(ReadableBody::from("switching to websocket protocol"))
         .unwrap())
 }
