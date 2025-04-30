@@ -4,6 +4,7 @@ mod error_callback;
 mod exit;
 mod functions;
 mod queue;
+mod result_event;
 mod result_map;
 mod scheduler;
 mod status;
