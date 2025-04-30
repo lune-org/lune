@@ -1,8 +1,8 @@
 mod deferred;
 mod event;
 mod futures;
-mod generic;
 mod spawned;
+mod threads;
 
 pub(crate) use self::deferred::DeferredThreadQueue;
 pub(crate) use self::futures::FuturesQueue;

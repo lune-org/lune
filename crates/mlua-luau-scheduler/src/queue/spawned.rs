@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use super::generic::ThreadQueue;
+use super::threads::ThreadQueue;
 
 /**
     Alias for [`ThreadQueue`], providing a newtype to store in Lua app data.
