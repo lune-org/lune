@@ -1,22 +1,22 @@
-use std::{pin::Pin, rc::Rc};
+use std::{cell::RefCell, mem, pin::Pin, rc::Rc};
 
-use concurrent_queue::ConcurrentQueue;
-use event_listener::Event;
-use futures_lite::{Future, FutureExt};
+use futures_lite::prelude::*;
+
+use super::event::QueueEvent;
 
 pub type LocalBoxFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
 
-#[derive(Debug)]
 struct FuturesQueueInner<'fut> {
-    queue: ConcurrentQueue<LocalBoxFuture<'fut>>,
-    event: Event,
+    queue: RefCell<Vec<LocalBoxFuture<'fut>>>,
+    event: QueueEvent,
 }
 
 impl FuturesQueueInner<'_> {
     pub fn new() -> Self {
-        let queue = ConcurrentQueue::unbounded();
-        let event = Event::new();
-        Self { queue, event }
+        Self {
+            queue: RefCell::new(Vec::new()),
+            event: QueueEvent::new(),
+        }
     }
 }
 
@@ -26,7 +26,7 @@ impl FuturesQueueInner<'_> {
     Provides methods for pushing and draining the queue, as
     well as listening for new items being pushed to the queue.
 */
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct FuturesQueue<'fut> {
     inner: Rc<FuturesQueueInner<'fut>>,
 }
@@ -38,18 +38,17 @@ impl<'fut> FuturesQueue<'fut> {
     }
 
     pub fn push_item(&self, fut: impl Future<Output = ()> + 'fut) {
-        let _ = self.inner.queue.push(fut.boxed_local());
-        self.inner.event.notify(usize::MAX);
+        self.inner.queue.borrow_mut().push(fut.boxed_local());
+        self.inner.event.notify();
     }
 
-    pub fn drain_items<'outer>(
-        &'outer self,
-    ) -> impl Iterator<Item = LocalBoxFuture<'fut>> + 'outer {
-        self.inner.queue.try_iter()
+    pub fn take_items(&self) -> Vec<LocalBoxFuture<'fut>> {
+        let mut queue = self.inner.queue.borrow_mut();
+        mem::take(&mut *queue)
     }
 
     pub async fn wait_for_item(&self) {
-        if self.inner.queue.is_empty() {
+        if self.inner.queue.borrow().is_empty() {
             self.inner.event.listen().await;
         }
     }

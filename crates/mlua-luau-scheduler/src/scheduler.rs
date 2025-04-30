@@ -396,21 +396,21 @@ impl Scheduler {
                 let mut num_futures = 0;
                 {
                     let _span = trace_span!("Scheduler::drain_spawned").entered();
-                    for (thread, args) in self.queue_spawn.drain_items() {
+                    for (thread, args) in self.queue_spawn.take_items() {
                         process_thread(thread, args);
                         num_spawned += 1;
                     }
                 }
                 {
                     let _span = trace_span!("Scheduler::drain_deferred").entered();
-                    for (thread, args) in self.queue_defer.drain_items() {
+                    for (thread, args) in self.queue_defer.take_items() {
                         process_thread(thread, args);
                         num_deferred += 1;
                     }
                 }
                 {
                     let _span = trace_span!("Scheduler::drain_futures").entered();
-                    for fut in fut_queue.drain_items() {
+                    for fut in fut_queue.take_items() {
                         local_exec.spawn(fut).detach();
                         num_futures += 1;
                     }
