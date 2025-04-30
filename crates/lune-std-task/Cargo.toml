@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-task"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -14,9 +14,9 @@ workspace = true
 
 [dependencies]
 mlua = { version = "0.10.3", features = ["luau"] }
-mlua-luau-scheduler = { version = "0.1.1", path = "../mlua-luau-scheduler" }
+mlua-luau-scheduler = { version = "0.1.2", path = "../mlua-luau-scheduler" }
 
 async-io = "2.4"
 futures-lite = "2.6"
 
-lune-utils = { version = "0.2.1", path = "../lune-utils" }
+lune-utils = { version = "0.2.2", path = "../lune-utils" }

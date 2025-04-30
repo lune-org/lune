@@ -1655,7 +1655,7 @@ dependencies = [
 
 [[package]]
 name = "lune"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "anyhow",
  "async-fs",
@@ -1670,6 +1670,7 @@ dependencies = [
  "lune-utils",
  "mlua",
  "mlua-luau-scheduler",
+ "rustls",
  "rustyline",
  "serde",
  "serde_json",
@@ -1682,7 +1683,7 @@ dependencies = [
 
 [[package]]
 name = "lune-roblox"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "glam",
  "lune-utils",
@@ -1698,7 +1699,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-channel",
  "async-fs",
@@ -1722,7 +1723,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-datetime"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "chrono_lc",
@@ -1733,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-fs"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-fs",
  "bstr",
@@ -1745,7 +1746,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-luau"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lune-utils",
  "mlua",
@@ -1753,7 +1754,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-net"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-channel",
  "async-executor",
@@ -1783,7 +1784,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-process"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-channel",
  "async-lock",
@@ -1803,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-regex"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lune-utils",
  "mlua",
@@ -1813,7 +1814,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-roblox"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lune-roblox",
  "lune-utils",
@@ -1825,7 +1826,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-serde"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-compression",
  "blake3",
@@ -1849,7 +1850,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-stdio"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-io",
  "async-lock",
@@ -1863,7 +1864,7 @@ dependencies = [
 
 [[package]]
 name = "lune-std-task"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-io",
  "futures-lite",
@@ -1874,7 +1875,7 @@ dependencies = [
 
 [[package]]
 name = "lune-utils"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "console",
  "dunce",
@@ -1986,7 +1987,7 @@ dependencies = [
 
 [[package]]
 name = "mlua-luau-scheduler"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-executor",
  "async-fs",

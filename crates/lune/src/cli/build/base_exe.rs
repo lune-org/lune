@@ -5,6 +5,7 @@ use std::{
 
 use async_fs as fs;
 use blocking::unblock;
+use rustls::crypto::ring;
 
 use crate::standalone::metadata::CURRENT_EXE;
 
@@ -46,6 +47,8 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
     // making sure transient errors are handled gracefully and
     // with a different error message than "not found"
     let (res_status, res_body) = unblock(move || {
+        // Only errors if already installed, which is fine
+        ring::default_provider().install_default().ok();
         let mut res = ureq::get(release_url).call()?;
         let body = res.body_mut().read_to_vec()?;
         Ok::<_, BuildError>((res.status(), body))
