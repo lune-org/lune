@@ -1,4 +1,5 @@
 mod deferred;
+mod event;
 mod futures;
 mod generic;
 mod spawned;

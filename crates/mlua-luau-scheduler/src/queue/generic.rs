@@ -1,21 +1,22 @@
 use std::rc::Rc;
 
 use concurrent_queue::ConcurrentQueue;
-use event_listener::Event;
 use mlua::prelude::*;
 
-use crate::{traits::IntoLuaThread, ThreadId};
+use crate::{threads::ThreadId, traits::IntoLuaThread};
+
+use super::event::QueueEvent;
 
 #[derive(Debug)]
 struct ThreadQueueInner {
     queue: ConcurrentQueue<(LuaThread, LuaMultiValue)>,
-    event: Event,
+    event: QueueEvent,
 }
 
 impl ThreadQueueInner {
     fn new() -> Self {
         let queue = ConcurrentQueue::unbounded();
-        let event = Event::new();
+        let event = QueueEvent::new();
         Self { queue, event }
     }
 }
@@ -50,7 +51,7 @@ impl ThreadQueue {
         let id = ThreadId::from(&thread);
 
         let _ = self.inner.queue.push((thread, args));
-        self.inner.event.notify(usize::MAX);
+        self.inner.event.notify();
 
         Ok(id)
     }
