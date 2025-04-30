@@ -5,7 +5,7 @@ use std::{cell::RefCell, rc::Rc};
 use mlua::prelude::*;
 use rustc_hash::FxHashMap;
 
-use crate::{result_event::OnceEvent, thread_id::ThreadId};
+use super::{event::OnceEvent, id::ThreadId};
 
 struct ThreadEvent {
     result: Option<LuaResult<LuaMultiValue>>,
@@ -22,11 +22,11 @@ impl ThreadEvent {
 }
 
 #[derive(Clone)]
-pub(crate) struct ThreadResultMap {
+pub(crate) struct ThreadMap {
     inner: Rc<RefCell<FxHashMap<ThreadId, ThreadEvent>>>,
 }
 
-impl ThreadResultMap {
+impl ThreadMap {
     pub fn new() -> Self {
         let inner = Rc::new(RefCell::new(FxHashMap::default()));
         Self { inner }

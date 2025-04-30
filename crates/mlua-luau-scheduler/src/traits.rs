@@ -12,9 +12,8 @@ use tracing::trace;
 use crate::{
     exit::Exit,
     queue::{DeferredThreadQueue, FuturesQueue, SpawnedThreadQueue},
-    result_map::ThreadResultMap,
     scheduler::Scheduler,
-    thread_id::ThreadId,
+    threads::{ThreadId, ThreadMap},
 };
 
 /**
@@ -314,21 +313,21 @@ impl LuaSchedulerExt for Lua {
 
     fn track_thread(&self, id: ThreadId) {
         let map = self
-            .app_data_ref::<ThreadResultMap>()
+            .app_data_ref::<ThreadMap>()
             .expect("lua threads can only be tracked from within an active scheduler");
         map.track(id);
     }
 
     fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>> {
         let map = self
-            .app_data_ref::<ThreadResultMap>()
+            .app_data_ref::<ThreadMap>()
             .expect("lua threads results can only be retrieved from within an active scheduler");
         map.remove(id)
     }
 
     fn wait_for_thread(&self, id: ThreadId) -> impl Future<Output = ()> {
         let map = self
-            .app_data_ref::<ThreadResultMap>()
+            .app_data_ref::<ThreadMap>()
             .expect("lua threads results can only be retrieved from within an active scheduler");
         async move { map.listen(id).await }
     }

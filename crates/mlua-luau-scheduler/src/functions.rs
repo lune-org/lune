@@ -5,8 +5,7 @@ use mlua::prelude::*;
 use crate::{
     error_callback::ThreadErrorCallback,
     queue::{DeferredThreadQueue, SpawnedThreadQueue},
-    result_map::ThreadResultMap,
-    thread_id::ThreadId,
+    threads::{ThreadId, ThreadMap},
     traits::LuaSchedulerExt,
     util::{is_poll_pending, LuaThreadOrFunction},
 };
@@ -102,13 +101,13 @@ impl Functions {
             .app_data_ref::<ThreadErrorCallback>()
             .expect(ERR_METADATA_NOT_ATTACHED)
             .clone();
-        let result_map = lua
-            .app_data_ref::<ThreadResultMap>()
+        let thread_map = lua
+            .app_data_ref::<ThreadMap>()
             .expect(ERR_METADATA_NOT_ATTACHED)
             .clone();
 
         let resume_queue = defer_queue.clone();
-        let resume_map = result_map.clone();
+        let resume_map = thread_map.clone();
         let resume =
             lua.create_function(move |lua, (thread, args): (LuaThread, LuaMultiValue)| {
                 let _span = tracing::trace_span!("Scheduler::fn_resume").entered();
@@ -158,7 +157,7 @@ impl Functions {
             .set_environment(wrap_env)
             .into_function()?;
 
-        let spawn_map = result_map.clone();
+        let spawn_map = thread_map.clone();
         let spawn = lua.create_function(
             move |lua, (tof, args): (LuaThreadOrFunction, LuaMultiValue)| {
                 let _span = tracing::trace_span!("Scheduler::fn_spawn").entered();

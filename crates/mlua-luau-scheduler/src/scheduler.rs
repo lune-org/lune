@@ -17,9 +17,8 @@ use crate::{
     error_callback::ThreadErrorCallback,
     exit::Exit,
     queue::{DeferredThreadQueue, FuturesQueue, SpawnedThreadQueue},
-    result_map::ThreadResultMap,
     status::Status,
-    thread_id::ThreadId,
+    threads::{ThreadId, ThreadMap},
     traits::IntoLuaThread,
     util::run_until_yield,
 };
@@ -48,7 +47,7 @@ pub struct Scheduler {
     queue_spawn: SpawnedThreadQueue,
     queue_defer: DeferredThreadQueue,
     error_callback: ThreadErrorCallback,
-    result_map: ThreadResultMap,
+    thread_map: ThreadMap,
     status: Rc<Cell<Status>>,
     exit: Exit,
 }
@@ -68,7 +67,7 @@ impl Scheduler {
         let queue_spawn = SpawnedThreadQueue::new();
         let queue_defer = DeferredThreadQueue::new();
         let error_callback = ThreadErrorCallback::default();
-        let result_map = ThreadResultMap::new();
+        let result_map = ThreadMap::new();
         let exit = Exit::new();
 
         assert!(
@@ -84,7 +83,7 @@ impl Scheduler {
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
         assert!(
-            lua.app_data_ref::<ThreadResultMap>().is_none(),
+            lua.app_data_ref::<ThreadMap>().is_none(),
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
         assert!(
@@ -105,7 +104,7 @@ impl Scheduler {
             queue_spawn,
             queue_defer,
             error_callback,
-            result_map,
+            thread_map: result_map,
             status,
             exit,
         }
@@ -201,7 +200,7 @@ impl Scheduler {
         args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
         let id = self.queue_spawn.push_item(&self.lua, thread, args)?;
-        self.result_map.track(id);
+        self.thread_map.track(id);
         Ok(id)
     }
 
@@ -228,7 +227,7 @@ impl Scheduler {
         args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
         let id = self.queue_defer.push_item(&self.lua, thread, args)?;
-        self.result_map.track(id);
+        self.thread_map.track(id);
         Ok(id)
     }
 
@@ -248,7 +247,7 @@ impl Scheduler {
     */
     #[must_use]
     pub fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>> {
-        self.result_map.remove(id)
+        self.thread_map.remove(id)
     }
 
     /**
@@ -257,7 +256,7 @@ impl Scheduler {
         This will return instantly if the thread has already completed.
     */
     pub async fn wait_for_thread(&self, id: ThreadId) {
-        self.result_map.listen(id).await;
+        self.thread_map.listen(id).await;
     }
 
     /**
@@ -320,7 +319,7 @@ impl Scheduler {
             when there are new Lua threads to enqueue and potentially more work to be done.
         */
         let fut = async {
-            let result_map = self.result_map.clone();
+            let result_map = self.thread_map.clone();
             let process_thread = |thread: LuaThread, args| {
                 // NOTE: Thread may have been cancelled from Lua
                 // before we got here, so we need to check it again
@@ -458,7 +457,7 @@ impl Drop for Scheduler {
             self.lua.remove_app_data::<SpawnedThreadQueue>();
             self.lua.remove_app_data::<DeferredThreadQueue>();
             self.lua.remove_app_data::<ThreadErrorCallback>();
-            self.lua.remove_app_data::<ThreadResultMap>();
+            self.lua.remove_app_data::<ThreadMap>();
             self.lua.remove_app_data::<Exit>();
         } else {
             // In any other case we panic if metadata was removed incorrectly
@@ -472,7 +471,7 @@ impl Drop for Scheduler {
                 .remove_app_data::<ThreadErrorCallback>()
                 .expect(ERR_METADATA_REMOVED);
             self.lua
-                .remove_app_data::<ThreadResultMap>()
+                .remove_app_data::<ThreadMap>()
                 .expect(ERR_METADATA_REMOVED);
             self.lua
                 .remove_app_data::<Exit>()

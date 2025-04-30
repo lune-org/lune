@@ -4,16 +4,14 @@ mod error_callback;
 mod exit;
 mod functions;
 mod queue;
-mod result_event;
-mod result_map;
 mod scheduler;
 mod status;
-mod thread_id;
+mod threads;
 mod traits;
 mod util;
 
 pub use functions::Functions;
 pub use scheduler::Scheduler;
 pub use status::Status;
-pub use thread_id::ThreadId;
+pub use threads::ThreadId;
 pub use traits::{IntoLuaThread, LuaSchedulerExt, LuaSpawnExt};
