@@ -12,7 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Significantly improved performance of `net.request` and `net.serve` when handling large request bodies
+- Improved performance of `net.request` and `net.serve` when handling large request bodies
+- Improved performance and memory usage of `task.spawn`, `task.defer`, and `task.delay`
+
+### Fixed
+
+- Fixed accidental breakage of `net.request` in version `0.9.1`
 
 ## `0.9.1` - April 29th, 2025
 
