@@ -1992,8 +1992,6 @@ dependencies = [
  "async-fs",
  "async-io",
  "blocking",
- "concurrent-queue",
- "event-listener",
  "futures-lite",
  "mlua",
  "rustc-hash 2.1.1",

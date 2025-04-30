@@ -8,10 +8,10 @@ use std::{
 };
 
 /**
-    Internal state for queue events.
+    Internal state for events.
 */
 #[derive(Debug, Default)]
-struct QueueEventState {
+struct MultiEventState {
     generation: Cell<u64>,
     wakers: RefCell<Vec<Waker>>,
 }
@@ -20,11 +20,11 @@ struct QueueEventState {
     A single-threaded event signal that can be notified multiple times.
 */
 #[derive(Debug, Clone, Default)]
-pub(crate) struct QueueEvent {
-    state: Rc<QueueEventState>,
+pub(crate) struct MultiEvent {
+    state: Rc<MultiEventState>,
 }
 
-impl QueueEvent {
+impl MultiEvent {
     /**
         Creates a new event.
     */
@@ -51,8 +51,8 @@ impl QueueEvent {
     /**
         Creates a listener that implements `Future` and resolves when `notify` is called.
     */
-    pub fn listen(&self) -> QueueListener {
-        QueueListener {
+    pub fn listen(&self) -> MultiListener {
+        MultiListener {
             state: self.state.clone(),
             generation: self.state.generation.get(),
         }
@@ -63,12 +63,12 @@ impl QueueEvent {
     A listener future that resolves when the corresponding [`QueueEvent`] is notified.
 */
 #[derive(Debug)]
-pub(crate) struct QueueListener {
-    state: Rc<QueueEventState>,
+pub(crate) struct MultiListener {
+    state: Rc<MultiEventState>,
     generation: u64,
 }
 
-impl Future for QueueListener {
+impl Future for MultiListener {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -88,4 +88,4 @@ impl Future for QueueListener {
     }
 }
 
-impl Unpin for QueueListener {}
+impl Unpin for MultiListener {}

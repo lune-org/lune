@@ -6,19 +6,19 @@ use mlua::prelude::*;
 
 use crate::{threads::ThreadId, traits::IntoLuaThread};
 
-use super::event::QueueEvent;
+use crate::events::MultiEvent;
 
 #[derive(Debug)]
 struct ThreadQueueInner {
     queue: RefCell<Vec<(LuaThread, LuaMultiValue)>>,
-    event: QueueEvent,
+    event: MultiEvent,
 }
 
 impl ThreadQueueInner {
     fn new() -> Self {
         Self {
             queue: RefCell::new(Vec::new()),
-            event: QueueEvent::new(),
+            event: MultiEvent::new(),
         }
     }
 }

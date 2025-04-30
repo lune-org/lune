@@ -1,4 +1,3 @@
-mod event;
 mod id;
 mod map;
 

@@ -1,5 +1,4 @@
 mod deferred;
-mod event;
 mod futures;
 mod spawned;
 mod threads;

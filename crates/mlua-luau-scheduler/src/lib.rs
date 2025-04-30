@@ -1,6 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
 mod error_callback;
+mod events;
 mod exit;
 mod functions;
 mod queue;

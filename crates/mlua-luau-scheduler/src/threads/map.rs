@@ -5,7 +5,8 @@ use std::{cell::RefCell, rc::Rc};
 use mlua::prelude::*;
 use rustc_hash::FxHashMap;
 
-use super::{event::OnceEvent, id::ThreadId};
+use super::id::ThreadId;
+use crate::events::OnceEvent;
 
 struct ThreadEvent {
     result: Option<LuaResult<LuaMultiValue>>,

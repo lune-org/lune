@@ -2,20 +2,20 @@ use std::{cell::RefCell, mem, pin::Pin, rc::Rc};
 
 use futures_lite::prelude::*;
 
-use super::event::QueueEvent;
+use crate::events::MultiEvent;
 
 pub type LocalBoxFuture<'fut> = Pin<Box<dyn Future<Output = ()> + 'fut>>;
 
 struct FuturesQueueInner<'fut> {
     queue: RefCell<Vec<LocalBoxFuture<'fut>>>,
-    event: QueueEvent,
+    event: MultiEvent,
 }
 
 impl FuturesQueueInner<'_> {
     pub fn new() -> Self {
         Self {
             queue: RefCell::new(Vec::new()),
-            event: QueueEvent::new(),
+            event: MultiEvent::new(),
         }
     }
 }
