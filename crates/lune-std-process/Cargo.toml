@@ -18,7 +18,6 @@ mlua-luau-scheduler = { version = "0.1.2", path = "../mlua-luau-scheduler" }
 
 directories = "6.0"
 pin-project = "1.0"
-os_str_bytes = { version = "7.0", features = ["conversions"] }
 
 bstr = "1.9"
 bytes = "1.6.0"

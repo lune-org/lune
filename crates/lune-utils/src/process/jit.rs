@@ -1,29 +1,31 @@
 #[derive(Debug, Clone, Copy, Default)]
-pub struct JitEnablement(bool);
+pub struct ProcessJitEnablement {
+    enabled: bool,
+}
 
-impl JitEnablement {
+impl ProcessJitEnablement {
     #[must_use]
     pub fn new(enabled: bool) -> Self {
-        Self(enabled)
+        Self { enabled }
     }
 
     pub fn set_status(&mut self, enabled: bool) {
-        self.0 = enabled;
+        self.enabled = enabled;
     }
 
     #[must_use]
     pub fn enabled(self) -> bool {
-        self.0
+        self.enabled
     }
 }
 
-impl From<JitEnablement> for bool {
-    fn from(val: JitEnablement) -> Self {
+impl From<ProcessJitEnablement> for bool {
+    fn from(val: ProcessJitEnablement) -> Self {
         val.enabled()
     }
 }
 
-impl From<bool> for JitEnablement {
+impl From<bool> for ProcessJitEnablement {
     fn from(val: bool) -> Self {
         Self::new(val)
     }
