@@ -8,6 +8,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added support for non-UTF8 strings in arguments to `process.exec` and `process.spawn`
+
+### Changed
+
+- Improved cross-platform compatibility and correctness for values in `process.args` and `process.env`, especially on Windows
+
 ## `0.9.2` - April 30th, 2025
 
 ### Changed
