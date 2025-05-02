@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Improved cross-platform compatibility and correctness for values in `process.args` and `process.env`, especially on Windows
 
+### Fixed
+
+- Fixed various crashes during require that had the error `cannot mutably borrow app data container`
+
 ## `0.9.2` - April 30th, 2025
 
 ### Changed
