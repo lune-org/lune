@@ -1,11 +1,14 @@
 #![allow(clippy::missing_panics_doc)]
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    ffi::OsString,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
-use lune_utils::jit::JitEnablement;
+use lune_utils::process::{ProcessArgs, ProcessEnv, ProcessJitEnablement};
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
 
@@ -58,7 +61,9 @@ impl RuntimeReturnValues {
 pub struct Runtime {
     lua: Lua,
     sched: Scheduler,
-    jit: JitEnablement,
+    args: ProcessArgs,
+    env: ProcessEnv,
+    jit: ProcessJitEnablement,
 }
 
 impl Runtime {
@@ -126,21 +131,47 @@ impl Runtime {
                 .set(g_table.name(), g_table.create(lua.clone())?)?;
         }
 
-        let jit = JitEnablement::default();
-        Ok(Self { lua, sched, jit })
+        let args = ProcessArgs::current();
+        let env = ProcessEnv::current();
+        let jit = ProcessJitEnablement::default();
+
+        Ok(Self {
+            lua,
+            sched,
+            args,
+            env,
+            jit,
+        })
     }
 
     /**
         Sets arguments to give in `process.args` for Lune scripts.
+
+        By default, `std::env::args_os()` is used.
     */
     #[must_use]
-    pub fn with_args<A, S>(self, args: A) -> Self
+    pub fn with_args<A, S>(mut self, args: A) -> Self
     where
         A: IntoIterator<Item = S>,
-        S: Into<String>,
+        S: Into<OsString>,
     {
-        let args = args.into_iter().map(Into::into).collect::<Vec<_>>();
-        self.lua.set_app_data(args);
+        self.args = args.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /**
+        Sets environment values to give in `process.env` for Lune scripts.
+
+        By default, `std::env::vars_os()` is used.
+    */
+    #[must_use]
+    pub fn with_env<E, K, V>(mut self, env: E) -> Self
+    where
+        E: IntoIterator<Item = (K, V)>,
+        K: Into<OsString>,
+        V: Into<OsString>,
+    {
+        self.env = env.into_iter().map(|(k, v)| (k.into(), v.into())).collect();
         self
     }
 
@@ -148,7 +179,10 @@ impl Runtime {
         Enables or disables JIT compilation.
     */
     #[must_use]
-    pub fn with_jit(mut self, jit_status: impl Into<JitEnablement>) -> Self {
+    pub fn with_jit<J>(mut self, jit_status: J) -> Self
+    where
+        J: Into<ProcessJitEnablement>,
+    {
         self.jit = jit_status.into();
         self
     }
@@ -175,8 +209,12 @@ impl Runtime {
             eprintln!("{}", RuntimeError::from(e));
         });
 
-        // Enable / disable the JIT as requested and store the current status as AppData
+        // Store the provided args, environment variables, and jit enablement as AppData
+        self.lua.set_app_data(self.args.clone());
+        self.lua.set_app_data(self.env.clone());
         self.lua.set_app_data(self.jit);
+
+        // Enable / disable the JIT as requested, before loading anything
         self.lua.enable_jit(self.jit.enabled());
 
         // Load our "main" thread

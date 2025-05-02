@@ -57,19 +57,15 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         "little"
     })?;
 
-    // Find the readonly args array
-    let args_vec = lua
-        .app_data_ref::<Vec<String>>()
-        .ok_or_else(|| LuaError::runtime("Missing args vec in Lua app data"))?
+    // Extract stored userdatas for args + env, the runtime struct should always provide this
+    let process_args = lua
+        .app_data_ref::<ProcessArgs>()
+        .ok_or_else(|| LuaError::runtime("Missing process args in Lua app data"))?
         .clone();
-
-    // Create userdatas for args + env
-    // TODO: Move this up into the runtime creation instead,
-    // and set it as app data there to later fetch here
-    let process_args = ProcessArgs::from_iter(args_vec);
-    let process_env = ProcessEnv::current();
-    lua.set_app_data(process_args.clone());
-    lua.set_app_data(process_env.clone());
+    let process_env = lua
+        .app_data_ref::<ProcessEnv>()
+        .ok_or_else(|| LuaError::runtime("Missing process env in Lua app data"))?
+        .clone();
 
     // Create our process exit function, the scheduler crate provides this
     let fns = Functions::new(lua.clone())?;

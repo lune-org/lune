@@ -33,14 +33,8 @@ macro_rules! create_tests {
 	            let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
 	            let script = read_to_string(&full_name).await?;
 	            let mut lune = Runtime::new()?
-	                .with_jit(true)
-	                .with_args(
-	                    ARGS
-	                        .clone()
-	                        .iter()
-	                        .map(ToString::to_string)
-	                        .collect::<Vec<_>>()
-	                );
+	                .with_args(ARGS.iter().cloned())
+	                .with_jit(true);
 	            let script_name = full_name
 					.trim_end_matches(".luau")
 					.trim_end_matches(".lua")
