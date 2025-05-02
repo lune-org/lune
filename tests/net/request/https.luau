@@ -12,7 +12,6 @@ local servers = {
 	"https://azure.microsoft.com/en-us/updates/feed/",
 	"https://acme-v02.api.letsencrypt.org/directory",
 	"https://ip-ranges.amazonaws.com/ip-ranges.json",
-	"https://api.github.com/zen",
 	"https://en.wikipedia.org/w/api.php",
 	"https://status.godaddy.com/api/v2/summary.json",
 }
