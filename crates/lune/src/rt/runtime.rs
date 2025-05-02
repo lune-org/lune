@@ -80,8 +80,6 @@ impl Runtime {
     pub fn new() -> LuaResult<Self> {
         let lua = Lua::new();
 
-        lua.set_app_data(Vec::<String>::new());
-
         let sched = Scheduler::new(lua.clone());
         let fns = Functions::new(lua.clone()).expect("has scheduler");
 
