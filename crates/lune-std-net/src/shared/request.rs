@@ -110,15 +110,18 @@ impl Request {
     */
     pub fn query(&self) -> HashMap<String, Vec<String>> {
         let uri = self.inner.uri();
-        let url = uri.to_string().parse::<Url>().expect("uri is valid");
 
         let mut result = HashMap::<String, Vec<String>>::new();
-        for (key, value) in url.query_pairs() {
-            result
-                .entry(key.into_owned())
-                .or_default()
-                .push(value.into_owned());
+
+        if let Some(query) = uri.query() {
+            for (key, value) in form_urlencoded::parse(query.as_bytes()) {
+                result
+                    .entry(key.to_string())
+                    .or_default()
+                    .push(value.to_string());
+            }
         }
+
         result
     }
 

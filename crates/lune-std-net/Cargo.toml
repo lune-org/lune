@@ -24,6 +24,7 @@ async-net = "2.0"
 async-tungstenite = "0.29"
 blocking = "1.6"
 bstr = "1.9"
+form_urlencoded = "1.2"
 futures = { version = "0.3", default-features = false, features = ["std"] }
 futures-lite = "2.6"
 futures-rustls = "0.26"

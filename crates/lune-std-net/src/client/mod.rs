@@ -47,7 +47,7 @@ pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response>
         .uri()
         .to_string()
         .parse::<Url>()
-        .expect("uri is valid");
+        .into_lua_err()?;
 
     // Some headers are required by most if not
     // all servers, make sure those are present...
