@@ -35,7 +35,18 @@ pub fn create(lua: Lua) -> LuaResult<LuaValue> {
         3. The lua chunk we are require-ing from
     */
 
-    let require_fn = lua.create_async_function(require)?;
+    let require_fn = lua.create_async_function(|lua, (source, path)| {
+        // NOTE: We need to make sure that the app data reference does not
+        // live through the entire require call, to prevent panicking from
+        // being unable to borrow other app data in the main body of scripts
+        let context = {
+            let context = lua
+                .app_data_ref::<RequireContext>()
+                .expect("Failed to get RequireContext from app data");
+            context.clone()
+        };
+        require(lua, context, source, path)
+    })?;
     let get_source_fn = lua.create_function(move |lua, (): ()| match lua.inspect_stack(2) {
         None => Err(LuaError::runtime(
             "Failed to get stack info for require source",
@@ -60,7 +71,12 @@ pub fn create(lua: Lua) -> LuaResult<LuaValue> {
         .into_lua(&lua)
 }
 
-async fn require(lua: Lua, (source, path): (LuaString, LuaString)) -> LuaResult<LuaMultiValue> {
+async fn require(
+    lua: Lua,
+    context: RequireContext,
+    source: LuaString,
+    path: LuaString,
+) -> LuaResult<LuaMultiValue> {
     let source = source
         .to_str()
         .into_lua_err()
@@ -72,11 +88,6 @@ async fn require(lua: Lua, (source, path): (LuaString, LuaString)) -> LuaResult<
         .into_lua_err()
         .context("Failed to parse require path as string")?
         .to_string();
-
-    let context = lua
-        .app_data_ref::<RequireContext>()
-        .expect("Failed to get RequireContext from app data")
-        .clone();
 
     if let Some(builtin_name) = path.strip_prefix("@lune/").map(str::to_ascii_lowercase) {
         library::require(lua, &context, &builtin_name)
