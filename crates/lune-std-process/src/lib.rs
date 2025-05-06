@@ -93,9 +93,15 @@ async fn process_exec(
     let stdout = options.stdio.stdout;
     let stderr = options.stdio.stderr;
 
+    let stdin_stdio = if stdin.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    };
+
     let child = options
         .into_command(program, args)
-        .stdin(Stdio::piped())
+        .stdin(stdin_stdio)
         .stdout(stdout.as_stdio())
         .stderr(stderr.as_stdio())
         .spawn()?;
