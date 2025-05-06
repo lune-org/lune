@@ -1,6 +1,6 @@
 [package]
 name = "lune-std"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -38,8 +38,8 @@ stdio = ["dep:lune-std-stdio"]
 task = ["dep:lune-std-task"]
 
 [dependencies]
-mlua = { version = "0.10.3", features = ["luau"] }
-mlua-luau-scheduler = { version = "0.1.2", path = "../mlua-luau-scheduler" }
+mlua = { version = "=0.10.3", features = ["luau"] }
+mlua-luau-scheduler = { version = "0.1.3", path = "../mlua-luau-scheduler" }
 
 async-channel = "2.3"
 async-fs = "2.1"
@@ -48,15 +48,15 @@ async-lock = "3.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-lune-utils = { version = "0.2.2", path = "../lune-utils" }
+lune-utils = { version = "0.2.3", path = "../lune-utils" }
 
-lune-std-datetime = { optional = true, version = "0.2.2", path = "../lune-std-datetime" }
-lune-std-fs = { optional = true, version = "0.2.2", path = "../lune-std-fs" }
-lune-std-luau = { optional = true, version = "0.2.2", path = "../lune-std-luau" }
-lune-std-net = { optional = true, version = "0.2.2", path = "../lune-std-net" }
-lune-std-process = { optional = true, version = "0.2.2", path = "../lune-std-process" }
-lune-std-regex = { optional = true, version = "0.2.2", path = "../lune-std-regex" }
-lune-std-roblox = { optional = true, version = "0.2.2", path = "../lune-std-roblox" }
-lune-std-serde = { optional = true, version = "0.2.2", path = "../lune-std-serde" }
-lune-std-stdio = { optional = true, version = "0.2.2", path = "../lune-std-stdio" }
-lune-std-task = { optional = true, version = "0.2.2", path = "../lune-std-task" }
+lune-std-datetime = { optional = true, version = "0.2.3", path = "../lune-std-datetime" }
+lune-std-fs = { optional = true, version = "0.2.3", path = "../lune-std-fs" }
+lune-std-luau = { optional = true, version = "0.2.3", path = "../lune-std-luau" }
+lune-std-net = { optional = true, version = "0.2.3", path = "../lune-std-net" }
+lune-std-process = { optional = true, version = "0.2.3", path = "../lune-std-process" }
+lune-std-regex = { optional = true, version = "0.2.3", path = "../lune-std-regex" }
+lune-std-roblox = { optional = true, version = "0.2.3", path = "../lune-std-roblox" }
+lune-std-serde = { optional = true, version = "0.2.3", path = "../lune-std-serde" }
+lune-std-stdio = { optional = true, version = "0.2.3", path = "../lune-std-stdio" }
+lune-std-task = { optional = true, version = "0.2.3", path = "../lune-std-task" }

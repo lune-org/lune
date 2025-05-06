@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-fs"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -13,11 +13,11 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-mlua = { version = "0.10.3", features = ["luau"] }
+mlua = { version = "=0.10.3", features = ["luau"] }
 
 async-fs = "2.1"
 bstr = "1.9"
 futures-lite = "2.6"
 
-lune-utils = { version = "0.2.2", path = "../lune-utils" }
-lune-std-datetime = { version = "0.2.2", path = "../lune-std-datetime" }
+lune-utils = { version = "0.2.3", path = "../lune-utils" }
+lune-std-datetime = { version = "0.2.3", path = "../lune-std-datetime" }

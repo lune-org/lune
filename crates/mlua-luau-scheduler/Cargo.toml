@@ -1,6 +1,6 @@
 [package]
 name = "mlua-luau-scheduler"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -22,7 +22,7 @@ futures-lite = "2.6"
 rustc-hash = "2.1"
 tracing = "0.1"
 
-mlua = { version = "0.10.3", features = [
+mlua = { version = "=0.10.3", features = [
     "luau",
     "luau-jit",
     "async",
