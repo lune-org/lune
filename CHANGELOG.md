@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed invalid handling of http redirects in `net.request`
 - Fixed not being able to download binaries for cross-compiling with `lune build`
+- Fixed binary output when running `lune build` not being deterministic and sometimes truncating
 
 ## `0.9.3` - May 6th, 2025
 

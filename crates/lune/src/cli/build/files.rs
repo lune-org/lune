@@ -39,6 +39,7 @@ pub async fn write_executable_file_to(
 
     let mut file = options.open(path).await?;
     file.write_all(bytes.as_ref()).await?;
+    file.flush().await?;
 
     Ok(())
 }
