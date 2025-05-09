@@ -5,7 +5,6 @@ use std::{
 
 use async_fs as fs;
 use blocking::unblock;
-use rustls::crypto::ring;
 
 use crate::standalone::metadata::CURRENT_EXE;
 
@@ -14,6 +13,21 @@ use super::{
     result::{BuildError, BuildResult},
     target::{BuildTarget, CACHE_DIR},
 };
+
+const RELEASE_REQUEST_HEADERS: &[(&str, &str)] = &[
+    (
+        "User-Agent",
+        concat!(
+            "Lune/",
+            env!("CARGO_PKG_VERSION"),
+            " (",
+            env!("CARGO_PKG_REPOSITORY"),
+            ")"
+        ),
+    ),
+    ("Accept", "application/octet-stream"),
+    // ("Accept-Encoding", "gzip"),
+];
 
 /**
     Discovers the path to the base executable to use for cross-compilation.
@@ -46,26 +60,36 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
     // Try to request to download the zip file from the target url,
     // making sure transient errors are handled gracefully and
     // with a different error message than "not found"
-    let (res_status, res_body) = unblock(move || {
-        // Only errors if already installed, which is fine
-        ring::default_provider().install_default().ok();
-        let mut res = ureq::get(release_url).call()?;
-        let body = res.body_mut().read_to_vec()?;
-        Ok::<_, BuildError>((res.status(), body))
-    })
-    .await?;
+    let url = release_url.parse().expect("release url is valid");
+    let headers = RELEASE_REQUEST_HEADERS
+        .iter()
+        .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+        .collect();
+    let res = lune_std_net::fetch(url, None, Some(headers), None)
+        .await
+        .map_err(BuildError::Download)?;
+    let (parts, body) = res.into_inner().into_parts();
 
-    if !res_status.is_success() {
-        if res_status.as_u16() == 404 {
+    if !parts.status.is_success() {
+        if parts.status.as_u16() == 404 {
             return Err(BuildError::ReleaseTargetNotFound(target));
         }
-        return Err(BuildError::Download(ureq::Error::StatusCode(
-            res_status.as_u16(),
+        let body = body.into_bytes();
+        return Err(BuildError::Download(format!(
+            "Request was not successful\
+            \nStatus: {}\
+            \nBody: {}",
+            parts.status,
+            if body.len() > 128 {
+                String::from_utf8_lossy(&body[0..128])
+            } else {
+                String::from_utf8_lossy(&body)
+            }
         )));
     }
 
     // Start reading the zip file
-    let zip_file = Cursor::new(res_body);
+    let zip_file = Cursor::new(body.into_bytes());
 
     // Look for and extract the binary file from the zip file
     // NOTE: We use spawn_blocking here since reading a zip

@@ -1,29 +1,23 @@
-use http_body_util::Full;
-use hyper::{
-    body::Incoming,
-    client::conn::http1::handshake,
-    header::{HeaderValue, ACCEPT, CONTENT_LENGTH, HOST, LOCATION, USER_AGENT},
-    Method, Request as HyperRequest, Response as HyperResponse, Uri,
-};
+use hyper::{body::Incoming, header::LOCATION, Method, Response as HyperResponse, Uri};
 
 use mlua::prelude::*;
 use url::Url;
 
 use crate::{
     body::ReadableBody,
-    client::{http_stream::HttpStream, ws_stream::WsStream},
-    shared::{
-        headers::create_user_agent_header,
-        hyper::{HyperExecutor, HyperIo},
-        request::Request,
-        response::Response,
-        websocket::Websocket,
-    },
+    client::ws_stream::WsStream,
+    shared::{request::Request, websocket::Websocket},
 };
 
 pub mod http_stream;
 pub mod rustls;
 pub mod ws_stream;
+
+mod fetch;
+mod send;
+
+pub use self::fetch::fetch;
+pub use self::send::send;
 
 const MAX_REDIRECTS: usize = 10;
 
@@ -35,75 +29,38 @@ pub async fn connect_websocket(url: Url) -> LuaResult<Websocket<WsStream>> {
     Ok(Websocket::from(stream))
 }
 
-/**
-    Sends the request and returns the final response.
-
-    This will follow any redirects returned by the server,
-    modifying the request method and body as necessary.
-*/
-pub async fn send_request(mut request: Request, lua: Lua) -> LuaResult<Response> {
-    let url = request
-        .inner
-        .uri()
-        .to_string()
-        .parse::<Url>()
-        .into_lua_err()?;
-
-    // Some headers are required by most if not
-    // all servers, make sure those are present...
-    if !request.headers().contains_key(HOST.as_str()) {
-        if let Some(host) = url.host_str() {
-            let host = HeaderValue::from_str(host).into_lua_err()?;
-            request.inner.headers_mut().insert(HOST, host);
-        }
-    }
-    if !request.headers().contains_key(USER_AGENT.as_str()) {
-        let ua = create_user_agent_header(&lua)?;
-        let ua = HeaderValue::from_str(&ua).into_lua_err()?;
-        request.inner.headers_mut().insert(USER_AGENT, ua);
-    }
-    if !request.headers().contains_key(CONTENT_LENGTH.as_str()) && request.method() != Method::GET {
-        let len = request.body().len().to_string();
-        let len = HeaderValue::from_str(&len).into_lua_err()?;
-        request.inner.headers_mut().insert(CONTENT_LENGTH, len);
-    }
-    if !request.headers().contains_key(ACCEPT.as_str()) {
-        let accept = HeaderValue::from_static("*/*");
-        request.inner.headers_mut().insert(ACCEPT, accept);
-    }
-
-    // ... we can now safely continue and send the request
-    loop {
-        let stream = HttpStream::connect(url.clone()).await?;
-
-        let (mut sender, conn) = handshake(HyperIo::from(stream)).await.into_lua_err()?;
-
-        HyperExecutor::execute(lua.clone(), conn);
-
-        let (parts, body) = request.clone_inner().into_parts();
-        let data = HyperRequest::from_parts(parts, Full::new(body.into_bytes()));
-        let incoming = sender.send_request(data).await.into_lua_err()?;
-
-        if let Some((new_method, new_uri)) =
-            check_redirect(request.inner.method().clone(), &incoming)
-        {
-            if request.redirects.is_some_and(|r| r >= MAX_REDIRECTS) {
-                return Err(LuaError::external("Too many redirects"));
-            }
-
-            if new_method == Method::GET {
-                *request.inner.body_mut() = ReadableBody::empty();
-            }
-
-            *request.inner.method_mut() = new_method;
-            *request.inner.uri_mut() = new_uri;
-
-            *request.redirects.get_or_insert_default() += 1;
-
-            continue;
+fn try_follow_redirect(
+    url: &mut Url,
+    request: &mut Request,
+    response: &HyperResponse<Incoming>,
+) -> Result<bool, &'static str> {
+    if let Some((new_method, new_uri)) = check_redirect(request.inner.method().clone(), response) {
+        if request.redirects.is_some_and(|r| r >= MAX_REDIRECTS) {
+            return Err("Too many redirects");
         }
 
-        break Response::from_incoming(incoming, request.decompress).await;
+        if new_uri.host().is_some() {
+            let new_url = new_uri
+                .to_string()
+                .parse()
+                .map_err(|_| "Invalid redirect URL")?;
+            *url = new_url;
+        } else {
+            url.set_path(new_uri.path());
+        }
+
+        if new_method == Method::GET {
+            *request.inner.body_mut() = ReadableBody::empty();
+        }
+
+        *request.inner.method_mut() = new_method;
+        *request.inner.uri_mut() = new_uri;
+
+        *request.redirects.get_or_insert_default() += 1;
+
+        Ok(true)
+    } else {
+        Ok(false)
     }
 }
 

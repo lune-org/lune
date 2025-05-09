@@ -15,6 +15,8 @@ use self::{
     shared::{request::Request, response::Response, websocket::Websocket},
 };
 
+pub use self::client::fetch;
+
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
 
 /**
@@ -45,7 +47,7 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
 }
 
 async fn net_request(lua: Lua, req: Request) -> LuaResult<Response> {
-    self::client::send_request(req, lua).await
+    self::client::send(req, lua).await
 }
 
 async fn net_socket(_: Lua, url: String) -> LuaResult<Websocket<WsStream>> {

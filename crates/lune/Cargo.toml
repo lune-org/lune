@@ -44,7 +44,7 @@ std = [
     "std-task",
 ]
 
-cli = ["dep:clap", "dep:rustyline", "dep:zip"]
+cli = ["dep:clap", "dep:rustyline", "dep:zip", "dep:lune-std-net"]
 
 [lints]
 workspace = true
@@ -65,13 +65,12 @@ async-io = "2.4"
 async-fs = "2.1"
 blocking = "1.6"
 futures-lite = "2.6"
-rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
-ureq = { version = "3.0", default-features = false, features = ["rustls", "gzip"] }
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 lune-std = { optional = true, version = "0.2.3", path = "../lune-std" }
+lune-std-net = { optional = true, version = "0.2.3", path = "../lune-std-net" }
 lune-utils = { version = "0.2.3", path = "../lune-utils" }
 
 ### CLI

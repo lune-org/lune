@@ -156,6 +156,18 @@ impl Request {
     }
 }
 
+impl<B: Into<ReadableBody>> From<HyperRequest<B>> for Request {
+    fn from(inner: HyperRequest<B>) -> Self {
+        let (parts, body) = inner.into_parts();
+        Self {
+            inner: HyperRequest::from_parts(parts, body.into()),
+            address: None,
+            redirects: None,
+            decompress: false,
+        }
+    }
+}
+
 impl FromLua for Request {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = value {
