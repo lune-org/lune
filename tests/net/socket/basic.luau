@@ -11,18 +11,24 @@ assert(type(socket.close) == "function", "close must be a function")
 socket:close()
 
 -- Drain remaining messages, until we got our close message
-while socket:next() do
-end
+repeat
+	local message = socket:next()
+	if message ~= nil then
+		assert(type(message) == "string", "Message should be a string")
+		assert(#message > 0, "Message should not be empty")
+		assert(string.sub(message, 1, 1) == "{", "Message should be a JSON object")
+	end
+until message == nil
 
 assert(type(socket.closeCode) == "number", "closeCode should exist after closing")
 assert(socket.closeCode == 1000, "closeCode should be 1000 after closing")
 
-local success, message = pcall(function()
+local success, errorMessage = pcall(function()
 	socket:send("Hello, world!")
 end)
 
 assert(not success, "send should fail after closing")
 assert(
-	string.find(tostring(message), "closed") or string.find(tostring(message), "closing"),
+	string.find(tostring(errorMessage), "closed") or string.find(tostring(errorMessage), "closing"),
 	"send should fail with a message that the socket was closed"
 )

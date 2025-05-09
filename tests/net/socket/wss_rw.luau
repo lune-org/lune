@@ -10,17 +10,19 @@ local socket = net.socket("wss://gateway.discord.gg/?v=10&encoding=json")
 
 local spawnedThread = task.spawn(function()
 	while not socket.closeCode do
-		socket:next()
+		local message = socket:next()
+		if message ~= nil then
+			assert(type(message) == "string", "Message should be a string")
+			assert(#message > 0, "Message should not be empty")
+			assert(string.sub(message, 1, 1) == "{", "Message should be a JSON object")
+		end
 	end
 end)
 
-local delayedThread = task.delay(5, function()
-	task.defer(process.exit, 1)
+local delayedThread = task.delay(10, function()
 	stdio.ewrite("`socket.send` halted, failed to write to socket")
 	process.exit(1)
 end)
-
-task.wait(1)
 
 local payload = '{"op":1,"d":null}'
 socket:send(payload)
@@ -29,3 +31,5 @@ socket:close(1000)
 
 task.cancel(delayedThread)
 task.cancel(spawnedThread)
+
+process.exit(0)
