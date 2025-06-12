@@ -341,7 +341,7 @@ end
 	@within Process
 
 	Executes a child process that will execute the command `program`, waiting for it to exit.
-	Upon exit, it returns a dictionary that describes the final status and ouput of the child process.
+	Upon exit, it returns a dictionary that describes the final status and output of the child process.
 
 	In order to spawn a child process in the background, see `process.create`.
 
