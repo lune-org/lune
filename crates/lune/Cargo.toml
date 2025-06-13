@@ -77,4 +77,4 @@ lune-utils = { version = "0.2.3", path = "../lune-utils" }
 
 clap = { optional = true, version = "4.1", features = ["derive"] }
 rustyline = { optional = true, version = "15.0" }
-zip = { optional = true, version = "2.6" }
+zip = { optional = true, version = "4.0.0" }
