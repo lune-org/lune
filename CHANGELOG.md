@@ -10,11 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- `lune setup` now properly sets up a `.luaurc` file instead of using legacy VSCode-specific settings
+- `process.args` and `process.env` are now plain tables again - *not userdata* - thank you to everyone who provided feedback on this and the usability issues!
+
 ### Fixed
 
 - Fixed invalid handling of http redirects in `net.request`
 - Fixed not being able to download binaries for cross-compiling with `lune build`
 - Fixed binary output when running `lune build` not being deterministic and sometimes truncating
+- Fixed `cargo install lune` failing due to a yanked dependency ([#311])
+
+[#323]: https://github.com/lune-org/lune/pull/323
 
 ## `0.9.3` - May 6th, 2025
 
