@@ -1,12 +1,6 @@
 {
     "luau-lsp.sourcemap.enabled": false,
     "luau-lsp.types.roblox": false,
-    "luau-lsp.require.mode": "relativeToFile",
-    "luau-lsp.require.directoryAliases": {
-        "@lune/": "./types/",
-        "@tests/": "./tests/",
-        "@require-tests/": "./tests/require/tests/"
-    },
     "luau-lsp.ignoreGlobs": [
         "tests/roblox/rbx-test-files/**/*.lua",
         "tests/roblox/rbx-test-files/**/*.luau"
