@@ -15,8 +15,8 @@ use crate::client::rustls::CLIENT_CONFIG;
 
 #[derive(Debug)]
 pub enum HttpStream {
-    Plain(TcpStream),
-    Tls(TlsStream<TcpStream>),
+    Plain(Box<TcpStream>),
+    Tls(Box<TlsStream<TcpStream>>),
 }
 
 impl HttpStream {
@@ -41,9 +41,9 @@ impl HttpStream {
             let servname = ServerName::try_from(host).map_err(make_err)?.to_owned();
             let connector = TlsConnector::from(Arc::clone(&CLIENT_CONFIG));
             let stream = connector.connect(servname, stream).await?;
-            Self::Tls(TlsStream::Client(stream))
+            Self::Tls(Box::new(TlsStream::Client(stream)))
         } else {
-            Self::Plain(stream)
+            Self::Plain(Box::new(stream))
         };
 
         Ok(stream)
@@ -91,5 +91,5 @@ impl AsyncWrite for HttpStream {
 }
 
 fn make_err(e: impl ToString) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, e.to_string())
+    io::Error::other(e.to_string())
 }

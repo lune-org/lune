@@ -20,8 +20,8 @@ use crate::client::rustls::CLIENT_CONFIG;
 
 #[derive(Debug)]
 pub enum WsStream {
-    Plain(TungsteniteStream<TcpStream>),
-    Tls(TungsteniteStream<TlsStream<TcpStream>>),
+    Plain(Box<TungsteniteStream<TcpStream>>),
+    Tls(Box<TungsteniteStream<TlsStream<TcpStream>>>),
 }
 
 impl WsStream {
@@ -53,13 +53,13 @@ impl WsStream {
                 .await
                 .map_err(make_err)?
                 .0;
-            Self::Tls(stream)
+            Self::Tls(Box::new(stream))
         } else {
             let stream = async_tungstenite::client_async(url.to_string(), stream)
                 .await
                 .map_err(make_err)?
                 .0;
-            Self::Plain(stream)
+            Self::Plain(Box::new(stream))
         };
 
         Ok(stream)
@@ -110,5 +110,5 @@ impl Stream for WsStream {
 }
 
 fn make_err(e: impl ToString) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, e.to_string())
+    io::Error::other(e.to_string())
 }
