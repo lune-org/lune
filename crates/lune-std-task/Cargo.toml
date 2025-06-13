@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-task"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -19,4 +19,4 @@ mlua-luau-scheduler = { version = "0.1.3", path = "../mlua-luau-scheduler" }
 async-io = "2.4"
 futures-lite = "2.6"
 
-lune-utils = { version = "0.2.3", path = "../lune-utils" }
+lune-utils = { version = "0.2.4", path = "../lune-utils" }
