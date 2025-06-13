@@ -5,13 +5,12 @@ use url::Url;
 
 use crate::{
     body::ReadableBody,
-    client::ws_stream::WsStream,
+    client::stream::WsStream,
     shared::{request::Request, websocket::Websocket},
 };
 
-pub mod http_stream;
 pub mod rustls;
-pub mod ws_stream;
+pub mod stream;
 
 mod fetch;
 mod send;
@@ -25,7 +24,7 @@ const MAX_REDIRECTS: usize = 10;
     Connects to a websocket at the given URL.
 */
 pub async fn connect_websocket(url: Url) -> LuaResult<Websocket<WsStream>> {
-    let stream = WsStream::connect(url).await?;
+    let stream = WsStream::connect_url(url).await?;
     Ok(Websocket::from(stream))
 }
 

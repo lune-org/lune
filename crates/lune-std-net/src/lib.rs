@@ -10,7 +10,7 @@ pub(crate) mod shared;
 pub(crate) mod url;
 
 use self::{
-    client::ws_stream::WsStream,
+    client::stream::WsStream,
     server::config::ServeConfig,
     shared::{request::Request, response::Response, websocket::Websocket},
 };
