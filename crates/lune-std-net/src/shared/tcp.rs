@@ -14,7 +14,6 @@ use crate::client::stream::MaybeTlsStream;
 const DEFAULT_BUFFER_SIZE: usize = 1024;
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct Tcp {
     local_addr: Arc<Option<SocketAddr>>,
     remote_addr: Arc<Option<SocketAddr>>,
