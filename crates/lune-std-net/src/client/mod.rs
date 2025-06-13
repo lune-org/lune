@@ -5,8 +5,11 @@ use url::Url;
 
 use crate::{
     body::ReadableBody,
-    client::stream::WsStream,
-    shared::{request::Request, websocket::Websocket},
+    client::{
+        stream::{MaybeTlsStream, WsStream},
+        tcp::TcpConfig,
+    },
+    shared::{request::Request, tcp::Tcp, websocket::Websocket},
 };
 
 pub mod rustls;
@@ -27,6 +30,23 @@ const MAX_REDIRECTS: usize = 10;
 pub async fn connect_websocket(url: Url) -> LuaResult<Websocket<WsStream>> {
     let stream = WsStream::connect_url(url).await?;
     Ok(Websocket::from(stream))
+}
+
+/**
+    Connects using plain TCP using the given host, port, and config.
+*/
+pub async fn connect_tcp(host: String, port: u16, config: TcpConfig) -> LuaResult<Tcp> {
+    let tls = config.tls.unwrap_or_default();
+
+    let stream = MaybeTlsStream::connect(&host, port, tls)
+        .await
+        .into_lua_err()?;
+
+    if let Some(ttl) = config.ttl {
+        stream.set_ttl(ttl).into_lua_err()?;
+    }
+
+    Ok(Tcp::from(stream))
 }
 
 fn try_follow_redirect(
