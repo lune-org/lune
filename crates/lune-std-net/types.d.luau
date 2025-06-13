@@ -121,16 +121,18 @@ type ServeWebSocketHandler = (socket: WebSocket) -> ()
 
 	When setting `address`, the `handleRequest` callback must also be defined.
 
-	```lua
-		net.serve(8080, {
-			address = "http://0.0.0.0",
-			handleRequest = function(request)
-				return {
-					status = 200,
-					body = "Echo:\n" .. request.body,
-				}
-			end
-		})
+	### Example Usage
+
+	```luau
+	net.serve(8080, {
+		address = "http://0.0.0.0",
+		handleRequest = function(request)
+			return {
+				status = 200,
+				body = "Echo:\n" .. request.body,
+			}
+		end
+	})
 	```
 ]=]
 export type ServeConfig = {
@@ -179,14 +181,135 @@ export type WebSocket = {
 }
 
 --[=[
-	@class Net
+	@interface TcpConfig
+	@within Net
 
+	Configuration options for a TCP stream.
+
+	### Example Usage
+
+	```luau
+	-- Plain TCP connection
+	local stream = net.tcp.connect("example.com", 80)
+
+	-- TLS connection (shorthand)
+	local stream = net.tcp.connect("example.com", 443, true)
+
+	-- TLS connection (explicit config)
+	local stream = net.tcp.connect("example.com", 443, { tls = true })
+
+	-- Connection with custom TTL
+	local stream = net.tcp.connect("192.168.1.100", 8080, {
+		tls = false,
+		ttl = 128
+	})
+	```
+]=]
+export type TcpConfig = {
+	--[=[
+		Whether or not to use TLS encryption.
+
+		Defaults to `false`.
+	]=]
+	tls: boolean?,
+	--[=[
+		The TTL to use for packets sent over the socket.
+	]=]
+	ttl: number?,
+}
+
+--[=[
+	@interface TcpStream
+	@within Net
+
+	A plain TCP stream, which may also be backed by a TLS connection.
+
+	### Example Usage
+
+	```luau
+	local net = require("@lune/net")
+
+	local conn = net.tcp.connect("example.com", 80)
+
+	conn:write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+
+	local response = conn:read()
+	print(response)
+
+	conn:close()
+	```
+]=]
+export type TcpStream = {
+	--[=[
+		The local IP address of the socket, if any.
+	]=]
+	localIp: string?,
+	--[=[
+		The local port address of the socket, if any.
+	]=]
+	localPort: number?,
+	--[=[
+		The remote IP address of the socket, if any.
+	]=]
+	remoteIp: string?,
+	--[=[
+		The remote port address of the socket, if any.
+	]=]
+	remotePort: number?,
+	--[=[
+		Closes the underlying I/O for the stream.
+
+		Any writes will throw an error after this method is called.
+	]=]
+	close: (self: TcpStream) -> (),
+	--[=[
+		Writes the given data to the stream.
+
+		- If the stream is closed, this will throw an error.
+	]=]
+	write: (self: TcpStream, data: string | buffer) -> (),
+	--[=[
+		Reads data from the stream, returning a string up to the given `size`.
+
+		- If there is no data to read, this will yield until data is available.
+		- If the stream is closed, this will return `nil`.
+	]=]
+	read: (self: TcpStream, size: number?) -> string?,
+}
+
+--[=[
+	TCP primitives for the `net` library
+
+	Provides low-level TCP socket functionality for creating custom network
+	protocols or communicating with services that don't use HTTP - for all
+	HTTP usage, please use the `request` and `serve` HTTP functions instead.
+]=]
+local tcp = {}
+
+--[=[
+	Connects to the given host and port, returning a `TcpStream`.
+
+	For additional details, see the documentation for the `TcpConfig` and `TcpStream` types.
+
+	Will throw an error if the connection fails.
+
+	@param host The host to connect to, either a DNS name or IP address
+	@param port The port to connect to
+	@param config The optional configuration to use for the stream
+	@return A connected TcpStream ready for reading and writing
+]=]
+function tcp.connect(host: string, port: number, config: (true | TcpConfig)?): TcpStream
+	return nil :: any
+end
+
+--[=[
+	@class Net
 
 	Built-in library for network access
 
 	### Example usage
 
-	```lua
+	```luau
 	local net = require("@lune/net")
 	local serde = require("@lune/serde")
 
@@ -215,9 +338,16 @@ export type WebSocket = {
 			body = "Echo:\n" .. request.body,
 		}
 	end)
+
+	-- Writing to a plain TCP stream
+	local conn = net.tcp.connect("example.com", 80)
+
+	conn:write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
 	```
 ]=]
 local net = {}
+
+net.tcp = tcp
 
 --[=[
 	@within Net
