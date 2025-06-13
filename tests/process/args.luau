@@ -1,5 +1,7 @@
 local process = require("@lune/process")
 
+assert(type(process.args) == "table", "Process args should be a plain table")
+
 assert(#process.args > 0, "No process arguments found")
 
 assert(process.args[1] == "Foo", "Invalid first argument to process")
@@ -21,11 +23,3 @@ assert(
 	string.find(message, "only") ~= nil,
 	"Setting process args error message should mention that they are read-only"
 )
-
-local foundValue = false
-for _, _ in process.args do
-	foundValue = true
-	break
-end
-
-assert(foundValue, "Iterating using generalized iteration")

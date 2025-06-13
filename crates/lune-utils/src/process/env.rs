@@ -140,6 +140,23 @@ impl ProcessEnv {
             self.remove_value(key);
         }
     }
+
+    // Plain lua table conversion
+
+    #[doc(hidden)]
+    #[allow(clippy::missing_errors_doc)]
+    pub fn into_plain_lua_table(&self, lua: Lua) -> LuaResult<LuaTable> {
+        let all = self.get_all_bytes();
+        let tab = lua.create_table_with_capacity(0, all.len())?;
+
+        for (key, val) in all {
+            let key = lua.create_string(key)?;
+            let val = lua.create_string(val)?;
+            tab.set(key, val)?;
+        }
+
+        Ok(tab)
+    }
 }
 
 // Iterator implementations

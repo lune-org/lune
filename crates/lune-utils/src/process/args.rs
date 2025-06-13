@@ -158,6 +158,22 @@ impl ProcessArgs {
     pub fn remove_bytes(&self, index: usize) -> Option<Vec<u8>> {
         self.remove(index).and_then(OsString::into_io_vec)
     }
+
+    // Plain lua table conversion
+
+    #[doc(hidden)]
+    #[allow(clippy::missing_errors_doc)]
+    pub fn into_plain_lua_table(&self, lua: Lua) -> LuaResult<LuaTable> {
+        let all = self.all_bytes();
+        let tab = lua.create_table_with_capacity(all.len(), 0)?;
+
+        for val in all {
+            let val = lua.create_string(val)?;
+            tab.push(val)?;
+        }
+
+        Ok(tab)
+    }
 }
 
 // Iterator implementations
