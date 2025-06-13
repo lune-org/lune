@@ -11,6 +11,7 @@ use crate::{
 
 pub mod rustls;
 pub mod stream;
+pub mod tcp;
 
 mod fetch;
 mod send;
