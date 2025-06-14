@@ -245,7 +245,7 @@ export type TcpStream = {
 	]=]
 	localIp: string?,
 	--[=[
-		The local port address of the socket, if any.
+		The local port of the socket, if any.
 	]=]
 	localPort: number?,
 	--[=[
@@ -253,7 +253,7 @@ export type TcpStream = {
 	]=]
 	remoteIp: string?,
 	--[=[
-		The remote port address of the socket, if any.
+		The remote port of the socket, if any.
 	]=]
 	remotePort: number?,
 	--[=[
