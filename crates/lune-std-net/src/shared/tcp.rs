@@ -87,10 +87,13 @@ impl LuaUserData for Tcp {
     }
 
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
-        methods.add_async_method("read", |_, this, size: Option<usize>| {
+        methods.add_async_method("read", |lua, this, size: Option<usize>| {
             let this = this.clone();
             let size = size.unwrap_or(DEFAULT_BUFFER_SIZE);
-            async move { this.read(size).await.into_lua_err() }
+            async move {
+                let bytes = this.read(size).await.into_lua_err()?;
+                lua.create_string(bytes)
+            }
         });
         methods.add_async_method("write", |_, this, data: BString| {
             let this = this.clone();

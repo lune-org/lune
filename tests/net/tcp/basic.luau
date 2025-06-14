@@ -11,7 +11,6 @@ while true do
 	if not chunk then
 		break
 	end
-	print(chunk)
 	response = response .. chunk
 end
 
