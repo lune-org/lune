@@ -1,25 +1,26 @@
 local net = require("@lune/net")
 
-local stream = net.tcp.connect("httpbingo.org", 80)
+local stream = net.tcp.connect("example.com", 80)
 
-local request = "GET /get HTTP/1.1\r\nHost: httpbingo.org\r\nConnection: close\r\n\r\n"
+local request = "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n"
 stream:write(request)
 
 local responseChunks = {}
 while true do
 	local chunk = stream:read()
-	if not chunk then
+	if chunk == nil or #chunk <= 0 then
 		break
 	end
 	table.insert(responseChunks, chunk)
 end
+
 local response = table.concat(responseChunks)
+local function contains(substring: string): boolean
+	return string.find(response, substring, 1, true) ~= nil
+end
 
 stream:close()
 
-assert(string.find(response, "HTTP/1.1 200"), "Should receive HTTP 200 response")
-assert(string.find(response, "httpbingo.org"), "Response should contain the host")
-assert(
-	string.find(response, "Content-Length") or string.find(response, "Transfer-Encoding"),
-	"Response should have content length or transfer encoding"
-)
+assert(contains("HTTP/1.1 200"), "Should receive HTTP 200 response")
+assert(contains("\nContent-Length: "), "Response should have content length header")
+assert(contains("<html>"), "Response should contain some HTML")
