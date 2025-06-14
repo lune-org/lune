@@ -5,14 +5,15 @@ local stream = net.tcp.connect("httpbingo.org", 443, { tls = true })
 local request = "GET /get HTTP/1.1\r\nHost: httpbingo.org\r\nConnection: close\r\n\r\n"
 stream:write(request)
 
-local response = ""
+local responseChunks = {}
 while true do
 	local chunk = stream:read()
 	if not chunk then
 		break
 	end
-	response = response .. chunk
+	table.insert(responseChunks, chunk)
 end
+local response = table.concat(responseChunks)
 
 stream:close()
 
