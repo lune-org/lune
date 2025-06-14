@@ -12,7 +12,7 @@ use hyper::{
 use url::Url;
 
 use crate::{
-    client::http_stream::HttpStream,
+    client::stream::HttpStream,
     shared::{hyper::HyperIo, request::Request, response::Response},
 };
 
@@ -86,7 +86,7 @@ async fn fetch_inner(
     mut request: Request,
 ) -> Result<Response, String> {
     loop {
-        let stream = HttpStream::connect(url.clone())
+        let stream = HttpStream::connect_url(url.clone())
             .await
             .map_err(|e| e.to_string())?;
 
