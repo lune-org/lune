@@ -24,7 +24,8 @@ impl RunCommand {
         // Figure out if we should read from stdin or from a file,
         // reading from stdin is marked by passing a single "-"
         // (dash) as the script name to run to the cli
-        let (script_display_name, script_contents) = if &self.script_path == "-" {
+        let is_stdin = &self.script_path == "-";
+        let (script_display_name, script_contents) = if is_stdin {
             let mut stdin_contents = Vec::new();
             Unblock::new(stdin())
                 .read_to_end(&mut stdin_contents)
@@ -34,9 +35,7 @@ impl RunCommand {
         } else {
             let file_path = discover_script_path_including_lune_dirs(&self.script_path)?;
             let file_contents = read_to_vec(&file_path).await?;
-            // NOTE: We skip the extension here to remove it from stack traces
-            let file_display_name = file_path.with_extension("").display().to_string();
-            (file_display_name, file_contents)
+            (file_path.display().to_string(), file_contents)
         };
 
         // Check if the user has explicitly disabled JIT (on by default)
@@ -48,7 +47,7 @@ impl RunCommand {
         let result = Runtime::new()?
             .with_args(self.script_args)
             .with_jit(!jit_disabled)
-            .run(&script_display_name, strip_shebang(script_contents))
+            .run_file(&script_display_name, strip_shebang(script_contents))
             .await;
 
         Ok(match result {

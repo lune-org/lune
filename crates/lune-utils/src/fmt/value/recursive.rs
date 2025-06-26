@@ -70,7 +70,7 @@ pub(crate) fn format_value_recursive(
             let is_array = values
                 .iter()
                 .enumerate()
-                .all(|(i, (key, _))| key.as_integer().is_some_and(|x| x == (i as i32) + 1));
+                .all(|(i, (key, _))| key.as_integer().is_some_and(|x| x == (i as i64) + 1));
 
             let formatted_values = if is_array {
                 format_array(values, config, visited, depth)?

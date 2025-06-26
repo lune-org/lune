@@ -84,10 +84,7 @@ impl ReplCommand {
                 }
             }
 
-            // TODO: Preserve context here somehow?
-            let eval_result = lune_instance.run("REPL", &source_code).await;
-
-            match eval_result {
+            match lune_instance.run_custom("REPL", &source_code).await {
                 Ok(_) => prompt_state = PromptState::Regular,
 
                 Err(err) => {

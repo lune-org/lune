@@ -14,7 +14,7 @@ pub(crate) async fn run_until_yield(
     thread: LuaThread,
     args: LuaMultiValue,
 ) -> Option<LuaResult<LuaMultiValue>> {
-    let mut stream = thread.into_async(args);
+    let mut stream = thread.into_async(args).expect("thread must be resumable");
     /*
         NOTE: It is very important that we drop the thread/stream as
         soon as we are done, it takes up valuable Lua registry space

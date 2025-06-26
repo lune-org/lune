@@ -186,15 +186,41 @@ impl Runtime {
     }
 
     /**
-        Runs a Lune script inside of the current runtime.
-
-        This will preserve any modifications to global values / context.
+        Runs a script that represents custom input, inside of the current runtime.
 
         # Errors
 
-        This function will return an error if the script fails to run.
+        Returns an error if the script fails to run, but not if the script itself errors.
     */
-    pub async fn run(
+    pub async fn run_custom(
+        &mut self,
+        script_name: impl AsRef<str>,
+        script_contents: impl AsRef<[u8]>,
+    ) -> RuntimeResult<RuntimeReturnValues> {
+        let script_name = format!("={}", script_name.as_ref());
+        self.run(script_name, script_contents).await
+    }
+
+    /**
+        Runs a script that represents a file, inside of the current runtime.
+
+        It is important that the given `script_path` represents a real file path
+        for require calls to resolve properly - otherwise, use `run_custom`.
+
+        # Errors
+
+        Returns an error if the script fails to run, but not if the script itself errors.
+    */
+    pub async fn run_file(
+        &mut self,
+        script_path: impl AsRef<str>,
+        script_contents: impl AsRef<[u8]>,
+    ) -> RuntimeResult<RuntimeReturnValues> {
+        let script_name = format!("@{}", script_path.as_ref());
+        self.run(script_name, script_contents).await
+    }
+
+    async fn run(
         &mut self,
         script_name: impl AsRef<str>,
         script_contents: impl AsRef<[u8]>,

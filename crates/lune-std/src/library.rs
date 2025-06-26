@@ -93,7 +93,7 @@ impl LuneStandardLibrary {
     */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
-    pub fn module(&self, lua: Lua) -> LuaResult<LuaMultiValue> {
+    pub fn module(&self, lua: Lua) -> LuaResult<LuaTable> {
         let mod_lua = lua.clone();
         let res: LuaResult<LuaTable> = match self {
             #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(mod_lua),
@@ -110,7 +110,7 @@ impl LuneStandardLibrary {
             _ => unreachable!("no standard library enabled"),
         };
         match res {
-            Ok(v) => v.into_lua_multi(&lua),
+            Ok(v) => Ok(v),
             Err(e) => Err(e.context(format!(
                 "Failed to create standard library '{}'",
                 self.name()

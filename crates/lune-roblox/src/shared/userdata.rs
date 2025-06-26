@@ -105,7 +105,7 @@ where
 {
     match &rhs {
         LuaValue::Number(n) => return Ok(*datatype * *n as i32),
-        LuaValue::Integer(i) => return Ok(*datatype * *i),
+        LuaValue::Integer(i) => return Ok(*datatype * *i as i32),
         LuaValue::UserData(ud) => {
             if let Ok(vec) = ud.borrow::<D>() {
                 return Ok(*datatype * *vec);
@@ -186,7 +186,7 @@ where
 {
     match &rhs {
         LuaValue::Number(n) => return Ok(*datatype / *n as i32),
-        LuaValue::Integer(i) => return Ok(*datatype / *i),
+        LuaValue::Integer(i) => return Ok(*datatype / *i as i32),
         LuaValue::UserData(ud) => {
             if let Ok(vec) = ud.borrow::<D>() {
                 return Ok(*datatype / *vec);

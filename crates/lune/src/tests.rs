@@ -30,16 +30,12 @@ macro_rules! create_tests {
 	            set_colors_enabled_stderr(false);
 
 	            // The rest of the test logic can continue as normal
-	            let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
-	            let script = read_to_string(&full_name).await?;
+	            let script_path = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
+                let script_contents = read_to_string(&script_path).await?;
 	            let mut lune = Runtime::new()?
 	                .with_args(ARGS.iter().cloned())
 	                .with_jit(true);
-	            let script_name = full_name
-					.trim_end_matches(".luau")
-					.trim_end_matches(".lua")
-					.to_string();
-	            let script_values = lune.run(&script_name, &script).await?;
+	            let script_values = lune.run_file(&script_path, &script_contents).await?;
 	            Ok(ExitCode::from(script_values.status()))
             })
         }
