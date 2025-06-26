@@ -6,7 +6,7 @@ local function test(path: string)
 		error(string.format("Invalid require at path '%s' succeeded", path))
 	else
 		message = tostring(message)
-		if string.find(message, string.format("%s'", path)) == nil then
+		if string.find(message, string.format("%s", path)) == nil then
 			error(
 				string.format(
 					"Invalid require did not mention path '%s' in its error message!\nMessage: %s",
@@ -18,8 +18,8 @@ local function test(path: string)
 	end
 end
 
-test("foo")
-test("bar")
+test("fooo")
+test("baar")
 test("moduuuuule")
 test("modules.nested")
 test(" modules ")

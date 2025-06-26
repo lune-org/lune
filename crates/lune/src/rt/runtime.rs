@@ -2,12 +2,14 @@
 
 use std::{
     ffi::OsString,
+    path::PathBuf,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
 
+use async_fs as fs;
 use lune_utils::process::{ProcessArgs, ProcessEnv, ProcessJitEnablement};
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
@@ -186,44 +188,58 @@ impl Runtime {
     }
 
     /**
-        Runs a script that represents custom input, inside of the current runtime.
+        Runs some kind of custom input, inside of the current runtime.
+
+        For any input that is a real file path, [`run_file`] should be used instead.
 
         # Errors
 
-        Returns an error if the script fails to run, but not if the script itself errors.
+        Returns an error if:
+
+        - The script fails to run (not if the script itself errors)
     */
     pub async fn run_custom(
         &mut self,
-        script_name: impl AsRef<str>,
-        script_contents: impl AsRef<[u8]>,
+        chunk_name: impl AsRef<str>,
+        chunk_contents: impl AsRef<[u8]>,
     ) -> RuntimeResult<RuntimeReturnValues> {
-        let script_name = format!("={}", script_name.as_ref());
-        self.run(script_name, script_contents).await
+        let chunk_name = format!("={}", chunk_name.as_ref());
+        self.run_inner(chunk_name, chunk_contents).await
     }
 
     /**
-        Runs a script that represents a file, inside of the current runtime.
-
-        It is important that the given `script_path` represents a real file path
-        for require calls to resolve properly - otherwise, use `run_custom`.
+        Runs a file at the given file path, inside of the current runtime.
 
         # Errors
 
-        Returns an error if the script fails to run, but not if the script itself errors.
+        Returns an error if:
+
+        - The file does not exist or can not be read
+        - The script fails to run (not if the script itself errors)
     */
     pub async fn run_file(
         &mut self,
-        script_path: impl AsRef<str>,
-        script_contents: impl AsRef<[u8]>,
+        path: impl Into<PathBuf>,
     ) -> RuntimeResult<RuntimeReturnValues> {
-        let script_name = format!("@{}", script_path.as_ref());
-        self.run(script_name, script_contents).await
+        let path: PathBuf = path.into();
+        let contents = fs::read(&path).await.into_lua_err().context(format!(
+            "Failed to read file at path \"{}\"",
+            path.display()
+        ))?;
+
+        // For calls to `require` to resolve properly, we must convert the file
+        // path to the respective "module" path according to require-by-string
+        let module_path = remove_lua_luau_ext(path);
+        let module_name = format!("@{}", module_path.display());
+        let module_contents = strip_shebang(contents);
+
+        self.run_inner(module_name, module_contents).await
     }
 
-    async fn run(
+    async fn run_inner(
         &mut self,
-        script_name: impl AsRef<str>,
-        script_contents: impl AsRef<[u8]>,
+        chunk_name: impl AsRef<str>,
+        chunk_contents: impl AsRef<[u8]>,
     ) -> RuntimeResult<RuntimeReturnValues> {
         // Add error callback to format errors nicely + store status
         let got_any_error = Arc::new(AtomicBool::new(false));
@@ -262,8 +278,8 @@ impl Runtime {
         // Load our "main" thread
         let main = self
             .lua
-            .load(script_contents.as_ref())
-            .set_name(script_name.as_ref());
+            .load(chunk_contents.as_ref())
+            .set_name(chunk_name.as_ref());
 
         // Run it on our scheduler until it and any other spawned threads complete
         let main_thread_id = self.sched.push_thread_back(main, ())?;
@@ -280,4 +296,30 @@ impl Runtime {
             values: main_thread_values,
         })
     }
+}
+
+fn remove_lua_luau_ext(path: impl Into<PathBuf>) -> PathBuf {
+    let path: PathBuf = path.into();
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("lua" | "luau") => path.with_extension(""),
+        _ => path,
+    }
+}
+
+fn strip_shebang(mut contents: Vec<u8>) -> Vec<u8> {
+    if contents.starts_with(b"#!") {
+        if let Some(first_newline_idx) =
+            contents
+                .iter()
+                .enumerate()
+                .find_map(|(idx, c)| if *c == b'\n' { Some(idx) } else { None })
+        {
+            // NOTE: We keep the newline here on purpose to preserve
+            // correct line numbers in stack traces, the only reason
+            // we strip the shebang is to get the lua script to parse
+            // and the extra newline is not really a problem for that
+            contents.drain(..first_newline_idx);
+        }
+    }
+    contents
 }
