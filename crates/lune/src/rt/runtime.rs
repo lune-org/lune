@@ -238,6 +238,24 @@ impl Runtime {
         self.lua.set_app_data(self.env.clone());
         self.lua.set_app_data(self.jit);
 
+        // Inject all the standard libraries that are enabled - this needs to be done after
+        // storing the args/env, since some standard libraries use those during initialization
+        #[cfg(any(
+            feature = "std-datetime",
+            feature = "std-fs",
+            feature = "std-luau",
+            feature = "std-net",
+            feature = "std-process",
+            feature = "std-regex",
+            feature = "std-roblox",
+            feature = "std-serde",
+            feature = "std-stdio",
+            feature = "std-task",
+        ))]
+        {
+            lune_std::inject_std(self.lua.clone())?;
+        }
+
         // Enable / disable the JIT as requested, before loading anything
         self.lua.enable_jit(self.jit.enabled());
 
