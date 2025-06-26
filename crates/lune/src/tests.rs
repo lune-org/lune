@@ -63,7 +63,7 @@ create_tests! {
     require_async_sequential: "require/tests/async_sequential",
     require_builtins: "require/tests/builtins",
     require_children: "require/tests/children",
-    require_init: "require/tests/init",
+    require_init: "require/tests/init_files",
     require_invalid: "require/tests/invalid",
     require_multi_ext: "require/tests/multi_ext",
     require_nested: "require/tests/nested",
