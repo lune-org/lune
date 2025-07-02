@@ -7,10 +7,9 @@ use std::{
 use lune_utils::path::clean_path_and_make_absolute;
 use mlua::prelude::*;
 
-use crate::require::loader::RequireLoader;
-
 use super::{
     constants::{FILE_CHUNK_PREFIX, FILE_NAME_CONFIG},
+    loader::RequireLoader,
     path_utils::{relative_path_normalize, relative_path_parent},
     resolved_path::ResolvedPath,
 };
