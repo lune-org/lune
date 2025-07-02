@@ -1,7 +1,4 @@
-use std::{
-    collections::VecDeque,
-    path::{Component, Path, PathBuf},
-};
+use std::path::{Component, Path, PathBuf};
 
 use lune_utils::path::clean_path;
 
@@ -31,12 +28,14 @@ pub(crate) fn append_extension(path: &Path, ext: &str) -> PathBuf {
 pub(crate) fn relative_path_normalize(path: &Path) -> PathBuf {
     let path = clean_path(path);
 
-    let mut components = path.components().collect::<VecDeque<_>>();
-    if matches!(components.front(), None | Some(Component::Normal(..))) {
-        components.push_front(Component::CurDir);
+    let mut it = path.components().peekable();
+    if it.peek().is_none_or(|c| matches!(c, Component::Normal(..))) {
+        std::iter::once(Component::CurDir)
+            .chain(path.components())
+            .collect()
+    } else {
+        path
     }
-
-    components.into_iter().collect()
 }
 
 /**
