@@ -46,14 +46,10 @@ pub(crate) fn relative_path_normalize(path: &Path) -> PathBuf {
     number of times, and represent parent folders without first canonicalizing paths.
 */
 pub(crate) fn relative_path_parent(rel: &mut PathBuf) {
-    // If our relative path becomes empty, we should keep traversing it,
-    // but we need to do so by appending the special "parent dir" component,
-    // which is normally represented by ".."
-    if rel.components().count() == 1 && rel.components().next().unwrap() == Component::CurDir {
-        rel.pop();
-        rel.push(Component::ParentDir);
-    } else if rel.components().all(|c| matches!(c, Component::ParentDir)) {
-        rel.push(Component::ParentDir);
+    if rel.as_os_str() == Component::CurDir.as_os_str() {
+        *rel = PathBuf::from(Component::ParentDir.as_os_str());
+    } else if rel.components().all(|c| c == Component::ParentDir) {
+        rel.push(Component::ParentDir.as_os_str());
     } else {
         rel.pop();
     }
