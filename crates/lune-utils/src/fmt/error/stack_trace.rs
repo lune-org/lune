@@ -2,8 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 fn parse_path(s: &str) -> Option<(&str, &str)> {
-    let path = s.strip_prefix("[string \"")?;
-    let (path, after) = path.split_once("\"]:")?;
+    let (path, after) = s.split_once(':')?;
 
     // Remove line number after any found colon, this may
     // exist if the source path is from a rust source file
