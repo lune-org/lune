@@ -81,8 +81,15 @@ impl ResolvedPath {
             .ok_or(LuaNavigateError::NotFound)
     }
 
-    pub(crate) const fn is_file(&self) -> bool {
+    pub(crate) fn is_file(&self) -> bool {
         matches!(self, ResolvedPath::File(_))
+    }
+
+    pub(crate) fn as_file(&self) -> Option<&Path> {
+        match self {
+            ResolvedPath::File(path) => Some(path),
+            ResolvedPath::Directory(_) => None,
+        }
     }
 }
 

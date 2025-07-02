@@ -7,6 +7,8 @@ use std::{
 use lune_utils::path::clean_path_and_make_absolute;
 use mlua::prelude::*;
 
+use crate::require::loader::RequireLoader;
+
 use super::{
     constants::{FILE_CHUNK_PREFIX, FILE_NAME_CONFIG},
     path_utils::{relative_path_normalize, relative_path_parent},
@@ -28,6 +30,8 @@ pub(crate) struct RequireResolver {
     /// Path to the current filesystem entry that
     /// directly represents the current module path.
     resolved: Option<ResolvedPath>,
+    /// Loader and accompanying state.
+    loader: RequireLoader,
 }
 
 impl RequireResolver {
@@ -36,6 +40,7 @@ impl RequireResolver {
             relative: PathBuf::new(),
             absolute: PathBuf::new(),
             resolved: None,
+            loader: RequireLoader::new(),
         }
     }
 
@@ -142,10 +147,7 @@ impl LuaRequire for RequireResolver {
     fn loader(&self, lua: &Lua) -> LuaResult<LuaFunction> {
         let resolved = self.resolved.as_ref();
         let resolved = resolved.expect("called has_module first");
-
-        let name = format!("{FILE_CHUNK_PREFIX}{}", self.relative.display());
-        let bytes = read_file(resolved)?;
-
-        lua.load(bytes).set_name(name).into_function()
+        let resolved = resolved.as_file().expect("tried to require a dir");
+        self.loader.load(lua, self.relative.as_path(), resolved)
     }
 }
