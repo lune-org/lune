@@ -27,10 +27,10 @@ fn create_exe() -> Arc<Path> {
     let exe = current_exe()
         .expect("failed to find current executable")
         .to_str()
-        .expect("current executable is not valid UTF-8")
+        .expect("current executable path is not valid UTF-8")
         .to_string();
     dunce::canonicalize(exe)
-        .expect("failed to canonicalize current executable")
+        .expect("failed to canonicalize current executable path")
         .into()
 }
 
@@ -84,7 +84,21 @@ pub fn clean_path(path: impl AsRef<Path>) -> PathBuf {
 }
 
 /**
-    Makes a path absolute and then cleans it.
+    Makes a path absolute, if it is relative.
+
+    Relative paths are resolved against the current working directory.
+*/
+pub fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
+    let path = path.as_ref();
+    if path.is_relative() {
+        CWD.join(path)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+/**
+    Makes a path absolute, if it is relative, and then cleans it.
 
     Relative paths are resolved against the current working directory.
 

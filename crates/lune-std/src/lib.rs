@@ -5,6 +5,7 @@ use mlua::prelude::*;
 mod global;
 mod globals;
 mod library;
+mod require;
 
 pub use self::global::LuneStandardGlobal;
 pub use self::globals::version::set_global_version;
@@ -13,7 +14,7 @@ pub use self::library::LuneStandardLibrary;
 /**
     Injects all standard globals into the given Lua state / VM.
 
-    This **does not** include standard libraries - see `inject_globals`.
+    This **does not** include standard libraries - see `inject_std`.
 
     # Errors
 

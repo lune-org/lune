@@ -9,6 +9,7 @@ use mlua::prelude::*;
 pub enum LuneStandardGlobal {
     GTable,
     Print,
+    Require,
     Version,
     Warn,
 }
@@ -17,7 +18,13 @@ impl LuneStandardGlobal {
     /**
         All available standard globals.
     */
-    pub const ALL: &'static [Self] = &[Self::GTable, Self::Print, Self::Version, Self::Warn];
+    pub const ALL: &'static [Self] = &[
+        Self::GTable,
+        Self::Print,
+        Self::Require,
+        Self::Version,
+        Self::Warn,
+    ];
 
     /**
         Gets the name of the global, such as `_G` or `require`.
@@ -27,6 +34,7 @@ impl LuneStandardGlobal {
         match self {
             Self::GTable => "_G",
             Self::Print => "print",
+            Self::Require => "require",
             Self::Version => "_VERSION",
             Self::Warn => "warn",
         }
@@ -45,6 +53,7 @@ impl LuneStandardGlobal {
         let res = match self {
             Self::GTable => crate::globals::g_table::create(lua),
             Self::Print => crate::globals::print::create(lua),
+            Self::Require => crate::globals::require::create(lua),
             Self::Version => crate::globals::version::create(lua),
             Self::Warn => crate::globals::warn::create(lua),
         };
@@ -65,6 +74,7 @@ impl FromStr for LuneStandardGlobal {
         Ok(match low.as_str() {
             "_g" => Self::GTable,
             "print" => Self::Print,
+            "require" => Self::Require,
             "_version" => Self::Version,
             "warn" => Self::Warn,
             _ => {

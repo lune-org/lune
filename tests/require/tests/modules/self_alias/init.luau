@@ -1,4 +1,4 @@
-local inner = require("@self/module") :: any -- FIXME: luau-lsp does not yet support self alias
+local inner = require("@self/module")
 local outer = require("./module")
 
 assert(type(outer) == "table", "Outer module is not a table")
