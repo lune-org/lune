@@ -13,7 +13,7 @@ use super::{
     resolved_path::ResolvedPath,
 };
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub(crate) struct RequireResolver {
     /// Path to the current module, absolute.
     ///
@@ -31,6 +31,20 @@ pub(crate) struct RequireResolver {
 }
 
 impl RequireResolver {
+    pub(crate) fn new() -> Self {
+        Self {
+            relative: PathBuf::new(),
+            absolute: PathBuf::new(),
+            resolved: None,
+        }
+    }
+
+    fn navigate_reset(&mut self) {
+        self.relative = PathBuf::new();
+        self.absolute = PathBuf::new();
+        self.resolved = None;
+    }
+
     fn navigate_to(
         &mut self,
         relative: PathBuf,
@@ -60,6 +74,12 @@ impl LuaRequire for RequireResolver {
     }
 
     fn reset(&mut self, chunk_name: &str) -> Result<(), LuaNavigateError> {
+        // NOTE: This is not actually necessary, but makes our resolver state
+        // behave a bit more consistently - it ensures `resolved == None` when
+        // no file has been resolved from the current module path navigation.
+        // It is really only useful when debugging the require resolver state.
+        self.navigate_reset();
+
         if let Some(path) = chunk_name.strip_prefix(FILE_CHUNK_PREFIX) {
             let rel = relative_path_normalize(Path::new(path));
             let abs = clean_path_and_make_absolute(&rel);
