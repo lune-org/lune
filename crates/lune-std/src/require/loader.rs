@@ -86,7 +86,10 @@ impl RequireLoader {
 
             async move {
                 if let Some(rx) = state.get_pending_at_path(&absolute_path) {
-                    rx.recv().await.unwrap()
+                    rx.recv()
+                        .await
+                        .into_lua_err()
+                        .context("require process was interrupted (future dropped)")?
                 } else {
                     let tx = state.create_pending_at_path(&absolute_path);
 
@@ -98,10 +101,14 @@ impl RequireLoader {
                     let thread_id = lua.push_thread_back(chunk, ())?;
                     lua.track_thread(thread_id);
                     lua.wait_for_thread(thread_id).await;
-                    let thread_res = lua.get_thread_result(thread_id).unwrap();
+
+                    let thread_res = lua
+                        .get_thread_result(thread_id)
+                        .expect("running in scheduler + thread is tracked");
 
                     if tx.receiver_count() > 0 {
-                        let _ = tx.send(thread_res.clone()).await;
+                        tx.send(thread_res.clone()).await.ok();
+                        tx.close();
                     }
 
                     state.remove_pending_at_path(&absolute_path);
