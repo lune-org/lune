@@ -66,35 +66,12 @@ pub fn get_current_exe() -> Arc<Path> {
 }
 
 /**
-    Diffs two paths against each other.
-
-    See the [`pathdiff`] crate for more information on what diffing paths does.
-*/
-pub fn diff_path(path: impl AsRef<Path>, base: impl AsRef<Path>) -> Option<PathBuf> {
-    pathdiff::diff_paths(path, base)
-}
-
-/**
     Cleans a path.
 
     See the [`path_clean`] crate for more information on what cleaning a path does.
 */
 pub fn clean_path(path: impl AsRef<Path>) -> PathBuf {
     path.as_ref().clean()
-}
-
-/**
-    Makes a path absolute, if it is relative.
-
-    Relative paths are resolved against the current working directory.
-*/
-pub fn absolute_path(path: impl AsRef<Path>) -> PathBuf {
-    let path = path.as_ref();
-    if path.is_relative() {
-        CWD.join(path)
-    } else {
-        path.to_path_buf()
-    }
 }
 
 /**

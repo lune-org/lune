@@ -1,14 +1,15 @@
 use std::{
     fs::read as read_file,
     io::Result as IoResult,
-    path::{Component, PathBuf},
+    path::{Path, PathBuf},
 };
 
-use lune_utils::path::{absolute_path, clean_path};
+use lune_utils::path::clean_path_and_make_absolute;
 use mlua::prelude::*;
 
 use super::{
     constants::{FILE_CHUNK_PREFIX, FILE_NAME_CONFIG},
+    path_utils::{relative_path_normalize, relative_path_parent},
     resolved_path::ResolvedPath,
 };
 
@@ -30,7 +31,7 @@ pub(crate) struct RequireResolver {
 }
 
 impl RequireResolver {
-    fn update_paths(
+    fn navigate_to(
         &mut self,
         relative: PathBuf,
         absolute: PathBuf,
@@ -60,9 +61,10 @@ impl LuaRequire for RequireResolver {
 
     fn reset(&mut self, chunk_name: &str) -> Result<(), LuaNavigateError> {
         if let Some(path) = chunk_name.strip_prefix(FILE_CHUNK_PREFIX) {
-            let rel = clean_path(path);
-            let abs = absolute_path(&rel);
-            self.update_paths(rel, abs)
+            let rel = relative_path_normalize(Path::new(path));
+            let abs = clean_path_and_make_absolute(&rel);
+
+            self.navigate_to(rel, abs)
         } else {
             Err(LuaNavigateError::Other(LuaError::runtime(
                 "cannot reset require state from non-file chunk",
@@ -71,10 +73,10 @@ impl LuaRequire for RequireResolver {
     }
 
     fn jump_to_alias(&mut self, path: &str) -> Result<(), LuaNavigateError> {
-        let rel = clean_path(path);
-        let abs = absolute_path(&rel);
+        let rel = relative_path_normalize(Path::new(path));
+        let abs = clean_path_and_make_absolute(&rel);
 
-        self.update_paths(rel, abs)
+        self.navigate_to(rel, abs)
     }
 
     fn to_parent(&mut self) -> Result<(), LuaNavigateError> {
@@ -87,23 +89,16 @@ impl LuaRequire for RequireResolver {
             )));
         }
 
-        // If our relative path becomes empty, we should keep traversing it,
-        // but we need to do so by appending the special "parent dir" component,
-        // which is normally represented by ".."
-        if rel.components().all(|c| matches!(c, Component::ParentDir)) {
-            rel.push(Component::ParentDir);
-        } else {
-            rel.pop();
-        }
+        relative_path_parent(&mut rel);
 
-        self.update_paths(rel, abs)
+        self.navigate_to(rel, abs)
     }
 
     fn to_child(&mut self, name: &str) -> Result<(), LuaNavigateError> {
         let rel = self.relative.join(name);
         let abs = self.absolute.join(name);
 
-        self.update_paths(rel, abs)
+        self.navigate_to(rel, abs)
     }
 
     fn has_module(&self) -> bool {

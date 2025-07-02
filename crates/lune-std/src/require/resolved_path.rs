@@ -6,7 +6,10 @@ use std::{
 
 use mlua::prelude::*;
 
-use super::constants::{FILE_EXTENSIONS, FILE_NAME_INIT};
+use super::{
+    constants::{FILE_EXTENSIONS, FILE_NAME_INIT},
+    path_utils::append_extension,
+};
 
 /**
     A module path resolved to either a valid file or directory.
@@ -94,17 +97,5 @@ impl AsRef<Path> for ResolvedPath {
 impl fmt::Display for ResolvedPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.as_ref().display().fmt(f)
-    }
-}
-
-fn append_extension(path: &Path, ext: &str) -> PathBuf {
-    match path.extension() {
-        None => path.with_extension(ext),
-        Some(curr_ext) => {
-            let mut new_ext = curr_ext.to_os_string();
-            new_ext.push(".");
-            new_ext.push(ext);
-            path.with_extension(new_ext)
-        }
     }
 }
