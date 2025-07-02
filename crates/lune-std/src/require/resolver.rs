@@ -44,7 +44,7 @@ impl RequireResolver {
         }
 
         // Make sure to resolve path **before** updating any paths state
-        let resolved = ResolvedPath::resolve(&relative)?;
+        let resolved = ResolvedPath::resolve(&absolute)?;
 
         self.absolute = absolute;
         self.relative = relative;
