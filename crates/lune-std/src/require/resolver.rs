@@ -107,15 +107,25 @@ impl LuaRequire for RequireResolver {
         let mut rel = self.relative.clone();
         let mut abs = self.absolute.clone();
 
-        if !abs.pop() {
-            return Err(LuaNavigateError::Other(LuaError::runtime(
-                "tried to require a module at the filesystem root",
-            )));
+        if abs.pop() {
+            relative_path_parent(&mut rel);
+            self.navigate_to(rel, abs)
+        } else {
+            /*
+                We have reached the root and can not navigate further up.
+
+                Require-by-string has some special behavior here - for path aliases,
+                including the special "@self" alias to work, we must return exactly
+                `NotFound`, not success or any other kind of error.
+
+                This is due to how rbs traverses parents, when searching for a
+                config file that may have aliases in it.
+
+                When `NotFound` is returned, rbs will call `reset` if the alias
+                was "@self", or, error mentioning that no alias config was found.
+            */
+            Err(LuaNavigateError::NotFound)
         }
-
-        relative_path_parent(&mut rel);
-
-        self.navigate_to(rel, abs)
     }
 
     fn to_child(&mut self, name: &str) -> Result<(), LuaNavigateError> {
