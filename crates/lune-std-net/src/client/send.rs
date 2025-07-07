@@ -9,7 +9,7 @@ use mlua::prelude::*;
 use url::Url;
 
 use crate::{
-    client::http_stream::HttpStream,
+    client::stream::HttpStream,
     shared::{
         headers::create_user_agent_header,
         hyper::{HyperExecutor, HyperIo},
@@ -51,7 +51,7 @@ pub async fn send(mut request: Request, lua: Lua) -> LuaResult<Response> {
 
     // ... we can now safely continue and send the request
     loop {
-        let stream = HttpStream::connect(url.clone()).await?;
+        let stream = HttpStream::connect_url(url.clone()).await?;
 
         let (mut sender, conn) = handshake(HyperIo::from(stream)).await.into_lua_err()?;
 
