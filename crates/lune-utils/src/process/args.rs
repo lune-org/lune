@@ -259,7 +259,7 @@ impl LuaUserData for ProcessArgs {
             lua.create_function_mut(move |lua, (): ()| match vars.next() {
                 None => Ok((LuaValue::Nil, LuaValue::Nil)),
                 Some((index, value)) => Ok((
-                    LuaValue::Integer(index as i32),
+                    LuaValue::Integer(index as i64),
                     LuaValue::String(lua.create_string(value)?),
                 )),
             })

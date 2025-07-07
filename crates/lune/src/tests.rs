@@ -3,45 +3,43 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use anyhow::Result;
-use async_fs::read_to_string;
 use console::set_colors_enabled;
 use console::set_colors_enabled_stderr;
 
-use lune_utils::path::clean_path_and_make_absolute;
+use lune_utils::path::clean_path;
 
 use crate::Runtime;
 
 const ARGS: &[&str] = &["Foo", "Bar"];
 
+fn run_test(path: &str) -> Result<ExitCode> {
+    async_io::block_on(async {
+        // We need to change the current directory to the workspace root since
+        // we are in a sub-crate and tests would run relative to the sub-crate
+        let workspace_dir_str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../");
+        let workspace_dir = clean_path(PathBuf::from(workspace_dir_str));
+        set_current_dir(&workspace_dir)?;
+
+        // Disable styling for stdout and stderr since
+        // some tests rely on output not being styled
+        set_colors_enabled(false);
+        set_colors_enabled_stderr(false);
+
+        // The rest of the test logic can continue as normal
+        let mut rt = Runtime::new()?.with_args(ARGS).with_jit(true);
+
+        let script_path = workspace_dir.join("tests").join(format!("{path}.luau"));
+        let script_values = rt.run_file(script_path).await?;
+
+        Ok(ExitCode::from(script_values.status()))
+    })
+}
+
 macro_rules! create_tests {
     ($($name:ident: $value:expr,)*) => { $(
         #[test]
         fn $name() -> Result<ExitCode> {
-            async_io::block_on(async {
-	            // We need to change the current directory to the workspace root since
-	            // we are in a sub-crate and tests would run relative to the sub-crate
-	            let workspace_dir_str = format!("{}/../../", env!("CARGO_MANIFEST_DIR"));
-	            let workspace_dir = clean_path_and_make_absolute(PathBuf::from(workspace_dir_str));
-	            set_current_dir(&workspace_dir)?;
-
-	            // Disable styling for stdout and stderr since
-	            // some tests rely on output not being styled
-	            set_colors_enabled(false);
-	            set_colors_enabled_stderr(false);
-
-	            // The rest of the test logic can continue as normal
-	            let full_name = format!("{}/tests/{}.luau", workspace_dir.display(), $value);
-	            let script = read_to_string(&full_name).await?;
-	            let mut lune = Runtime::new()?
-	                .with_args(ARGS.iter().cloned())
-	                .with_jit(true);
-	            let script_name = full_name
-					.trim_end_matches(".luau")
-					.trim_end_matches(".lua")
-					.to_string();
-	            let script_values = lune.run(&script_name, &script).await?;
-	            Ok(ExitCode::from(script_values.status()))
-            })
+        	run_test($value)
         }
     )* }
 }
@@ -65,7 +63,7 @@ create_tests! {
     require_async_sequential: "require/tests/async_sequential",
     require_builtins: "require/tests/builtins",
     require_children: "require/tests/children",
-    require_init: "require/tests/init",
+    require_init: "require/tests/init_files",
     require_invalid: "require/tests/invalid",
     require_multi_ext: "require/tests/multi_ext",
     require_nested: "require/tests/nested",

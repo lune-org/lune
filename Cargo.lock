@@ -1630,9 +1630,9 @@ dependencies = [
 
 [[package]]
 name = "luau0-src"
-version = "0.12.3+luau663"
+version = "0.15.2+luau679"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76ae337c644bbf86a8d8e9ce3ee023311833d41741baf5e51acc31b37843aba1"
+checksum = "829d1609fb22f827d84a017cd15649947eea96cd2e218723e10d89e37e66de74"
 dependencies = [
  "cc",
 ]
@@ -1866,7 +1866,6 @@ dependencies = [
  "os_str_bytes",
  "parking_lot",
  "path-clean",
- "pathdiff",
  "semver 1.0.26",
 ]
 
@@ -1931,15 +1930,14 @@ dependencies = [
 
 [[package]]
 name = "mlua"
-version = "0.10.5"
+version = "0.11.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1f5f8fbebc7db5f671671134b9321c4b9aa9adeafccfd9a8c020ae45c6a35d0"
+checksum = "20b35ffb9c638eaa0992057934110c0964fc14a6e033d7d70070fdfcbd2e4c62"
 dependencies = [
  "bstr",
  "either",
  "erased-serde",
  "futures-util",
- "libloading",
  "mlua-sys",
  "num-traits",
  "parking_lot",
@@ -1967,9 +1965,9 @@ dependencies = [
 
 [[package]]
 name = "mlua-sys"
-version = "0.6.8"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "380c1f7e2099cafcf40e51d3a9f20a346977587aa4d012eae1f043149a728a93"
+checksum = "0f2443fccee1fa88a880b371d9a0af28ff56b76ff52d9ff679559388cdcfc776"
 dependencies = [
  "cc",
  "cfg-if 1.0.1",
@@ -2133,12 +2131,6 @@ name = "path-clean"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17359afc20d7ab31fdb42bb844c8b3bb1dabd7dcf7e68428492da7f16966fcef"
-
-[[package]]
-name = "pathdiff"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pbkdf2"

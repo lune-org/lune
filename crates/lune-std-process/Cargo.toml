@@ -13,7 +13,7 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-mlua = { version = "=0.10.5", features = ["luau"] }
+mlua = { version = "0.11.0-beta.3", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.1.4", path = "../mlua-luau-scheduler" }
 
 directories = "6.0"

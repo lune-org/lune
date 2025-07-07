@@ -27,10 +27,10 @@ fn create_exe() -> Arc<Path> {
     let exe = current_exe()
         .expect("failed to find current executable")
         .to_str()
-        .expect("current executable is not valid UTF-8")
+        .expect("current executable path is not valid UTF-8")
         .to_string();
     dunce::canonicalize(exe)
-        .expect("failed to canonicalize current executable")
+        .expect("failed to canonicalize current executable path")
         .into()
 }
 
@@ -66,15 +66,6 @@ pub fn get_current_exe() -> Arc<Path> {
 }
 
 /**
-    Diffs two paths against each other.
-
-    See the [`pathdiff`] crate for more information on what diffing paths does.
-*/
-pub fn diff_path(path: impl AsRef<Path>, base: impl AsRef<Path>) -> Option<PathBuf> {
-    pathdiff::diff_paths(path, base)
-}
-
-/**
     Cleans a path.
 
     See the [`path_clean`] crate for more information on what cleaning a path does.
@@ -84,7 +75,7 @@ pub fn clean_path(path: impl AsRef<Path>) -> PathBuf {
 }
 
 /**
-    Makes a path absolute and then cleans it.
+    Makes a path absolute, if it is relative, and then cleans it.
 
     Relative paths are resolved against the current working directory.
 
