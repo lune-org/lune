@@ -28,8 +28,8 @@ No other usages of `require` will be affected - but if you previously encountere
 
   -- Connections with custom TLS setting & TTL
   local customStream = net.tcp.connect("192.168.1.100", 8080, {
-  	tls = false,
-  	ttl = 128
+  	  tls = false,
+  	  ttl = 128
   })
 
   -- Interacting with the stream
@@ -55,6 +55,8 @@ No other usages of `require` will be affected - but if you previously encountere
   - `net.tcp.connect`
   - `net.ws.connect`
 
+- Added a method `with_lib` to the `Runtime` struct in the `lune` crate, to allow registering custom libraries.
+
 ### Changed
 
 - Updated to Luau version `0.682`
@@ -62,7 +64,7 @@ No other usages of `require` will be affected - but if you previously encountere
 
 ### Fixed
 
-- Fixed errors being emitted twice
+- Fixed errors being emitted twice when the error is thrown from the main (entrypoint) script
 - Fixed a panic when calling `net.request` and related functions in the main body of a module during `require`
 - Fixed various issues with not conforming to the new Luau require-by-string semantics
 
