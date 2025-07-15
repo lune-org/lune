@@ -1,7 +1,7 @@
 [package]
 name = "mlua-luau-scheduler"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
 description = "Luau-based async scheduler, using mlua and async-executor"

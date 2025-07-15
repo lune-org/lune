@@ -46,7 +46,7 @@ pub(crate) fn format_value_recursive(
 ) -> Result<String, fmt::Error> {
     let mut buffer = String::new();
 
-    if let LuaValue::Table(ref t) = value {
+    if let LuaValue::Table(t) = value {
         if let Some(formatted) = format_typename_and_tostringed(
             get_table_type_metavalue(t),
             call_table_tostring_metamethod(t),
