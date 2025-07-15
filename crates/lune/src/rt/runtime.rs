@@ -285,10 +285,11 @@ impl Runtime {
         let main_thread_id = self.sched.push_thread_back(main, ())?;
         self.sched.run().await;
 
-        let main_thread_values = match self.sched.get_thread_result(main_thread_id) {
-            Some(res) => res,
-            None => LuaValue::Nil.into_lua_multi(&self.lua),
-        }?;
+        let main_thread_values = self
+            .sched
+            .get_thread_result(main_thread_id)
+            .unwrap_or_else(|| Ok(LuaMultiValue::new())) // Ignore missing result (interruption), we just want to extract values
+            .unwrap_or_default(); // Ignore any errors from the script, we just want to extract values
 
         Ok(RuntimeReturnValues {
             code: self.sched.get_exit_code(),

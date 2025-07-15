@@ -62,6 +62,7 @@ No other usages of `require` will be affected - but if you previously encountere
 
 ### Fixed
 
+- Fixed errors being emitted twice
 - Fixed a panic when calling `net.request` and related functions in the main body of a module during `require`
 - Fixed various issues with not conforming to the new Luau require-by-string semantics
 
