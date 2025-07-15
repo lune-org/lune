@@ -47,7 +47,6 @@ lua.globals().set(
     "readFile",
     lua.create_async_function(|lua, path: String| async move {
         // Spawn background task that does not take up resources on the lua thread
-        // Normally, futures in mlua can not be shared across threads, but this can
         let task = lua.spawn(async move {
             match read_to_string(path).await {
                 Ok(s) => Ok(Some(s)),
