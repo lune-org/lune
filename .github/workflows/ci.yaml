@@ -28,7 +28,7 @@ jobs:
         uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Check Formatting
-        run: just fmt-check
+        run: ./scripts/format-check.sh
 
   analyze:
     needs: ["fmt"]
@@ -42,7 +42,7 @@ jobs:
         uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Analyze
-        run: just analyze
+        run: ./scripts/analyze.sh
 
   ci:
     needs: ["fmt"]
