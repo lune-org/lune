@@ -9,7 +9,7 @@ pub(crate) mod server;
 pub(crate) mod shared;
 pub(crate) mod url;
 
-use crate::shared::tcp::Tcp;
+use crate::shared::{hyper::HyperExecutor, tcp::Tcp};
 
 use self::{
     client::{stream::WsStream, tcp::TcpConfig},
@@ -37,6 +37,8 @@ pub fn typedefs() -> String {
     Errors when out of memory.
 */
 pub fn module(lua: Lua) -> LuaResult<LuaTable> {
+    HyperExecutor::attach(&lua);
+
     let submodule_http = TableBuilder::new(lua.clone())?
         .with_async_function("request", net_http_request)?
         .with_async_function("socket", net_http_socket)?

@@ -22,17 +22,19 @@ pub struct HyperExecutor {
 
 #[allow(dead_code)]
 impl HyperExecutor {
+    pub fn attach(lua: &Lua) -> mlua::AppDataRef<'_, Self> {
+        lua.set_app_data(Self { lua: lua.clone() });
+        lua.app_data_ref::<Self>().unwrap()
+    }
+
     pub fn execute<Fut>(lua: Lua, fut: Fut)
     where
         Fut: Future + Send + 'static,
         Fut::Output: Send + 'static,
     {
-        let exec = if let Some(exec) = lua.app_data_ref::<Self>() {
-            exec
-        } else {
-            lua.set_app_data(Self { lua: lua.clone() });
-            lua.app_data_ref::<Self>().unwrap()
-        };
+        let exec = lua
+            .app_data_ref::<Self>()
+            .unwrap_or_else(|| Self::attach(&lua));
 
         exec.execute(fut);
     }
