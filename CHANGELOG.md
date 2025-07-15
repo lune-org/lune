@@ -8,6 +8,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.10.0` - July 15th, 2025
+
+This version of Lune contains a major internal refactoring of the `require` function, now using the proper require-by-string APIs exposed by Luau.
+If you relied on any (incorrect) behavior of relative, non-`@self` requires, from within `init.luau` files in Lune `0.9.0`, you may need to update your code.
+No other usages of `require` will be affected - but if you previously encountered any internal bugs or panics during `require`, these will have been fixed!
+
+### Added
+
+- Added support for TCP client in the `net` standard library.
+  It may be used either with plain HTTP or HTTPS, and basic usage looks as such:
+
+  ```luau
+  -- Plain TCP connections
+  local stream = net.tcp.connect("example.com", 80)
+
+  -- TLS connections (shorthand)
+  local tlsStream = net.tcp.connect("example.com", 443, true)
+
+  -- Connections with custom TLS setting & TTL
+  local customStream = net.tcp.connect("192.168.1.100", 8080, {
+  	tls = false,
+  	ttl = 128
+  })
+
+  -- Interacting with the stream
+  tlsStream:write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+
+  while true do
+      local data = tlsStream:read()
+      if data ~= nil then
+          print(data)
+      else
+          break -- Connection was closed
+      end
+  end
+  ```
+
+- Added submodules to the `net` standard library: `http`, `tcp`, and `ws`.
+
+  These will be the preferred way of interacting with the `net` standard library going forward, but none of the old functions have been removed or deprecated yet to allow users time to migrate.
+
+  In a future major version of Lune, direct functions such as `net.socket` will be removed in favor of their equivalent functions in submodules, such as `net.ws.connect`. Here is the full new list of functions:
+  - `net.http.request`
+  - `net.http.serve`
+  - `net.tcp.connect`
+  - `net.ws.connect`
+
+### Changed
+
+- Updated to Luau version `0.682`
+- Upgraded to `mlua` version `0.11` - if you use any of the Lune crates as a dependency, you may also need to upgrade
+
+### Fixed
+
+- Fixed a panic when calling `net.request` and related functions in the main body of a module during `require`
+- Fixed various issues with not conforming to the new Luau require-by-string semantics
+
 ## `0.9.4` - June 13th, 2025
 
 ### Changed
