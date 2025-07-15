@@ -1,5 +1,5 @@
 [tools]
-luau-lsp = "JohnnyMorganz/luau-lsp@1.52.0"
+luau-lsp = "JohnnyMorganz/luau-lsp@1.52.1"
 lune = "lune-org/lune@0.9.4"
 stylua = "JohnnyMorganz/StyLua@2.1.0"
-just = "casey/just@1.41.0"
+just = "casey/just@1.42.1"
