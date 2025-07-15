@@ -17,7 +17,7 @@ No other usages of `require` will be affected - but if you previously encountere
 ### Added
 
 - Added support for TCP client in the `net` standard library.
-  It may be used either with plain HTTP or HTTPS, and basic usage looks as such:
+  It may be used either with TLS or not, and basic usage looks as such:
 
   ```luau
   -- Plain TCP connections
