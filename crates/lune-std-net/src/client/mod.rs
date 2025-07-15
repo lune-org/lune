@@ -1,4 +1,4 @@
-use hyper::{body::Incoming, header::LOCATION, Method, Response as HyperResponse, Uri};
+use hyper::{Method, Response as HyperResponse, Uri, body::Incoming, header::LOCATION};
 
 use mlua::prelude::*;
 use url::Url;
@@ -27,7 +27,7 @@ const MAX_REDIRECTS: usize = 10;
 /**
     Connects to a websocket at the given URL.
 */
-pub async fn connect_websocket(url: Url) -> LuaResult<Websocket<WsStream>> {
+pub async fn connect_ws(url: Url) -> LuaResult<Websocket<WsStream>> {
     let stream = WsStream::connect_url(url).await?;
     Ok(Websocket::from(stream))
 }

@@ -41,7 +41,6 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
 
     let submodule_http = TableBuilder::new(lua.clone())?
         .with_async_function("request", net_http_request)?
-        .with_async_function("socket", net_http_socket)?
         .with_async_function("serve", net_http_serve)?
         .build_readonly()?;
 
@@ -49,24 +48,24 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         .with_async_function("connect", net_tcp_connect)?
         .build_readonly()?;
 
+    let submodule_ws = TableBuilder::new(lua.clone())?
+        .with_async_function("connect", net_ws_connect)?
+        .build_readonly()?;
+
     TableBuilder::new(lua)?
         .with_async_function("request", net_http_request)?
-        .with_async_function("socket", net_http_socket)?
+        .with_async_function("socket", net_ws_connect)?
         .with_async_function("serve", net_http_serve)?
         .with_function("urlEncode", net_url_encode)?
         .with_function("urlDecode", net_url_decode)?
         .with_value("http", submodule_http)?
         .with_value("tcp", submodule_tcp)?
+        .with_value("ws", submodule_ws)?
         .build_readonly()
 }
 
 async fn net_http_request(lua: Lua, req: Request) -> LuaResult<Response> {
     self::client::send(req, lua).await
-}
-
-async fn net_http_socket(_: Lua, url: String) -> LuaResult<Websocket<WsStream>> {
-    let url = url.parse().into_lua_err()?;
-    self::client::connect_websocket(url).await
 }
 
 async fn net_http_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<LuaTable> {
@@ -77,6 +76,11 @@ async fn net_http_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResu
 
 async fn net_tcp_connect(_: Lua, (host, port, config): (String, u16, TcpConfig)) -> LuaResult<Tcp> {
     self::client::connect_tcp(host, port, config).await
+}
+
+async fn net_ws_connect(_: Lua, url: String) -> LuaResult<Websocket<WsStream>> {
+    let url = url.parse().into_lua_err()?;
+    self::client::connect_ws(url).await
 }
 
 fn net_url_encode(
