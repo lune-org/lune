@@ -120,7 +120,7 @@ impl TableBuilder {
         This will overwrite any metatable that already exists.
     */
     pub fn with_metatable(self, table: LuaTable) -> LuaResult<Self> {
-        self.tab.set_metatable(Some(table));
+        self.tab.set_metatable(Some(table))?;
         Ok(self)
     }
 

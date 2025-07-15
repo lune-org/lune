@@ -62,12 +62,12 @@ fn load_source(
             }
 
             if let Some(global_metatable) = lua.globals().metatable() {
-                environment.set_metatable(Some(global_metatable));
+                environment.set_metatable(Some(global_metatable))?;
             }
         } else if let Some(custom_metatable) = custom_environment.metatable() {
             // Since we don't need to set the global metatable,
             // we can just set a custom metatable if it exists
-            environment.set_metatable(Some(custom_metatable));
+            environment.set_metatable(Some(custom_metatable))?;
         }
 
         // Inject the custom environment
