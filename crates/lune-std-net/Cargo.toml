@@ -36,7 +36,7 @@ rustls-pki-types = "1.11"
 url = "2.5"
 urlencoding = "2.1"
 webpki = "0.22"
-webpki-roots = "0.26"
+webpki-roots = "1.0"
 
 lune-utils = { version = "0.3.0", path = "../lune-utils" }
 lune-std-serde = { version = "0.3.0", path = "../lune-std-serde" }

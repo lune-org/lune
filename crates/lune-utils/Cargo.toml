@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 mlua = { version = "0.11.0", features = ["luau", "async"] }
 
-console = "0.15"
+console = "0.16"
 dunce = "1.0"
 os_str_bytes = { version = "7.0", features = ["conversions"] }
 path-clean = "1.0"
