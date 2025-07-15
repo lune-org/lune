@@ -188,6 +188,73 @@ impl Runtime {
     }
 
     /**
+        Adds a custom library to the runtime, making it available through `require`.
+
+        # Example Usage
+
+        First, create a library as such:
+
+        ```rs
+        Runtime::new().with_lib("@myalias/mylib", |lua| {
+            let t = lua.create_table()?;
+            let f = lua.create_function(|lua| {
+                println!("bar");
+                Ok(())
+            })?;
+
+            t.set("foo", f)?;
+
+            Ok(t)
+        });
+        ```
+
+        Then, use it in Lua:
+
+        ```luau
+        local lib = require("@myalias/mylib")
+
+        lib.foo() --> "bar"
+        ```
+
+        # Errors
+
+        Returns an error if:
+
+        - The library name does not start with `@`
+        - The library uses the reserved `lune` alias
+        - The library uses the reserved `self` alias
+        - The provided `make_lib` function errors
+    */
+    pub fn with_lib<S, F>(self, name: S, make_lib: F) -> RuntimeResult<Self>
+    where
+        S: AsRef<str>,
+        F: FnOnce(&Lua) -> LuaResult<LuaValue>,
+    {
+        let name = name.as_ref().trim();
+
+        if !name.starts_with('@') {
+            return Err(RuntimeError::from(LuaError::external(
+                "Library names must start with '@'",
+            )));
+        }
+        if name.starts_with("@lune/") {
+            return Err(RuntimeError::from(LuaError::external(
+                "Library names must not start with '@lune/'",
+            )));
+        }
+        if name.starts_with("@self/") {
+            return Err(RuntimeError::from(LuaError::external(
+                "Library names must not start with '@self/'",
+            )));
+        }
+
+        let lib = make_lib(&self.lua)?;
+        self.lua.register_module(name, lib)?;
+
+        Ok(self)
+    }
+
+    /**
         Runs some kind of custom input, inside of the current runtime.
 
         For any input that is a real file path, [`run_file`] should be used instead.
