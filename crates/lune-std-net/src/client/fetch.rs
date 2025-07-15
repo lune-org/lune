@@ -3,10 +3,10 @@ use std::{collections::HashMap, str::FromStr};
 use async_executor::Executor;
 use http_body_util::Full;
 use hyper::{
+    Method, Request as HyperRequest,
     body::Bytes,
     client::conn::http1::handshake,
-    header::{HeaderName, HeaderValue, ACCEPT, CONTENT_LENGTH, HOST, USER_AGENT},
-    Method, Request as HyperRequest,
+    header::{ACCEPT, CONTENT_LENGTH, HOST, HeaderName, HeaderValue, USER_AGENT},
 };
 
 use url::Url;

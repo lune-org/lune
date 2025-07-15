@@ -7,7 +7,7 @@ use crate::{
     queue::{DeferredThreadQueue, SpawnedThreadQueue},
     threads::{ThreadId, ThreadMap},
     traits::LuaSchedulerExt,
-    util::{is_poll_pending, LuaThreadOrFunction},
+    util::{LuaThreadOrFunction, is_poll_pending},
 };
 
 const ERR_METADATA_NOT_ATTACHED: &str = "\

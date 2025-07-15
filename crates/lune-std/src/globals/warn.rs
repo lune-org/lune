@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use lune_utils::fmt::{pretty_format_multi_value, Label, ValueFormatConfig};
+use lune_utils::fmt::{Label, ValueFormatConfig, pretty_format_multi_value};
 use mlua::prelude::*;
 
 const FORMAT_CONFIG: ValueFormatConfig = ValueFormatConfig::new()

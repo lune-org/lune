@@ -1,6 +1,6 @@
 use std::{
     env::{current_dir, current_exe},
-    path::{Path, PathBuf, MAIN_SEPARATOR},
+    path::{MAIN_SEPARATOR, Path, PathBuf},
     sync::{Arc, LazyLock},
 };
 

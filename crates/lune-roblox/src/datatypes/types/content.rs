@@ -33,7 +33,9 @@ impl LuaExportsTable for Content {
                 "you should not be able to construct an Instance that is not known to Lune",
             );
             if database.has_superclass(param_descriptor, instance_descriptor) {
-                Err(LuaError::runtime("the provided object is a descendant class of 'Instance', expected one that was only an 'Object'"))
+                Err(LuaError::runtime(
+                    "the provided object is a descendant class of 'Instance', expected one that was only an 'Object'",
+                ))
             } else {
                 Ok(Content(ContentType::Object(obj.dom_ref)))
             }
@@ -57,7 +59,7 @@ impl LuaUserData for Content {
                 other => {
                     return Err(LuaError::runtime(format!(
                         "cannot get SourceType: unknown ContentType variant '{other:?}'"
-                    )))
+                    )));
                 }
             };
             Ok(EnumItem::from_enum_name_and_name(

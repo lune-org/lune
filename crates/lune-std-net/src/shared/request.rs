@@ -2,12 +2,12 @@ use std::{collections::HashMap, net::SocketAddr};
 
 use url::Url;
 
-use hyper::{body::Incoming, HeaderMap, Method, Request as HyperRequest};
+use hyper::{HeaderMap, Method, Request as HyperRequest, body::Incoming};
 
 use mlua::prelude::*;
 
 use crate::{
-    body::{handle_incoming_body, ReadableBody},
+    body::{ReadableBody, handle_incoming_body},
     shared::{
         headers::{hash_map_to_table, header_map_to_table},
         lua::{lua_table_to_header_map, lua_value_to_method},

@@ -24,7 +24,7 @@ impl FromLua for FsWriteOptions {
                         "Invalid write options - expected boolean or table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         })
     }

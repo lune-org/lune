@@ -7,7 +7,7 @@ use mlua_luau_scheduler::LuaSpawnExt;
 
 use lune_roblox::{
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
-    instance::{registry::InstanceRegistry, Instance},
+    instance::{Instance, registry::InstanceRegistry},
     reflection::Database as ReflectionDatabase,
 };
 

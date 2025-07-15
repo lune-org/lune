@@ -1,8 +1,8 @@
 use std::process::ExitStatus;
 
-use async_channel::{unbounded, Receiver, Sender};
+use async_channel::{Receiver, Sender, unbounded};
 use async_process::Child as AsyncChild;
-use futures_util::{select, FutureExt};
+use futures_util::{FutureExt, select};
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;

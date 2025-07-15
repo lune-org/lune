@@ -1,10 +1,10 @@
 use std::{
     fs::Metadata,
-    path::{PathBuf, MAIN_SEPARATOR},
+    path::{MAIN_SEPARATOR, PathBuf},
     sync::LazyLock,
 };
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use console::style;
 use directories::UserDirs;
 

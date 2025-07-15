@@ -1,13 +1,13 @@
 use http_body_util::BodyExt;
 use hyper::{
+    HeaderMap,
     body::{Bytes, Incoming},
     header::CONTENT_ENCODING,
-    HeaderMap,
 };
 
 use mlua::prelude::*;
 
-use lune_std_serde::{decompress, CompressDecompressFormat};
+use lune_std_serde::{CompressDecompressFormat, decompress};
 
 pub async fn handle_incoming_body(
     headers: &HeaderMap,

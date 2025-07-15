@@ -1,7 +1,7 @@
 #![allow(clippy::cargo_common_metadata)]
 
 use std::{
-    io::{stderr, stdin, stdout, Stdin},
+    io::{Stdin, stderr, stdin, stdout},
     sync::{Arc, LazyLock},
 };
 
@@ -13,14 +13,14 @@ use blocking::Unblock;
 use futures_lite::{io::BufReader, prelude::*};
 
 use lune_utils::{
-    fmt::{pretty_format_multi_value, ValueFormatConfig},
     TableBuilder,
+    fmt::{ValueFormatConfig, pretty_format_multi_value},
 };
 
 mod prompt;
 mod style_and_color;
 
-use self::prompt::{prompt, PromptOptions, PromptResult};
+use self::prompt::{PromptOptions, PromptResult, prompt};
 use self::style_and_color::{ColorKind, StyleKind};
 
 const FORMAT_CONFIG: ValueFormatConfig = ValueFormatConfig::new()

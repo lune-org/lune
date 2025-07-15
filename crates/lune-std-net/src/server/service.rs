@@ -1,9 +1,9 @@
 use std::{future::Future, net::SocketAddr, pin::Pin};
 
-use async_tungstenite::{tungstenite::protocol::Role, WebSocketStream};
+use async_tungstenite::{WebSocketStream, tungstenite::protocol::Role};
 use hyper::{
-    body::Incoming, service::Service as HyperService, Request as HyperRequest,
-    Response as HyperResponse, StatusCode,
+    Request as HyperRequest, Response as HyperResponse, StatusCode, body::Incoming,
+    service::Service as HyperService,
 };
 
 use mlua::prelude::*;
@@ -41,7 +41,7 @@ impl HyperService<HyperRequest<Incoming>> for Service {
                             return Ok(HyperResponse::builder()
                                 .status(StatusCode::BAD_REQUEST)
                                 .body(ReadableBody::from(err.to_string()))
-                                .unwrap())
+                                .unwrap());
                         }
                     };
 

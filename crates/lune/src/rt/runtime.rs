@@ -4,8 +4,8 @@ use std::{
     ffi::OsString,
     path::PathBuf,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -308,11 +308,10 @@ fn remove_lua_luau_ext(path: impl Into<PathBuf>) -> PathBuf {
 
 fn strip_shebang(mut contents: Vec<u8>) -> Vec<u8> {
     if contents.starts_with(b"#!") {
-        if let Some(first_newline_idx) =
-            contents
-                .iter()
-                .enumerate()
-                .find_map(|(idx, c)| if *c == b'\n' { Some(idx) } else { None })
+        if let Some(first_newline_idx) = contents
+            .iter()
+            .enumerate()
+            .find_map(|(idx, c)| if *c == b'\n' { Some(idx) } else { None })
         {
             // NOTE: We keep the newline here on purpose to preserve
             // correct line numbers in stack traces, the only reason

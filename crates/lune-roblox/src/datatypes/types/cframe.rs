@@ -4,7 +4,7 @@ use core::fmt;
 use std::ops;
 
 use glam::{EulerRot, Mat3, Mat4, Quat, Vec3};
-use mlua::{prelude::*, Variadic};
+use mlua::{Variadic, prelude::*};
 use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
 use lune_utils::TableBuilder;

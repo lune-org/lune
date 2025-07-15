@@ -1,7 +1,7 @@
 #![allow(clippy::struct_field_names)]
 
-use mlua::prelude::*;
 use mlua::Compiler as LuaCompiler;
+use mlua::prelude::*;
 
 const DEFAULT_DEBUG_NAME: &str = "luau.load(...)";
 
@@ -73,7 +73,7 @@ impl FromLua for LuauCompileOptions {
                         "Invalid compile options - expected table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         })
     }
@@ -136,7 +136,7 @@ impl FromLua for LuauLoadOptions {
                         "Invalid load options - expected string or table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         })
     }

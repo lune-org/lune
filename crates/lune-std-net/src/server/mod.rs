@@ -10,7 +10,7 @@ use mlua_luau_scheduler::LuaSpawnExt;
 use crate::{
     server::{config::ServeConfig, handle::ServeHandle, service::Service},
     shared::{
-        futures::{either, Either},
+        futures::{Either, either},
         hyper::{HyperIo, HyperTimer},
     },
 };

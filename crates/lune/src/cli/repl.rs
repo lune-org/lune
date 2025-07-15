@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use async_fs as fs;
 use clap::Parser;
 use directories::UserDirs;
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{DefaultEditor, error::ReadlineError};
 
 use lune::Runtime;
 

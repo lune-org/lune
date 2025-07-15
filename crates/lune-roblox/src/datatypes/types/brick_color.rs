@@ -190,9 +190,9 @@ fn color_from_rgb(r: u8, g: u8, b: u8) -> BrickColor {
         .fold(
             (None, u16::MAX),
             |(closest_color, closest_distance), color| {
-                let cr = color.2 .0 as i16;
-                let cg = color.2 .1 as i16;
-                let cb = color.2 .2 as i16;
+                let cr = color.2.0 as i16;
+                let cg = color.2.1 as i16;
+                let cb = color.2.2 as i16;
                 let distance = ((r - cr) + (g - cg) + (b - cb)).unsigned_abs();
                 if distance < closest_distance {
                     (Some(color), distance)

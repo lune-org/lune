@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, sync::LazyLock};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use async_fs as fs;
 use mlua::Compiler as LuaCompiler;
 

@@ -9,8 +9,9 @@ use std::{
 
 use mlua::prelude::*;
 use rbx_dom_weak::{
+    Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, Ustr, WeakDom,
     types::{Attributes as DomAttributes, Ref as DomRef, Variant as DomValue},
-    ustr, Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, Ustr, WeakDom,
+    ustr,
 };
 
 use lune_utils::TableBuilder;

@@ -1,9 +1,9 @@
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc, LazyLock,
+    atomic::{AtomicBool, Ordering},
 };
 
-use rustls::{crypto::ring, ClientConfig};
+use rustls::{ClientConfig, crypto::ring};
 
 static PROVIDER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 

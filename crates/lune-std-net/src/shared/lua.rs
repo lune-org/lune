@@ -1,6 +1,6 @@
 use hyper::{
-    header::{HeaderName, HeaderValue},
     HeaderMap, Method,
+    header::{HeaderName, HeaderValue},
 };
 
 use mlua::prelude::*;

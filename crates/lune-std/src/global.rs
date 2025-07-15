@@ -85,7 +85,7 @@ impl FromStr for LuneStandardGlobal {
                         .map(Self::name)
                         .collect::<Vec<_>>()
                         .join(", ")
-                ))
+                ));
             }
         })
     }

@@ -56,7 +56,7 @@ impl FromStr for ProcessSpawnOptionsStdioKind {
                         .map(|k| format!("'{k}'"))
                         .collect::<Vec<_>>()
                         .join(", ")
-                )))
+                )));
             }
         })
     }

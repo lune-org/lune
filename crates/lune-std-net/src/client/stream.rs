@@ -8,8 +8,8 @@ use std::{
 
 use async_net::TcpStream;
 use async_tungstenite::{
-    tungstenite::{Error as TungsteniteError, Message, Result as TungsteniteResult},
     WebSocketStream as TungsteniteStream,
+    tungstenite::{Error as TungsteniteError, Message, Result as TungsteniteResult},
 };
 use futures::Sink;
 use futures_lite::prelude::*;

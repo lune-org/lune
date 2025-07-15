@@ -1,20 +1,20 @@
 use std::{
     error::Error,
     sync::{
-        atomic::{AtomicBool, AtomicU16, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicU16, Ordering},
     },
 };
 
 use async_lock::Mutex as AsyncMutex;
 use async_tungstenite::tungstenite::{
-    protocol::{frame::coding::CloseCode, CloseFrame},
     Message as TungsteniteMessage, Result as TungsteniteResult, Utf8Bytes,
+    protocol::{CloseFrame, frame::coding::CloseCode},
 };
 use bstr::{BString, ByteSlice};
 use futures::{
-    stream::{SplitSink, SplitStream},
     Sink, SinkExt, Stream, StreamExt,
+    stream::{SplitSink, SplitStream},
 };
 use hyper::body::Bytes;
 
@@ -67,7 +67,7 @@ where
                 Some(code) => {
                     return Err(LuaError::runtime(format!(
                         "Close code must be between 1000 and 4999, got {code}"
-                    )))
+                    )));
                 }
                 None => CloseCode::Normal,
             },

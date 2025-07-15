@@ -1,17 +1,17 @@
-use std::io::{copy as copy_std, Cursor, Read as _, Write as _};
+use std::io::{Cursor, Read as _, Write as _, copy as copy_std};
 
 use mlua::prelude::*;
 
 use blocking::unblock;
-use futures_lite::io::{copy, BufReader};
+use futures_lite::io::{BufReader, copy};
 use lz4::{Decoder, EncoderBuilder};
 
 use async_compression::{
+    Level::Best as CompressionQuality,
+    Level::Precise as PreciseCompressionQuality,
     futures::bufread::{
         BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
     },
-    Level::Best as CompressionQuality,
-    Level::Precise as PreciseCompressionQuality,
 };
 
 /**

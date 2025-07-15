@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use hyper::{
-    header::{CONTENT_ENCODING, CONTENT_LENGTH},
     HeaderMap,
+    header::{CONTENT_ENCODING, CONTENT_LENGTH},
 };
 
 use lune_utils::TableBuilder;

@@ -4,7 +4,7 @@ use std::{
     cmp::Ordering, ffi::OsStr, fmt::Write as _, io::ErrorKind, path::PathBuf, sync::LazyLock,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use async_fs as fs;
 use console::Style;
 use directories::UserDirs;

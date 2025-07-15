@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use async_io::{block_on, Timer};
+use async_io::{Timer, block_on};
 use futures_lite::future::yield_now;
 
 use mlua::prelude::*;

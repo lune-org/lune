@@ -1,9 +1,9 @@
 use async_tungstenite::tungstenite::{error::ProtocolError, handshake::derive_accept_key};
 
 use hyper::{
-    body::Incoming,
-    header::{HeaderName, CONNECTION, UPGRADE},
     HeaderMap, Request as HyperRequest, Response as HyperResponse, StatusCode,
+    body::Incoming,
+    header::{CONNECTION, HeaderName, UPGRADE},
 };
 
 use crate::body::ReadableBody;

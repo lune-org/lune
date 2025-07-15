@@ -9,8 +9,8 @@ mod compress_decompress;
 mod encode_decode;
 mod hash;
 
-pub use self::compress_decompress::{compress, decompress, CompressDecompressFormat};
-pub use self::encode_decode::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
+pub use self::compress_decompress::{CompressDecompressFormat, compress, decompress};
+pub use self::encode_decode::{EncodeDecodeConfig, EncodeDecodeFormat, decode, encode};
 pub use self::hash::HashOptions;
 
 const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));

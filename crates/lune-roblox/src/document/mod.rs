@@ -1,4 +1,4 @@
-use rbx_dom_weak::{types::Ref as DomRef, InstanceBuilder as DomInstanceBuilder, WeakDom};
+use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom, types::Ref as DomRef};
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -15,7 +15,7 @@ pub use kind::*;
 
 use postprocessing::*;
 
-use crate::instance::{data_model, Instance};
+use crate::instance::{Instance, data_model};
 
 pub type DocumentResult<T> = Result<T, DocumentError>;
 

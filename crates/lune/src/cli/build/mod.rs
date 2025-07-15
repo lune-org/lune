@@ -1,6 +1,6 @@
 use std::{path::PathBuf, process::ExitCode};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use async_fs as fs;
 use clap::Parser;
 use console::style;
@@ -49,7 +49,9 @@ impl BuildCommand {
             if self.output.is_some() {
                 bail!("output path cannot be the same as input path");
             }
-            bail!("output path cannot be the same as input path, please specify a different output path");
+            bail!(
+                "output path cannot be the same as input path, please specify a different output path"
+            );
         }
 
         // Try to read the given input file

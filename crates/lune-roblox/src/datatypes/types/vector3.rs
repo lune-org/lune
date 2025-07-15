@@ -37,7 +37,7 @@ impl LuaExportsTable for Vector3 {
                     name => {
                         return Err(LuaError::RuntimeError(format!(
                             "Axis '{name}' is not known",
-                        )))
+                        )));
                     }
                 })
             } else {
@@ -60,7 +60,7 @@ impl LuaExportsTable for Vector3 {
                     name => {
                         return Err(LuaError::RuntimeError(format!(
                             "NormalId '{name}' is not known",
-                        )))
+                        )));
                     }
                 })
             } else {

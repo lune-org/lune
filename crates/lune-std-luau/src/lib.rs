@@ -2,7 +2,7 @@
 
 use mlua::prelude::*;
 
-use lune_utils::{jit::JitEnablement, TableBuilder};
+use lune_utils::{TableBuilder, jit::JitEnablement};
 
 mod options;
 

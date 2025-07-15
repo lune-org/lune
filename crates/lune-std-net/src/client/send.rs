@@ -1,8 +1,8 @@
 use http_body_util::Full;
 use hyper::{
-    client::conn::http1::handshake,
-    header::{HeaderValue, ACCEPT, CONTENT_LENGTH, HOST, USER_AGENT},
     Method, Request as HyperRequest,
+    client::conn::http1::handshake,
+    header::{ACCEPT, CONTENT_LENGTH, HOST, HeaderValue, USER_AGENT},
 };
 
 use mlua::prelude::*;

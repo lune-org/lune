@@ -3,8 +3,8 @@
 use mlua::prelude::*;
 
 use rbx_dom_weak::{
-    types::{Variant as DomValue, VariantType as DomType},
     Instance as DomInstance,
+    types::{Variant as DomValue, VariantType as DomType},
 };
 
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
     shared::instance::{class_is_a, find_property_info},
 };
 
-use super::{data_model, registry::InstanceRegistry, Instance};
+use super::{Instance, data_model, registry::InstanceRegistry};
 
 #[allow(clippy::too_many_lines)]
 pub fn add_methods<M: LuaUserDataMethods<Instance>>(m: &mut M) {

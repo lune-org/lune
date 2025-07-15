@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 
 use mlua::prelude::*;
 
-use chrono::prelude::*;
 use chrono::DateTime as ChronoDateTime;
+use chrono::prelude::*;
 use chrono_lc::LocaleDate;
 
 use crate::result::{DateTimeError, DateTimeResult};

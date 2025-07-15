@@ -1,5 +1,5 @@
 use hyper::body::{Buf as _, Bytes};
-use mlua::{prelude::*, Buffer as LuaBuffer};
+use mlua::{Buffer as LuaBuffer, prelude::*};
 
 /**
     The inner data for a readable body.

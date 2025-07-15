@@ -4,7 +4,7 @@
 
 use std::time::{Duration, Instant};
 
-use async_io::{block_on, Timer};
+use async_io::{Timer, block_on};
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};

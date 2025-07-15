@@ -1,6 +1,7 @@
 use rbx_dom_weak::{
+    Instance as DomInstance, WeakDom,
     types::{Ref as DomRef, VariantType as DomType},
-    ustr, Instance as DomInstance, WeakDom,
+    ustr,
 };
 
 use crate::shared::instance::class_is_a;

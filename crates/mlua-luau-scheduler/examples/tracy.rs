@@ -17,9 +17,9 @@
 
 use std::time::Duration;
 
-use async_io::{block_on, Timer};
+use async_io::{Timer, block_on};
 use tracing_subscriber::layer::SubscriberExt;
-use tracing_tracy::{client::Client as TracyClient, TracyLayer};
+use tracing_tracy::{TracyLayer, client::Client as TracyClient};
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};

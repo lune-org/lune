@@ -10,9 +10,9 @@ use mlua::prelude::*;
 use mlua_luau_scheduler::Functions;
 
 use lune_utils::{
+    TableBuilder,
     path::get_current_dir,
     process::{ProcessArgs, ProcessEnv},
-    TableBuilder,
 };
 
 mod create;

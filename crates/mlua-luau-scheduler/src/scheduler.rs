@@ -11,7 +11,7 @@ use futures_lite::prelude::*;
 use mlua::prelude::*;
 
 use async_executor::{Executor, LocalExecutor};
-use tracing::{debug, instrument, trace, trace_span, Instrument};
+use tracing::{Instrument, debug, instrument, trace, trace_span};
 
 use crate::{
     error_callback::ThreadErrorCallback,

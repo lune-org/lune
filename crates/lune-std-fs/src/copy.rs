@@ -107,7 +107,7 @@ pub async fn copy(
             return Err(LuaError::RuntimeError(format!(
                 "No file or directory exists at the path '{}'",
                 source.display()
-            )))
+            )));
         }
         Err(e) => return Err(e.into()),
     };

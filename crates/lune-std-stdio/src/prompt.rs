@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use mlua::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -120,7 +120,7 @@ impl FromLuaMulti for PromptOptions {
                         from: value.type_name(),
                         to: "PromptOptions".to_string(),
                         message: Some("Argument #3 must be a boolean, table, or nil".to_string()),
-                    })
+                    });
                 }
             },
         };

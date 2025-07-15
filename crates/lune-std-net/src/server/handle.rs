@@ -1,12 +1,12 @@
 use std::{
     net::SocketAddr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
-use async_channel::{unbounded, Receiver, Sender};
+use async_channel::{Receiver, Sender, unbounded};
 
 use lune_utils::TableBuilder;
 use mlua::prelude::*;

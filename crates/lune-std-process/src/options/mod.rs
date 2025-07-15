@@ -39,7 +39,7 @@ impl FromLua for ProcessSpawnOptions {
                         "Invalid spawn options - expected table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         };
 
@@ -72,7 +72,7 @@ impl FromLua for ProcessSpawnOptions {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'cwd' - expected string, got '{}'",
                     value.type_name()
-                )))
+                )));
             }
         }
 
@@ -91,7 +91,7 @@ impl FromLua for ProcessSpawnOptions {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'env' - expected table, got '{}'",
                     value.type_name()
-                )))
+                )));
             }
         }
 
@@ -115,7 +115,7 @@ impl FromLua for ProcessSpawnOptions {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'shell' - expected 'true' or 'string', got '{}'",
                     value.type_name()
-                )))
+                )));
             }
         }
 

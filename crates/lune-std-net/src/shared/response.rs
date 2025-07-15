@@ -1,13 +1,13 @@
 use hyper::{
-    body::Incoming,
-    header::{HeaderValue, CONTENT_TYPE},
     HeaderMap, Response as HyperResponse, StatusCode,
+    body::Incoming,
+    header::{CONTENT_TYPE, HeaderValue},
 };
 
 use mlua::prelude::*;
 
 use crate::{
-    body::{handle_incoming_body, ReadableBody},
+    body::{ReadableBody, handle_incoming_body},
     shared::{headers::header_map_to_table, lua::lua_table_to_header_map},
 };
 
