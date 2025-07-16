@@ -5,8 +5,9 @@ use std::{cell::RefCell, rc::Rc};
 use mlua::prelude::*;
 use rustc_hash::FxHashMap;
 
+use crate::events::{OnceEvent, OnceListener};
+
 use super::id::ThreadId;
-use crate::events::OnceEvent;
 
 struct ThreadEvent {
     result: Option<LuaResult<LuaMultiValue>>,
@@ -54,12 +55,12 @@ impl ThreadMap {
     }
 
     #[inline(always)]
-    pub fn listen(&self, id: ThreadId) -> impl Future<Output = ()> + use<> {
-        let inner = self.inner.borrow();
-        let tracker = inner.get(&id);
-        tracker
-            .map(|t| t.event.listen())
-            .expect("Thread must be tracked")
+    pub fn listen(&self, id: ThreadId) -> OnceListener {
+        if let Some(tracker) = self.inner.borrow().get(&id) {
+            tracker.event.listen()
+        } else {
+            panic!("Thread must be tracked");
+        }
     }
 
     #[inline(always)]

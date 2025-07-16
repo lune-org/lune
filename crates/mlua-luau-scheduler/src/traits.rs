@@ -326,9 +326,10 @@ impl LuaSchedulerExt for Lua {
     }
 
     fn wait_for_thread(&self, id: ThreadId) -> impl Future<Output = ()> {
-        self.app_data_ref::<ThreadMap>()
-            .expect("lua threads results can only be retrieved from within an active scheduler")
-            .listen(id)
+        let map = self
+            .app_data_ref::<ThreadMap>()
+            .expect("lua threads results can only be retrieved from within an active scheduler");
+        map.listen(id)
     }
 }
 
