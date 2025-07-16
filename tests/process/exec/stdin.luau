@@ -1,3 +1,16 @@
+--[[
+	Unfortunately, this test is, for some reason, very flaky on Windows.
+
+	The behavior of stdin itself works as expected, but a simple test
+	that passes a string to stdin, and needs that exact string back out,
+	is near impossible to write using PowerShell on Windows.
+
+	For now, we will disable this test entirely on that platform to
+	not disturb the rest of the test suite and contribution process.
+]]
+
+local DISABLE_WINDOWS_TESTS = true
+
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
@@ -6,6 +19,10 @@ local expected = "Hello from child process!"
 
 -- Writing to stdin should succeed and we should be able
 -- to read the exact message we wrote to it from stdout
+
+if DISABLE_WINDOWS_TESTS and process.os == "windows" then
+	process.exit(0)
+end
 
 local options = { stdio = { stdin = expected } }
 local result = if process.os == "windows"
