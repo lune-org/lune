@@ -106,9 +106,22 @@ impl AsRef<Path> for LuauFilePath {
     }
 }
 
+impl fmt::Display for LuauFilePath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Directory(path) | Self::File(path) => path.display().fmt(f),
+        }
+    }
+}
+
 /**
-    A resolved module path for Luau, containing both the source module path,
-    and the corresponding target path on the current filesystem.
+    A resolved module path for Luau, containing both:
+
+    - The **source** Luau module path.
+    - The **target** filesystem path.
+
+    Note the separation here - the source is not necessarily a valid filesystem path,
+    and the target is not necessarily a valid Luau module path for require-by-string.
 
     See [`LuauFilePath`] and [`LuauModulePath::resolve`] for more information.
 */
@@ -121,6 +134,38 @@ pub struct LuauModulePath {
 }
 
 impl LuauModulePath {
+    /**
+        Strips Luau file extensions and potential init segments from a given path.
+
+        This is the opposite operation of [`LuauModulePath::resolve`] and is generally
+        useful for converting between paths in a CLI or other similar use cases - but
+        should *never* be used to implement `require` resolution.
+
+        Does not use any filesystem calls and will not panic.
+    */
+    #[must_use]
+    pub fn strip(path: impl Into<PathBuf>) -> PathBuf {
+        let mut path: PathBuf = path.into();
+
+        if path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| FILE_EXTENSIONS.contains(&e))
+        {
+            path = path.with_extension("");
+        }
+
+        if path
+            .file_name()
+            .and_then(|e| e.to_str())
+            .is_some_and(|f| f == FILE_NAME_INIT)
+        {
+            path.pop();
+        }
+
+        path
+    }
+
     /**
         Resolves an existing file or directory path for the given *module* path.
 
@@ -146,7 +191,7 @@ impl LuauModulePath {
     }
 
     /**
-        Returns the source module path.
+        Returns the source Luau module path.
     */
     #[must_use]
     pub fn source(&self) -> &Path {
@@ -154,7 +199,7 @@ impl LuauModulePath {
     }
 
     /**
-        Returns the target file path.
+        Returns the target filesystem file path.
     */
     #[must_use]
     pub fn target(&self) -> &LuauFilePath {
@@ -162,14 +207,8 @@ impl LuauModulePath {
     }
 }
 
-impl AsRef<Path> for LuauModulePath {
-    fn as_ref(&self) -> &Path {
-        self.target.as_ref()
-    }
-}
-
 impl fmt::Display for LuauModulePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_ref().display().fmt(f)
+        self.source().display().fmt(f)
     }
 }

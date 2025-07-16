@@ -1,127 +1,54 @@
-use std::{
-    fs::Metadata,
-    path::{MAIN_SEPARATOR, PathBuf},
-    sync::LazyLock,
-};
+use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use console::style;
 use directories::UserDirs;
 
+use lune_utils::path::{LuauFilePath, LuauModulePath, get_current_dir};
+
 const LUNE_COMMENT_PREFIX: &str = "-->";
 
-static ERR_MESSAGE_HELP_NOTE: LazyLock<String> = LazyLock::new(|| {
-    format!(
-        "To run this file, either:\n{}\n{}",
-        format_args!(
-            "{} rename it to use a {} or {} extension",
-            style("-").dim(),
-            style(".luau").blue(),
-            style(".lua").blue()
-        ),
-        format_args!(
-            "{} pass it as an absolute path instead of relative",
-            style("-").dim()
-        ),
-    )
-});
-
 /**
-    Discovers a script file path based on a given script name.
+    Discovers a script file path based on a given module path *or* file path.
 
-    Script discovery is done in several steps here for the best possible user experience:
-
-    1. If we got a file that definitely exists, make sure it is either
-        - using an absolute path
-        - has the lua or luau extension
-    2. If we got a directory, check if it has an `init` file to use, and if it doesn't, let the user know
-    3. If we got an absolute path, don't check any extensions, just let the user know it didn't exist
-    4. If we got a relative path with no extension, also look for a file with a lua or luau extension
-    5. No other options left, the file simply did not exist
-
-    This behavior ensures that users can do pretty much whatever they want if they pass in an absolute
-    path, and that they then have control over script discovery behavior, whereas if they pass in
-    a relative path we will instead try to be as permissive as possible for user-friendliness
+    See the documentation for [`LuauModulePath`] for more information about
+    what a module path vs a script path is.
 */
-pub fn discover_script_path(path: impl AsRef<str>, in_home_dir: bool) -> Result<PathBuf> {
-    // NOTE: We don't actually support any platforms without home directories,
-    // but just in case the user has some strange configuration and it cannot
-    // be found we should at least throw a nice error instead of panicking
-    let path = path.as_ref();
-    let file_path = if in_home_dir {
-        match UserDirs::new() {
-            Some(dirs) => dirs.home_dir().join(path),
-            None => {
-                bail!(
-                    "No file was found at {}\nThe home directory does not exist",
-                    style(path).yellow()
-                )
-            }
-        }
+pub fn discover_script_path(path: impl Into<PathBuf>, in_home_dir: bool) -> Result<PathBuf> {
+    // First, for legacy compatibility, we will strip any lua/luau file extension,
+    // and if the entire file stem is simply "init", we will get rid of that too
+    // This lets users pass "dir/init.luau" and have it resolve to simply "dir",
+    // which is a valid luau module path, while "dir/init.luau" is not
+    let path = LuauModulePath::strip(path);
+
+    // If we got an absolute path, we should not modify it,
+    // otherwise we should either resolve against home or cwd
+    let path = if path.is_absolute() {
+        path
+    } else if in_home_dir {
+        UserDirs::new()
+            .context("Missing home directory")?
+            .home_dir()
+            .join(path)
     } else {
-        PathBuf::from(path)
+        get_current_dir().join(path)
     };
-    // NOTE: We use metadata directly here to try to
-    // avoid accessing the file path more than once
-    let file_meta = file_path.metadata();
-    let is_file = file_meta.as_ref().is_ok_and(Metadata::is_file);
-    let is_dir = file_meta.as_ref().is_ok_and(Metadata::is_dir);
-    let is_abs = file_path.is_absolute();
-    let ext = file_path.extension();
-    if is_file {
-        if is_abs {
-            Ok(file_path)
-        } else if let Some(ext) = file_path.extension() {
-            match ext {
-                e if e == "lua" || e == "luau" => Ok(file_path),
-                _ => Err(anyhow!(
-                    "A file was found at {} but it uses the '{}' file extension\n{}",
-                    style(file_path.display()).green(),
-                    style(ext.to_string_lossy()).blue(),
-                    *ERR_MESSAGE_HELP_NOTE
-                )),
-            }
-        } else {
-            Err(anyhow!(
-                "A file was found at {} but it has no file extension\n{}",
-                style(file_path.display()).green(),
-                *ERR_MESSAGE_HELP_NOTE
-            ))
-        }
-    } else if is_dir {
-        match (
-            discover_script_path(format!("{path}/init.luau"), in_home_dir),
-            discover_script_path(format!("{path}/init.lua"), in_home_dir),
-        ) {
-            (Ok(path), _) | (_, Ok(path)) => Ok(path),
-            _ => Err(anyhow!(
-                "No file was found at {}, found a directory without an init file",
-                style(file_path.display()).yellow()
+
+    // The rest of the logic should follow Luau module path resolution rules
+    match LuauModulePath::resolve(&path) {
+        Err(e) => Err(anyhow!(
+            "Failed to resolve script at path {} ({})",
+            style(path.display()).yellow(),
+            style(format!("{e:?}")).red()
+        )),
+        Ok(m) => match m.target() {
+            LuauFilePath::File(f) => Ok(f.clone()),
+            LuauFilePath::Directory(_) => Err(anyhow!(
+                "Failed to resolve script at path {}\
+                \nThe path is a directory without an init file",
+                style(path.display()).yellow()
             )),
-        }
-    } else if is_abs && !in_home_dir {
-        Err(anyhow!(
-            "No file was found at {}",
-            style(file_path.display()).yellow()
-        ))
-    } else if ext.is_none() {
-        let file_path_lua = file_path.with_extension("lua");
-        let file_path_luau = file_path.with_extension("luau");
-        if file_path_lua.is_file() {
-            Ok(file_path_lua)
-        } else if file_path_luau.is_file() {
-            Ok(file_path_luau)
-        } else {
-            Err(anyhow!(
-                "No file was found at {}",
-                style(file_path.display()).yellow()
-            ))
-        }
-    } else {
-        Err(anyhow!(
-            "No file was found at {}",
-            style(file_path.display()).yellow()
-        ))
+        },
     }
 }
 
@@ -134,22 +61,24 @@ pub fn discover_script_path(path: impl AsRef<str>, in_home_dir: bool) -> Result<
 
     Behavior is otherwise exactly the same as for `discover_script_file_path`.
 */
-pub fn discover_script_path_including_lune_dirs(path: &str) -> Result<PathBuf> {
+pub fn discover_script_path_including_lune_dirs(path: impl AsRef<Path>) -> Result<PathBuf> {
+    let path: &Path = path.as_ref();
     match discover_script_path(path, false) {
         Ok(path) => Ok(path),
         Err(e) => {
             // If we got any absolute path it means the user has also
             // told us to not look in any special relative directories
             // so we should error right away with the first err message
-            if PathBuf::from(path).is_absolute() {
+            if path.is_absolute() {
                 return Err(e);
             }
+
             // Otherwise we take a look in relative lune and .lune
             // directories + the home directory for the current user
-            let res = discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), false)
-                .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), false))
-                .or_else(|_| discover_script_path(format!("lune{MAIN_SEPARATOR}{path}"), true))
-                .or_else(|_| discover_script_path(format!(".lune{MAIN_SEPARATOR}{path}"), true));
+            let res = discover_script_path(Path::new("lune").join(path), false)
+                .or_else(|_| discover_script_path(Path::new(".lune").join(path), false))
+                .or_else(|_| discover_script_path(Path::new("lune").join(path), true))
+                .or_else(|_| discover_script_path(Path::new(".lune").join(path), true));
 
             match res {
                 // NOTE: The first error message is generally more

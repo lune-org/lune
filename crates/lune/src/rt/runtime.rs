@@ -10,7 +10,10 @@ use std::{
 };
 
 use async_fs as fs;
-use lune_utils::process::{ProcessArgs, ProcessEnv, ProcessJitEnablement};
+use lune_utils::{
+    path::{LuauModulePath, constants::FILE_CHUNK_PREFIX},
+    process::{ProcessArgs, ProcessEnv, ProcessJitEnablement},
+};
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
 
@@ -257,7 +260,9 @@ impl Runtime {
     /**
         Runs some kind of custom input, inside of the current runtime.
 
-        For any input that is a real file path, [`run_file`] should be used instead.
+        For any input that is a real module or file path, [`run_file`] should
+        be used instead, since when using this method, any file requires will
+        fail. Requires for standard libraries and custom libraries will work.
 
         # Errors
 
@@ -275,7 +280,7 @@ impl Runtime {
     }
 
     /**
-        Runs a file at the given file path, inside of the current runtime.
+        Runs a file at the given file or module path, inside of the current runtime.
 
         # Errors
 
@@ -288,16 +293,40 @@ impl Runtime {
         &mut self,
         path: impl Into<PathBuf>,
     ) -> RuntimeResult<RuntimeReturnValues> {
-        let path: PathBuf = path.into();
-        let contents = fs::read(&path).await.into_lua_err().context(format!(
-            "Failed to read file at path \"{}\"",
-            path.display()
-        ))?;
+        /*
+            For calls to `require` to resolve properly, we must:
 
-        // For calls to `require` to resolve properly, we must convert the file
-        // path to the respective "module" path according to require-by-string
-        let module_path = remove_lua_luau_ext(path);
-        let module_name = format!("@{}", module_path.display());
+            1. Strip any lua/luau extensions, as well as "init" file
+               segments from the path.
+            2. Resolve any given file path to the respective "module"
+               path according to the require-by-string specification.
+
+            After doing this, we should end up with both:
+
+            - A source (module path)
+            - A target (file path)
+
+            If the given path was already a valid module path,
+            this should be a no-op.
+        */
+        let module_or_file_path = LuauModulePath::strip(path);
+        let module_path = LuauModulePath::resolve(&module_or_file_path)
+            .map_err(|e| LuaError::external(format!("{e:?}")))
+            .with_context(|_| {
+                format!(
+                    "Failed to read file at path \"{}\"",
+                    module_or_file_path.display()
+                )
+            })?;
+
+        let contents = fs::read(module_path.target())
+            .await
+            .into_lua_err()
+            .with_context(|_| {
+                format!("Failed to read file at path \"{}\"", module_path.target())
+            })?;
+
+        let module_name = format!("{FILE_CHUNK_PREFIX}{module_path}");
         let module_contents = strip_shebang(contents);
 
         self.run_inner(module_name, module_contents).await
@@ -363,14 +392,6 @@ impl Runtime {
             errored: got_any_error.load(Ordering::SeqCst),
             values: main_thread_values,
         })
-    }
-}
-
-fn remove_lua_luau_ext(path: impl Into<PathBuf>) -> PathBuf {
-    let path: PathBuf = path.into();
-    match path.extension().and_then(|e| e.to_str()) {
-        Some("lua" | "luau") => path.with_extension(""),
-        _ => path,
     }
 }
 
