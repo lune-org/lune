@@ -8,6 +8,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.10.1` - July 15th, 2025
+
+### Fixed
+
+- Fixed a regression where it was not possible to run directories with `init.luau` files in them directly using `lune run directory-name`.
+- Fixed a panic when calling `process.exit` inside a file that `require` was called on. ([#333])
+- Fixed a panic when calling `process.exit` inside a request handler for `net.serve`. ([#333])
+
+[#333]: https://github.com/lune-org/lune/pull/333
+
 ## `0.10.0` - July 15th, 2025
 
 This version of Lune contains a major internal refactoring of the `require` function, now using the proper require-by-string APIs exposed by Luau.
