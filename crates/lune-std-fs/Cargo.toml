@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-fs"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -19,5 +19,5 @@ async-fs = "2.1"
 bstr = "1.9"
 futures-lite = "2.6"
 
-lune-utils = { version = "0.3.0", path = "../lune-utils" }
-lune-std-datetime = { version = "0.3.0", path = "../lune-std-datetime" }
+lune-utils = { version = "0.3.1", path = "../lune-utils" }
+lune-std-datetime = { version = "0.3.1", path = "../lune-std-datetime" }
