@@ -54,16 +54,12 @@ impl ThreadMap {
     }
 
     #[inline(always)]
-    pub async fn listen(&self, id: ThreadId) {
-        if let Some(listener) = {
-            let inner = self.inner.borrow();
-            let tracker = inner.get(&id);
-            tracker.map(|t| t.event.listen())
-        } {
-            listener.await;
-        } else {
-            panic!("Thread must be tracked");
-        }
+    pub fn listen(&self, id: ThreadId) -> impl Future<Output = ()> + use<> {
+        let inner = self.inner.borrow();
+        let tracker = inner.get(&id);
+        tracker
+            .map(|t| t.event.listen())
+            .expect("Thread must be tracked")
     }
 
     #[inline(always)]
