@@ -13,7 +13,7 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-mlua = { version = "0.11.0", features = ["luau", "async"] }
+mlua = { version = "0.11.1", features = ["luau", "async"] }
 
 console = "0.16"
 dunce = "1.0"

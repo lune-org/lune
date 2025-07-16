@@ -22,7 +22,7 @@ futures-lite = "2.6"
 rustc-hash = "2.1"
 tracing = "0.1"
 
-mlua = { version = "0.11.0", features = [
+mlua = { version = "0.11.1", features = [
     "luau",
     "luau-jit",
     "async",
