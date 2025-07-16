@@ -8,10 +8,9 @@ use std::{
 use async_channel::{Receiver, Sender};
 use async_fs::read as read_file;
 
+use lune_utils::path::constants::FILE_CHUNK_PREFIX;
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSchedulerExt;
-
-use super::constants::FILE_CHUNK_PREFIX;
 
 type RequireResult = LuaResult<LuaMultiValue>;
 type RequireResultSender = Sender<RequireResult>;

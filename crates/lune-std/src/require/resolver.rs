@@ -4,15 +4,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use lune_utils::path::clean_path_and_make_absolute;
+use lune_utils::path::{
+    LuauModulePath, clean_path_and_make_absolute,
+    constants::{FILE_CHUNK_PREFIX, FILE_NAME_CONFIG},
+    relative_path_normalize, relative_path_parent,
+};
 use mlua::prelude::*;
 
-use super::{
-    constants::{FILE_CHUNK_PREFIX, FILE_NAME_CONFIG},
-    loader::RequireLoader,
-    path_utils::{relative_path_normalize, relative_path_parent},
-    resolved_path::ResolvedPath,
-};
+use super::loader::RequireLoader;
 
 #[derive(Debug)]
 pub(crate) struct RequireResolver {
@@ -28,7 +27,7 @@ pub(crate) struct RequireResolver {
     relative: PathBuf,
     /// Path to the current filesystem entry that
     /// directly represents the current module path.
-    resolved: Option<ResolvedPath>,
+    resolved: Option<LuauModulePath>,
     /// Loader and accompanying state.
     loader: RequireLoader,
 }
@@ -62,7 +61,7 @@ impl RequireResolver {
         }
 
         // Make sure to resolve path **before** updating any paths state
-        let resolved = ResolvedPath::resolve(&absolute)?;
+        let resolved = LuauModulePath::resolve(&absolute)?;
 
         self.absolute = absolute;
         self.relative = relative;
@@ -137,7 +136,7 @@ impl LuaRequire for RequireResolver {
 
     fn has_module(&self) -> bool {
         let resolved = self.resolved.as_ref();
-        resolved.is_some_and(ResolvedPath::is_file)
+        resolved.is_some_and(|p| p.target().is_file())
     }
 
     fn cache_key(&self) -> String {
@@ -156,7 +155,7 @@ impl LuaRequire for RequireResolver {
     fn loader(&self, lua: &Lua) -> LuaResult<LuaFunction> {
         let resolved = self.resolved.as_ref();
         let resolved = resolved.expect("called has_module first");
-        let resolved = resolved.as_file().expect("tried to require a dir");
+        let resolved = resolved.target().as_file().expect("tried to require a dir");
         self.loader.load(lua, self.relative.as_path(), resolved)
     }
 }
