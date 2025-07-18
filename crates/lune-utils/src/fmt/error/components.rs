@@ -89,7 +89,7 @@ impl fmt::Display for ErrorComponents {
             writeln!(f, "{message}")?;
         }
         if self.has_trace() {
-            let trace = self.trace.as_ref().unwrap();
+            let trace = self.trace.as_ref().expect("trace exists and is non-empty");
             writeln!(f, "{}", *STYLED_STACK_BEGIN)?;
             for line in trace.lines() {
                 writeln!(f, "{STACK_TRACE_INDENT}{line}")?;
@@ -182,13 +182,17 @@ impl From<LuaError> for ErrorComponents {
                 .flat_map(StackTrace::lines)
                 .find(|line| line.source().is_lua())
             {
-                let location_prefix = format!(
-                    "[string \"{}\"]:{}:",
-                    line.path().unwrap(),
-                    line.line_number().unwrap()
-                );
-                if message.starts_with(&location_prefix) {
-                    *message = message[location_prefix.len()..].trim().to_string();
+                if let Some(path) = line.path() {
+                    let prefix = format!("[string \"{path}\"]:");
+                    if message.starts_with(&prefix) {
+                        *message = message[prefix.len()..].trim().to_string();
+                    }
+                }
+                if let Some(line) = line.line_number() {
+                    let prefix = format!("{line}:");
+                    if message.starts_with(&prefix) {
+                        *message = message[prefix.len()..].trim().to_string();
+                    }
                 }
             }
         }
