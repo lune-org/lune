@@ -21,6 +21,7 @@ async-compression = { version = "0.4", features = [
     "deflate",
     "gzip",
     "zlib",
+    "zstd",
 ] }
 
 blocking = "1.6"
