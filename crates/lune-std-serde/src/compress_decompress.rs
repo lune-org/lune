@@ -37,10 +37,7 @@ impl CompressDecompressFormat {
         match bytes.as_ref() {
             // https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md#zstandard-frames
             b if b.len() >= 4
-                && matches!(
-                    u32::from_le_bytes(b[0..4].try_into().unwrap()),
-                    0xFD2FB528
-                ) =>
+                && matches!(u32::from_le_bytes(b[0..4].try_into().unwrap()), 0xFD2FB528) =>
             {
                 Some(Self::Zstd)
             }
