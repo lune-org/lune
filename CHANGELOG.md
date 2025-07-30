@@ -8,6 +8,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added XDG Base Directory Specification support with complete backwards compatibility. Lune now respects XDG environment variables on supported systems while automatically detecting and preferring existing directory structures to minimize user disruption.
+  - Cache directory: `$XDG_CACHE_HOME/lune/` (typically `~/.cache/lune/`) on XDG-compliant systems, falls back to `~/.lune/`
+  - State directory: `$XDG_STATE_HOME/lune/` (typically `~/.local/state/lune/`) on XDG-compliant systems, falls back to `~/` for history files
+  - Environment variable overrides: `LUNE_CACHE` and `LUNE_STATE` can be used to specify custom directory locations
+  - Backwards compatibility: Existing `~/.lune/target/` and `~/.lune_history` files are automatically detected and preferred over new XDG locations
+
 ## `0.10.1` - July 15th, 2025
 
 ### Fixed
