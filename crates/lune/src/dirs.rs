@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use etcetera::{BaseStrategy, choose_base_strategy};
+use directories::BaseDirs;
 use std::path::PathBuf;
 
 /**
@@ -17,9 +17,9 @@ pub fn cache_dir() -> Result<PathBuf> {
         return Ok(PathBuf::from(custom_cache));
     }
 
-    let strategy = choose_base_strategy().context("Unable to find cache directory")?;
-    let xdg_cache = strategy.cache_dir().join("lune");
-    let legacy_cache = strategy.home_dir().join(".lune");
+    let dirs = BaseDirs::new().context("Unable to find cache directory")?;
+    let xdg_cache = dirs.cache_dir().join("lune");
+    let legacy_cache = dirs.home_dir().join(".lune");
 
     if legacy_cache.join("target").exists() && !xdg_cache.join("target").exists() {
         return Ok(legacy_cache);
@@ -43,15 +43,16 @@ pub fn state_dir() -> Result<PathBuf> {
         return Ok(PathBuf::from(custom_state));
     }
 
-    let strategy = choose_base_strategy().context("Unable to find base directories")?;
+    let dirs = BaseDirs::new().context("Unable to find base directories")?;
 
-    let base_dir = match strategy.state_dir() {
+    let base_dir = match dirs.state_dir() {
         Some(state_dir) => state_dir,
-        None => strategy.cache_dir(),
+        None => dirs.cache_dir(),
     };
 
     let xdg_state = base_dir.join("lune");
-    let legacy_home = strategy.home_dir();
+    let legacy_home = dirs.home_dir();
+
 
     if legacy_home.join(".lune_history").exists() && !xdg_state.join(".lune_history").exists() {
         return Ok(legacy_home.to_path_buf());
@@ -68,8 +69,8 @@ pub fn state_dir() -> Result<PathBuf> {
     Returns an error if the home directory cannot be determined.
 */
 pub fn typedefs_dir() -> Result<PathBuf> {
-    let strategy = choose_base_strategy().context("Unable to find home directory")?;
-    Ok(strategy.home_dir().join(".lune").join(".typedefs"))
+    let dirs = BaseDirs::new().context("Unable to find home directory")?;
+    Ok(dirs.home_dir().join(".lune").join(".typedefs"))
 }
 
 #[cfg(test)]
@@ -125,12 +126,34 @@ mod tests {
 
     #[test]
     fn test_state_dir_without_custom_env() {
+        use std::sync::Mutex;
+        static TEST_MUTEX: Mutex<()> = Mutex::new(());
+        let _guard = TEST_MUTEX.lock().unwrap();
+        
         unsafe {
             env::remove_var("LUNE_STATE");
         }
+        
+        // Temporarily hide any existing legacy files to test the non-legacy path
+        let dirs = BaseDirs::new().unwrap();
+        let legacy_history = dirs.home_dir().join(".lune_history");
+        let backup_path = dirs.home_dir().join(format!(".lune_history.test_backup_{}", std::process::id()));
+        
+        let had_legacy = legacy_history.exists();
+        if had_legacy {
+            std::fs::rename(&legacy_history, &backup_path).unwrap();
+        }
+        
         let result = state_dir();
+        
+        // Restore legacy file if it existed
+        if had_legacy {
+            std::fs::rename(&backup_path, &legacy_history).unwrap();
+        }
+        
         assert!(result.is_ok());
-        assert!(result.unwrap().ends_with("lune"));
+        let path = result.unwrap();
+        assert!(path.ends_with("lune"));
     }
 
     #[test]
@@ -157,7 +180,7 @@ mod tests {
         fs::create_dir_all(&legacy_target).unwrap();
         fs::write(legacy_target.join("test_file"), "legacy content").unwrap();
 
-        // Note: This test documents expected behavior but can't fully mock etcetera's BaseStrategy
+        // Note: This test documents expected behavior but can't fully mock BaseDirs
         assert!(legacy_cache.exists());
         assert!(legacy_cache.join("target").exists());
     }
@@ -190,13 +213,34 @@ mod tests {
 
     #[test]
     fn test_state_dir_backwards_compatibility_no_legacy() {
+        use std::sync::Mutex;
+        static TEST_MUTEX2: Mutex<()> = Mutex::new(());
+        let _guard = TEST_MUTEX2.lock().unwrap();
+        
         unsafe {
             env::remove_var("LUNE_STATE");
         }
 
+        // Temporarily hide any existing legacy files to test the non-legacy path
+        let dirs = BaseDirs::new().unwrap();
+        let legacy_history = dirs.home_dir().join(".lune_history");
+        let backup_path = dirs.home_dir().join(format!(".lune_history.test_backup_bc_{}", std::process::id()));
+        
+        let had_legacy = legacy_history.exists();
+        if had_legacy {
+            std::fs::rename(&legacy_history, &backup_path).unwrap();
+        }
+        
         let result = state_dir();
+        
+        // Restore legacy file if it existed
+        if had_legacy {
+            std::fs::rename(&backup_path, &legacy_history).unwrap();
+        }
+
         assert!(result.is_ok());
-        assert!(result.unwrap().ends_with("lune"));
+        let path = result.unwrap();
+        assert!(path.ends_with("lune"));
     }
 
     #[test]

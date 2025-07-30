@@ -57,7 +57,6 @@ anyhow = "1.0"
 console = "0.16"
 dialoguer = "0.11"
 directories = "6.0"
-etcetera = "0.10.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
