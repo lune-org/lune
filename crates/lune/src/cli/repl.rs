@@ -33,6 +33,11 @@ impl ReplCommand {
                     .to_path_buf()
             })
             .join(".lune_history");
+
+        if let Some(parent_dir) = history_file_path.parent() {
+            fs::create_dir_all(parent_dir).await?;
+        }
+
         if !history_file_path.exists() {
             fs::write(&history_file_path, &[]).await?;
         }
