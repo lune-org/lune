@@ -9,7 +9,14 @@ static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
         .to_path_buf()
 });
 
-pub static CACHE_DIR: LazyLock<PathBuf> = LazyLock::new(|| HOME_DIR.join(".lune").join("target"));
+pub static CACHE_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
+    crate::dirs::cache_dir()
+        .unwrap_or_else(|_| {
+            // Fallback to original logic if XDG fails
+            HOME_DIR.join(".lune")
+        })
+        .join("target")
+});
 
 /**
     A target operating system supported by Lune

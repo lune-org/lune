@@ -53,7 +53,6 @@ pub fn state_dir() -> Result<PathBuf> {
     let xdg_state = base_dir.join("lune");
     let legacy_home = dirs.home_dir();
 
-
     if legacy_home.join(".lune_history").exists() && !xdg_state.join(".lune_history").exists() {
         return Ok(legacy_home.to_path_buf());
     }
@@ -129,28 +128,31 @@ mod tests {
         use std::sync::Mutex;
         static TEST_MUTEX: Mutex<()> = Mutex::new(());
         let _guard = TEST_MUTEX.lock().unwrap();
-        
+
         unsafe {
             env::remove_var("LUNE_STATE");
         }
-        
+
         // Temporarily hide any existing legacy files to test the non-legacy path
         let dirs = BaseDirs::new().unwrap();
         let legacy_history = dirs.home_dir().join(".lune_history");
-        let backup_path = dirs.home_dir().join(format!(".lune_history.test_backup_{}", std::process::id()));
-        
+        let backup_path = dirs
+            .home_dir()
+            .join(format!(".lune_history.test_backup_{}", std::process::id()));
+
         let had_legacy = legacy_history.exists();
         if had_legacy {
             std::fs::rename(&legacy_history, &backup_path).unwrap();
         }
-        
+
         let result = state_dir();
-        
+
         // Restore legacy file if it existed
-        if had_legacy {
-            std::fs::rename(&backup_path, &legacy_history).unwrap();
+        if had_legacy && backup_path.exists() {
+            std::fs::rename(&backup_path, &legacy_history)
+                .expect("Failed to restore backup file after test");
         }
-        
+
         assert!(result.is_ok());
         let path = result.unwrap();
         assert!(path.ends_with("lune"));
@@ -216,7 +218,7 @@ mod tests {
         use std::sync::Mutex;
         static TEST_MUTEX2: Mutex<()> = Mutex::new(());
         let _guard = TEST_MUTEX2.lock().unwrap();
-        
+
         unsafe {
             env::remove_var("LUNE_STATE");
         }
@@ -224,18 +226,22 @@ mod tests {
         // Temporarily hide any existing legacy files to test the non-legacy path
         let dirs = BaseDirs::new().unwrap();
         let legacy_history = dirs.home_dir().join(".lune_history");
-        let backup_path = dirs.home_dir().join(format!(".lune_history.test_backup_bc_{}", std::process::id()));
-        
+        let backup_path = dirs.home_dir().join(format!(
+            ".lune_history.test_backup_bc_{}",
+            std::process::id()
+        ));
+
         let had_legacy = legacy_history.exists();
         if had_legacy {
             std::fs::rename(&legacy_history, &backup_path).unwrap();
         }
-        
+
         let result = state_dir();
-        
+
         // Restore legacy file if it existed
-        if had_legacy {
-            std::fs::rename(&backup_path, &legacy_history).unwrap();
+        if had_legacy && backup_path.exists() {
+            std::fs::rename(&backup_path, &legacy_history)
+                .expect("Failed to restore backup file after test");
         }
 
         assert!(result.is_ok());
