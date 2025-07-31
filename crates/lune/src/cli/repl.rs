@@ -25,13 +25,12 @@ impl ReplCommand {
         println!("{MESSAGE_WELCOME}");
 
         let history_file_path: PathBuf = crate::dirs::state_dir()
-            .unwrap_or_else(|_| {
-                // Fallback to original logic if XDG fails
+            .unwrap_or(
                 UserDirs::new()
                     .expect("Failed to find user home directory")
                     .home_dir()
                     .to_path_buf()
-            })
+            )
             .join(".lune_history");
 
         if let Some(parent_dir) = history_file_path.parent() {

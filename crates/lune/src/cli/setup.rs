@@ -108,14 +108,13 @@ async fn generate_typedef_files_from_definitions() -> Result<String> {
 
     // Create the typedefs dir using XDG helper
     let cache_dir = crate::dirs::typedefs_dir()
-        .unwrap_or_else(|_| {
-            // Fallback to original logic if XDG helper fails
+        .unwrap_or(
             UserDirs::new()
                 .expect("Failed to find user home directory")
                 .home_dir()
                 .join(".lune")
                 .join(".typedefs")
-        })
+        )
         .join(version_string);
     dirs_to_write.push(cache_dir.clone());
 

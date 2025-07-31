@@ -11,10 +11,7 @@ static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 
 pub static CACHE_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     crate::dirs::cache_dir()
-        .unwrap_or_else(|_| {
-            // Fallback to original logic if XDG fails
-            HOME_DIR.join(".lune")
-        })
+        .unwrap_or(HOME_DIR.join(".lune"))
         .join("target")
 });
 
