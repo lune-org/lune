@@ -78,3 +78,6 @@ lune-utils = { version = "0.3.1", path = "../lune-utils" }
 clap = { optional = true, version = "4.1", features = ["derive"] }
 rustyline = { optional = true, version = "16.0" }
 zip = { optional = true, version = "4.0" }
+
+[dev-dependencies]
+tempfile = "3.0"

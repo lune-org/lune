@@ -4,7 +4,7 @@ use std::{io::stderr, process::ExitCode};
 
 #[cfg(feature = "cli")]
 pub(crate) mod cli;
-
+pub(crate) mod dirs;
 pub(crate) mod standalone;
 
 use lune_utils::fmt::Label;

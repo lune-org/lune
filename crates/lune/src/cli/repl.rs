@@ -1,6 +1,6 @@
 use std::{path::PathBuf, process::ExitCode};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_fs as fs;
 use clap::Parser;
 use directories::UserDirs;
@@ -24,16 +24,25 @@ impl ReplCommand {
     pub async fn run(self) -> Result<ExitCode> {
         println!("{MESSAGE_WELCOME}");
 
-        let history_file_path: &PathBuf = &UserDirs::new()
-            .context("Failed to find user home directory")?
-            .home_dir()
+        let history_file_path: PathBuf = crate::dirs::state_dir()
+            .unwrap_or(
+                UserDirs::new()
+                    .expect("Failed to find user home directory")
+                    .home_dir()
+                    .to_path_buf()
+            )
             .join(".lune_history");
+
+        if let Some(parent_dir) = history_file_path.parent() {
+            fs::create_dir_all(parent_dir).await?;
+        }
+
         if !history_file_path.exists() {
-            fs::write(history_file_path, &[]).await?;
+            fs::write(&history_file_path, &[]).await?;
         }
 
         let mut repl = DefaultEditor::new()?;
-        repl.load_history(history_file_path)?;
+        repl.load_history(&history_file_path)?;
 
         let mut interrupt_counter = 0;
         let mut prompt_state = PromptState::Regular;
@@ -55,7 +64,7 @@ impl ReplCommand {
                     // Or should we add and save history only when we have complete
                     // lua input that may or may not be multiple lines long?
                     repl.add_history_entry(&code)?;
-                    repl.save_history(history_file_path)?;
+                    repl.save_history(&history_file_path)?;
 
                     match prompt_state {
                         PromptState::Regular => source_code = code,
@@ -98,7 +107,7 @@ impl ReplCommand {
             }
         }
 
-        repl.save_history(history_file_path)?;
+        repl.save_history(&history_file_path)?;
 
         Ok(ExitCode::SUCCESS)
     }

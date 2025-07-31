@@ -1,6 +1,6 @@
 use std::{io::ErrorKind, process::ExitCode};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_fs as fs;
 use clap::Parser;
 use directories::UserDirs;
@@ -106,12 +106,15 @@ async fn generate_typedef_files_from_definitions() -> Result<String> {
     let mut dirs_to_write = Vec::new();
     let mut files_to_write = Vec::new();
 
-    // Create the typedefs dir in the users cache dir
-    let cache_dir = UserDirs::new()
-        .context("Failed to find user home directory")?
-        .home_dir()
-        .join(".lune")
-        .join(".typedefs")
+    // Create the typedefs dir using XDG helper
+    let cache_dir = crate::dirs::typedefs_dir()
+        .unwrap_or(
+            UserDirs::new()
+                .expect("Failed to find user home directory")
+                .home_dir()
+                .join(".lune")
+                .join(".typedefs")
+        )
         .join(version_string);
     dirs_to_write.push(cache_dir.clone());
 
