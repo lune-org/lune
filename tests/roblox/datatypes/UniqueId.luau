@@ -11,6 +11,9 @@ end))
 assert(not pcall(function()
 	return UniqueId.fromString(1, 2)
 end))
+assert(not pcall(function()
+	return UniqueId.fromString("This string is not 16 characters long")
+end))
 
 assert(typeof(UniqueId.null) :: any == "UniqueId")
 
