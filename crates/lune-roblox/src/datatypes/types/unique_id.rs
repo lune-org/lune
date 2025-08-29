@@ -24,9 +24,7 @@ impl LuaExportsTable for UniqueId {
         let from_string = |_: &Lua, input: BString| {
             if input.len() == 16 {
                 let mut bytes = [0; 16];
-                for n in 0..16 {
-                    bytes[n] = input[n];
-                }
+                bytes.copy_from_slice(&input);
                 Ok(UniqueId {
                     id: u128::from_be_bytes(bytes),
                 })
