@@ -20,7 +20,7 @@ pub struct UniqueId {
 impl LuaExportsTable for UniqueId {
     const EXPORT_NAME: &'static str = "UniqueId";
 
-    fn create_exports_table(lua: mlua::Lua) -> mlua::Result<mlua::Table> {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         let from_string = |_: &Lua, input: BString| {
             if input.len() == 16 {
                 let mut bytes = [0; 16];
