@@ -36,6 +36,7 @@ fn create_all_exports(lua: Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
         export::<Rect>(lua.clone())?,
         export::<UDim>(lua.clone())?,
         export::<UDim2>(lua.clone())?,
+        export::<UniqueId>(lua.clone())?,
         export::<Region3>(lua.clone())?,
         export::<Region3int16>(lua.clone())?,
         export::<Vector2>(lua.clone())?,

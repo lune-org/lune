@@ -186,6 +186,7 @@ create_tests! {
     roblox_datatype_rect: "roblox/datatypes/Rect",
     roblox_datatype_udim: "roblox/datatypes/UDim",
     roblox_datatype_udim2: "roblox/datatypes/UDim2",
+    roblox_datatype_uniqueid: "roblox/datatypes/UniqueId",
     roblox_datatype_region3: "roblox/datatypes/Region3",
     roblox_datatype_region3int16: "roblox/datatypes/Region3int16",
     roblox_datatype_vector2: "roblox/datatypes/Vector2",
