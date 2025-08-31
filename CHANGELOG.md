@@ -14,11 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added support for the ZSTD compression format in the `serde` standard library ([#339])
 - Added support for `UniqueId` properties to the `roblox` standard library ([#343])
+- Added prebuilt Lune binaries for Windows on ARM to GitHub releases
 
 ### Changed
 
 - Updated to Luau version `0.688`
 - Lune no longer depends on `liblzma`, making it easier to install on macOS
+- Prebuilt binaries for Ubuntu now use an older version (22.04) for better GLIBC compatibility
 
 ### Fixed
 
