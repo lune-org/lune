@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.10.2` - August 31st, 2025
 
 ### Added
 
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#339]: https://github.com/lune-org/lune/pull/339
 [#343]: https://github.com/lune-org/lune/pull/343
 
-## `0.10.1` - July 15th, 2025
+## `0.10.1` - July 16th, 2025
 
 ### Fixed
 

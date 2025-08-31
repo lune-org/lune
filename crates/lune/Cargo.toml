@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.10.1"
+version = "0.10.2"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -51,7 +51,7 @@ workspace = true
 
 [dependencies]
 mlua = { version = "0.11.3", features = ["luau"] }
-mlua-luau-scheduler = { version = "0.2.1", path = "../mlua-luau-scheduler" }
+mlua-luau-scheduler = { version = "0.2.2", path = "../mlua-luau-scheduler" }
 
 anyhow = "1.0"
 console = "0.16"
@@ -69,9 +69,9 @@ futures-lite = "2.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-lune-std = { optional = true, version = "0.3.1", path = "../lune-std" }
-lune-std-net = { optional = true, version = "0.3.1", path = "../lune-std-net" }
-lune-utils = { version = "0.3.1", path = "../lune-utils" }
+lune-std = { optional = true, version = "0.3.2", path = "../lune-std" }
+lune-std-net = { optional = true, version = "0.3.2", path = "../lune-std-net" }
+lune-utils = { version = "0.3.2", path = "../lune-utils" }
 
 ### CLI
 
