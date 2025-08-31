@@ -28,8 +28,9 @@ export type EncodeDecodeFormat = "json" | "yaml" | "toml"
 	| `gzip`   | https://www.gnu.org/software/gzip |
 	| `lz4`    | https://github.com/lz4/lz4        |
 	| `zlib`   | https://www.zlib.net              |
+	| `zstd`   | https://github.com/facebook/zstd  |
 ]=]
-export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib"
+export type CompressDecompressFormat = "brotli" | "gzip" | "lz4" | "zlib" | "zstd"
 
 --[=[
 	@within Serde

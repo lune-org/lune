@@ -3,7 +3,7 @@ local process = require("@lune/process")
 local serde = require("@lune/serde")
 local stdio = require("@lune/stdio")
 
-local FORMATS: { serde.CompressDecompressFormat } = { "brotli", "gzip", "lz4", "zlib" }
+local FORMATS: { serde.CompressDecompressFormat } = { "brotli", "gzip", "lz4", "zlib", "zstd" }
 local FILES: { string } = {
 	"tests/serde/test-files/loremipsum.txt",
 	"tests/serde/test-files/uncompressed.csv",

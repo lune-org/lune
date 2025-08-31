@@ -187,6 +187,8 @@ dependencies = [
  "futures-io",
  "memchr",
  "pin-project-lite",
+ "zstd",
+ "zstd-safe",
 ]
 
 [[package]]
