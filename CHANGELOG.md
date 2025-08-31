@@ -12,8 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added support for `UniqueId` properties to the roblox library ([#343])
+- Added support for the ZSTD compression format in the `serde` standard library ([#339])
+- Added support for `UniqueId` properties to the `roblox` standard library ([#343])
 
+### Changed
+
+- Updated to Luau version `0.688`
+- Lune no longer depends on `liblzma`, making it easier to install on macOS
+
+### Fixed
+
+- Fixed Lune crashing while emitting an error and parsing its source
+
+[#339]: https://github.com/lune-org/lune/pull/339
 [#343]: https://github.com/lune-org/lune/pull/343
 
 ## `0.10.1` - July 15th, 2025
