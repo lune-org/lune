@@ -176,23 +176,22 @@ impl From<LuaError> for ErrorComponents {
 
         // Finally, we do some light postprocessing to remove duplicate
         // information, such as the location prefix in the error message
-        if let Some(message) = messages.last_mut() {
-            if let Some(line) = trace
+        if let Some(message) = messages.last_mut()
+            && let Some(line) = trace
                 .iter()
                 .flat_map(StackTrace::lines)
                 .find(|line| line.source().is_lua())
-            {
-                if let Some(path) = line.path() {
-                    let prefix = format!("[string \"{path}\"]:");
-                    if message.starts_with(&prefix) {
-                        *message = message[prefix.len()..].trim().to_string();
-                    }
+        {
+            if let Some(path) = line.path() {
+                let prefix = format!("[string \"{path}\"]:");
+                if message.starts_with(&prefix) {
+                    *message = message[prefix.len()..].trim().to_string();
                 }
-                if let Some(line) = line.line_number() {
-                    let prefix = format!("{line}:");
-                    if message.starts_with(&prefix) {
-                        *message = message[prefix.len()..].trim().to_string();
-                    }
+            }
+            if let Some(line) = line.line_number() {
+                let prefix = format!("{line}:");
+                if message.starts_with(&prefix) {
+                    *message = message[prefix.len()..].trim().to_string();
                 }
             }
         }

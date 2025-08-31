@@ -31,13 +31,13 @@ pub fn header_map_to_table(
     let mut string_map = HashMap::<String, Vec<String>>::new();
 
     for (name, value) in headers {
-        if let Some(name) = name {
-            if let Ok(value) = value.to_str() {
-                string_map
-                    .entry(name.to_string())
-                    .or_default()
-                    .push(value.to_owned());
-            }
+        if let Some(name) = name
+            && let Ok(value) = value.to_str()
+        {
+            string_map
+                .entry(name.to_string())
+                .or_default()
+                .push(value.to_owned());
         }
     }
 

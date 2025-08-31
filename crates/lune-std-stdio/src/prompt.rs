@@ -202,7 +202,7 @@ pub fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
         PromptKind::Select => {
             let chosen = Select::with_theme(&theme)
                 .with_prompt(options.text.unwrap_or_default())
-                .items(&options.options.expect("Missing options in prompt options"))
+                .items(options.options.expect("Missing options in prompt options"))
                 .interact_opt()
                 .into_lua_err()?;
             Ok(match chosen {
@@ -213,7 +213,7 @@ pub fn prompt(options: PromptOptions) -> LuaResult<PromptResult> {
         PromptKind::MultiSelect => {
             let chosen = MultiSelect::with_theme(&theme)
                 .with_prompt(options.text.unwrap_or_default())
-                .items(&options.options.expect("Missing options in prompt options"))
+                .items(options.options.expect("Missing options in prompt options"))
                 .interact_opt()
                 .into_lua_err()?;
             Ok(match chosen {

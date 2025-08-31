@@ -39,7 +39,7 @@ impl LuaCaptures {
         }
     }
 
-    fn captures(&self) -> &Captures {
+    fn captures(&self) -> &Captures<'_> {
         self.inner
             .borrow_dependent()
             .as_ref()

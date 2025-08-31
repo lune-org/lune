@@ -352,10 +352,10 @@ impl Scheduler {
                             }
                         } else {
                             // Just run until yield
-                            if let Some(res) = run_until_yield(thread, args).await {
-                                if let Err(e) = res.as_ref() {
-                                    self.error_callback.call(e);
-                                }
+                            if let Some(res) = run_until_yield(thread, args).await
+                                && let Err(e) = res.as_ref()
+                            {
+                                self.error_callback.call(e);
                             }
                         }
                     };

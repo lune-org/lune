@@ -106,10 +106,10 @@ pub(crate) fn get_or_create_property_ref_instance(
     prop_name: &'static str,
     class_name: &'static str,
 ) -> LuaResult<Instance> {
-    if let Some(DomValue::Ref(inst_ref)) = this.get_property(prop_name) {
-        if let Some(inst) = Instance::new_opt(inst_ref) {
-            return Ok(inst);
-        }
+    if let Some(DomValue::Ref(inst_ref)) = this.get_property(prop_name)
+        && let Some(inst) = Instance::new_opt(inst_ref)
+    {
+        return Ok(inst);
     }
     if let Some(inst) = this.find_child(|child| child.class == class_name) {
         this.set_property(prop_name, DomValue::Ref(inst.dom_ref));

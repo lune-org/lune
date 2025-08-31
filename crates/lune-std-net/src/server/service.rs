@@ -31,32 +31,32 @@ impl HyperService<HyperRequest<Incoming>> for Service {
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
     fn call(&self, req: HyperRequest<Incoming>) -> Self::Future {
-        if is_upgrade_request(&req) {
-            if let Some(handler) = self.config.handle_web_socket.clone() {
-                let lua = self.lua.clone();
-                return Box::pin(async move {
-                    let response = match make_upgrade_response(&req) {
-                        Ok(res) => res,
-                        Err(err) => {
-                            return Ok(HyperResponse::builder()
-                                .status(StatusCode::BAD_REQUEST)
-                                .body(ReadableBody::from(err.to_string()))
-                                .unwrap());
-                        }
-                    };
+        if is_upgrade_request(&req)
+            && let Some(handler) = self.config.handle_web_socket.clone()
+        {
+            let lua = self.lua.clone();
+            return Box::pin(async move {
+                let response = match make_upgrade_response(&req) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        return Ok(HyperResponse::builder()
+                            .status(StatusCode::BAD_REQUEST)
+                            .body(ReadableBody::from(err.to_string()))
+                            .unwrap());
+                    }
+                };
 
-                    lua.spawn_local({
-                        let lua = lua.clone();
-                        async move {
-                            if let Err(_err) = handle_websocket(lua, handler, req).await {
-                                // TODO: Propagate the error somehow?
-                            }
+                lua.spawn_local({
+                    let lua = lua.clone();
+                    async move {
+                        if let Err(_err) = handle_websocket(lua, handler, req).await {
+                            // TODO: Propagate the error somehow?
                         }
-                    });
-
-                    Ok(response)
+                    }
                 });
-            }
+
+                Ok(response)
+            });
         }
 
         let lua = self.lua.clone();

@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use mlua::prelude::*;
 
-const DEFAULT_IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+const DEFAULT_IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
 const WEB_SOCKET_UPDGRADE_REQUEST_HANDLER: &str = r#"
 return {

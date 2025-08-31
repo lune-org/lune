@@ -22,13 +22,13 @@ const STRING_REPLACEMENTS: &[(&str, &str)] =
     - Only contain alphanumeric characters and underscores.
 */
 pub(crate) fn lua_value_as_plain_string_key(value: &LuaValue) -> Option<String> {
-    if let LuaValue::String(s) = value {
-        if let Ok(s) = s.to_str() {
-            let first_valid = s.chars().next().is_some_and(|c| c.is_ascii_alphabetic());
-            let all_valid = s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
-            if first_valid && all_valid {
-                return Some(s.to_string());
-            }
+    if let LuaValue::String(s) = value
+        && let Ok(s) = s.to_str()
+    {
+        let first_valid = s.chars().next().is_some_and(|c| c.is_ascii_alphabetic());
+        let all_valid = s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        if first_valid && all_valid {
+            return Some(s.to_string());
         }
     }
     None
