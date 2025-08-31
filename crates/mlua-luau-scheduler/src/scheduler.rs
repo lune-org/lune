@@ -262,6 +262,8 @@ impl Scheduler {
     /**
         Runs the scheduler until all Lua threads have completed.
 
+        This will return instantly if no threads have been scheduled.
+
         Note that the given Lua state must be the same one that was
         used to create this scheduler, otherwise this method will panic.
 
@@ -272,8 +274,12 @@ impl Scheduler {
     #[allow(clippy::too_many_lines)]
     #[instrument(level = "debug", name = "Scheduler::run", skip(self))]
     pub async fn run(&self) {
+        if self.queue_spawn.is_empty() && self.queue_defer.is_empty() {
+            return;
+        }
+
         /*
-            Create new executors to use - note that we do not need create multiple executors
+            Create new executors to use - note that we do not need to create multiple executors
             for work stealing, the user may do that themselves if they want to and it will work
             just fine, as long as anything async is .await-ed from within a Lua async function.
 
