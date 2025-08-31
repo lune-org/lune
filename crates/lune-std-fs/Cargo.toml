@@ -13,7 +13,7 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-mlua = { version = "0.11.1", features = ["luau"] }
+mlua = { version = "0.11.3", features = ["luau"] }
 
 async-fs = "2.1"
 bstr = "1.9"
