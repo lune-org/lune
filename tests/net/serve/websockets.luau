@@ -3,7 +3,7 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
-local PORT = 8085
+local PORT = 8855
 local WS_URL = `ws://127.0.0.1:{PORT}`
 local REQUEST = "Hello from client!"
 local RESPONSE = "Hello, lune!"

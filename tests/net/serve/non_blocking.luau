@@ -3,7 +3,7 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
-local PORT = 8083
+local PORT = 8833
 local RESPONSE = "Hello, lune!"
 
 -- Serve should not yield the entire main thread forever, only

@@ -1,6 +1,6 @@
 local net = require("@lune/net")
 
-local PORT = 8081
+local PORT = 8811
 local LOCALHOST = "http://localhost"
 local BROADCAST = `http://0.0.0.0`
 local RESPONSE = "Hello, lune!"
