@@ -32,7 +32,7 @@ where
 
             let mut buffer = Vec::new();
 
-            read_from.read_to_end(&mut buffer).await.into_lua_err()?;
+            io::copy(&mut read_from, &mut buffer).await.into_lua_err()?;
 
             buffer
         }
