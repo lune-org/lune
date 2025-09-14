@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_lock::Mutex as AsyncMutex;
 use async_process::{ChildStderr as AsyncChildStderr, ChildStdout as AsyncChildStdout};
-use futures_lite::prelude::*;
+use futures_lite::{io, prelude::*};
 
 use mlua::prelude::*;
 
@@ -39,13 +39,16 @@ impl ChildReaderInner {
     async fn read_to_end(&mut self) -> Result<Vec<u8>, std::io::Error> {
         let mut buf = Vec::new();
 
-        let read = match self {
-            ChildReaderInner::None => 0,
-            ChildReaderInner::Stdout(stdout) => stdout.read_to_end(&mut buf).await?,
-            ChildReaderInner::Stderr(stderr) => stderr.read_to_end(&mut buf).await?,
-        };
-
-        buf.truncate(read);
+        match self {
+            ChildReaderInner::None => {}
+            // `copy` is much faster compared to `read_to_end` when reading a large amount of data.
+            ChildReaderInner::Stdout(stdout) => {
+                io::copy(stdout, &mut buf).await?;
+            }
+            ChildReaderInner::Stderr(stderr) => {
+                io::copy(stderr, &mut buf).await?;
+            }
+        }
 
         Ok(buf)
     }
