@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-process"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 mlua = { version = "0.11.4", features = ["luau"] }
-mlua-luau-scheduler = { version = "0.2.2", path = "../mlua-luau-scheduler" }
+mlua-luau-scheduler = { version = "0.2.3", path = "../mlua-luau-scheduler" }
 
 directories = "6.0"
 pin-project = "1.0"
@@ -29,4 +29,4 @@ blocking = "1.6"
 futures-lite = "2.6"
 futures-util = "0.3" # Needed for select! macro...
 
-lune-utils = { version = "0.3.2", path = "../lune-utils" }
+lune-utils = { version = "0.3.3", path = "../lune-utils" }
