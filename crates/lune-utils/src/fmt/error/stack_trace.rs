@@ -1,8 +1,15 @@
 use std::fmt;
 use std::str::FromStr;
 
+fn unwrap_braced_path(s: &str) -> &str {
+    s.strip_prefix("[string \"")
+        .and_then(|s2| s2.strip_suffix("\"]"))
+        .unwrap_or(s)
+}
+
 fn parse_path(s: &str) -> Option<(&str, &str)> {
-    let (path, after) = s.split_once(':')?;
+    let (path, after) = unwrap_braced_path(s).split_once(':')?;
+    let path = unwrap_braced_path(path);
 
     // Remove line number after any found colon, this may
     // exist if the source path is from a rust source file
