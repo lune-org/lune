@@ -187,6 +187,7 @@ macro_rules! userdata_to_dom {
 }
 
 impl DomValueToLua for LuaAnyUserData {
+    #[allow(clippy::match_same_arms)]
     #[rustfmt::skip]
     fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self> {
 		use super::types::*;
@@ -212,7 +213,7 @@ impl DomValueToLua for LuaAnyUserData {
             DomValue::Region3int16(value)   => dom_to_userdata!(lua, value => Region3int16),
             DomValue::UDim(value)           => dom_to_userdata!(lua, value => UDim),
             DomValue::UDim2(value)          => dom_to_userdata!(lua, value => UDim2),
-            DomValue::UniqueId(value) => dom_to_userdata!(lua, value => UniqueId),
+            DomValue::UniqueId(value)       => dom_to_userdata!(lua, value => UniqueId),
             DomValue::Vector2(value)        => dom_to_userdata!(lua, value => Vector2),
             DomValue::Vector2int16(value)   => dom_to_userdata!(lua, value => Vector2int16),
             DomValue::Vector3(value)        => dom_to_userdata!(lua, value => Vector3),
