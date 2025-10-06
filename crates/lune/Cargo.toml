@@ -50,7 +50,7 @@ cli = ["dep:clap", "dep:rustyline", "dep:zip", "dep:lune-std-net"]
 workspace = true
 
 [dependencies]
-mlua = { version = "0.11.3", features = ["luau"] }
+mlua = { version = "0.11.4", features = ["luau"] }
 mlua-luau-scheduler = { version = "0.2.2", path = "../mlua-luau-scheduler" }
 
 anyhow = "1.0"
@@ -77,7 +77,7 @@ lune-utils = { version = "0.3.2", path = "../lune-utils" }
 
 clap = { optional = true, version = "4.1", features = ["derive"] }
 rustyline = { optional = true, version = "17.0" }
-zip = { optional = true, version = "4.6", default-features = false, features = [
+zip = { optional = true, version = "5.1", default-features = false, features = [
 	"bzip2",
 	"deflate",
 	"deflate64",
