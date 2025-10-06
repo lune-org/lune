@@ -8,6 +8,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Fixed `readToEnd` being slow for child processes with large output ([#354])
+- Fixed `process.exec` not reading stdio until child exits ([#353])
+
+[#354]: https://github.com/lune-org/lune/pull/354
+[#353]: https://github.com/lune-org/lune/pull/353
+
 ## `0.10.2` - August 31st, 2025
 
 ### Added
