@@ -1,11 +1,14 @@
 use std::fmt;
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
 
 use rbx_reflection::{ClassDescriptor, PropertyDescriptor};
 
-use super::utils::*;
+#[cfg(feature = "mlua")]
 use crate::datatypes::{userdata_impl_eq, userdata_impl_to_string};
+
+use super::utils::*;
 
 type DbClass = &'static ClassDescriptor<'static>;
 type DbProp = &'static PropertyDescriptor<'static>;
@@ -68,6 +71,7 @@ impl DatabaseProperty {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl LuaUserData for DatabaseProperty {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.get_name()));

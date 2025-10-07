@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::borrow::{Borrow, BorrowMut, Cow};
 
 use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};

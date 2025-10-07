@@ -1,7 +1,9 @@
 #![allow(clippy::cargo_common_metadata)]
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
 
+#[cfg(feature = "mlua")]
 use lune_utils::TableBuilder;
 
 pub mod datatypes;
@@ -9,11 +11,14 @@ pub mod document;
 pub mod instance;
 pub mod reflection;
 
+#[cfg(feature = "mlua")]
 pub(crate) mod exports;
 pub(crate) mod shared;
 
+#[cfg(feature = "mlua")]
 use exports::export;
 
+#[cfg(feature = "mlua")]
 fn create_all_exports(lua: Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
     use datatypes::types::*;
     use instance::Instance;
@@ -60,6 +65,7 @@ fn create_all_exports(lua: Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
 
     Errors when out of memory or when a value cannot be created.
 */
+#[cfg(feature = "mlua")]
 pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     // FUTURE: We can probably create these lazily as users
     // index the main exports (this return value) table and

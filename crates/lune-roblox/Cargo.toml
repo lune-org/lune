@@ -12,8 +12,12 @@ path = "src/lib.rs"
 [lints]
 workspace = true
 
+[features]
+default = ["mlua"]
+mlua = ["dep:mlua", "dep:lune-utils"]
+
 [dependencies]
-mlua = { version = "0.11.4", features = ["luau"] }
+mlua = { version = "0.11.4", optional = true, features = ["luau"] }
 
 glam = "0.30"
 rand = "0.9"
@@ -25,4 +29,4 @@ rbx_reflection = "5.0"
 rbx_reflection_database = "1.0"
 rbx_xml = "1.0"
 
-lune-utils = { version = "0.3.3", path = "../lune-utils" }
+lune-utils = { version = "0.3.3", optional = true, path = "../lune-utils" }

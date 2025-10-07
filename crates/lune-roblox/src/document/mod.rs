@@ -15,7 +15,7 @@ pub use kind::*;
 
 use postprocessing::*;
 
-use crate::instance::{Instance, data_model};
+use crate::instance::Instance;
 
 pub type DocumentResult<T> = Result<T, DocumentError>;
 
@@ -226,7 +226,7 @@ impl Document {
 
         let data_model_ref = self
             .dom
-            .insert(dom_root, DomInstanceBuilder::new(data_model::CLASS_NAME));
+            .insert(dom_root, DomInstanceBuilder::new("DataModel"));
         let data_model_child_refs = self.dom.root().children().to_vec();
 
         for child_ref in data_model_child_refs {
@@ -268,7 +268,7 @@ impl Document {
         Errors if the instance is not a `DataModel`.
     */
     pub fn from_data_model_instance(i: Instance) -> DocumentResult<Self> {
-        if i.get_class_name() != data_model::CLASS_NAME {
+        if i.get_class_name() != "DataModel" {
             return Err(DocumentError::FromDataModelInvalidArgs);
         }
 
@@ -298,7 +298,7 @@ impl Document {
     */
     pub fn from_instance_array(v: Vec<Instance>) -> DocumentResult<Self> {
         for i in &v {
-            if i.get_class_name() == data_model::CLASS_NAME {
+            if i.get_class_name() == "DataModel" {
                 return Err(DocumentError::FromInstanceArrayInvalidArgs);
             }
         }

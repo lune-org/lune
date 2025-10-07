@@ -7,25 +7,33 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
+
 use rbx_dom_weak::{
     Instance as DomInstance, InstanceBuilder as DomInstanceBuilder, Ustr, WeakDom,
     types::{Attributes as DomAttributes, Ref as DomRef, Variant as DomValue},
     ustr,
 };
 
+#[cfg(feature = "mlua")]
 use lune_utils::TableBuilder;
 
-use crate::{
-    exports::LuaExportsTable,
-    shared::instance::{class_exists, class_is_a},
-};
+use crate::shared::instance::class_is_a;
 
+#[cfg(feature = "mlua")]
+use crate::{exports::LuaExportsTable, shared::instance::class_exists};
+
+#[cfg(feature = "mlua")]
 pub(crate) mod base;
+#[cfg(feature = "mlua")]
 pub(crate) mod data_model;
+#[cfg(feature = "mlua")]
 pub(crate) mod terrain;
+#[cfg(feature = "mlua")]
 pub(crate) mod workspace;
 
+#[cfg(feature = "mlua")]
 pub mod registry;
 
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
@@ -615,7 +623,7 @@ impl Instance {
         let mut instance_ref = self.dom_ref;
 
         while let Some(instance) = dom.get_by_ref(instance_ref) {
-            if instance_ref != dom_root && instance.class != data_model::CLASS_NAME {
+            if instance_ref != dom_root && instance.class != "DataModel" {
                 instance_ref = instance.parent();
                 parts.push(instance.name.clone());
             } else {
@@ -724,6 +732,7 @@ impl Instance {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl LuaExportsTable for Instance {
     const EXPORT_NAME: &'static str = "Instance";
 
@@ -756,6 +765,7 @@ impl LuaExportsTable for Instance {
     If a user wants to replicate Roblox engine behavior, they can use the
     instance registry, and register properties + methods from the lua side
 */
+#[cfg(feature = "mlua")]
 impl LuaUserData for Instance {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         data_model::add_fields(fields);

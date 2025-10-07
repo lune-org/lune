@@ -1,12 +1,18 @@
 use core::fmt;
 use std::collections::HashMap;
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
 
 use rbx_dom_weak::types::Variant as DomVariant;
-use rbx_reflection::{ClassDescriptor, DataType};
+use rbx_reflection::ClassDescriptor;
+
+#[cfg(feature = "mlua")]
+use rbx_reflection::DataType;
 
 use super::{property::DatabaseProperty, utils::*};
+
+#[cfg(feature = "mlua")]
 use crate::datatypes::{
     conversion::DomValueToLua, types::EnumItem, userdata_impl_eq, userdata_impl_to_string,
 };
@@ -84,6 +90,7 @@ impl DatabaseClass {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl LuaUserData for DatabaseClass {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.get_name()));
@@ -126,6 +133,7 @@ impl fmt::Display for DatabaseClass {
     }
 }
 
+#[cfg(feature = "mlua")]
 fn find_enum_name(inner: DbClass, name: impl AsRef<str>) -> Option<String> {
     inner.properties.iter().find_map(|(prop_name, prop_info)| {
         if prop_name == name.as_ref() {
@@ -140,6 +148,7 @@ fn find_enum_name(inner: DbClass, name: impl AsRef<str>) -> Option<String> {
     })
 }
 
+#[cfg(feature = "mlua")]
 fn make_enum_value(inner: DbClass, name: impl AsRef<str>, value: u32) -> LuaResult<EnumItem> {
     let name = name.as_ref();
     let enum_name = find_enum_name(inner, name).ok_or_else(|| {
