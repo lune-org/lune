@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use mlua::{prelude::*, AppDataRef};
+use mlua::{AppDataRef, prelude::*};
 use thiserror::Error;
 
 use super::Instance;
