@@ -16,7 +16,7 @@ impl LuaUserData for Enums {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("GetEnums", |_, _, ()| {
-            let db = rbx_reflection_database::get();
+            let db = rbx_reflection_database::get().unwrap();
             Ok(db.enums.values().map(Enum::from).collect::<Vec<_>>())
         });
         methods.add_meta_method(

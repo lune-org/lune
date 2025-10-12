@@ -24,7 +24,7 @@ impl LuaExportsTable for Content {
         let from_uri = |_: &Lua, uri: String| Ok(Self(ContentType::Uri(uri)));
 
         let from_object = |_: &Lua, obj: LuaUserDataRef<Instance>| {
-            let database = rbx_reflection_database::get();
+            let database = rbx_reflection_database::get().unwrap();
             let instance_descriptor = database
                 .classes
                 .get("Instance")

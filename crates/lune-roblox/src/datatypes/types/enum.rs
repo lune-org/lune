@@ -17,7 +17,7 @@ pub struct Enum {
 
 impl Enum {
     pub(crate) fn from_name(name: impl AsRef<str>) -> Option<Self> {
-        let db = rbx_reflection_database::get();
+        let db = rbx_reflection_database::get().unwrap();
         db.enums.get(name.as_ref()).map(Enum::from)
     }
 }
