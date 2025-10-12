@@ -45,7 +45,7 @@ impl LuaExportsTable for PhysicalProperties {
 
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         type ArgsMaterial = LuaUserDataRef<EnumItem>;
-        type ArgsNumbers = (f32, f32, f32, Option<f32>, Option<f32>, f32);
+        type ArgsNumbers = (f32, f32, f32, Option<f32>, Option<f32>, Option<f32>);
 
         let physical_properties_new = |lua: &Lua, args: LuaMultiValue| {
             if let Ok(value) = ArgsMaterial::from_lua_multi(args.clone(), lua) {
@@ -69,7 +69,7 @@ impl LuaExportsTable for PhysicalProperties {
                 elasticity,
                 friction_weight,
                 elasticity_weight,
-                acoustic_absorbption,
+                acoustic_absorption,
             )) = ArgsNumbers::from_lua_multi(args, lua)
             {
                 Ok(PhysicalProperties {
@@ -78,7 +78,7 @@ impl LuaExportsTable for PhysicalProperties {
                     friction_weight: friction_weight.unwrap_or(1.0),
                     elasticity,
                     elasticity_weight: elasticity_weight.unwrap_or(1.0),
-                    acoustic_absorption: acoustic_absorbption,
+                    acoustic_absorption: acoustic_absorption.unwrap_or(1.0),
                 })
             } else {
                 // FUTURE: Better error message here using given arg types
@@ -101,6 +101,7 @@ impl LuaUserData for PhysicalProperties {
         fields.add_field_method_get("FrictionWeight", |_, this| Ok(this.friction_weight));
         fields.add_field_method_get("Elasticity", |_, this| Ok(this.elasticity));
         fields.add_field_method_get("ElasticityWeight", |_, this| Ok(this.elasticity_weight));
+        fields.add_field_method_get("AcousticAbsorption", |_, this| Ok(this.acoustic_absorption));
     }
 
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
