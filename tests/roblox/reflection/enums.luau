@@ -28,5 +28,9 @@ for _, enumName in db:GetEnumNames() do
 		)
 		empty = false
 	end
-	assert(not empty, "Enum items map must not be empty")
+	-- As of October 12 2025, the enum AudioCaptureMode is empty in Roblox API dumps.
+	-- TODO: Remove this if statement when AudioCaptureMode becomes non-empty.
+	if enumName ~= "AudioCaptureMode" then
+		assert(not empty, "Enum items map must not be empty")
+	end
 end
