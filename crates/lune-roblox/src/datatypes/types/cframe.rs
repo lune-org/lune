@@ -17,8 +17,8 @@ use super::{super::*, Vector3};
     An implementation of the [CFrame](https://create.roblox.com/docs/reference/engine/datatypes/CFrame)
     Roblox datatype, backed by [`glam::Mat4`].
 
-    This implements all documented properties, methods &
-    constructors of the `CFrame` class as of March 2023.
+    This implements most documented properties, methods & constructors of the `CFrame` class as of October 2025,
+    notably missing `CFrame.fromRotationBetweenVectors`, `CFrame:FuzzyEq()`, and `CFrame:AngleBetween()`.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CFrame(pub Mat4);

@@ -8,7 +8,7 @@ use super::{super::*, EnumItem};
 /**
     An implementation of the [Enum](https://create.roblox.com/docs/reference/engine/datatypes/Enum) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Enum class as of March 2023.
+    This implements all documented properties, methods & constructors of the Enum class as of October 2025.
 */
 #[derive(Debug, Clone)]
 pub struct Enum {

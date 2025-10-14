@@ -12,7 +12,7 @@ use super::{super::*, EnumItem};
 /**
     An implementation of the [Axes](https://create.roblox.com/docs/reference/engine/datatypes/Axes) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Axes class as of March 2023.
+    This implements all documented properties, methods & constructors of the Axes class as of October 2025.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Axes {

@@ -12,7 +12,7 @@ use super::{super::*, EnumItem};
 /**
     An implementation of the [Content](https://create.roblox.com/docs/reference/engine/datatypes/Content) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Content type as of April 2025.
+    This implements all documented properties, methods & constructors of the Content type as of October 2025.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct Content(ContentType);

@@ -16,7 +16,7 @@ use super::super::*;
 /**
     An implementation of the [Color3](https://create.roblox.com/docs/reference/engine/datatypes/Color3) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Color3 class as of March 2023.
+    This implements all documented properties, methods & constructors of the Color3 class as of October 2025.
 
     It also implements math operations for addition, subtraction, multiplication, and division,
     all of which are suspiciously missing from the Roblox implementation of the Color3 datatype.

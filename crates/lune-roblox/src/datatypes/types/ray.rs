@@ -14,7 +14,7 @@ use super::{super::*, Vector3};
     An implementation of the [Ray](https://create.roblox.com/docs/reference/engine/datatypes/Ray)
     Roblox datatype, backed by [`glam::Vec3`].
 
-    This implements all documented properties, methods & constructors of the Ray class as of March 2023.
+    This implements all documented properties, methods & constructors of the Ray class as of October 2025.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ray {

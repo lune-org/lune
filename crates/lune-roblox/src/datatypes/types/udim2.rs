@@ -16,7 +16,7 @@ use super::{super::*, UDim};
 /**
     An implementation of the [UDim2](https://create.roblox.com/docs/reference/engine/datatypes/UDim2) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `UDim2` class as of March 2023.
+    This implements all documented properties, methods & constructors of the `UDim2` class as of October 2025.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UDim2 {

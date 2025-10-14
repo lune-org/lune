@@ -14,7 +14,7 @@ use super::{super::*, Vector3int16};
     An implementation of the [Region3int16](https://create.roblox.com/docs/reference/engine/datatypes/Region3int16)
     Roblox datatype, backed by [`glam::IVec3`].
 
-    This implements all documented properties, methods & constructors of the Region3int16 class as of March 2023.
+    This implements all documented properties, methods & constructors of the Region3int16 class as of October 2025.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Region3int16 {

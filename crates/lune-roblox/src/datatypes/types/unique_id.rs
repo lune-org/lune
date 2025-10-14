@@ -9,9 +9,13 @@ use crate::exports::LuaExportsTable;
 
 use rbx_dom_weak::types::UniqueId as DomUniqueId;
 
-/// An implementation of the `UniqueId` Robox datatype.
-/// This type is not exposed to users in engine, but is used as an ID for
-/// Instances by the engine.
+/**
+    An implementation of the `UniqueId` Roblox datatype.
+
+    This type is not exposed to users in engine by Roblox itself,
+    but is used as an identifier for Instances, and is occasionally
+    useful when manipulating place and model files in Lune.
+*/
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct UniqueId {
     id: u128,

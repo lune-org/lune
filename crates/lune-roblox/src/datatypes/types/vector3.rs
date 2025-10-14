@@ -16,7 +16,7 @@ use super::{super::*, EnumItem};
     Roblox datatype, backed by [`glam::Vec3`].
 
     This implements all documented properties, methods &
-    constructors of the Vector3 class as of March 2023.
+    constructors of the Vector3 class as of October 2025.
 
     Note that this does not use native Luau vectors to simplify implementation
     and instead allow us to implement all abovementioned APIs accurately.

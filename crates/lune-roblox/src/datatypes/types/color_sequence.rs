@@ -14,7 +14,7 @@ use super::{super::*, Color3, ColorSequenceKeypoint};
 /**
     An implementation of the [ColorSequence](https://create.roblox.com/docs/reference/engine/datatypes/ColorSequence) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `ColorSequence` class as of March 2023.
+    This implements all documented properties, methods & constructors of the `ColorSequence` class as of October 2025.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct ColorSequence {
