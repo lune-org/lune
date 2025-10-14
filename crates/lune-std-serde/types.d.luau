@@ -6,13 +6,14 @@
 
 	Currently supported formats:
 
-	| Name   | Learn More           |
-	|:-------|:---------------------|
-	| `json` | https://www.json.org |
-	| `yaml` | https://yaml.org     |
-	| `toml` | https://toml.io      |
+	| Name    | Learn More           | Note                        |
+	|:--------|:---------------------|:----------------------------|
+	| `json`  | https://www.json.org |                             |
+	| `jsonc` | https://www.json.org | JSON, with comments allowed |
+	| `yaml`  | https://yaml.org     |                             |
+	| `toml`  | https://toml.io      |                             |
 ]=]
-export type EncodeDecodeFormat = "json" | "yaml" | "toml"
+export type EncodeDecodeFormat = "json" | "jsonc" | "yaml" | "toml"
 
 --[=[
 	@within Serde
@@ -81,12 +82,12 @@ export type HashAlgorithm =
 	local fs = require("@lune/fs")
 	local serde = require("@lune/serde")
 
-	-- Parse different file formats into lua tables
+	-- Parse different file formats into lua values
 	local someJson = serde.decode("json", fs.readFile("myFile.json"))
 	local someToml = serde.decode("toml", fs.readFile("myFile.toml"))
 	local someYaml = serde.decode("yaml", fs.readFile("myFile.yaml"))
 
-	-- Write lua tables to files in different formats
+	-- Write lua values to files in different formats
 	fs.writeFile("myFile.json", serde.encode("json", someJson))
 	fs.writeFile("myFile.toml", serde.encode("toml", someToml))
 	fs.writeFile("myFile.yaml", serde.encode("yaml", someYaml))
@@ -140,7 +141,11 @@ end
 	@param level The compression level to use, clamped to the format's limits. The best compression level is used by default
 	@return The compressed string
 ]=]
-function serde.compress(format: CompressDecompressFormat, s: buffer | string, level: number?): string
+function serde.compress(
+	format: CompressDecompressFormat,
+	s: buffer | string,
+	level: number?
+): string
 	return nil :: any
 end
 
@@ -190,7 +195,11 @@ end
 	@param message The message to hash
 	@return The hash as a base64 string
 ]=]
-function serde.hmac(algorithm: HashAlgorithm, message: string | buffer, secret: string | buffer): string
+function serde.hmac(
+	algorithm: HashAlgorithm,
+	message: string | buffer,
+	secret: string | buffer
+): string
 	return nil :: any
 end
 

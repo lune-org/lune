@@ -24,6 +24,7 @@ const LUA_DESERIALIZE_OPTIONS: LuaDeserializeOptions = LuaDeserializeOptions::ne
 #[derive(Debug, Clone, Copy)]
 pub enum EncodeDecodeFormat {
     Json,
+    JsonC,
     Yaml,
     Toml,
 }
@@ -33,6 +34,7 @@ impl FromLua for EncodeDecodeFormat {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
                 "json" => Ok(Self::Json),
+                "jsonc" => Ok(Self::JsonC),
                 "yaml" => Ok(Self::Yaml),
                 "toml" => Ok(Self::Toml),
                 kind => Err(LuaError::FromLuaConversionError {
@@ -91,7 +93,7 @@ impl From<(EncodeDecodeFormat, bool)> for EncodeDecodeConfig {
 */
 pub fn encode(value: LuaValue, lua: &Lua, config: EncodeDecodeConfig) -> LuaResult<LuaString> {
     let bytes = match config.format {
-        EncodeDecodeFormat::Json => {
+        EncodeDecodeFormat::Json | EncodeDecodeFormat::JsonC => {
             let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
             if config.pretty {
                 serde_json::to_vec_pretty(&serialized).into_lua_err()?
@@ -134,6 +136,14 @@ pub fn decode(
     match config.format {
         EncodeDecodeFormat::Json => {
             let value: JsonValue = serde_json::from_slice(bytes).into_lua_err()?;
+            lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
+        }
+        EncodeDecodeFormat::JsonC => {
+            let string: String = String::from_utf8(bytes.to_vec()).into_lua_err()?;
+            let value: JsonValue =
+                jsonc_parser::parse_to_serde_value(&string, &jsonc_parser::ParseOptions::default())
+                    .map(|v| v.unwrap_or(JsonValue::Null))
+                    .into_lua_err()?;
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
         }
         EncodeDecodeFormat::Yaml => {

@@ -243,6 +243,8 @@ create_tests! {
     serde_compression_roundtrip: "serde/compression/roundtrip",
     serde_json_decode: "serde/json/decode",
     serde_json_encode: "serde/json/encode",
+    serde_jsonc_decode: "serde/jsonc/decode",
+    serde_jsonc_encode: "serde/jsonc/encode",
     serde_toml_decode: "serde/toml/decode",
     serde_toml_encode: "serde/toml/encode",
     serde_hashing_hash: "serde/hashing/hash",
