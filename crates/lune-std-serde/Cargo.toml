@@ -30,7 +30,7 @@ futures-lite = "2.6"
 lz4 = "1.26"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
-serde_yaml = "0.9"
+serde_yaml2 = "0.1.3" # FUTURE: Look into using saphyr (successor to yaml-rust2, which serde_yaml2 wraps)
 toml = { version = "0.9", features = ["preserve_order"] }
 
 digest = "0.10.7"

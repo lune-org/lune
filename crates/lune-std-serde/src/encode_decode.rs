@@ -1,7 +1,7 @@
 use mlua::prelude::*;
 
 use serde_json::Value as JsonValue;
-use serde_yaml::Value as YamlValue;
+use serde_yaml2::wrapper::YamlNodeWrapper as YamlValue;
 use toml::Value as TomlValue;
 
 // NOTE: These are options for going from other format -> lua ("serializing" lua values)
@@ -101,9 +101,9 @@ pub fn encode(value: LuaValue, lua: &Lua, config: EncodeDecodeConfig) -> LuaResu
         }
         EncodeDecodeFormat::Yaml => {
             let serialized: YamlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
-            let mut writer = Vec::with_capacity(128);
-            serde_yaml::to_writer(&mut writer, &serialized).into_lua_err()?;
-            writer
+            serde_yaml2::to_string(serialized)
+                .into_lua_err()?
+                .into_bytes()
         }
         EncodeDecodeFormat::Toml => {
             let serialized: TomlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
@@ -137,7 +137,8 @@ pub fn decode(
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
         }
         EncodeDecodeFormat::Yaml => {
-            let value: YamlValue = serde_yaml::from_slice(bytes).into_lua_err()?;
+            let string: String = String::from_utf8(bytes.to_vec()).into_lua_err()?;
+            let value: YamlValue = serde_yaml2::from_str(&string).into_lua_err()?;
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
         }
         EncodeDecodeFormat::Toml => {
