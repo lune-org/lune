@@ -248,7 +248,7 @@ impl InstanceRegistry {
 */
 #[must_use]
 pub fn class_name_chain(class_name: &str) -> Vec<&str> {
-    let db = rbx_reflection_database::get();
+    let db = rbx_reflection_database::get().unwrap();
 
     let mut list = vec![class_name];
     let mut current_name = class_name;

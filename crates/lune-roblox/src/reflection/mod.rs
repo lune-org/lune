@@ -135,7 +135,7 @@ impl LuaUserData for Database {
 
 impl Default for Database {
     fn default() -> Self {
-        Self(rbx_reflection_database::get())
+        Self(rbx_reflection_database::get().unwrap())
     }
 }
 

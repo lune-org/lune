@@ -49,6 +49,7 @@ impl DomValueExt for DomType {
             Vector3int16 => "Vector3int16",
             OptionalCFrame => "OptionalCFrame",
             SecurityCapabilities => "SecurityCapabilities",
+            NetAssetRef => "NetAssetRef",
             _ => return None,
         })
     }

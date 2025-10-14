@@ -25,7 +25,7 @@ pub(crate) fn find_property_info(
     instance_class: impl AsRef<str>,
     property_name: impl AsRef<str>,
 ) -> Option<PropertyInfo> {
-    let db = rbx_reflection_database::get();
+    let db = rbx_reflection_database::get().unwrap();
 
     let instance_class = instance_class.as_ref();
     let property_name = property_name.as_ref();
@@ -103,7 +103,7 @@ pub(crate) fn find_property_info(
     Checks if an instance class exists in the reflection database.
 */
 pub fn class_exists(class_name: impl AsRef<str>) -> bool {
-    let db = rbx_reflection_database::get();
+    let db = rbx_reflection_database::get().unwrap();
     db.classes.contains_key(class_name.as_ref())
 }
 
@@ -122,7 +122,7 @@ pub fn class_is_a(instance_class: impl AsRef<str>, class_name: impl AsRef<str>) 
     if class_name == "Instance" || instance_class == class_name {
         Some(true)
     } else {
-        let db = rbx_reflection_database::get();
+        let db = rbx_reflection_database::get().unwrap();
 
         while instance_class != class_name {
             let class_descriptor = db.classes.get(instance_class)?;
@@ -149,7 +149,7 @@ pub fn class_is_a(instance_class: impl AsRef<str>, class_name: impl AsRef<str>) 
 pub fn class_is_a_service(instance_class: impl AsRef<str>) -> Option<bool> {
     let mut instance_class = instance_class.as_ref();
 
-    let db = rbx_reflection_database::get();
+    let db = rbx_reflection_database::get().unwrap();
 
     loop {
         let class_descriptor = db.classes.get(instance_class)?;
