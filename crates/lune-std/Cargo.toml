@@ -1,6 +1,6 @@
 [package]
 name = "lune-std"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -48,15 +48,15 @@ async-lock = "3.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-lune-utils = { version = "0.3.3", path = "../lune-utils" }
+lune-utils = { version = "0.3.4", path = "../lune-utils" }
 
-lune-std-datetime = { optional = true, version = "0.3.3", path = "../lune-std-datetime" }
-lune-std-fs = { optional = true, version = "0.3.3", path = "../lune-std-fs" }
-lune-std-luau = { optional = true, version = "0.3.3", path = "../lune-std-luau" }
-lune-std-net = { optional = true, version = "0.3.3", path = "../lune-std-net" }
-lune-std-process = { optional = true, version = "0.3.3", path = "../lune-std-process" }
-lune-std-regex = { optional = true, version = "0.3.3", path = "../lune-std-regex" }
-lune-std-roblox = { optional = true, version = "0.3.3", path = "../lune-std-roblox" }
-lune-std-serde = { optional = true, version = "0.3.3", path = "../lune-std-serde" }
-lune-std-stdio = { optional = true, version = "0.3.3", path = "../lune-std-stdio" }
-lune-std-task = { optional = true, version = "0.3.3", path = "../lune-std-task" }
+lune-std-datetime = { optional = true, version = "0.3.4", path = "../lune-std-datetime" }
+lune-std-fs = { optional = true, version = "0.3.4", path = "../lune-std-fs" }
+lune-std-luau = { optional = true, version = "0.3.4", path = "../lune-std-luau" }
+lune-std-net = { optional = true, version = "0.3.4", path = "../lune-std-net" }
+lune-std-process = { optional = true, version = "0.3.4", path = "../lune-std-process" }
+lune-std-regex = { optional = true, version = "0.3.4", path = "../lune-std-regex" }
+lune-std-roblox = { optional = true, version = "0.3.4", path = "../lune-std-roblox" }
+lune-std-serde = { optional = true, version = "0.3.4", path = "../lune-std-serde" }
+lune-std-stdio = { optional = true, version = "0.3.4", path = "../lune-std-stdio" }
+lune-std-task = { optional = true, version = "0.3.4", path = "../lune-std-task" }

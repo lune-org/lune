@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-net"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -38,5 +38,5 @@ urlencoding = "2.1"
 webpki = "0.22"
 webpki-roots = "1.0"
 
-lune-utils = { version = "0.3.3", path = "../lune-utils" }
-lune-std-serde = { version = "0.3.3", path = "../lune-std-serde" }
+lune-utils = { version = "0.3.4", path = "../lune-utils" }
+lune-std-serde = { version = "0.3.4", path = "../lune-std-serde" }

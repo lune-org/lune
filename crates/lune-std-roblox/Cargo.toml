@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-roblox"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -19,5 +19,5 @@ mlua-luau-scheduler = { version = "0.2.3", path = "../mlua-luau-scheduler" }
 rbx_cookie = { version = "0.1.4", default-features = false }
 roblox_install = "1.0"
 
-lune-utils = { version = "0.3.3", path = "../lune-utils" }
-lune-roblox = { version = "0.3.3", path = "../lune-roblox" }
+lune-utils = { version = "0.3.4", path = "../lune-utils" }
+lune-roblox = { version = "0.3.4", path = "../lune-roblox" }

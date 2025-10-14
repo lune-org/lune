@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-stdio"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -22,4 +22,4 @@ blocking = "1.6"
 dialoguer = "0.12"
 futures-lite = "2.6"
 
-lune-utils = { version = "0.3.3", path = "../lune-utils" }
+lune-utils = { version = "0.3.4", path = "../lune-utils" }
