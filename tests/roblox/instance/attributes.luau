@@ -107,6 +107,13 @@ assert(folder:GetAttribute("Foo") == "Bar")
 folder:SetAttribute("Foo", nil)
 assert(folder:GetAttribute("Foo") == nil)
 
+-- Attribute names should allow certain special characters
+
+folder:SetAttribute("test-hyphens", nil)
+folder:SetAttribute("test_underscores", nil)
+folder:SetAttribute("test/slashes", nil)
+folder:SetAttribute("test.periods", nil)
+
 -- Writing files with modified attributes should work
 
 local game = Instance.new("DataModel")

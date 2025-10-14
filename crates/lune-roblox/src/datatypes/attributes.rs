@@ -10,7 +10,7 @@ use super::extension::DomValueExt;
     # Errors
 
     - If the name starts with the prefix "RBX".
-    - If the name contains any characters other than alphanumeric characters and underscore.
+    - If the name contains any characters other than alphanumeric characters, periods, hyphens, underscores, or forward slashes.
     - If the name is longer than 100 characters.
 */
 pub fn ensure_valid_attribute_name(name: impl AsRef<str>) -> LuaResult<()> {
@@ -19,9 +19,12 @@ pub fn ensure_valid_attribute_name(name: impl AsRef<str>) -> LuaResult<()> {
         Err(LuaError::RuntimeError(
             "Attribute names must not start with the prefix \"RBX\"".to_string(),
         ))
-    } else if !name.chars().all(|c| c == '_' || c.is_alphanumeric()) {
+    } else if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '.' | '_' | '-' | '/'))
+    {
         Err(LuaError::RuntimeError(
-            "Attribute names must only use alphanumeric characters and underscore".to_string(),
+            "Attribute names must only use alphanumeric characters, periods, hyphens, underscores, or forward slashes.".to_string(),
         ))
     } else if name.len() > 100 {
         Err(LuaError::RuntimeError(
