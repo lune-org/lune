@@ -8,6 +8,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added support for the `jsonc` serialization format in the `serde` standard library
+- Added an `mlua` feature flag to `lune-roblox`, so that it may be used from Rust without bundling the entirety of Luau
+
+### Changed
+
+- Updated to rbx-dom database version `0.694`
+- Updated to Luau version `0.694`
+
+### Fixed
+
+- Fixed attribute name validation being too strict in the `roblox` standard library, not allowing the characters `/.-`
+- Fixed various issues in the `roblox` standard library caused by an outdated reflection database and version of `rbx-dom` ([#358])
+
+[#358]: https://github.com/lune-org/lune/pull/358
+
 ## `0.10.3` - October 6th, 2025
 
 ### Changed
