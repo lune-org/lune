@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## `0.10.4-horse.9.0` - January 19th, 2026
+
+### Fixed
+
+- Fixed `default.project.json` `$path` resolution when the path points to a file (e.g., `"$path": "init.luau"`) rather than a directory
+
 ## `0.10.4-horse.8.0` - January 19th, 2026
 
 ### Added
