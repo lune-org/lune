@@ -58,6 +58,13 @@ assert(meshPart.Material == Enum.Material.Plastic)
 assert(meshPart.Size == Vector3.new(4, 1.2, 2))
 assert(meshPart.CustomPhysicalProperties == nil)
 
+-- We should be able to get/set SharedStrings
+
+local SANITY_STRING = "Hello, world!"
+meshPart.PhysicalConfigData = SANITY_STRING
+
+assert(meshPart.PhysicalConfigData == SANITY_STRING)
+
 -- Instance reference properties should work
 
 local objectValue = Instance.new("ObjectValue")
