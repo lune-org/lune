@@ -62,13 +62,30 @@ impl LuaExportsTable for Font {
         };
 
         let font_from_name =
-            |_: &Lua, (file, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
-                Ok(Font {
-                    family: format!("rbxasset://fonts/families/{file}.json"),
-                    weight: weight.unwrap_or_default(),
-                    style: style.unwrap_or_default(),
-                    cached_id: None,
-                })
+            |_: &Lua, (name, weight, style): (String, Option<FontWeight>, Option<FontStyle>)| {
+                // Look up the name in FONT_ENUM_MAP first - this handles cases where
+                // the name is a Font enum name (e.g. "GothamMedium" -> GothamSSm.json)
+                // as well as direct family names (e.g. "RobotoMono" -> RobotoMono.json)
+                if let Some(mapped) = FONT_ENUM_MAP
+                    .iter()
+                    .find(|(enum_name, data)| *enum_name == name && data.is_some())
+                    .and_then(|(_, data)| data.as_ref())
+                {
+                    Ok(Font {
+                        family: mapped.0.to_string(),
+                        weight: weight.unwrap_or(mapped.1),
+                        style: style.unwrap_or(mapped.2),
+                        cached_id: None,
+                    })
+                } else {
+                    // Fallback: treat as a direct font family file name
+                    Ok(Font {
+                        family: format!("rbxasset://fonts/families/{name}.json"),
+                        weight: weight.unwrap_or_default(),
+                        style: style.unwrap_or_default(),
+                        cached_id: None,
+                    })
+                }
             };
 
         let font_from_id =
