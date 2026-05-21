@@ -142,6 +142,7 @@ impl BuildTarget {
         self.os == BuildTargetOS::current_system() && self.arch == BuildTargetArch::current_system()
     }
 
+    #[allow(dead_code)]
     pub fn exe_extension(&self) -> &'static str {
         self.os.exe_extension()
     }
