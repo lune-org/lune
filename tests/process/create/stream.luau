@@ -9,6 +9,9 @@ catChild.stdin:write(expected)
 catChild.stdin:close()
 local catOutput = catChild.stdout:read(#expected)
 
+-- Make sure the child exits
+catChild:status()
+
 assert(
 	expected == catOutput,
 	"Failed to write to stdin or read from stdout of child process!"
