@@ -16,7 +16,7 @@ use super::super::*;
     Roblox datatype, backed by [`glam::IVec3`].
 
     This implements all documented properties, methods &
-    constructors of the Vector3int16 class as of October 2025.
+    constructors of the Vector3int16 class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3int16(pub IVec3);
@@ -59,7 +59,7 @@ impl LuaUserData for Vector3int16 {
 
 impl fmt::Display for Vector3int16 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}, {}", self.0.x, self.0.y)
+        write!(f, "{}, {}, {}", self.0.x, self.0.y, self.0.z)
     }
 }
 

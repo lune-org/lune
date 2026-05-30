@@ -12,7 +12,7 @@ use super::{super::*, EnumItem};
 /**
     An implementation of the [Content](https://create.roblox.com/docs/reference/engine/datatypes/Content) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Content type as of October 2025.
+    This implements all documented properties, methods & constructors of the Content type as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct Content(ContentType);
@@ -21,7 +21,21 @@ impl LuaExportsTable for Content {
     const EXPORT_NAME: &'static str = "Content";
 
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
-        let from_uri = |_: &Lua, uri: String| Ok(Self(ContentType::Uri(uri)));
+        let from_uri = |_: &Lua, uri: String| {
+            if uri.is_empty() {
+                Ok(Self(ContentType::None))
+            } else {
+                Ok(Self(ContentType::Uri(uri)))
+            }
+        };
+
+        let from_asset_id = |_: &Lua, asset_id: i64| {
+            if asset_id == 0 {
+                Ok(Self(ContentType::None))
+            } else {
+                Ok(Self(ContentType::Uri(format!("rbxassetid://{asset_id}"))))
+            }
+        };
 
         let from_object = |_: &Lua, obj: LuaUserDataRef<Instance>| {
             let database = rbx_reflection_database::get().unwrap();
@@ -44,6 +58,7 @@ impl LuaExportsTable for Content {
         TableBuilder::new(lua)?
             .with_value("none", Content(ContentType::None))?
             .with_function("fromUri", from_uri)?
+            .with_function("fromAssetId", from_asset_id)?
             .with_function("fromObject", from_object)?
             .build_readonly()
     }

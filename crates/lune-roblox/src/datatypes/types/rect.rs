@@ -15,7 +15,7 @@ use super::{super::*, Vector2};
     An implementation of the [Rect](https://create.roblox.com/docs/reference/engine/datatypes/Rect)
     Roblox datatype, backed by [`glam::Vec2`].
 
-    This implements all documented properties, methods & constructors of the Rect class as of October 2025.
+    This implements all documented properties, methods & constructors of the Rect class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {

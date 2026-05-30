@@ -16,7 +16,7 @@ use super::super::*;
     Roblox datatype, backed by [`glam::IVec2`].
 
     This implements all documented properties, methods &
-    constructors of the Vector2int16 class as of October 2025.
+    constructors of the Vector2int16 class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2int16(pub IVec2);

@@ -13,7 +13,7 @@ use super::super::*;
 /**
     An implementation of the [UDim](https://create.roblox.com/docs/reference/engine/datatypes/UDim) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `UDim` class as of October 2025.
+    This implements all documented properties, methods & constructors of the `UDim` class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UDim {
