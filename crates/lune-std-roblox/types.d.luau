@@ -183,7 +183,10 @@ export type DataModelMetatable = {
 
 export type DataModel =
 	Instance
-	& typeof(setmetatable((nil :: any) :: DataModelProperties, (nil :: any) :: { __index: DataModelMetatable }))
+	& typeof(setmetatable(
+		(nil :: any) :: DataModelProperties,
+		(nil :: any) :: { __index: DataModelMetatable }
+	))
 
 --[=[
 	@class Roblox
@@ -489,7 +492,83 @@ end
 	@param methodName The name of the method to implement.
 	@param callback The function which will be called when the method is called.
 ]=]
-function roblox.implementMethod(className: string, methodName: string, callback: (instance: Instance, ...any) -> ...any)
+function roblox.implementMethod(
+	className: string,
+	methodName: string,
+	callback: (instance: Instance, ...any) -> ...any
+)
+	return nil :: any
+end
+
+--[=[
+	@within Roblox
+
+	Registers a new class that the reflection database does not know about.
+
+	This is useful for classes that only exist in specific Roblox builds, and
+	are therefore not part of the reflection database that Lune ships with.
+
+	Once a class has been registered it can be created using `Instance.new`,
+	and have methods and properties implemented for it using `implementMethod`
+	and `implementProperty`, just like any built-in class.
+
+	The given `superClassName` must be a valid class name - either a built-in
+	class, or another class registered beforehand - and defaults to `"Instance"`
+	when not provided. Registering a class that already exists will error.
+
+	### Example usage
+
+	```lua
+	local roblox = require("@lune/roblox")
+
+	roblox.registerClass("MyClass", "Instance")
+
+	roblox.implementMethod("MyClass", "DoSomething", function(instance, ...)
+		print("Called DoSomething on", instance, "with", ...)
+	end)
+
+	local instance = roblox.Instance.new("MyClass")
+	instance:DoSomething("Hello", "world!")
+	```
+
+	@param className The name of the class to register.
+	@param superClassName The name of the superclass to inherit from. Defaults to `"Instance"`.
+]=]
+function roblox.registerClass(className: string, superClassName: string?)
+	return nil :: any
+end
+
+--[=[
+	@within Roblox
+
+	Registers a new service that the reflection database does not know about.
+
+	This behaves just like `registerClass`, but additionally marks the class as
+	a service so that it can be retrieved using `DataModel:GetService`. This is
+	useful for services that only exist inside specific Roblox builds, such as
+	`FileSystemService` in roblox-cli, and are therefore not part of the
+	reflection database that Lune ships with.
+
+	### Example usage
+
+	```lua
+	local fs = require("@lune/fs")
+	local roblox = require("@lune/roblox")
+
+	roblox.registerService("FileSystemService")
+
+	roblox.implementMethod("FileSystemService", "ReadFile", function(_, path: string)
+		return fs.readFile(path)
+	end)
+
+	local game = roblox.Instance.new("DataModel")
+	local fs = game:GetService("FileSystemService")
+	print(fs:ReadFile("foo.txt")) --> contents of foo.txt
+	```
+
+	@param serviceName The name of the service to register.
+]=]
+function roblox.registerService(serviceName: string)
 	return nil :: any
 end
 

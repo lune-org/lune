@@ -20,6 +20,8 @@ use lune_utils::TableBuilder;
 
 use crate::shared::instance::class_is_a;
 
+pub use crate::shared::instance::{CustomClassError, register_custom_class};
+
 #[cfg(feature = "mlua")]
 use crate::{exports::LuaExportsTable, shared::instance::class_exists};
 
