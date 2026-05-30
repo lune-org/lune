@@ -5,7 +5,10 @@ use rbx_dom_weak::types::{Content as DomContent, ContentType};
 
 use lune_utils::TableBuilder;
 
-use crate::{exports::LuaExportsTable, instance::Instance};
+use crate::{
+    exports::LuaExportsTable,
+    instance::{Instance, dom_registry::DomId, opt_instance_to_lua},
+};
 
 use super::{super::*, EnumItem};
 
@@ -15,7 +18,9 @@ use super::{super::*, EnumItem};
     This implements all documented properties, methods & constructors of the Content type as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
-pub struct Content(ContentType);
+// The second field tracks which dom the `Object` referent lives in, so it can
+// be resolved back to an instance later. It is `None` for non-object contents.
+pub struct Content(ContentType, Option<DomId>);
 
 impl LuaExportsTable for Content {
     const EXPORT_NAME: &'static str = "Content";
@@ -23,17 +28,20 @@ impl LuaExportsTable for Content {
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         let from_uri = |_: &Lua, uri: String| {
             if uri.is_empty() {
-                Ok(Self(ContentType::None))
+                Ok(Self(ContentType::None, None))
             } else {
-                Ok(Self(ContentType::Uri(uri)))
+                Ok(Self(ContentType::Uri(uri), None))
             }
         };
 
         let from_asset_id = |_: &Lua, asset_id: i64| {
             if asset_id == 0 {
-                Ok(Self(ContentType::None))
+                Ok(Self(ContentType::None, None))
             } else {
-                Ok(Self(ContentType::Uri(format!("rbxassetid://{asset_id}"))))
+                Ok(Self(
+                    ContentType::Uri(format!("rbxassetid://{asset_id}")),
+                    None,
+                ))
             }
         };
 
@@ -51,12 +59,12 @@ impl LuaExportsTable for Content {
                     "the provided object is a descendant class of 'Instance', expected one that was only an 'Object'",
                 ))
             } else {
-                Ok(Content(ContentType::Object(obj.dom_ref)))
+                Ok(Content(ContentType::Object(obj.dom_ref), Some(obj.dom_id)))
             }
         };
 
         TableBuilder::new(lua)?
-            .with_value("none", Content(ContentType::None))?
+            .with_value("none", Content(ContentType::None, None))?
             .with_function("fromUri", from_uri)?
             .with_function("fromAssetId", from_asset_id)?
             .with_function("fromObject", from_object)?
@@ -89,11 +97,15 @@ impl LuaUserData for Content {
                 Ok(None)
             }
         });
-        fields.add_field_method_get("Object", |_, this| {
+        fields.add_field_method_get("Object", |lua, this| {
             if let ContentType::Object(referent) = &this.0 {
-                Ok(Instance::new_opt(*referent))
+                opt_instance_to_lua(
+                    lua,
+                    this.1
+                        .and_then(|dom_id| Instance::new_opt(dom_id, *referent)),
+                )
             } else {
-                Ok(None)
+                Ok(LuaValue::Nil)
             }
         });
     }
@@ -121,7 +133,7 @@ impl fmt::Display for Content {
 
 impl From<DomContent> for Content {
     fn from(value: DomContent) -> Self {
-        Self(value.value().clone())
+        Self(value.value().clone(), None)
     }
 }
 

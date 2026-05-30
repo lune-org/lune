@@ -7,7 +7,7 @@ use mlua_luau_scheduler::LuaSpawnExt;
 
 use lune_roblox::{
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
-    instance::{Instance, registry::InstanceRegistry},
+    instance::{Instance, instance_to_lua, instances_to_lua, registry::InstanceRegistry},
     reflection::Database as ReflectionDatabase,
 };
 
@@ -65,7 +65,8 @@ async fn deserialize_place(lua: Lua, contents: LuaString) -> LuaResult<LuaValue>
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await.into_lua_err()?.into_lua(&lua)
+    let data_model = fut.await.into_lua_err()?;
+    instance_to_lua(&lua, data_model)
 }
 
 async fn deserialize_model(lua: Lua, contents: LuaString) -> LuaResult<LuaValue> {
@@ -75,7 +76,8 @@ async fn deserialize_model(lua: Lua, contents: LuaString) -> LuaResult<LuaValue>
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await.into_lua_err()?.into_lua(&lua)
+    let instance_array = fut.await.into_lua_err()?;
+    instances_to_lua(&lua, instance_array)
 }
 
 async fn serialize_place(
