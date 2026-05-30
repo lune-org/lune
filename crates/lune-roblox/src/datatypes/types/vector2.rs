@@ -115,7 +115,7 @@ impl LuaUserData for Vector2 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
+        methods.add_meta_function(LuaMetaMethod::Mul, userdata_impl_mul_f32::<Self>);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
         methods.add_meta_method(LuaMetaMethod::IDiv, userdata_impl_idiv_f32);
     }
