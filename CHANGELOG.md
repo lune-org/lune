@@ -8,6 +8,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added `QueryDescendants` to instances in the `roblox` standard library.
+- Added `registerClass` and `registerService` functions to the `roblox` standard library, letting classes and services that
+  the reflection database does not know about - such as those only present in specific Roblox builds - be implemented and used:
+
+  ```luau
+  roblox.registerService("FileSystemService")
+
+  roblox.implementMethod("FileSystemService", "ReadFile", function(_, path: string)
+      return -- ... read and return the file contents ...
+  end)
+
+  local game = roblox.Instance.new("DataModel")
+  local fss = game:GetService("FileSystemService")
+  ```
+
+### Changed
+
+- Refactored the `roblox` standard library to support multiple independent doms. Instances now have stable references,
+  and place or model files containing colliding referents can be loaded at the same time without conflicts.
+- Updated to Luau version `0.709`
+- Updated to rbx-dom database version `0.700`
+
+### Fixed
+
+- Fixed `task.wait` not gracefully handling negative, `NaN`, and other non-finite durations
+- Fixed datatype arithmetic in `@lune/roblox` not working with a scalar on the left-hand side, such as `2 * Vector3.new(1, 2, 3)`
+- Fixed various completeness and correctness issues across datatypes in the `roblox` standard library
+- Fixed web socket close codes not being set to `1005` (no status) or `1006` (abnormal closure) when a connection was closed without one
+- Fixed error stack traces truncating real file paths on Windows
+- Fixed `ColorSequence.new` silently ignoring its second constructor argument ([#391])
+- Fixed the `close` method on a child process writer not closing it ([#359])
+- Fixed truncation of `lune build` output paths containing dots on non-Windows targets ([#396])
+
+[#391]: https://github.com/lune-org/lune/pull/391
+[#359]: https://github.com/lune-org/lune/pull/359
+[#396]: https://github.com/lune-org/lune/pull/396
+
 ## `0.10.4` - October 14th, 2025
 
 ### Added
