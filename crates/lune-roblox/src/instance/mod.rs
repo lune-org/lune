@@ -133,18 +133,71 @@ impl Instance {
     }
 
     /**
+        Runs a closure with shared read access to the [`WeakDom`] that this
+        instance lives in.
+
+        This is an escape hatch for handing a `&WeakDom` to an external consumer
+        that reads it directly through the `rbx_dom_weak` api without copying it
+        out. The referents seen inside the closure are the exact same `Ref`s the
+        instances were created with, so any `Ref` obtained from the dom maps
+        straight back to its [`Instance`].
+
+        # Deadlocks
+
+        **The global dom registry lock is held for the entire duration of `f`,
+        and it is not reentrant.** Inside `f` you must work with the `&WeakDom`
+        directly and **must not** call back into any method on *this or any
+        other* [`Instance`] that touches the dom - `get_name`, `get_parent`,
+        `get_children`, `get_property`, `get_attribute`, the `set_*` methods,
+        `with_dom`, `with_dom_mut`, and so on. Any such call re-locks the same
+        registry lock and **deadlocks the thread**.
+
+        In other words: treat `f` as a pure read of the raw dom, nothing else. Do
+        all [`Instance`]-level work before or after the closure, never within it.
+
+        This is `#[doc(hidden)]` precisely because of these sharp edges - it is a
+        low-level seam for embedders, not part of the general instance api.
+    */
+    #[doc(hidden)]
+    pub fn with_dom<R>(&self, f: impl FnOnce(&WeakDom) -> R) -> R {
+        dom_registry::with(self.dom_id, f).expect("Failed to find dom for instance")
+    }
+
+    /**
+        Runs a closure with exclusive write access to the [`WeakDom`] that this
+        instance lives in.
+
+        The mutable counterpart to [`Instance::with_dom`] - for handing a
+        `&mut WeakDom` to an external consumer that edits it directly through the
+        `rbx_dom_weak` api. The same referent-stability guarantee applies.
+
+        # Deadlocks
+
+        Carries the **exact same caveat** as [`Instance::with_dom`]: the global,
+        non-reentrant dom registry lock is held for the duration of `f`, so the
+        closure must operate on the `&mut WeakDom` directly and **must not** call
+        back into any dom-accessing [`Instance`] method (doing so deadlocks the
+        thread). See [`Instance::with_dom`] for the full explanation.
+
+        This is `#[doc(hidden)]` for the same reasons.
+    */
+    #[doc(hidden)]
+    pub fn with_dom_mut<R>(&self, f: impl FnOnce(&mut WeakDom) -> R) -> R {
+        dom_registry::with_mut(self.dom_id, f).expect("Failed to find dom for instance")
+    }
+
+    /**
         Clones an instance to an external weak dom.
 
         This will place the instance as a child of the
         root of the weak dom, and return its referent.
     */
     pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let cloned = dom.clone_into_external(self.dom_ref, external_dom);
             external_dom.transfer_within(cloned, external_dom.root_ref());
             cloned
         })
-        .expect("Failed to find dom to clone instance from")
     }
 
     /**
@@ -179,10 +232,8 @@ impl Instance {
     */
     #[must_use]
     pub fn clone_instance(&self) -> Self {
-        let dom_id = self.dom_id;
-        let new_ref = dom_registry::with_mut(dom_id, |dom| dom.clone_within(self.dom_ref))
-            .expect("Failed to find dom to clone instance in");
-        let new_inst = Self::new(dom_id, new_ref);
+        let new_ref = self.with_dom_mut(|dom| dom.clone_within(self.dom_ref));
+        let new_inst = Self::new(self.dom_id, new_ref);
         new_inst.set_parent(None);
         new_inst
     }
@@ -205,7 +256,7 @@ impl Instance {
         if self.is_destroyed() {
             false
         } else {
-            dom_registry::with_mut(self.dom_id, |dom| dom.destroy(self.dom_ref));
+            self.with_dom_mut(|dom| dom.destroy(self.dom_ref));
             dom_registry::drop_if_empty(self.dom_id);
             true
         }
@@ -228,7 +279,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn clear_all_children(&mut self) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             if let Some(instance) = dom.get_by_ref(self.dom_ref) {
                 let child_refs = instance.children().to_vec();
                 for child_ref in child_refs {
@@ -272,13 +323,12 @@ impl Instance {
     */
     #[must_use]
     pub fn get_name(&self) -> String {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             dom.get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document")
                 .name
                 .clone()
         })
-        .expect("Failed to find dom for instance")
     }
 
     /**
@@ -289,7 +339,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn set_name(&self, name: impl Into<String>) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             dom.get_by_ref_mut(self.dom_ref)
                 .expect("Failed to find instance in document")
                 .name = name.into();
@@ -305,7 +355,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_parent(&self) -> Option<Instance> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let parent_ref = dom.get_by_ref(self.dom_ref)?.parent();
             if parent_ref == dom.root_ref() {
                 None
@@ -314,7 +364,6 @@ impl Instance {
                     .map(|parent| Self::from_dom_instance(self.dom_id, parent_ref, parent))
             }
         })
-        .flatten()
     }
 
     /**
@@ -342,14 +391,13 @@ impl Instance {
         Gets a property for the instance, if it exists.
     */
     pub fn get_property(&self, name: impl AsRef<str>) -> Option<DomValue> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             dom.get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document")
                 .properties
                 .get(&ustr(name.as_ref()))
                 .cloned()
         })
-        .flatten()
     }
 
     /**
@@ -359,7 +407,7 @@ impl Instance {
         property does not actually exist for the instance class.
     */
     pub fn set_property(&self, name: impl AsRef<str>, value: DomValue) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             dom.get_by_ref_mut(self.dom_ref)
                 .expect("Failed to find instance in document")
                 .properties
@@ -375,7 +423,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let inst = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -387,7 +435,6 @@ impl Instance {
                 None
             }
         })
-        .flatten()
     }
 
     /**
@@ -399,7 +446,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let inst = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -411,7 +458,6 @@ impl Instance {
                 BTreeMap::new()
             }
         })
-        .unwrap_or_default()
     }
 
     /**
@@ -422,7 +468,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             let inst = dom
                 .get_by_ref_mut(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -456,7 +502,7 @@ impl Instance {
         The equivalent in the Roblox engine API would be `instance:SetAttribute(name, nil)`.
     */
     pub fn remove_attribute(&self, name: impl AsRef<str>) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             let inst = dom
                 .get_by_ref_mut(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -479,7 +525,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn add_tag(&self, name: impl AsRef<str>) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             let inst = dom
                 .get_by_ref_mut(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -503,7 +549,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_tags(&self) -> Vec<String> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let inst = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -513,7 +559,6 @@ impl Instance {
                 Vec::new()
             }
         })
-        .unwrap_or_default()
     }
 
     /**
@@ -524,7 +569,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn has_tag(&self, name: impl AsRef<str>) -> bool {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let inst = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -535,7 +580,6 @@ impl Instance {
                 false
             }
         })
-        .unwrap_or(false)
     }
 
     /**
@@ -546,7 +590,7 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn remove_tag(&self, name: impl AsRef<str>) {
-        dom_registry::with_mut(self.dom_id, |dom| {
+        self.with_dom_mut(|dom| {
             let inst = dom
                 .get_by_ref_mut(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -572,7 +616,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_children(&self) -> Vec<Instance> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let instance = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document");
@@ -585,7 +629,6 @@ impl Instance {
                 })
                 .collect()
         })
-        .unwrap_or_default()
     }
 
     /**
@@ -600,7 +643,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_descendants(&self) -> Vec<Instance> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let mut descendants = Vec::new();
             let mut queue = VecDeque::from_iter(
                 dom.get_by_ref(self.dom_ref)
@@ -619,7 +662,6 @@ impl Instance {
 
             descendants
         })
-        .unwrap_or_default()
     }
 
     /**
@@ -632,7 +674,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_descendants_preorder(&self) -> Vec<Instance> {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let mut descendants = Vec::new();
             let mut queue = VecDeque::from_iter(
                 dom.get_by_ref(self.dom_ref)
@@ -651,7 +693,6 @@ impl Instance {
 
             descendants
         })
-        .unwrap_or_default()
     }
 
     /**
@@ -668,7 +709,7 @@ impl Instance {
     */
     #[must_use]
     pub fn get_full_name(&self) -> String {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let dom_root = dom.root_ref();
 
             let mut parts = Vec::new();
@@ -686,7 +727,6 @@ impl Instance {
             parts.reverse();
             parts.join(".")
         })
-        .unwrap_or_default()
     }
 
     /**
@@ -701,7 +741,7 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let children = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document")
@@ -716,7 +756,6 @@ impl Instance {
                 }
             })
         })
-        .flatten()
     }
 
     /**
@@ -731,7 +770,7 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let mut ancestor_ref = dom
                 .get_by_ref(self.dom_ref)
                 .expect("Failed to find instance in document")
@@ -746,7 +785,6 @@ impl Instance {
 
             None
         })
-        .flatten()
     }
 
     /**
@@ -760,7 +798,7 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        dom_registry::with(self.dom_id, |dom| {
+        self.with_dom(|dom| {
             let mut queue = VecDeque::from_iter(
                 dom.get_by_ref(self.dom_ref)
                     .expect("Failed to find instance in document")
@@ -778,7 +816,6 @@ impl Instance {
 
             None
         })
-        .flatten()
     }
 }
 
