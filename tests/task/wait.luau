@@ -76,3 +76,14 @@ end)
 assert(not flag, "Wait failed while inside task-spawned thread (1)")
 task.wait(0.2)
 assert(flag, "Wait failed while inside task-spawned thread (2)")
+
+-- Non-finite, negative, and out-of-range arguments should be handled
+-- gracefully and not crash the process - see issue #346
+
+for _, bad in { 0 / 0, -1, -0.5, math.huge, -math.huge, 1e30 } do
+	local returned = task.wait(bad)
+	assert(
+		typeof(returned) == "number",
+		`task.wait should return a number for out-of-range input, got {typeof(returned)}`
+	)
+end

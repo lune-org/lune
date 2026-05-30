@@ -71,8 +71,14 @@ async fn wait_inner(_: Lua, secs: Option<f64>) -> LuaResult<f64> {
     // One millisecond is a reasonable minimum sleep duration,
     // anything lower than this runs the risk of completing the
     // the below timer instantly, without giving control to the OS ...
-    let duration = Duration::from_secs_f64(secs.unwrap_or_default());
-    let duration = duration.max(Duration::from_millis(1));
+    //
+    // NOTE: We use `try_from_secs_f64` and fall back to the minimum duration
+    // since `from_secs_f64` panics on non-finite or out-of-range inputs (NaN,
+    // negative, or overflowing values) - this matches Roblox treating such
+    // `task.wait` arguments leniently instead of crashing the process.
+    let duration = Duration::try_from_secs_f64(secs.unwrap_or_default())
+        .unwrap_or(Duration::ZERO)
+        .max(Duration::from_millis(1));
     // ... however, we should still _guarantee_ that whatever
     // coroutine that calls this sleep function always yields,
     // even if the timer is able to complete without doing so
