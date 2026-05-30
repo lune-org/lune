@@ -52,3 +52,16 @@ do
 
 	assert(deserialized[2].ObjectValue.Value == deserialized[1].ParticleEmitter)
 end
+
+-- Ensure SharedStrings are properly serialized (and deserialized!)
+do
+	local meshPart = Instance.new("MeshPart")
+	local SANITY_STRING = "Hello, world!"
+
+	(meshPart :: any).PhysicalConfigData = SANITY_STRING
+
+	local serialized = roblox.serializeModel({ meshPart })
+	local deserialized = roblox.deserializeModel(serialized) :: any
+
+	assert(deserialized[1].PhysicalConfigData == SANITY_STRING)
+end
