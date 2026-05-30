@@ -326,7 +326,7 @@ end
 	The second argument, `params`, can be passed as a list of string parameters to give to the program.
 
 	The third argument, `options`, can be passed as a dictionary of options to give to the child process.
-	Refer to the documentation for `SpawnOptions` for specific option keys and their values.
+	Refer to the documentation for `CreateOptions` for specific option keys and their values.
 
 	@param program The program to Execute as a child process
 	@param params Additional parameters to pass to the program

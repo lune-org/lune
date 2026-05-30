@@ -17,7 +17,7 @@ local RegexMatch = {
 	len = 0,
 }
 
-type RegexMatch = typeof(RegexMatch)
+export type RegexMatch = typeof(RegexMatch)
 
 local RegexCaptures = {}
 
