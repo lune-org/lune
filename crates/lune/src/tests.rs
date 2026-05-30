@@ -231,6 +231,16 @@ create_tests! {
     roblox_instance_methods_is_ancestor_of: "roblox/instance/methods/IsAncestorOf",
     roblox_instance_methods_is_descendant_of: "roblox/instance/methods/IsDescendantOf",
 
+    roblox_instance_query_classes: "roblox/instance/query/Classes",
+    roblox_instance_query_tags_and_names: "roblox/instance/query/TagsAndNames",
+    roblox_instance_query_properties: "roblox/instance/query/Properties",
+    roblox_instance_query_attributes: "roblox/instance/query/Attributes",
+    roblox_instance_query_compounds: "roblox/instance/query/Compounds",
+    roblox_instance_query_combinators: "roblox/instance/query/Combinators",
+    roblox_instance_query_selector_lists: "roblox/instance/query/SelectorLists",
+    roblox_instance_query_pseudo_classes: "roblox/instance/query/PseudoClasses",
+    roblox_instance_query_errors: "roblox/instance/query/Errors",
+
     roblox_misc_typeof: "roblox/misc/typeof",
 
     roblox_reflection_class: "roblox/reflection/class",

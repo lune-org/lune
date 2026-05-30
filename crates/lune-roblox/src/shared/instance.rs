@@ -403,8 +403,9 @@ mod tests {
     #[test]
     fn class_name_chain_unknown_is_singleton() {
         // Unknown classes must not panic - they yield a single-element chain
-        assert_eq!(class_name_chain("TotallyUnknownClass"), vec![
-            "TotallyUnknownClass"
-        ]);
+        assert_eq!(
+            class_name_chain("TotallyUnknownClass"),
+            vec!["TotallyUnknownClass"]
+        );
     }
 }

@@ -148,6 +148,7 @@ type InstanceMetatable = {
 	GetDebugId: (self: Instance) -> string,
 	GetDescendants: (self: Instance) -> { Instance },
 	GetFullName: (self: Instance) -> string,
+	QueryDescendants: (self: Instance, selector: string) -> { Instance },
 
 	FindFirstAncestor: (self: Instance, name: string) -> Instance?,
 	FindFirstAncestorOfClass: (self: Instance, className: string) -> Instance?,

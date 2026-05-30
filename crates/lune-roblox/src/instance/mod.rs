@@ -20,6 +20,7 @@ use lune_utils::TableBuilder;
 
 use crate::shared::instance::class_is_a;
 
+pub use self::query::{QueryError, QueryResult, query_descendants};
 pub use crate::shared::instance::{CustomClassError, register_custom_class};
 
 #[cfg(feature = "mlua")]
@@ -35,6 +36,7 @@ pub(crate) mod terrain;
 pub(crate) mod workspace;
 
 pub(crate) mod dom_registry;
+pub(crate) mod query;
 
 #[cfg(feature = "mlua")]
 pub mod registry;
@@ -610,7 +612,39 @@ impl Instance {
                 if let Some(queue_inst) = dom.get_by_ref(*queue_ref) {
                     descendants.push(Self::from_dom_instance(self.dom_id, *queue_ref, queue_inst));
                     for queue_ref_inner in queue_inst.children().iter().rev() {
-                        queue.push_back(queue_ref_inner);
+                        queue.push_back(queue_ref_inner); // NOTE: push_back for breadth-first
+                    }
+                }
+            }
+
+            descendants
+        })
+        .unwrap_or_default()
+    }
+
+    /**
+        Gets all of the current descendants of this `Instance` using a
+        depth-first preorder search (a parent appears before its children,
+        and children appear in order).
+
+        This is the traversal order used by `QueryDescendants`, and differs
+        from [`Instance::get_descendants`] which is breadth-first.
+    */
+    #[must_use]
+    pub fn get_descendants_preorder(&self) -> Vec<Instance> {
+        dom_registry::with(self.dom_id, |dom| {
+            let mut descendants = Vec::new();
+            let mut queue = VecDeque::from_iter(
+                dom.get_by_ref(self.dom_ref)
+                    .expect("Failed to find instance in document")
+                    .children(),
+            );
+
+            while let Some(queue_ref) = queue.pop_front() {
+                if let Some(queue_inst) = dom.get_by_ref(*queue_ref) {
+                    descendants.push(Self::from_dom_instance(self.dom_id, *queue_ref, queue_inst));
+                    for queue_ref_inner in queue_inst.children().iter().rev() {
+                        queue.push_front(queue_ref_inner); // NOTE: push_front for depth-first
                     }
                 }
             }

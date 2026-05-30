@@ -68,6 +68,12 @@ pub fn add_methods<M: LuaUserDataMethods<Instance>>(m: &mut M) {
         ensure_not_destroyed(this)?;
         instances_to_lua(lua, this.get_descendants())
     });
+    m.add_method("QueryDescendants", |lua, this, selector: String| {
+        ensure_not_destroyed(this)?;
+        let matches =
+            super::query::query_descendants(*this, &selector).map_err(LuaError::runtime)?;
+        instances_to_lua(lua, matches)
+    });
     m.add_method("GetFullName", |lua, this, ()| {
         ensure_not_destroyed(this)?;
         this.get_full_name().into_lua(lua)
