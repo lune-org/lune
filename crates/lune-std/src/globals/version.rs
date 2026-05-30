@@ -8,7 +8,7 @@ impl LuaUserData for Version {}
 
 pub fn create(lua: Lua) -> LuaResult<LuaValue> {
     let v = match lua.app_data_ref::<Version>() {
-        Some(v) => v.0.to_string(),
+        Some(v) => v.0.clone(),
         None => env!("CARGO_PKG_VERSION").to_string(),
     };
     let s = get_version_string(v);

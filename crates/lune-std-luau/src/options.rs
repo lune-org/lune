@@ -123,7 +123,7 @@ impl FromLua for LuauLoadOptions {
                 options
             }
             LuaValue::String(s) => Self {
-                debug_name: s.to_string_lossy().to_string(),
+                debug_name: s.to_string_lossy(),
                 environment: None,
                 inject_globals: true,
                 codegen_enabled: false,

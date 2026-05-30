@@ -194,11 +194,12 @@ impl From<FontStyle> for DomFontStyle {
 
 type FontData = (&'static str, FontWeight, FontStyle);
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub(crate) enum FontWeight {
     Thin,
     ExtraLight,
     Light,
+    #[default]
     Regular,
     Medium,
     SemiBold,
@@ -235,12 +236,6 @@ impl FontWeight {
             900 => Some(Self::Heavy),
             _ => None,
         }
-    }
-}
-
-impl Default for FontWeight {
-    fn default() -> Self {
-        Self::Regular
     }
 }
 
@@ -323,8 +318,9 @@ impl IntoLua for FontWeight {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub(crate) enum FontStyle {
+    #[default]
     Normal,
     Italic,
 }
@@ -343,12 +339,6 @@ impl FontStyle {
             1 => Some(Self::Italic),
             _ => None,
         }
-    }
-}
-
-impl Default for FontStyle {
-    fn default() -> Self {
-        Self::Normal
     }
 }
 
