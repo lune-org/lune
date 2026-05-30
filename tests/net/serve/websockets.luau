@@ -51,6 +51,9 @@ assert(socketMessage == RESPONSE, "Invalid web socket response from server")
 
 socket:close()
 
+-- Closing the socket should populate closeCode immediately (#182)
+assert(socket.closeCode == 1000, "closeCode should be 1000 after a normal close")
+
 task.cancel(thread2)
 
 -- Wait for the socket to close and make sure we can't send messages afterwards

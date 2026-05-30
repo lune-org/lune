@@ -42,18 +42,41 @@ where
     }
 
     fn set_close_code(&self, code: u16) {
-        self.close_code_exists.store(true, Ordering::Relaxed);
         self.close_code_value.store(code, Ordering::Relaxed);
+        self.close_code_exists.store(true, Ordering::Relaxed);
+    }
+
+    fn set_close_code_if_unset(&self, code: u16) {
+        if !self.close_code_exists.load(Ordering::Relaxed) {
+            self.set_close_code(code);
+        }
     }
 
     pub async fn send(&self, msg: TungsteniteMessage) -> LuaResult<()> {
+        if self.close_code_exists.load(Ordering::Relaxed) {
+            return Err(LuaError::runtime("Socket has been closed"));
+        }
         let mut ws = self.write_stream.lock().await;
         ws.send(msg).await.into_lua_err()
     }
 
     pub async fn next(&self) -> LuaResult<Option<TungsteniteMessage>> {
         let mut ws = self.read_stream.lock().await;
-        ws.next().await.transpose().into_lua_err()
+        if let Some(Ok(msg)) = ws.next().await {
+            // A close handshake frame carries the peer close code,
+            // or no code at all - which RFC 6455 defines as 1005.
+            if let TungsteniteMessage::Close(maybe_frame) = &msg {
+                let code = maybe_frame.as_ref().map_or(1005, |frame| frame.code.into());
+                self.set_close_code_if_unset(code);
+            }
+            Ok(Some(msg))
+        } else {
+            // A transport-level error means the connection was lost
+            // without a close handshake, which RFC 6455 defines as 1006.
+            // The stream ending without a close handshake is also abnormal.
+            self.set_close_code_if_unset(1006);
+            Ok(None)
+        }
     }
 
     pub async fn close(&self, code: Option<u16>) -> LuaResult<()> {
@@ -61,16 +84,22 @@ where
             return Err(LuaError::runtime("Socket has already been closed"));
         }
 
+        let code = match code {
+            Some(code) if (1000..=4999).contains(&code) => code,
+            Some(code) => {
+                return Err(LuaError::runtime(format!(
+                    "Close code must be between 1000 and 4999, got {code}"
+                )));
+            }
+            None => u16::from(CloseCode::Normal),
+        };
+
+        // Record the code we closed with so `closeCode` reflects
+        // the closure even if `next` is never called by the user
+        self.set_close_code_if_unset(code);
+
         self.send(TungsteniteMessage::Close(Some(CloseFrame {
-            code: match code {
-                Some(code) if (1000..=4999).contains(&code) => CloseCode::from(code),
-                Some(code) => {
-                    return Err(LuaError::runtime(format!(
-                        "Close code must be between 1000 and 4999, got {code}"
-                    )));
-                }
-                None => CloseCode::Normal,
-            },
+            code: CloseCode::from(code),
             reason: "".into(),
         })))
         .await?;
@@ -125,13 +154,10 @@ where
         );
 
         methods.add_async_method("next", |lua, this, (): ()| async move {
-            let msg = this.next().await?;
-
-            if let Some(TungsteniteMessage::Close(Some(frame))) = msg.as_ref() {
-                this.set_close_code(frame.code.into());
-            }
-
-            Ok(match msg {
+            // NOTE: The close code (including 1006 for abnormal closure)
+            // is recorded inside `Websocket::next`, which also returns
+            // `None` once the socket is closed for any reason.
+            Ok(match this.next().await? {
                 Some(TungsteniteMessage::Binary(bin)) => LuaValue::String(lua.create_string(bin)?),
                 Some(TungsteniteMessage::Text(txt)) => LuaValue::String(lua.create_string(txt)?),
                 Some(TungsteniteMessage::Close(_)) | None => LuaValue::Nil,
