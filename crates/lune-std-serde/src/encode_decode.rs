@@ -142,7 +142,6 @@ pub fn decode(
             let string: String = String::from_utf8(bytes.to_vec()).into_lua_err()?;
             let value: JsonValue =
                 jsonc_parser::parse_to_serde_value(&string, &jsonc_parser::ParseOptions::default())
-                    .map(|v| v.unwrap_or(JsonValue::Null))
                     .into_lua_err()?;
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
         }
