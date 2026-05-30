@@ -16,7 +16,7 @@
 
 local roblox = require("@lune/roblox")
 local Instance = roblox.Instance
-local Vector3 = roblox.Vector3
+local Vector3 = (roblox :: any).Vector3
 
 local function build(): any
 	local root = Instance.new("Folder")
