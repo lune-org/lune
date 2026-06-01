@@ -325,3 +325,17 @@ impl Document {
         })
     }
 }
+
+impl From<(DocumentKind, DocumentFormat, WeakDom)> for Document {
+    fn from((kind, format, dom): (DocumentKind, DocumentFormat, WeakDom)) -> Self {
+        Self { kind, format, dom }
+    }
+}
+
+impl TryFrom<(DocumentFormat, WeakDom)> for Document {
+    type Error = DocumentError;
+    fn try_from((format, dom): (DocumentFormat, WeakDom)) -> Result<Self, Self::Error> {
+        let kind = DocumentKind::from_weak_dom(&dom).ok_or(DocumentError::UnknownKind)?;
+        Ok(Self { kind, format, dom })
+    }
+}
