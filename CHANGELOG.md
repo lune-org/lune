@@ -41,7 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed various completeness and correctness issues across datatypes in the `roblox` standard library
 - Fixed web socket close codes not being set to `1005` (no status) or `1006` (abnormal closure) when a connection was closed without one
 - Fixed error stack traces truncating real file paths on Windows
-- Fixed `ColorSequence.new` silently ignoring its second constructor argument ([#391])
+- Fixed `NumberSequence.new(start, end)` silently ignoring its second constructor argument
+- Fixed `ColorSequence.new(start, end)` silently ignoring its second constructor argument ([#391])
 - Fixed the `close` method on a child process writer not closing it ([#359])
 - Fixed truncation of `lune build` output paths containing dots on non-Windows targets ([#396])
 
