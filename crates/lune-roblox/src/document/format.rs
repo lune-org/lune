@@ -13,8 +13,9 @@ use std::path::Path;
 
     Other variants are only to be used for logic internal to this crate.
 */
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum DocumentFormat {
+    #[default]
     Binary,
     Xml,
 }
@@ -69,12 +70,6 @@ impl DocumentFormat {
         } else {
             None
         }
-    }
-}
-
-impl Default for DocumentFormat {
-    fn default() -> Self {
-        Self::Binary
     }
 }
 

@@ -14,7 +14,7 @@ use super::{super::*, Color3, ColorSequenceKeypoint};
 /**
     An implementation of the [ColorSequence](https://create.roblox.com/docs/reference/engine/datatypes/ColorSequence) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `ColorSequence` class as of October 2025.
+    This implements all documented properties, methods & constructors of the `ColorSequence` class as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct ColorSequence {
@@ -30,20 +30,10 @@ impl LuaExportsTable for ColorSequence {
         type ArgsKeypoints = Vec<LuaUserDataRef<ColorSequenceKeypoint>>;
 
         let color_sequence_new = |lua: &Lua, args: LuaMultiValue| {
-            if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
-                Ok(ColorSequence {
-                    keypoints: vec![
-                        ColorSequenceKeypoint {
-                            time: 0.0,
-                            color: *color,
-                        },
-                        ColorSequenceKeypoint {
-                            time: 1.0,
-                            color: *color,
-                        },
-                    ],
-                })
-            } else if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
+            // Try two-arg first: ColorSequence.new(startColor, endColor)
+            // Must come before single-arg because from_lua_multi for a single
+            // userdata ref succeeds even when multiple args are passed (ignoring extras).
+            if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
                 Ok(ColorSequence {
                     keypoints: vec![
                         ColorSequenceKeypoint {
@@ -53,6 +43,20 @@ impl LuaExportsTable for ColorSequence {
                         ColorSequenceKeypoint {
                             time: 1.0,
                             color: *c1,
+                        },
+                    ],
+                })
+            } else if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
+                // Single-arg: ColorSequence.new(color) — uniform color
+                Ok(ColorSequence {
+                    keypoints: vec![
+                        ColorSequenceKeypoint {
+                            time: 0.0,
+                            color: *color,
+                        },
+                        ColorSequenceKeypoint {
+                            time: 1.0,
+                            color: *color,
                         },
                     ],
                 })

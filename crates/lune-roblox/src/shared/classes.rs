@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 use rbx_dom_weak::types::Variant as DomValue;
 
-use crate::instance::Instance;
+use crate::instance::{Instance, instance_to_lua};
 
 use super::instance::class_is_a;
 
@@ -102,22 +102,25 @@ pub(crate) fn add_class_restricted_method_mut<M: LuaUserDataMethods<Instance>, A
     3. Instance does not exist - create it, save it, then return it
 */
 pub(crate) fn get_or_create_property_ref_instance(
+    lua: &Lua,
     this: &Instance,
     prop_name: &'static str,
     class_name: &'static str,
-) -> LuaResult<Instance> {
-    if let Some(DomValue::Ref(inst_ref)) = this.get_property(prop_name)
-        && let Some(inst) = Instance::new_opt(inst_ref)
+) -> LuaResult<LuaValue> {
+    let inst = if let Some(DomValue::Ref(inst_ref)) = this.get_property(prop_name)
+        && let Some(inst) = Instance::new_opt(this.dom_id, inst_ref)
     {
-        return Ok(inst);
-    }
-    if let Some(inst) = this.find_child(|child| child.class == class_name) {
+        inst
+    } else if let Some(inst) = this.find_child(|child| child.class == class_name) {
         this.set_property(prop_name, DomValue::Ref(inst.dom_ref));
-        Ok(inst)
+        inst
     } else {
-        let inst = Instance::new_orphaned(class_name);
+        // Create the child directly inside this instance's dom so that
+        // parenting it below stays within the dom (no cross-dom transfer).
+        let inst = Instance::new_in_dom(this.dom_id, class_name);
         inst.set_parent(Some(*this));
         this.set_property(prop_name, DomValue::Ref(inst.dom_ref));
-        Ok(inst)
-    }
+        inst
+    };
+    instance_to_lua(lua, inst)
 }

@@ -103,7 +103,7 @@ impl FromLua for ProcessSpawnOptions {
         */
         match value.get("shell")? {
             LuaValue::Nil => {}
-            LuaValue::String(s) => this.shell = Some(s.to_string_lossy().to_string()),
+            LuaValue::String(s) => this.shell = Some(s.to_string_lossy()),
             LuaValue::Boolean(true) => {
                 this.shell = match env::consts::FAMILY {
                     "unix" => Some("/bin/sh".to_string()),

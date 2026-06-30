@@ -17,10 +17,10 @@ default = ["mlua"]
 mlua = ["dep:mlua", "dep:lune-utils"]
 
 [dependencies]
-mlua = { version = "0.11.4", optional = true, features = ["luau"] }
+mlua = { version = "0.11.6", optional = true, features = ["luau"] }
 
-glam = "0.30"
-rand = "0.9"
+glam = "0.33"
+rand = "0.10"
 thiserror = "2.0"
 
 rbx_binary = "2.0"

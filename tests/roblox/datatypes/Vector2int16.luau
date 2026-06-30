@@ -31,4 +31,5 @@ assert(Vector2int16.new(2, 4) * Vector2int16.new(1, 2) == Vector2int16.new(2, 8)
 assert(Vector2int16.new(2, 4) / Vector2int16.new(1, 2) == Vector2int16.new(2, 2))
 
 assert(Vector2int16.new(2, 4) * 2 == Vector2int16.new(4, 8))
+assert(2 * Vector2int16.new(2, 4) == Vector2int16.new(4, 8)) -- scalar on the left
 assert(Vector2int16.new(2, 4) / 2 == Vector2int16.new(1, 2))

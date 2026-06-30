@@ -3,8 +3,9 @@ use std::{fmt, str::FromStr};
 use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use mlua::prelude::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum PromptKind {
+    #[default]
     Text,
     Confirm,
     Select,
@@ -13,12 +14,6 @@ pub enum PromptKind {
 
 impl PromptKind {
     const ALL: [PromptKind; 4] = [Self::Text, Self::Confirm, Self::Select, Self::MultiSelect];
-}
-
-impl Default for PromptKind {
-    fn default() -> Self {
-        Self::Text
-    }
 }
 
 impl FromStr for PromptKind {

@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
@@ -8,6 +7,7 @@ use mlua::{AppDataRef, prelude::*};
 use thiserror::Error;
 
 use super::Instance;
+use crate::shared::instance::class_name_chain;
 
 type InstanceRegistryMap = HashMap<String, HashMap<String, LuaRegistryKey>>;
 
@@ -174,9 +174,9 @@ impl InstanceRegistry {
 
         class_name_chain(&instance.class_name)
             .iter()
-            .find_map(|&class_name| {
+            .find_map(|class_name| {
                 methods
-                    .get(class_name)
+                    .get(class_name.as_str())
                     .and_then(|class_methods| class_methods.get(method_name))
                     .map(|key| lua.registry_value::<LuaFunction>(key).unwrap())
             })
@@ -201,9 +201,9 @@ impl InstanceRegistry {
 
         class_name_chain(&instance.class_name)
             .iter()
-            .find_map(|&class_name| {
+            .find_map(|class_name| {
                 getters
-                    .get(class_name)
+                    .get(class_name.as_str())
                     .and_then(|class_getters| class_getters.get(property_name))
                     .map(|key| lua.registry_value::<LuaFunction>(key).unwrap())
             })
@@ -228,43 +228,11 @@ impl InstanceRegistry {
 
         class_name_chain(&instance.class_name)
             .iter()
-            .find_map(|&class_name| {
+            .find_map(|class_name| {
                 setters
-                    .get(class_name)
+                    .get(class_name.as_str())
                     .and_then(|class_setters| class_setters.get(property_name))
                     .map(|key| lua.registry_value::<LuaFunction>(key).unwrap())
             })
     }
-}
-
-/**
-    Gets the class name chain for a given class name.
-
-    The chain starts with the given class name and ends with the root class.
-
-    # Panics
-
-    Panics if the class name is not valid.
-*/
-#[must_use]
-pub fn class_name_chain(class_name: &str) -> Vec<&str> {
-    let db = rbx_reflection_database::get().unwrap();
-
-    let mut list = vec![class_name];
-    let mut current_name = class_name;
-
-    loop {
-        let class_descriptor = db
-            .classes
-            .get(current_name)
-            .expect("Got invalid class name");
-        if let Some(sup) = &class_descriptor.superclass {
-            current_name = sup.borrow();
-            list.push(current_name);
-        } else {
-            break;
-        }
-    }
-
-    list
 }

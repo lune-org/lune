@@ -2,7 +2,7 @@ use core::fmt;
 use std::ops;
 
 use glam::{Vec2, Vec3};
-use mlua::prelude::*;
+use mlua::{Variadic, prelude::*};
 use rbx_dom_weak::types::Vector2 as DomVector2;
 
 use lune_utils::TableBuilder;
@@ -16,7 +16,7 @@ use super::super::*;
     Roblox datatype, backed by [`glam::Vec2`].
 
     This implements all documented properties, methods &
-    constructors of the Vector2 class as of October 2025.
+    constructors of the Vector2 class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Vector2(pub Vec2);
@@ -52,9 +52,17 @@ impl LuaUserData for Vector2 {
 
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector2>| {
-            Ok(this.0.angle_to(rhs.0))
-        });
+        methods.add_method(
+            "Angle",
+            |_, this, (rhs, is_signed): (LuaUserDataRef<Vector2>, Option<bool>)| {
+                let angle = this.0.angle_to(rhs.0);
+                Ok(if is_signed.unwrap_or(false) {
+                    angle
+                } else {
+                    angle.abs()
+                })
+            },
+        );
         methods.add_method("Cross", |_, this, rhs: LuaUserDataRef<Vector2>| {
             let this_v3 = Vec3::new(this.0.x, this.0.y, 0f32);
             let rhs_v3 = Vec3::new(rhs.0.x, rhs.0.y, 0f32);
@@ -65,7 +73,13 @@ impl LuaUserData for Vector2 {
         });
         methods.add_method(
             "FuzzyEq",
-            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector2>, f32)| {
+            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector2>, Option<f32>)| {
+                let epsilon = epsilon.unwrap_or(1e-5);
+                if !(epsilon > 0.0 && epsilon <= 0.1) {
+                    return Err(LuaError::runtime(
+                        "The eps value provided to FuzzyEq should be a small positive value <= 0.1",
+                    ));
+                }
                 let eq_x = (rhs.0.x - this.0.x).abs() <= epsilon;
                 let eq_y = (rhs.0.y - this.0.y).abs() <= epsilon;
                 Ok(eq_x && eq_y)
@@ -77,11 +91,19 @@ impl LuaUserData for Vector2 {
                 Ok(Vector2(this.0.lerp(rhs.0, alpha)))
             },
         );
-        methods.add_method("Max", |_, this, rhs: LuaUserDataRef<Vector2>| {
-            Ok(Vector2(this.0.max(rhs.0)))
+        methods.add_method("Max", |_, this, rhs: Variadic<LuaUserDataRef<Vector2>>| {
+            let mut result = this.0;
+            for vec in rhs {
+                result = result.max(vec.0);
+            }
+            Ok(Vector2(result))
         });
-        methods.add_method("Min", |_, this, rhs: LuaUserDataRef<Vector2>| {
-            Ok(Vector2(this.0.min(rhs.0)))
+        methods.add_method("Min", |_, this, rhs: Variadic<LuaUserDataRef<Vector2>>| {
+            let mut result = this.0;
+            for vec in rhs {
+                result = result.min(vec.0);
+            }
+            Ok(Vector2(result))
         });
         methods.add_method("Abs", |_, this, ()| Ok(Vector2(this.0.abs())));
         methods.add_method("Ceil", |_, this, ()| Ok(Vector2(this.0.ceil())));
@@ -93,7 +115,7 @@ impl LuaUserData for Vector2 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
+        methods.add_meta_function(LuaMetaMethod::Mul, userdata_impl_mul_f32::<Self>);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
         methods.add_meta_method(LuaMetaMethod::IDiv, userdata_impl_idiv_f32);
     }

@@ -7,7 +7,10 @@ use mlua_luau_scheduler::LuaSpawnExt;
 
 use lune_roblox::{
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
-    instance::{Instance, registry::InstanceRegistry},
+    instance::{
+        Instance, instance_to_lua, instances_to_lua, register_custom_class,
+        registry::InstanceRegistry,
+    },
     reflection::Database as ReflectionDatabase,
 };
 
@@ -51,6 +54,8 @@ pub fn module(lua: Lua) -> LuaResult<LuaTable> {
         .with_function("getReflectionDatabase", get_reflection_database)?
         .with_function("implementProperty", implement_property)?
         .with_function("implementMethod", implement_method)?
+        .with_function("registerClass", register_class)?
+        .with_function("registerService", register_service)?
         .with_function("studioApplicationPath", studio_application_path)?
         .with_function("studioContentPath", studio_content_path)?
         .with_function("studioPluginPath", studio_plugin_path)?
@@ -65,7 +70,8 @@ async fn deserialize_place(lua: Lua, contents: LuaString) -> LuaResult<LuaValue>
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await.into_lua_err()?.into_lua(&lua)
+    let data_model = fut.await.into_lua_err()?;
+    instance_to_lua(&lua, data_model)
 }
 
 async fn deserialize_model(lua: Lua, contents: LuaString) -> LuaResult<LuaValue> {
@@ -75,7 +81,8 @@ async fn deserialize_model(lua: Lua, contents: LuaString) -> LuaResult<LuaValue>
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await.into_lua_err()?.into_lua(&lua)
+    let instance_array = fut.await.into_lua_err()?;
+    instances_to_lua(&lua, instance_array)
 }
 
 async fn serialize_place(
@@ -156,6 +163,18 @@ fn implement_method(
 ) -> LuaResult<()> {
     InstanceRegistry::insert_method(lua, &class_name, &method_name, method).into_lua_err()?;
     Ok(())
+}
+
+fn register_class(
+    _: &Lua,
+    (class_name, super_class_name): (String, Option<String>),
+) -> LuaResult<()> {
+    let super_class_name = super_class_name.unwrap_or_else(|| "Instance".to_string());
+    register_custom_class(&class_name, &super_class_name, false).into_lua_err()
+}
+
+fn register_service(_: &Lua, service_name: String) -> LuaResult<()> {
+    register_custom_class(&service_name, "Instance", true).into_lua_err()
 }
 
 fn studio_application_path(_: &Lua, _: ()) -> LuaResult<String> {

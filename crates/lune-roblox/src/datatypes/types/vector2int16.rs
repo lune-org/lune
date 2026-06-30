@@ -16,7 +16,7 @@ use super::super::*;
     Roblox datatype, backed by [`glam::IVec2`].
 
     This implements all documented properties, methods &
-    constructors of the Vector2int16 class as of October 2025.
+    constructors of the Vector2int16 class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2int16(pub IVec2);
@@ -50,7 +50,7 @@ impl LuaUserData for Vector2int16 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_i32);
+        methods.add_meta_function(LuaMetaMethod::Mul, userdata_impl_mul_i32::<Self>);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_i32);
     }
 }

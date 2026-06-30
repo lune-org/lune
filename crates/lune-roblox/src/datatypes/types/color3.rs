@@ -16,7 +16,7 @@ use super::super::*;
 /**
     An implementation of the [Color3](https://create.roblox.com/docs/reference/engine/datatypes/Color3) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Color3 class as of October 2025.
+    This implements all documented properties, methods & constructors of the Color3 class as of May 2026.
 
     It also implements math operations for addition, subtraction, multiplication, and division,
     all of which are suspiciously missing from the Roblox implementation of the Color3 datatype.
@@ -185,7 +185,7 @@ impl LuaUserData for Color3 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
+        methods.add_meta_function(LuaMetaMethod::Mul, userdata_impl_mul_f32::<Self>);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
     }
 }

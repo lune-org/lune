@@ -209,8 +209,10 @@ create_tests! {
     roblox_instance_classes_terrain: "roblox/instance/classes/Terrain",
 
     roblox_instance_custom_async: "roblox/instance/custom/async",
+    roblox_instance_custom_classes: "roblox/instance/custom/classes",
     roblox_instance_custom_methods: "roblox/instance/custom/methods",
     roblox_instance_custom_properties: "roblox/instance/custom/properties",
+    roblox_instance_custom_services: "roblox/instance/custom/services",
 
     roblox_instance_methods_clear_all_children: "roblox/instance/methods/ClearAllChildren",
     roblox_instance_methods_clone: "roblox/instance/methods/Clone",
@@ -228,6 +230,16 @@ create_tests! {
     roblox_instance_methods_is_a: "roblox/instance/methods/IsA",
     roblox_instance_methods_is_ancestor_of: "roblox/instance/methods/IsAncestorOf",
     roblox_instance_methods_is_descendant_of: "roblox/instance/methods/IsDescendantOf",
+
+    roblox_instance_query_classes: "roblox/instance/query/Classes",
+    roblox_instance_query_tags_and_names: "roblox/instance/query/TagsAndNames",
+    roblox_instance_query_properties: "roblox/instance/query/Properties",
+    roblox_instance_query_attributes: "roblox/instance/query/Attributes",
+    roblox_instance_query_compounds: "roblox/instance/query/Compounds",
+    roblox_instance_query_combinators: "roblox/instance/query/Combinators",
+    roblox_instance_query_selector_lists: "roblox/instance/query/SelectorLists",
+    roblox_instance_query_pseudo_classes: "roblox/instance/query/PseudoClasses",
+    roblox_instance_query_errors: "roblox/instance/query/Errors",
 
     roblox_misc_typeof: "roblox/misc/typeof",
 

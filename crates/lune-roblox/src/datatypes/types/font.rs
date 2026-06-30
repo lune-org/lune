@@ -15,7 +15,7 @@ use super::{super::*, EnumItem};
 /**
     An implementation of the [Font](https://create.roblox.com/docs/reference/engine/datatypes/Font) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Font class as of October 2025.
+    This implements all documented properties, methods & constructors of the Font class as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct Font {
@@ -194,11 +194,12 @@ impl From<FontStyle> for DomFontStyle {
 
 type FontData = (&'static str, FontWeight, FontStyle);
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub(crate) enum FontWeight {
     Thin,
     ExtraLight,
     Light,
+    #[default]
     Regular,
     Medium,
     SemiBold,
@@ -235,12 +236,6 @@ impl FontWeight {
             900 => Some(Self::Heavy),
             _ => None,
         }
-    }
-}
-
-impl Default for FontWeight {
-    fn default() -> Self {
-        Self::Regular
     }
 }
 
@@ -323,8 +318,9 @@ impl IntoLua for FontWeight {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub(crate) enum FontStyle {
+    #[default]
     Normal,
     Italic,
 }
@@ -343,12 +339,6 @@ impl FontStyle {
             1 => Some(Self::Italic),
             _ => None,
         }
-    }
-}
-
-impl Default for FontStyle {
-    fn default() -> Self {
-        Self::Normal
     }
 }
 
@@ -419,51 +409,57 @@ impl IntoLua for FontStyle {
 
 #[rustfmt::skip]
 const FONT_ENUM_MAP: &[(&str, Option<FontData>)] = &[
-    ("Legacy",             Some(("rbxasset://fonts/families/LegacyArial.json",      FontWeight::Regular,  FontStyle::Normal))),
-    ("Arial",              Some(("rbxasset://fonts/families/Arial.json",            FontWeight::Regular,  FontStyle::Normal))),
-    ("ArialBold",          Some(("rbxasset://fonts/families/Arial.json",            FontWeight::Bold,     FontStyle::Normal))),
-    ("SourceSans",         Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Regular,  FontStyle::Normal))),
-    ("SourceSansBold",     Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Bold,     FontStyle::Normal))),
-    ("SourceSansSemibold", Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::SemiBold, FontStyle::Normal))),
-    ("SourceSansLight",    Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Light,    FontStyle::Normal))),
-    ("SourceSansItalic",   Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Regular,  FontStyle::Italic))),
-    ("Bodoni",             Some(("rbxasset://fonts/families/AccanthisADFStd.json",  FontWeight::Regular,  FontStyle::Normal))),
-    ("Garamond",           Some(("rbxasset://fonts/families/Guru.json",             FontWeight::Regular,  FontStyle::Normal))),
-    ("Cartoon",            Some(("rbxasset://fonts/families/ComicNeueAngular.json", FontWeight::Regular,  FontStyle::Normal))),
-    ("Code",               Some(("rbxasset://fonts/families/Inconsolata.json",      FontWeight::Regular,  FontStyle::Normal))),
-    ("Highway",            Some(("rbxasset://fonts/families/HighwayGothic.json",    FontWeight::Regular,  FontStyle::Normal))),
-    ("SciFi",              Some(("rbxasset://fonts/families/Zekton.json",           FontWeight::Regular,  FontStyle::Normal))),
-    ("Arcade",             Some(("rbxasset://fonts/families/PressStart2P.json",     FontWeight::Regular,  FontStyle::Normal))),
-    ("Fantasy",            Some(("rbxasset://fonts/families/Balthazar.json",        FontWeight::Regular,  FontStyle::Normal))),
-    ("Antique",            Some(("rbxasset://fonts/families/RomanAntique.json",     FontWeight::Regular,  FontStyle::Normal))),
-    ("Gotham",             Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Regular,  FontStyle::Normal))),
-    ("GothamMedium",       Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Medium,   FontStyle::Normal))),
-    ("GothamBold",         Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Bold,     FontStyle::Normal))),
-    ("GothamBlack",        Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Heavy,    FontStyle::Normal))),
-    ("AmaticSC",           Some(("rbxasset://fonts/families/AmaticSC.json",         FontWeight::Regular,  FontStyle::Normal))),
-    ("Bangers",            Some(("rbxasset://fonts/families/Bangers.json",          FontWeight::Regular,  FontStyle::Normal))),
-    ("Creepster",          Some(("rbxasset://fonts/families/Creepster.json",        FontWeight::Regular,  FontStyle::Normal))),
-    ("DenkOne",            Some(("rbxasset://fonts/families/DenkOne.json",          FontWeight::Regular,  FontStyle::Normal))),
-    ("Fondamento",         Some(("rbxasset://fonts/families/Fondamento.json",       FontWeight::Regular,  FontStyle::Normal))),
-    ("FredokaOne",         Some(("rbxasset://fonts/families/FredokaOne.json",       FontWeight::Regular,  FontStyle::Normal))),
-    ("GrenzeGotisch",      Some(("rbxasset://fonts/families/GrenzeGotisch.json",    FontWeight::Regular,  FontStyle::Normal))),
-    ("IndieFlower",        Some(("rbxasset://fonts/families/IndieFlower.json",      FontWeight::Regular,  FontStyle::Normal))),
-    ("JosefinSans",        Some(("rbxasset://fonts/families/JosefinSans.json",      FontWeight::Regular,  FontStyle::Normal))),
-    ("Jura",               Some(("rbxasset://fonts/families/Jura.json",             FontWeight::Regular,  FontStyle::Normal))),
-    ("Kalam",              Some(("rbxasset://fonts/families/Kalam.json",            FontWeight::Regular,  FontStyle::Normal))),
-    ("LuckiestGuy",        Some(("rbxasset://fonts/families/LuckiestGuy.json",      FontWeight::Regular,  FontStyle::Normal))),
-    ("Merriweather",       Some(("rbxasset://fonts/families/Merriweather.json",     FontWeight::Regular,  FontStyle::Normal))),
-    ("Michroma",           Some(("rbxasset://fonts/families/Michroma.json",         FontWeight::Regular,  FontStyle::Normal))),
-    ("Nunito",             Some(("rbxasset://fonts/families/Nunito.json",           FontWeight::Regular,  FontStyle::Normal))),
-    ("Oswald",             Some(("rbxasset://fonts/families/Oswald.json",           FontWeight::Regular,  FontStyle::Normal))),
-    ("PatrickHand",        Some(("rbxasset://fonts/families/PatrickHand.json",      FontWeight::Regular,  FontStyle::Normal))),
-    ("PermanentMarker",    Some(("rbxasset://fonts/families/PermanentMarker.json",  FontWeight::Regular,  FontStyle::Normal))),
-    ("Roboto",             Some(("rbxasset://fonts/families/Roboto.json",           FontWeight::Regular,  FontStyle::Normal))),
-    ("RobotoCondensed",    Some(("rbxasset://fonts/families/RobotoCondensed.json",  FontWeight::Regular,  FontStyle::Normal))),
-    ("RobotoMono",         Some(("rbxasset://fonts/families/RobotoMono.json",       FontWeight::Regular,  FontStyle::Normal))),
-    ("Sarpanch",           Some(("rbxasset://fonts/families/Sarpanch.json",         FontWeight::Regular,  FontStyle::Normal))),
-    ("SpecialElite",       Some(("rbxasset://fonts/families/SpecialElite.json",     FontWeight::Regular,  FontStyle::Normal))),
-    ("TitilliumWeb",       Some(("rbxasset://fonts/families/TitilliumWeb.json",     FontWeight::Regular,  FontStyle::Normal))),
-    ("Ubuntu",             Some(("rbxasset://fonts/families/Ubuntu.json",           FontWeight::Regular,  FontStyle::Normal))),
-    ("Unknown",            None),
+    ("Legacy",               Some(("rbxasset://fonts/families/LegacyArial.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("Arial",                Some(("rbxasset://fonts/families/Arial.json",            FontWeight::Regular,   FontStyle::Normal))),
+    ("ArialBold",            Some(("rbxasset://fonts/families/Arial.json",            FontWeight::Bold,      FontStyle::Normal))),
+    ("SourceSans",           Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Regular,   FontStyle::Normal))),
+    ("SourceSansBold",       Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Bold,      FontStyle::Normal))),
+    ("SourceSansLight",      Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Light,     FontStyle::Normal))),
+    ("SourceSansItalic",     Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::Regular,   FontStyle::Italic))),
+    ("Bodoni",               Some(("rbxasset://fonts/families/AccanthisADFStd.json",  FontWeight::Regular,   FontStyle::Normal))),
+    ("Garamond",             Some(("rbxasset://fonts/families/Guru.json",             FontWeight::Regular,   FontStyle::Normal))),
+    ("Cartoon",              Some(("rbxasset://fonts/families/ComicNeueAngular.json", FontWeight::Regular,   FontStyle::Normal))),
+    ("Code",                 Some(("rbxasset://fonts/families/Inconsolata.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("Highway",              Some(("rbxasset://fonts/families/HighwayGothic.json",    FontWeight::Regular,   FontStyle::Normal))),
+    ("SciFi",                Some(("rbxasset://fonts/families/Zekton.json",           FontWeight::Regular,   FontStyle::Normal))),
+    ("Arcade",               Some(("rbxasset://fonts/families/PressStart2P.json",     FontWeight::Regular,   FontStyle::Normal))),
+    ("Fantasy",              Some(("rbxasset://fonts/families/Balthazar.json",        FontWeight::Regular,   FontStyle::Normal))),
+    ("Antique",              Some(("rbxasset://fonts/families/RomanAntique.json",     FontWeight::Regular,   FontStyle::Normal))),
+    ("SourceSansSemibold",   Some(("rbxasset://fonts/families/SourceSansPro.json",    FontWeight::SemiBold,  FontStyle::Normal))),
+    ("Gotham",               Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Regular,   FontStyle::Normal))),
+    ("GothamMedium",         Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Medium,    FontStyle::Normal))),
+    ("GothamBold",           Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Bold,      FontStyle::Normal))),
+    ("GothamBlack",          Some(("rbxasset://fonts/families/GothamSSm.json",        FontWeight::Heavy,     FontStyle::Normal))),
+    ("AmaticSC",             Some(("rbxasset://fonts/families/AmaticSC.json",         FontWeight::Regular,   FontStyle::Normal))),
+    ("Bangers",              Some(("rbxasset://fonts/families/Bangers.json",          FontWeight::Regular,   FontStyle::Normal))),
+    ("Creepster",            Some(("rbxasset://fonts/families/Creepster.json",        FontWeight::Regular,   FontStyle::Normal))),
+    ("DenkOne",              Some(("rbxasset://fonts/families/DenkOne.json",          FontWeight::Regular,   FontStyle::Normal))),
+    ("Fondamento",           Some(("rbxasset://fonts/families/Fondamento.json",       FontWeight::Regular,   FontStyle::Normal))),
+    ("FredokaOne",           Some(("rbxasset://fonts/families/FredokaOne.json",       FontWeight::Regular,   FontStyle::Normal))),
+    ("GrenzeGotisch",        Some(("rbxasset://fonts/families/GrenzeGotisch.json",    FontWeight::Regular,   FontStyle::Normal))),
+    ("IndieFlower",          Some(("rbxasset://fonts/families/IndieFlower.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("JosefinSans",          Some(("rbxasset://fonts/families/JosefinSans.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("Jura",                 Some(("rbxasset://fonts/families/Jura.json",             FontWeight::Regular,   FontStyle::Normal))),
+    ("Kalam",                Some(("rbxasset://fonts/families/Kalam.json",            FontWeight::Regular,   FontStyle::Normal))),
+    ("LuckiestGuy",          Some(("rbxasset://fonts/families/LuckiestGuy.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("Merriweather",         Some(("rbxasset://fonts/families/Merriweather.json",     FontWeight::Regular,   FontStyle::Normal))),
+    ("Michroma",             Some(("rbxasset://fonts/families/Michroma.json",         FontWeight::Regular,   FontStyle::Normal))),
+    ("Nunito",               Some(("rbxasset://fonts/families/Nunito.json",           FontWeight::Regular,   FontStyle::Normal))),
+    ("Oswald",               Some(("rbxasset://fonts/families/Oswald.json",           FontWeight::Regular,   FontStyle::Normal))),
+    ("PatrickHand",          Some(("rbxasset://fonts/families/PatrickHand.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("PermanentMarker",      Some(("rbxasset://fonts/families/PermanentMarker.json",  FontWeight::Regular,   FontStyle::Normal))),
+    ("Roboto",               Some(("rbxasset://fonts/families/Roboto.json",           FontWeight::Regular,   FontStyle::Normal))),
+    ("RobotoCondensed",      Some(("rbxasset://fonts/families/RobotoCondensed.json",  FontWeight::Regular,   FontStyle::Normal))),
+    ("RobotoMono",           Some(("rbxasset://fonts/families/RobotoMono.json",       FontWeight::Regular,   FontStyle::Normal))),
+    ("Sarpanch",             Some(("rbxasset://fonts/families/Sarpanch.json",         FontWeight::Regular,   FontStyle::Normal))),
+    ("SpecialElite",         Some(("rbxasset://fonts/families/SpecialElite.json",     FontWeight::Regular,   FontStyle::Normal))),
+    ("TitilliumWeb",         Some(("rbxasset://fonts/families/TitilliumWeb.json",     FontWeight::Regular,   FontStyle::Normal))),
+    ("Ubuntu",               Some(("rbxasset://fonts/families/Ubuntu.json",           FontWeight::Regular,   FontStyle::Normal))),
+    ("BuilderSans",          Some(("rbxasset://fonts/families/BuilderSans.json",      FontWeight::Regular,   FontStyle::Normal))),
+    ("BuilderSansMedium",    Some(("rbxasset://fonts/families/BuilderSans.json",      FontWeight::Medium,    FontStyle::Normal))),
+    ("BuilderSansBold",      Some(("rbxasset://fonts/families/BuilderSans.json",      FontWeight::Bold,      FontStyle::Normal))),
+    ("BuilderSansExtraBold", Some(("rbxasset://fonts/families/BuilderSans.json",      FontWeight::ExtraBold, FontStyle::Normal))),
+    ("Arimo",                Some(("rbxasset://fonts/families/Arimo.json",            FontWeight::Regular,   FontStyle::Normal))),
+    ("ArimoBold",            Some(("rbxasset://fonts/families/Arimo.json",            FontWeight::Bold,      FontStyle::Normal))),
+    ("Unknown",              None),
 ];

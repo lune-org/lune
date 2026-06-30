@@ -34,11 +34,11 @@ impl fmt::Display for DomConversionError {
             match self {
                 #[cfg(feature = "mlua")]
                 Self::LuaError(error) => error.to_string(),
-                Self::External { message } => message.to_string(),
+                Self::External { message } => message.clone(),
                 Self::FromDomValue { from, to, detail } | Self::ToDomValue { from, to, detail } => {
                     match detail {
                         Some(d) => format!("Failed to convert from '{from}' into '{to}' - {d}"),
-                        None => format!("Failed to convert from '{from}' into '{to}'",),
+                        None => format!("Failed to convert from '{from}' into '{to}'"),
                     }
                 }
             }

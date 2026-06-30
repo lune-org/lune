@@ -56,13 +56,12 @@ impl DomValueToLua for LuaValue {
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
 
-                // NOTE: Dom references may point to instances that
-                // no longer exist, so we handle that here instead of
-                // in the userdata conversion to be able to return nils
-                DomValue::Ref(value) => match Instance::new_opt(*value) {
-                    Some(inst) => Ok(inst.into_lua(lua)?),
-                    None => Ok(LuaValue::Nil),
-                },
+                // NOTE: Instance refs are dom-relative, and this conversion has
+                // no dom context, so it cannot resolve them. Ref-typed instance
+                // properties are instead resolved (within the owning instance's
+                // dom) in `instance_property_get`; any ref reaching here resolves
+                // to nil. Refs never appear as attribute values.
+                DomValue::Ref(_) => Ok(LuaValue::Nil),
 
                 // NOTE: Some values are either optional or default and we should handle
                 // that properly here since the userdata conversion above will always fail

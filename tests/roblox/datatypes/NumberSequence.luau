@@ -6,6 +6,19 @@ local NumberSequenceKeypoint = roblox.NumberSequenceKeypoint
 
 NumberSequence.new(0)
 NumberSequence.new(0, 0)
+
+-- Two-value form must build a ramp, not drop the second argument
+local ramp = NumberSequence.new(0, 1)
+assert(#ramp.Keypoints == 2)
+assert(ramp.Keypoints[1] == NumberSequenceKeypoint.new(0, 0))
+assert(ramp.Keypoints[2] == NumberSequenceKeypoint.new(1, 1))
+
+-- Single-value form builds a constant sequence
+local constant = NumberSequence.new(0.25)
+assert(#constant.Keypoints == 2)
+assert(constant.Keypoints[1] == NumberSequenceKeypoint.new(0, 0.25))
+assert(constant.Keypoints[2] == NumberSequenceKeypoint.new(1, 0.25))
+
 local sequence = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 1),
 	NumberSequenceKeypoint.new(0.5, 0.5),

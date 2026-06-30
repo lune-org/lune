@@ -46,10 +46,10 @@ pub(crate) fn format_value_styled(value: &LuaValue, prefer_plain: bool) -> Strin
         LuaValue::Boolean(false) => COLOR_YELLOW.apply_to("false").to_string(),
         LuaValue::Number(n) => COLOR_CYAN.apply_to(n).to_string(),
         LuaValue::Integer(i) => COLOR_CYAN.apply_to(i).to_string(),
-        LuaValue::String(s) if prefer_plain => s.to_string_lossy().to_string(),
+        LuaValue::String(s) if prefer_plain => s.to_string_lossy().clone(),
         LuaValue::String(s) => COLOR_GREEN
             .apply_to({
-                let mut s = s.to_string_lossy().to_string();
+                let mut s = s.to_string_lossy().clone();
                 for (from, to) in STRING_REPLACEMENTS {
                     s = s.replace(from, to);
                 }

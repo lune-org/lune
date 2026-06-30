@@ -104,7 +104,7 @@ impl From<LuaError> for ErrorComponents {
     fn from(error: LuaError) -> Self {
         fn lua_error_message(e: &LuaError) -> String {
             if let LuaError::RuntimeError(s) = e {
-                s.to_string()
+                s.clone()
             } else {
                 e.to_string()
             }
@@ -126,7 +126,7 @@ impl From<LuaError> for ErrorComponents {
             ref cause,
         } = *error
         {
-            messages.push(context.to_string());
+            messages.push(context.clone());
             error = cause.clone();
         }
 
@@ -146,7 +146,7 @@ impl From<LuaError> for ErrorComponents {
                 messages.push(message.trim().to_string());
                 lua_stack_trace(traceback)
             } else {
-                messages.push(s.to_string());
+                messages.push(s.clone());
                 None
             }
         } else {

@@ -14,7 +14,7 @@ use super::{super::*, CFrame, Vector3};
     An implementation of the [Region3](https://create.roblox.com/docs/reference/engine/datatypes/Region3)
     Roblox datatype, backed by [`glam::Vec3`].
 
-    This implements all documented properties, methods & constructors of the Region3 class as of October 2025.
+    This implements all documented properties, methods & constructors of the Region3 class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Region3 {

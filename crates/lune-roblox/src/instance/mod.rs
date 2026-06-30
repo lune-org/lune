@@ -4,7 +4,6 @@ use std::{
     collections::{BTreeMap, VecDeque},
     fmt,
     hash::{Hash, Hasher},
-    sync::{LazyLock, Mutex},
 };
 
 #[cfg(feature = "mlua")]
@@ -21,6 +20,9 @@ use lune_utils::TableBuilder;
 
 use crate::shared::instance::class_is_a;
 
+pub use self::query::{QueryError, QueryResult, query_descendants};
+pub use crate::shared::instance::{CustomClassError, register_custom_class};
+
 #[cfg(feature = "mlua")]
 use crate::{exports::LuaExportsTable, shared::instance::class_exists};
 
@@ -33,105 +35,155 @@ pub(crate) mod terrain;
 #[cfg(feature = "mlua")]
 pub(crate) mod workspace;
 
+pub(crate) mod dom_registry;
+pub(crate) mod query;
+
 #[cfg(feature = "mlua")]
 pub mod registry;
+
+use dom_registry::DomId;
 
 const PROPERTY_NAME_ATTRIBUTES: &str = "Attributes";
 const PROPERTY_NAME_TAGS: &str = "Tags";
 
-static INTERNAL_DOM: LazyLock<Mutex<WeakDom>> =
-    LazyLock::new(|| Mutex::new(WeakDom::new(DomInstanceBuilder::new("ROOT"))));
-
 #[derive(Debug, Clone, Copy)]
 pub struct Instance {
+    pub(crate) dom_id: DomId,
     pub(crate) dom_ref: DomRef,
     pub(crate) class_name: Ustr,
 }
 
 impl Instance {
     /**
-        Creates a new `Instance` from an existing dom object ref.
+        Builds an `Instance` from a dom object that has already been
+        borrowed out of its dom, without acquiring any new locks.
 
-        Panics if the instance does not exist in the internal dom,
-        or if the given dom object ref points to the internal dom root.
-
-        **WARNING:** Creating a new instance requires locking the internal dom,
-        any existing lock must first be released to prevent any deadlocking.
+        This is the preferred constructor to use from inside a
+        [`dom::with`] / [`dom::with_mut`] closure.
     */
-    #[must_use]
-    pub fn new(dom_ref: DomRef) -> Self {
-        Self::new_opt(dom_ref).expect("Failed to find instance in document")
+    pub(crate) fn from_dom_instance(dom_id: DomId, dom_ref: DomRef, inst: &DomInstance) -> Self {
+        Self {
+            dom_id,
+            dom_ref,
+            class_name: inst.class,
+        }
     }
 
     /**
-        Creates a new `Instance` from a dom object ref, if the instance exists.
+        Creates a new `Instance` from a dom id and object ref.
 
-        Panics if the given dom object ref points to the internal dom root.
-
-        **WARNING:** Creating a new instance requires locking the internal dom,
-        any existing lock must first be released to prevent any deadlocking.
+        Panics if the instance does not exist in the given dom,
+        or if the given dom object ref points to the dom root.
     */
     #[must_use]
-    pub fn new_opt(dom_ref: DomRef) -> Option<Self> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+    pub fn new(dom_id: DomId, dom_ref: DomRef) -> Self {
+        Self::new_opt(dom_id, dom_ref).expect("Failed to find instance in document")
+    }
 
-        if let Some(instance) = dom.get_by_ref(dom_ref) {
-            assert!(
-                !(instance.referent() == dom.root_ref()),
-                "Instances can not be created from dom roots"
-            );
+    /**
+        Creates a new `Instance` from a dom id and object ref, if the instance exists.
 
-            Some(Self {
-                dom_ref,
-                class_name: instance.class,
+        Panics if the given dom object ref points to the dom root.
+    */
+    #[must_use]
+    pub fn new_opt(dom_id: DomId, dom_ref: DomRef) -> Option<Self> {
+        dom_registry::with(dom_id, |dom| {
+            dom.get_by_ref(dom_ref).map(|instance| {
+                assert!(
+                    !(instance.referent() == dom.root_ref()),
+                    "Instances can not be created from dom roots"
+                );
+                Self::from_dom_instance(dom_id, dom_ref, instance)
             })
-        } else {
-            None
-        }
+        })
+        .flatten()
     }
 
     /**
         Creates a new orphaned `Instance` with a given class name.
 
-        An orphaned instance is an instance at the root of Lune's internal weak dom.
-
-        **WARNING:** Creating a new instance requires locking the internal dom,
-        any existing lock must first be released to prevent any deadlocking.
+        An orphaned instance is an instance at the root of the shared default
+        scratch dom used for manually created instances.
     */
     #[must_use]
     pub fn new_orphaned(class_name: impl AsRef<str>) -> Self {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        Self::new_in_dom(dom_registry::default_dom(), class_name)
+    }
 
+    /**
+        Creates a new orphaned `Instance` with a given class name, directly
+        inside the dom with the given id.
+
+        Creating children inside their eventual parent's dom this way avoids
+        a needless cross-dom transfer when they are later parented.
+    */
+    #[must_use]
+    pub fn new_in_dom(dom_id: DomId, class_name: impl AsRef<str>) -> Self {
         let class_name = class_name.as_ref();
-
-        let instance = DomInstanceBuilder::new(class_name);
-
-        let dom_root = dom.root_ref();
-        let dom_ref = dom.insert(dom_root, instance);
-
+        let dom_ref = dom_registry::with_mut(dom_id, |dom| {
+            let dom_root = dom.root_ref();
+            dom.insert(dom_root, DomInstanceBuilder::new(class_name))
+        })
+        .expect("Failed to find dom to create instance in");
         Self {
+            dom_id,
             dom_ref,
             class_name: ustr(class_name),
         }
     }
 
     /**
-        Creates a new orphaned `Instance` by transferring
-        it from an external weak dom to the internal one.
+        Runs a closure with shared read access to the [`WeakDom`] that this
+        instance lives in.
 
-        An orphaned instance is an instance at the root of Lune's internal weak dom.
+        This is an escape hatch for handing a `&WeakDom` to an external consumer
+        that reads it directly through the `rbx_dom_weak` api without copying it
+        out. The referents seen inside the closure are the exact same `Ref`s the
+        instances were created with, so any `Ref` obtained from the dom maps
+        straight back to its [`Instance`].
 
-        Panics if the given dom ref is the root dom ref of the external weak dom.
+        # Deadlocks
+
+        **The global dom registry lock is held for the entire duration of `f`,
+        and it is not reentrant.** Inside `f` you must work with the `&WeakDom`
+        directly and **must not** call back into any method on *this or any
+        other* [`Instance`] that touches the dom - `get_name`, `get_parent`,
+        `get_children`, `get_property`, `get_attribute`, the `set_*` methods,
+        `with_dom`, `with_dom_mut`, and so on. Any such call re-locks the same
+        registry lock and **deadlocks the thread**.
+
+        In other words: treat `f` as a pure read of the raw dom, nothing else. Do
+        all [`Instance`]-level work before or after the closure, never within it.
+
+        This is `#[doc(hidden)]` precisely because of these sharp edges - it is a
+        low-level seam for embedders, not part of the general instance api.
     */
-    #[must_use]
-    pub fn from_external_dom(external_dom: &mut WeakDom, external_dom_ref: DomRef) -> Self {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let dom_root = dom.root_ref();
+    #[doc(hidden)]
+    pub fn with_dom<R>(&self, f: impl FnOnce(&WeakDom) -> R) -> R {
+        dom_registry::with(self.dom_id, f).expect("Failed to find dom for instance")
+    }
 
-        external_dom.transfer(external_dom_ref, &mut dom, dom_root);
+    /**
+        Runs a closure with exclusive write access to the [`WeakDom`] that this
+        instance lives in.
 
-        drop(dom); // Self::new needs mutex handle, drop it first
-        Self::new(external_dom_ref)
+        The mutable counterpart to [`Instance::with_dom`] - for handing a
+        `&mut WeakDom` to an external consumer that edits it directly through the
+        `rbx_dom_weak` api. The same referent-stability guarantee applies.
+
+        # Deadlocks
+
+        Carries the **exact same caveat** as [`Instance::with_dom`]: the global,
+        non-reentrant dom registry lock is held for the duration of `f`, so the
+        closure must operate on the `&mut WeakDom` directly and **must not** call
+        back into any dom-accessing [`Instance`] method (doing so deadlocks the
+        thread). See [`Instance::with_dom`] for the full explanation.
+
+        This is `#[doc(hidden)]` for the same reasons.
+    */
+    #[doc(hidden)]
+    pub fn with_dom_mut<R>(&self, f: impl FnOnce(&mut WeakDom) -> R) -> R {
+        dom_registry::with_mut(self.dom_id, f).expect("Failed to find dom for instance")
     }
 
     /**
@@ -141,40 +193,38 @@ impl Instance {
         root of the weak dom, and return its referent.
     */
     pub fn clone_into_external_dom(self, external_dom: &mut WeakDom) -> DomRef {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let cloned = dom.clone_into_external(self.dom_ref, external_dom);
-        external_dom.transfer_within(cloned, external_dom.root_ref());
-
-        cloned
+        self.with_dom(|dom| {
+            let cloned = dom.clone_into_external(self.dom_ref, external_dom);
+            external_dom.transfer_within(cloned, external_dom.root_ref());
+            cloned
+        })
     }
 
     /**
-        Clones multiple instances to an external weak dom.
+        Clones multiple instances from a single dom to an external weak dom.
 
         This will place the instances as children of the
         root of the weak dom, and return their referents.
     */
     pub fn clone_multiple_into_external_dom(
+        dom_id: DomId,
         referents: &[DomRef],
         external_dom: &mut WeakDom,
     ) -> Vec<DomRef> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let cloned = dom.clone_multiple_into_external(referents, external_dom);
-
-        for referent in &cloned {
-            external_dom.transfer_within(*referent, external_dom.root_ref());
-        }
-
-        cloned
+        dom_registry::with(dom_id, |dom| {
+            let cloned = dom.clone_multiple_into_external(referents, external_dom);
+            for referent in &cloned {
+                external_dom.transfer_within(*referent, external_dom.root_ref());
+            }
+            cloned
+        })
+        .unwrap_or_default()
     }
 
     /**
         Clones the instance and all of its descendants, and orphans it.
 
-        To then save the new instance it must be re-parented,
-        which matches the exact behavior of Roblox's instances.
+        The clone is placed at the root of the same dom as the original.
 
         ### See Also
         * [`Clone`](https://create.roblox.com/docs/reference/engine/classes/Instance#Clone)
@@ -182,21 +232,19 @@ impl Instance {
     */
     #[must_use]
     pub fn clone_instance(&self) -> Self {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let new_ref = dom.clone_within(self.dom_ref);
-        drop(dom); // Self::new needs mutex handle, drop it first
-
-        let new_inst = Self::new(new_ref);
+        let new_ref = self.with_dom_mut(|dom| dom.clone_within(self.dom_ref));
+        let new_inst = Self::new(self.dom_id, new_ref);
         new_inst.set_parent(None);
         new_inst
     }
 
     /**
         Destroys the instance, removing it completely
-        from the weak dom with no way of recovering it.
+        from its dom with no way of recovering it.
 
-        All member methods will throw errors when called from lua and panic
-        when called from rust after the instance has been destroyed.
+        If destroying the instance leaves its dom empty (e.g. destroying the
+        root `DataModel` of a parsed place), the entire dom is dropped, freeing
+        all of its memory.
 
         Returns `true` if destroyed successfully, `false` if already destroyed.
 
@@ -208,9 +256,8 @@ impl Instance {
         if self.is_destroyed() {
             false
         } else {
-            let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-            dom.destroy(self.dom_ref);
+            self.with_dom_mut(|dom| dom.destroy(self.dom_ref));
+            dom_registry::drop_if_empty(self.dom_id);
             true
         }
     }
@@ -219,8 +266,8 @@ impl Instance {
         // NOTE: This property can not be cached since instance references
         // other than this one may have destroyed this one, and we don't
         // keep track of all current instance reference structs
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        dom.get_by_ref(self.dom_ref).is_none()
+        dom_registry::with(self.dom_id, |dom| dom.get_by_ref(self.dom_ref).is_none())
+            .unwrap_or(true)
     }
 
     /**
@@ -232,16 +279,14 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn clear_all_children(&mut self) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let instance = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document");
-
-        let child_refs = instance.children().to_vec();
-        for child_ref in child_refs {
-            dom.destroy(child_ref);
-        }
+        self.with_dom_mut(|dom| {
+            if let Some(instance) = dom.get_by_ref(self.dom_ref) {
+                let child_refs = instance.children().to_vec();
+                for child_ref in child_refs {
+                    dom.destroy(child_ref);
+                }
+            }
+        });
     }
 
     /**
@@ -276,13 +321,14 @@ impl Instance {
         * [`Name`](https://create.roblox.com/docs/reference/engine/classes/Instance#Name)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_name(&self) -> String {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        dom.get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .name
-            .clone()
+        self.with_dom(|dom| {
+            dom.get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .name
+                .clone()
+        })
     }
 
     /**
@@ -293,11 +339,11 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn set_name(&self, name: impl Into<String>) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        dom.get_by_ref_mut(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .name = name.into();
+        self.with_dom_mut(|dom| {
+            dom.get_by_ref_mut(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .name = name.into();
+        });
     }
 
     /**
@@ -307,50 +353,51 @@ impl Instance {
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_parent(&self) -> Option<Instance> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let parent_ref = dom.get_by_ref(self.dom_ref)?.parent();
-
-        if parent_ref == dom.root_ref() {
-            None
-        } else {
-            drop(dom); // Self::new needs mutex handle, drop it first
-            Some(Self::new(parent_ref))
-        }
+        self.with_dom(|dom| {
+            let parent_ref = dom.get_by_ref(self.dom_ref)?.parent();
+            if parent_ref == dom.root_ref() {
+                None
+            } else {
+                dom.get_by_ref(parent_ref)
+                    .map(|parent| Self::from_dom_instance(self.dom_id, parent_ref, parent))
+            }
+        })
     }
 
     /**
         Sets the parent of the instance, if it exists.
 
-        If the provided parent is [`None`] the instance will become orphaned.
+        If the provided parent is [`None`] the instance will become orphaned
+        within its current dom.
 
-        An orphaned instance is an instance at the root of Lune's internal weak dom.
+        If the parent is in a *different* dom, the instance and all of its
+        descendants are transferred into the parent's dom. The transferred
+        referents are returned so that callers (such as the lua `Parent`
+        setter) can update any cached userdata and `dom_id`s accordingly.
 
         ### See Also
         * [`Parent`](https://create.roblox.com/docs/reference/engine/classes/Instance#Parent)
           on the Roblox Developer Hub
     */
-    pub fn set_parent(&self, parent: Option<Instance>) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let parent_ref = parent.map_or_else(|| dom.root_ref(), |parent| parent.dom_ref);
-
-        dom.transfer_within(self.dom_ref, parent_ref);
+    #[allow(clippy::must_use_candidate)]
+    pub fn set_parent(&self, parent: Option<Instance>) -> Vec<DomRef> {
+        let parent = parent.map(|p| (p.dom_id, p.dom_ref));
+        dom_registry::reparent(self.dom_id, self.dom_ref, parent)
     }
 
     /**
         Gets a property for the instance, if it exists.
     */
     pub fn get_property(&self, name: impl AsRef<str>) -> Option<DomValue> {
-        INTERNAL_DOM
-            .lock()
-            .expect("Failed to lock document")
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .properties
-            .get(&ustr(name.as_ref()))
-            .cloned()
+        self.with_dom(|dom| {
+            dom.get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .properties
+                .get(&ustr(name.as_ref()))
+                .cloned()
+        })
     }
 
     /**
@@ -360,13 +407,12 @@ impl Instance {
         property does not actually exist for the instance class.
     */
     pub fn set_property(&self, name: impl AsRef<str>, value: DomValue) {
-        INTERNAL_DOM
-            .lock()
-            .expect("Failed to lock document")
-            .get_by_ref_mut(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .properties
-            .insert(ustr(name.as_ref()), value);
+        self.with_dom_mut(|dom| {
+            dom.get_by_ref_mut(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .properties
+                .insert(ustr(name.as_ref()), value);
+        });
     }
 
     /**
@@ -377,17 +423,18 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn get_attribute(&self, name: impl AsRef<str>) -> Option<DomValue> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Attributes(attributes)) =
-            inst.properties.get(&ustr(PROPERTY_NAME_ATTRIBUTES))
-        {
-            attributes.get(name.as_ref()).cloned()
-        } else {
-            None
-        }
+        self.with_dom(|dom| {
+            let inst = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Attributes(attributes)) =
+                inst.properties.get(&ustr(PROPERTY_NAME_ATTRIBUTES))
+            {
+                attributes.get(name.as_ref()).cloned()
+            } else {
+                None
+            }
+        })
     }
 
     /**
@@ -397,18 +444,20 @@ impl Instance {
         * [`GetAttributes`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetAttributes)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_attributes(&self) -> BTreeMap<String, DomValue> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Attributes(attributes)) =
-            inst.properties.get(&ustr(PROPERTY_NAME_ATTRIBUTES))
-        {
-            attributes.clone().into_iter().collect()
-        } else {
-            BTreeMap::new()
-        }
+        self.with_dom(|dom| {
+            let inst = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Attributes(attributes)) =
+                inst.properties.get(&ustr(PROPERTY_NAME_ATTRIBUTES))
+            {
+                attributes.clone().into_iter().collect()
+            } else {
+                BTreeMap::new()
+            }
+        })
     }
 
     /**
@@ -419,28 +468,29 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn set_attribute(&self, name: impl AsRef<str>, value: DomValue) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref_mut(self.dom_ref)
-            .expect("Failed to find instance in document");
-        // NOTE: Attributes do not support integers, only floats
-        let value = match value {
-            DomValue::Int32(i) => DomValue::Float32(i as f32),
-            DomValue::Int64(i) => DomValue::Float64(i as f64),
-            value => value,
-        };
-        if let Some(DomValue::Attributes(attributes)) =
-            inst.properties.get_mut(&ustr(PROPERTY_NAME_ATTRIBUTES))
-        {
-            attributes.insert(name.as_ref().to_string(), value);
-        } else {
-            let mut attributes = DomAttributes::new();
-            attributes.insert(name.as_ref().to_string(), value);
-            inst.properties.insert(
-                ustr(PROPERTY_NAME_ATTRIBUTES),
-                DomValue::Attributes(attributes),
-            );
-        }
+        self.with_dom_mut(|dom| {
+            let inst = dom
+                .get_by_ref_mut(self.dom_ref)
+                .expect("Failed to find instance in document");
+            // NOTE: Attributes do not support integers, only floats
+            let value = match value {
+                DomValue::Int32(i) => DomValue::Float32(i as f32),
+                DomValue::Int64(i) => DomValue::Float64(i as f64),
+                value => value,
+            };
+            if let Some(DomValue::Attributes(attributes)) =
+                inst.properties.get_mut(&ustr(PROPERTY_NAME_ATTRIBUTES))
+            {
+                attributes.insert(name.as_ref().to_string(), value);
+            } else {
+                let mut attributes = DomAttributes::new();
+                attributes.insert(name.as_ref().to_string(), value);
+                inst.properties.insert(
+                    ustr(PROPERTY_NAME_ATTRIBUTES),
+                    DomValue::Attributes(attributes),
+                );
+            }
+        });
     }
 
     /**
@@ -452,18 +502,19 @@ impl Instance {
         The equivalent in the Roblox engine API would be `instance:SetAttribute(name, nil)`.
     */
     pub fn remove_attribute(&self, name: impl AsRef<str>) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref_mut(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Attributes(attributes)) =
-            inst.properties.get_mut(&ustr(PROPERTY_NAME_ATTRIBUTES))
-        {
-            attributes.remove(name.as_ref());
-            if attributes.is_empty() {
-                inst.properties.remove(&ustr(PROPERTY_NAME_ATTRIBUTES));
+        self.with_dom_mut(|dom| {
+            let inst = dom
+                .get_by_ref_mut(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Attributes(attributes)) =
+                inst.properties.get_mut(&ustr(PROPERTY_NAME_ATTRIBUTES))
+            {
+                attributes.remove(name.as_ref());
+                if attributes.is_empty() {
+                    inst.properties.remove(&ustr(PROPERTY_NAME_ATTRIBUTES));
+                }
             }
-        }
+        });
     }
 
     /**
@@ -474,18 +525,19 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn add_tag(&self, name: impl AsRef<str>) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref_mut(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut(&ustr(PROPERTY_NAME_TAGS)) {
-            tags.push(name.as_ref());
-        } else {
-            inst.properties.insert(
-                ustr(PROPERTY_NAME_TAGS),
-                DomValue::Tags(vec![name.as_ref().to_string()].into()),
-            );
-        }
+        self.with_dom_mut(|dom| {
+            let inst = dom
+                .get_by_ref_mut(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Tags(tags)) = inst.properties.get_mut(&ustr(PROPERTY_NAME_TAGS)) {
+                tags.push(name.as_ref());
+            } else {
+                inst.properties.insert(
+                    ustr(PROPERTY_NAME_TAGS),
+                    DomValue::Tags(vec![name.as_ref().to_string()].into()),
+                );
+            }
+        });
     }
 
     /**
@@ -495,16 +547,18 @@ impl Instance {
         * [`GetTags`](https://create.roblox.com/docs/reference/engine/classes/CollectionService#GetTags)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_tags(&self) -> Vec<String> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get(&ustr(PROPERTY_NAME_TAGS)) {
-            tags.iter().map(ToString::to_string).collect()
-        } else {
-            Vec::new()
-        }
+        self.with_dom(|dom| {
+            let inst = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Tags(tags)) = inst.properties.get(&ustr(PROPERTY_NAME_TAGS)) {
+                tags.iter().map(ToString::to_string).collect()
+            } else {
+                Vec::new()
+            }
+        })
     }
 
     /**
@@ -515,16 +569,17 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn has_tag(&self, name: impl AsRef<str>) -> bool {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get(&ustr(PROPERTY_NAME_TAGS)) {
-            let name = name.as_ref();
-            tags.iter().any(|tag| tag == name)
-        } else {
-            false
-        }
+        self.with_dom(|dom| {
+            let inst = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Tags(tags)) = inst.properties.get(&ustr(PROPERTY_NAME_TAGS)) {
+                let name = name.as_ref();
+                tags.iter().any(|tag| tag == name)
+            } else {
+                false
+            }
+        })
     }
 
     /**
@@ -535,17 +590,18 @@ impl Instance {
           on the Roblox Developer Hub
     */
     pub fn remove_tag(&self, name: impl AsRef<str>) {
-        let mut dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let inst = dom
-            .get_by_ref_mut(self.dom_ref)
-            .expect("Failed to find instance in document");
-        if let Some(DomValue::Tags(tags)) = inst.properties.get_mut(&ustr(PROPERTY_NAME_TAGS)) {
-            let name = name.as_ref();
-            let mut new_tags = tags.iter().map(ToString::to_string).collect::<Vec<_>>();
-            new_tags.retain(|tag| tag != name);
-            inst.properties
-                .insert(ustr(PROPERTY_NAME_TAGS), DomValue::Tags(new_tags.into()));
-        }
+        self.with_dom_mut(|dom| {
+            let inst = dom
+                .get_by_ref_mut(self.dom_ref)
+                .expect("Failed to find instance in document");
+            if let Some(DomValue::Tags(tags)) = inst.properties.get_mut(&ustr(PROPERTY_NAME_TAGS)) {
+                let name = name.as_ref();
+                let mut new_tags = tags.iter().map(ToString::to_string).collect::<Vec<_>>();
+                new_tags.retain(|tag| tag != name);
+                inst.properties
+                    .insert(ustr(PROPERTY_NAME_TAGS), DomValue::Tags(new_tags.into()));
+            }
+        });
     }
 
     /**
@@ -558,17 +614,21 @@ impl Instance {
         * [`GetChildren`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetChildren)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_children(&self) -> Vec<Instance> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-
-        let children = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .children()
-            .to_vec();
-
-        drop(dom); // Self::new needs mutex handle, drop it first
-        children.into_iter().map(Self::new).collect()
+        self.with_dom(|dom| {
+            let instance = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document");
+            instance
+                .children()
+                .iter()
+                .filter_map(|child_ref| {
+                    dom.get_by_ref(*child_ref)
+                        .map(|child| Self::from_dom_instance(self.dom_id, *child_ref, child))
+                })
+                .collect()
+        })
     }
 
     /**
@@ -581,26 +641,58 @@ impl Instance {
         * [`GetDescendants`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetDescendants)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_descendants(&self) -> Vec<Instance> {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        self.with_dom(|dom| {
+            let mut descendants = Vec::new();
+            let mut queue = VecDeque::from_iter(
+                dom.get_by_ref(self.dom_ref)
+                    .expect("Failed to find instance in document")
+                    .children(),
+            );
 
-        let mut descendants = Vec::new();
-        let mut queue = VecDeque::from_iter(
-            dom.get_by_ref(self.dom_ref)
-                .expect("Failed to find instance in document")
-                .children(),
-        );
-
-        while let Some(queue_ref) = queue.pop_front() {
-            descendants.push(*queue_ref);
-            let queue_inst = dom.get_by_ref(*queue_ref).unwrap();
-            for queue_ref_inner in queue_inst.children().iter().rev() {
-                queue.push_back(queue_ref_inner);
+            while let Some(queue_ref) = queue.pop_front() {
+                if let Some(queue_inst) = dom.get_by_ref(*queue_ref) {
+                    descendants.push(Self::from_dom_instance(self.dom_id, *queue_ref, queue_inst));
+                    for queue_ref_inner in queue_inst.children().iter().rev() {
+                        queue.push_back(queue_ref_inner); // NOTE: push_back for breadth-first
+                    }
+                }
             }
-        }
 
-        drop(dom); // Self::new needs mutex handle, drop it first
-        descendants.into_iter().map(Self::new).collect()
+            descendants
+        })
+    }
+
+    /**
+        Gets all of the current descendants of this `Instance` using a
+        depth-first preorder search (a parent appears before its children,
+        and children appear in order).
+
+        This is the traversal order used by `QueryDescendants`, and differs
+        from [`Instance::get_descendants`] which is breadth-first.
+    */
+    #[must_use]
+    pub fn get_descendants_preorder(&self) -> Vec<Instance> {
+        self.with_dom(|dom| {
+            let mut descendants = Vec::new();
+            let mut queue = VecDeque::from_iter(
+                dom.get_by_ref(self.dom_ref)
+                    .expect("Failed to find instance in document")
+                    .children(),
+            );
+
+            while let Some(queue_ref) = queue.pop_front() {
+                if let Some(queue_inst) = dom.get_by_ref(*queue_ref) {
+                    descendants.push(Self::from_dom_instance(self.dom_id, *queue_ref, queue_inst));
+                    for queue_ref_inner in queue_inst.children().iter().rev() {
+                        queue.push_front(queue_ref_inner); // NOTE: push_front for depth-first
+                    }
+                }
+            }
+
+            descendants
+        })
     }
 
     /**
@@ -615,24 +707,26 @@ impl Instance {
         * [`GetFullName`](https://create.roblox.com/docs/reference/engine/classes/Instance#GetFullName)
           on the Roblox Developer Hub
     */
+    #[must_use]
     pub fn get_full_name(&self) -> String {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
-        let dom_root = dom.root_ref();
+        self.with_dom(|dom| {
+            let dom_root = dom.root_ref();
 
-        let mut parts = Vec::new();
-        let mut instance_ref = self.dom_ref;
+            let mut parts = Vec::new();
+            let mut instance_ref = self.dom_ref;
 
-        while let Some(instance) = dom.get_by_ref(instance_ref) {
-            if instance_ref != dom_root && instance.class != "DataModel" {
-                instance_ref = instance.parent();
-                parts.push(instance.name.clone());
-            } else {
-                break;
+            while let Some(instance) = dom.get_by_ref(instance_ref) {
+                if instance_ref != dom_root && instance.class != "DataModel" {
+                    instance_ref = instance.parent();
+                    parts.push(instance.name.clone());
+                } else {
+                    break;
+                }
             }
-        }
 
-        parts.reverse();
-        parts.join(".")
+            parts.reverse();
+            parts.join(".")
+        })
     }
 
     /**
@@ -647,24 +741,21 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        self.with_dom(|dom| {
+            let children = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .children();
 
-        let children = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .children()
-            .to_vec();
-
-        let found_ref = children.into_iter().find(|child_ref| {
-            if let Some(child_inst) = dom.get_by_ref(*child_ref) {
-                predicate(child_inst)
-            } else {
-                false
-            }
-        });
-
-        drop(dom); // Self::new needs mutex handle, drop it first
-        found_ref.map(Self::new)
+            children.iter().find_map(|child_ref| {
+                let child_inst = dom.get_by_ref(*child_ref)?;
+                if predicate(child_inst) {
+                    Some(Self::from_dom_instance(self.dom_id, *child_ref, child_inst))
+                } else {
+                    None
+                }
+            })
+        })
     }
 
     /**
@@ -679,22 +770,21 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        self.with_dom(|dom| {
+            let mut ancestor_ref = dom
+                .get_by_ref(self.dom_ref)
+                .expect("Failed to find instance in document")
+                .parent();
 
-        let mut ancestor_ref = dom
-            .get_by_ref(self.dom_ref)
-            .expect("Failed to find instance in document")
-            .parent();
-
-        while let Some(ancestor) = dom.get_by_ref(ancestor_ref) {
-            if predicate(ancestor) {
-                drop(dom); // Self::new needs mutex handle, drop it first
-                return Some(Self::new(ancestor_ref));
+            while let Some(ancestor) = dom.get_by_ref(ancestor_ref) {
+                if predicate(ancestor) {
+                    return Some(Self::from_dom_instance(self.dom_id, ancestor_ref, ancestor));
+                }
+                ancestor_ref = ancestor.parent();
             }
-            ancestor_ref = ancestor.parent();
-        }
 
-        None
+            None
+        })
     }
 
     /**
@@ -708,27 +798,24 @@ impl Instance {
     where
         F: Fn(&DomInstance) -> bool,
     {
-        let dom = INTERNAL_DOM.lock().expect("Failed to lock document");
+        self.with_dom(|dom| {
+            let mut queue = VecDeque::from_iter(
+                dom.get_by_ref(self.dom_ref)
+                    .expect("Failed to find instance in document")
+                    .children(),
+            );
 
-        let mut queue = VecDeque::from_iter(
-            dom.get_by_ref(self.dom_ref)
-                .expect("Failed to find instance in document")
-                .children(),
-        );
-
-        while let Some(queue_item) = queue
-            .pop_front()
-            .and_then(|queue_ref| dom.get_by_ref(*queue_ref))
-        {
-            if predicate(queue_item) {
-                let queue_ref = queue_item.referent();
-                drop(dom); // Self::new needs mutex handle, drop it first
-                return Some(Self::new(queue_ref));
+            while let Some(queue_ref) = queue.pop_front() {
+                if let Some(queue_item) = dom.get_by_ref(*queue_ref) {
+                    if predicate(queue_item) {
+                        return Some(Self::from_dom_instance(self.dom_id, *queue_ref, queue_item));
+                    }
+                    queue.extend(queue_item.children());
+                }
             }
-            queue.extend(queue_item.children());
-        }
 
-        None
+            None
+        })
     }
 }
 
@@ -739,7 +826,7 @@ impl LuaExportsTable for Instance {
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         let instance_new = |lua: &Lua, class_name: String| {
             if class_exists(&class_name) {
-                Instance::new_orphaned(class_name).into_lua(lua)
+                instance_to_lua(lua, Instance::new_orphaned(class_name))
             } else {
                 Err(LuaError::RuntimeError(format!(
                     "Failed to create Instance - '{class_name}' is not a valid class name",
@@ -751,6 +838,122 @@ impl LuaExportsTable for Instance {
             .with_function("new", instance_new)?
             .build_readonly()
     }
+}
+
+/*
+    Userdata interning
+
+    To preserve instance identity from a lua perspective - so that two
+    references to the same underlying instance are the *same* userdata, and
+    therefore work correctly as table keys and with rawequal - we keep a single
+    canonical userdata per `(dom_id, dom_ref)` pair in a per-lua cache.
+
+    The cache table has weak values, so userdata that is no longer referenced
+    anywhere in lua can still be collected and will simply be recreated on next
+    access (which is fine, since identity only needs to hold while a reference
+    is alive).
+*/
+#[cfg(feature = "mlua")]
+const INSTANCE_CACHE_KEY: &str = "__lune_roblox_instance_cache";
+
+#[cfg(feature = "mlua")]
+fn instance_cache(lua: &Lua) -> LuaResult<LuaTable> {
+    if let Ok(cache) = lua.named_registry_value::<LuaTable>(INSTANCE_CACHE_KEY) {
+        return Ok(cache);
+    }
+    let cache = lua.create_table()?;
+    let meta = lua.create_table()?;
+    meta.set("__mode", "v")?;
+    cache.set_metatable(Some(meta))?;
+    lua.set_named_registry_value(INSTANCE_CACHE_KEY, &cache)?;
+    Ok(cache)
+}
+
+#[cfg(feature = "mlua")]
+fn instance_cache_key(inst: Instance) -> String {
+    format!("{}:{}", inst.dom_id, inst.dom_ref)
+}
+
+/**
+    Converts an instance into its canonical lua userdata, creating and caching
+    it the first time and returning the same userdata on subsequent calls.
+
+    # Errors
+
+    Errors if creating the userdata or accessing the interning cache fails.
+*/
+#[cfg(feature = "mlua")]
+pub fn instance_to_lua(lua: &Lua, inst: Instance) -> LuaResult<LuaValue> {
+    let cache = instance_cache(lua)?;
+    let key = instance_cache_key(inst);
+    if let Ok(LuaValue::UserData(existing)) = cache.get::<LuaValue>(key.as_str()) {
+        return Ok(LuaValue::UserData(existing));
+    }
+    let userdata = lua.create_userdata(inst)?;
+    cache.set(key, &userdata)?;
+    Ok(LuaValue::UserData(userdata))
+}
+
+/**
+    Converts an optional instance into lua, returning [`LuaValue::Nil`] for [`None`].
+
+    # Errors
+
+    Errors if creating the userdata or accessing the interning cache fails.
+*/
+#[cfg(feature = "mlua")]
+pub fn opt_instance_to_lua(lua: &Lua, inst: Option<Instance>) -> LuaResult<LuaValue> {
+    match inst {
+        Some(inst) => instance_to_lua(lua, inst),
+        None => Ok(LuaValue::Nil),
+    }
+}
+
+/**
+    Converts a list of instances into a lua array table of canonical userdata.
+
+    # Errors
+
+    Errors if creating the table or any of the userdata fails.
+*/
+#[cfg(feature = "mlua")]
+pub fn instances_to_lua(lua: &Lua, instances: Vec<Instance>) -> LuaResult<LuaValue> {
+    let tab = lua.create_table_with_capacity(instances.len(), 0)?;
+    for inst in instances {
+        tab.push(instance_to_lua(lua, inst)?)?;
+    }
+    Ok(LuaValue::Table(tab))
+}
+
+/**
+    Updates the interning cache after a cross-dom transfer.
+
+    The moved referents keep their values but now live in `new_dom_id`, so we
+    re-key any cached userdata and update the `dom_id` stored inside it.
+*/
+#[cfg(feature = "mlua")]
+pub(crate) fn rekey_cache_after_transfer(
+    lua: &Lua,
+    old_dom_id: DomId,
+    new_dom_id: DomId,
+    moved: &[DomRef],
+) -> LuaResult<()> {
+    if old_dom_id == new_dom_id {
+        return Ok(());
+    }
+    let cache = instance_cache(lua)?;
+    for &moved_ref in moved {
+        let old_key = format!("{old_dom_id}:{moved_ref}");
+        if let Ok(LuaValue::UserData(ud)) = cache.get::<LuaValue>(old_key.as_str()) {
+            if let Ok(mut inst) = ud.borrow_mut::<Instance>() {
+                inst.dom_id = new_dom_id;
+            }
+            let new_key = format!("{new_dom_id}:{moved_ref}");
+            cache.set(new_key, &ud)?;
+            cache.set(old_key, LuaValue::Nil)?;
+        }
+    }
+    Ok(())
 }
 
 /*
@@ -781,6 +984,7 @@ impl LuaUserData for Instance {
 
 impl Hash for Instance {
     fn hash<H: Hasher>(&self, state: &mut H) {
+        self.dom_id.hash(state);
         self.dom_ref.hash(state);
     }
 }
@@ -801,7 +1005,7 @@ impl fmt::Display for Instance {
 
 impl PartialEq for Instance {
     fn eq(&self, other: &Self) -> bool {
-        self.dom_ref == other.dom_ref
+        self.dom_id == other.dom_id && self.dom_ref == other.dom_ref
     }
 }
 

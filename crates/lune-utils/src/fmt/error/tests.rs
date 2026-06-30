@@ -103,6 +103,48 @@ mod error_components {
     }
 }
 
+// Tests for parsing individual stack trace lines
+mod stack_trace_lines {
+    use crate::fmt::StackTraceLine;
+
+    #[test]
+    fn unix_chunk_name() {
+        let line: StackTraceLine = "chunk_name:1: in function 'f'".parse().unwrap();
+        assert_eq!(line.path(), Some("chunk_name"));
+        assert_eq!(line.line_number(), Some(1));
+    }
+
+    #[test]
+    fn windows_drive_path_is_not_truncated() {
+        // Regression test for #355 - the drive-letter colon must not be
+        // treated as the separator between the path and the line number.
+        let line: StackTraceLine = r"D:\Stuff\test:3: in function 'foo'".parse().unwrap();
+        assert_eq!(line.path(), Some(r"D:\Stuff\test"));
+        assert_eq!(line.line_number(), Some(3));
+    }
+
+    #[test]
+    fn windows_drive_path_forward_slashes() {
+        let line: StackTraceLine = "C:/dir/file:42:".parse().unwrap();
+        assert_eq!(line.path(), Some("C:/dir/file"));
+        assert_eq!(line.line_number(), Some(42));
+    }
+
+    #[test]
+    fn braced_windows_drive_path() {
+        let line: StackTraceLine = "[string \"C:\\dir\\file\"]:7:".parse().unwrap();
+        assert_eq!(line.path(), Some("C:\\dir\\file"));
+        assert_eq!(line.line_number(), Some(7));
+    }
+
+    #[test]
+    fn braced_unix_path() {
+        let line: StackTraceLine = "[string \"chunk_name\"]:1:".parse().unwrap();
+        assert_eq!(line.path(), Some("chunk_name"));
+        assert_eq!(line.line_number(), Some(1));
+    }
+}
+
 // Tests for general formatting
 mod general {
     use super::*;

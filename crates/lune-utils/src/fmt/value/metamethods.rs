@@ -18,7 +18,7 @@ pub fn call_table_tostring_metamethod(tab: &LuaTable) -> Option<String> {
     let meta = tab.metatable()?;
     let value = meta.get(LuaMetaMethod::ToString.name()).ok()?;
     match value {
-        LuaValue::String(s) => Some(s.to_string_lossy().to_string()),
+        LuaValue::String(s) => Some(s.to_string_lossy()),
         LuaValue::Function(f) => f.call(tab).ok(),
         _ => None,
     }
@@ -28,7 +28,7 @@ pub fn call_userdata_tostring_metamethod(usr: &LuaAnyUserData) -> Option<String>
     let meta = usr.metatable().ok()?;
     let value = meta.get(LuaMetaMethod::ToString.name()).ok()?;
     match value {
-        LuaValue::String(s) => Some(s.to_string_lossy().to_string()),
+        LuaValue::String(s) => Some(s.to_string_lossy()),
         LuaValue::Function(f) => f.call(usr).ok(),
         _ => None,
     }

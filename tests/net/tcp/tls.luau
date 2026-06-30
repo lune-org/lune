@@ -26,6 +26,9 @@ end
 stream:close()
 
 assert(contains("HTTP/1.1 200"), "Should receive HTTP 200 response")
-assert(contains("\nContent-Length: "), "Response should have content length header")
+assert(
+	contains("\nContent-Length: ") or contains("\nTransfer-Encoding: chunked"),
+	"Response should have a content length or chunked transfer encoding header"
+)
 assert(contains("<html"), "Response should contain some HTML")
 assert(contains("/html>"), "Response should contain some HTML")

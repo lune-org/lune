@@ -14,7 +14,7 @@ use super::{super::*, NumberSequenceKeypoint};
 /**
     An implementation of the [NumberSequence](https://create.roblox.com/docs/reference/engine/datatypes/NumberSequence) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `NumberSequence` class as of October 2025.
+    This implements all documented properties, methods & constructors of the `NumberSequence` class as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberSequence {
@@ -25,27 +25,15 @@ impl LuaExportsTable for NumberSequence {
     const EXPORT_NAME: &'static str = "NumberSequence";
 
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
-        type ArgsColor = f32;
-        type ArgsColors = (f32, f32);
+        type ArgsValue = f32;
+        type ArgsValues = (f32, f32);
         type ArgsKeypoints = Vec<LuaUserDataRef<NumberSequenceKeypoint>>;
 
         let number_sequence_new = |lua: &Lua, args: LuaMultiValue| {
-            if let Ok(value) = ArgsColor::from_lua_multi(args.clone(), lua) {
-                Ok(NumberSequence {
-                    keypoints: vec![
-                        NumberSequenceKeypoint {
-                            time: 0.0,
-                            value,
-                            envelope: 0.0,
-                        },
-                        NumberSequenceKeypoint {
-                            time: 1.0,
-                            value,
-                            envelope: 0.0,
-                        },
-                    ],
-                })
-            } else if let Ok((v0, v1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
+            // Try two-arg first: NumberSequence.new(start, end)
+            // Must come before single-arg because from_lua_multi for a single
+            // number succeeds even when multiple args are passed (ignoring extras).
+            if let Ok((v0, v1)) = ArgsValues::from_lua_multi(args.clone(), lua) {
                 Ok(NumberSequence {
                     keypoints: vec![
                         NumberSequenceKeypoint {
@@ -56,6 +44,22 @@ impl LuaExportsTable for NumberSequence {
                         NumberSequenceKeypoint {
                             time: 1.0,
                             value: v1,
+                            envelope: 0.0,
+                        },
+                    ],
+                })
+            } else if let Ok(value) = ArgsValue::from_lua_multi(args.clone(), lua) {
+                // Single-arg: NumberSequence.new(value) — uniform value
+                Ok(NumberSequence {
+                    keypoints: vec![
+                        NumberSequenceKeypoint {
+                            time: 0.0,
+                            value,
+                            envelope: 0.0,
+                        },
+                        NumberSequenceKeypoint {
+                            time: 1.0,
+                            value,
                             envelope: 0.0,
                         },
                     ],

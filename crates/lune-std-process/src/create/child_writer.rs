@@ -10,36 +10,33 @@ use mlua::prelude::*;
 // Inner (plumbing) implementation
 
 #[derive(Debug)]
-enum ChildWriterInner {
-    None,
-    Stdin(AsyncChildStdin),
-}
+struct ChildWriterInner(Option<AsyncChildStdin>);
 
 impl ChildWriterInner {
     async fn write(&mut self, data: Vec<u8>) -> Result<(), std::io::Error> {
-        match self {
-            ChildWriterInner::None => Ok(()),
-            ChildWriterInner::Stdin(stdin) => stdin.write_all(&data).await,
+        if let Some(stdin) = self.0.as_mut() {
+            stdin.write_all(&data).await?;
         }
+        Ok(())
     }
 
     async fn close(&mut self) -> Result<(), std::io::Error> {
-        match self {
-            ChildWriterInner::None => Ok(()),
-            ChildWriterInner::Stdin(stdin) => stdin.close().await,
+        if let Some(mut stdin) = self.0.take() {
+            stdin.flush().await?;
         }
+        Ok(())
     }
 }
 
 impl From<AsyncChildStdin> for ChildWriterInner {
     fn from(stdin: AsyncChildStdin) -> Self {
-        ChildWriterInner::Stdin(stdin)
+        ChildWriterInner(Some(stdin))
     }
 }
 
 impl From<Option<AsyncChildStdin>> for ChildWriterInner {
     fn from(stdin: Option<AsyncChildStdin>) -> Self {
-        stdin.map_or(Self::None, Into::into)
+        ChildWriterInner(stdin)
     }
 }
 
