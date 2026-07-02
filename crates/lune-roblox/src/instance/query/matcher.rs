@@ -59,7 +59,7 @@ fn enum_value_matches(enum_name: &str, value: u32, literal: &str) -> bool {
     db.enums.get(enum_name).is_some_and(|desc| {
         desc.items
             .iter()
-            .any(|(name, item_value)| name.as_ref() == literal && *item_value == value)
+            .any(|(name, item_value)| name == &literal && *item_value == value)
     })
 }
 

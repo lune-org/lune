@@ -44,7 +44,7 @@ fn get_or_create_material_colors(instance: &Instance) -> MaterialColors {
 fn terrain_get_material_color(_: &Lua, this: &Instance, material: EnumItem) -> LuaResult<Color3> {
     let material_colors = get_or_create_material_colors(this);
 
-    if &material.parent.desc.name != "Material" {
+    if material.parent.desc.name != "Material" {
         return Err(LuaError::RuntimeError(format!(
             "Expected Enum.Material, got Enum.{}",
             &material.parent.desc.name
@@ -75,7 +75,7 @@ fn terrain_set_material_color(
     let material = args.0;
     let color = args.1;
 
-    if &material.parent.desc.name != "Material" {
+    if material.parent.desc.name != "Material" {
         return Err(LuaError::RuntimeError(format!(
             "Expected Enum.Material, got Enum.{}",
             &material.parent.desc.name
