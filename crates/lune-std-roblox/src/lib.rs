@@ -1,18 +1,33 @@
 #![allow(clippy::cargo_common_metadata)]
 
+use std::sync::OnceLock;
+
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSpawnExt;
-use once_cell::sync::OnceCell;
 
 use lune_roblox::{
     document::{Document, DocumentError, DocumentFormat, DocumentKind},
-    instance::{registry::InstanceRegistry, Instance},
+    instance::{
+        Instance, instance_to_lua, instances_to_lua, register_custom_class,
+        registry::InstanceRegistry,
+    },
     reflection::Database as ReflectionDatabase,
 };
 
-static REFLECTION_DATABASE: OnceCell<ReflectionDatabase> = OnceCell::new();
+static REFLECTION_DATABASE: OnceLock<ReflectionDatabase> = OnceLock::new();
 
 use lune_utils::TableBuilder;
+use roblox_install::RobloxStudio;
+
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `roblox` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
 
 /**
     Creates the `roblox` standard library module.
@@ -21,10 +36,10 @@ use lune_utils::TableBuilder;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     let mut roblox_constants = Vec::new();
 
-    let roblox_module = lune_roblox::module(lua)?;
+    let roblox_module = lune_roblox::module(lua.clone())?;
     for pair in roblox_module.pairs::<LuaValue, LuaValue>() {
         roblox_constants.push(pair?);
     }
@@ -39,40 +54,42 @@ pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
         .with_function("getReflectionDatabase", get_reflection_database)?
         .with_function("implementProperty", implement_property)?
         .with_function("implementMethod", implement_method)?
+        .with_function("registerClass", register_class)?
+        .with_function("registerService", register_service)?
+        .with_function("studioApplicationPath", studio_application_path)?
+        .with_function("studioContentPath", studio_content_path)?
+        .with_function("studioPluginPath", studio_plugin_path)?
+        .with_function("studioBuiltinPluginPath", studio_builtin_plugin_path)?
         .build_readonly()
 }
 
-async fn deserialize_place<'lua>(
-    lua: &'lua Lua,
-    contents: LuaString<'lua>,
-) -> LuaResult<LuaValue<'lua>> {
+async fn deserialize_place(lua: Lua, contents: LuaString) -> LuaResult<LuaValue> {
     let bytes = contents.as_bytes().to_vec();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_bytes(bytes, DocumentKind::Place)?;
         let data_model = doc.into_data_model_instance()?;
         Ok::<_, DocumentError>(data_model)
     });
-    fut.await.into_lua_err()?.into_lua(lua)
+    let data_model = fut.await.into_lua_err()?;
+    instance_to_lua(&lua, data_model)
 }
 
-async fn deserialize_model<'lua>(
-    lua: &'lua Lua,
-    contents: LuaString<'lua>,
-) -> LuaResult<LuaValue<'lua>> {
+async fn deserialize_model(lua: Lua, contents: LuaString) -> LuaResult<LuaValue> {
     let bytes = contents.as_bytes().to_vec();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_bytes(bytes, DocumentKind::Model)?;
         let instance_array = doc.into_instance_array()?;
         Ok::<_, DocumentError>(instance_array)
     });
-    fut.await.into_lua_err()?.into_lua(lua)
+    let instance_array = fut.await.into_lua_err()?;
+    instances_to_lua(&lua, instance_array)
 }
 
-async fn serialize_place<'lua>(
-    lua: &'lua Lua,
-    (data_model, as_xml): (LuaUserDataRef<'lua, Instance>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
-    let data_model = (*data_model).clone();
+async fn serialize_place(
+    lua: Lua,
+    (data_model, as_xml): (LuaUserDataRef<Instance>, Option<bool>),
+) -> LuaResult<LuaString> {
+    let data_model = *data_model;
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_data_model_instance(data_model)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
@@ -85,11 +102,11 @@ async fn serialize_place<'lua>(
     lua.create_string(bytes)
 }
 
-async fn serialize_model<'lua>(
-    lua: &'lua Lua,
-    (instances, as_xml): (Vec<LuaUserDataRef<'lua, Instance>>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
-    let instances = instances.iter().map(|i| (*i).clone()).collect();
+async fn serialize_model(
+    lua: Lua,
+    (instances, as_xml): (Vec<LuaUserDataRef<Instance>>, Option<bool>),
+) -> LuaResult<LuaString> {
+    let instances = instances.iter().map(|i| **i).collect();
     let fut = lua.spawn_blocking(move || {
         let doc = Document::from_instance_array(instances)?;
         let bytes = doc.to_bytes_with_format(match as_xml {
@@ -146,4 +163,40 @@ fn implement_method(
 ) -> LuaResult<()> {
     InstanceRegistry::insert_method(lua, &class_name, &method_name, method).into_lua_err()?;
     Ok(())
+}
+
+fn register_class(
+    _: &Lua,
+    (class_name, super_class_name): (String, Option<String>),
+) -> LuaResult<()> {
+    let super_class_name = super_class_name.unwrap_or_else(|| "Instance".to_string());
+    register_custom_class(&class_name, &super_class_name, false).into_lua_err()
+}
+
+fn register_service(_: &Lua, service_name: String) -> LuaResult<()> {
+    register_custom_class(&service_name, "Instance", true).into_lua_err()
+}
+
+fn studio_application_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.application_path().display().to_string())
+        .map_err(LuaError::external)
+}
+
+fn studio_content_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.content_path().display().to_string())
+        .map_err(LuaError::external)
+}
+
+fn studio_plugin_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.plugins_path().display().to_string())
+        .map_err(LuaError::external)
+}
+
+fn studio_builtin_plugin_path(_: &Lua, _: ()) -> LuaResult<String> {
+    RobloxStudio::locate()
+        .map(|rs| rs.built_in_plugins_path().display().to_string())
+        .map_err(LuaError::external)
 }

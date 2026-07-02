@@ -22,13 +22,13 @@ const STRING_REPLACEMENTS: &[(&str, &str)] =
     - Only contain alphanumeric characters and underscores.
 */
 pub(crate) fn lua_value_as_plain_string_key(value: &LuaValue) -> Option<String> {
-    if let LuaValue::String(s) = value {
-        if let Ok(s) = s.to_str() {
-            let first_valid = s.chars().next().is_some_and(|c| c.is_ascii_alphabetic());
-            let all_valid = s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
-            if first_valid && all_valid {
-                return Some(s.to_string());
-            }
+    if let LuaValue::String(s) = value
+        && let Ok(s) = s.to_str()
+    {
+        let first_valid = s.chars().next().is_some_and(|c| c.is_ascii_alphabetic());
+        let all_valid = s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        if first_valid && all_valid {
+            return Some(s.to_string());
         }
     }
     None
@@ -46,16 +46,18 @@ pub(crate) fn format_value_styled(value: &LuaValue, prefer_plain: bool) -> Strin
         LuaValue::Boolean(false) => COLOR_YELLOW.apply_to("false").to_string(),
         LuaValue::Number(n) => COLOR_CYAN.apply_to(n).to_string(),
         LuaValue::Integer(i) => COLOR_CYAN.apply_to(i).to_string(),
-        LuaValue::String(s) if prefer_plain => s.to_string_lossy().to_string(),
+        LuaValue::String(s) if prefer_plain => s.to_string_lossy().clone(),
         LuaValue::String(s) => COLOR_GREEN
             .apply_to({
-                let mut s = s.to_string_lossy().to_string();
+                let mut s = s.to_string_lossy().clone();
                 for (from, to) in STRING_REPLACEMENTS {
                     s = s.replace(from, to);
                 }
                 format!(r#""{s}""#)
             })
             .to_string(),
+        LuaValue::Other(_) => COLOR_MAGENTA.apply_to("<unknown>").to_string(),
+        LuaValue::Buffer(_) => COLOR_MAGENTA.apply_to("<buffer>").to_string(),
         LuaValue::Vector(_) => COLOR_MAGENTA.apply_to("<vector>").to_string(),
         LuaValue::Thread(_) => COLOR_MAGENTA.apply_to("<thread>").to_string(),
         LuaValue::Function(_) => COLOR_MAGENTA.apply_to("<function>").to_string(),

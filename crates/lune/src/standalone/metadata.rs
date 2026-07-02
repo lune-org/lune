@@ -1,12 +1,11 @@
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, sync::LazyLock};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
+use async_fs as fs;
 use mlua::Compiler as LuaCompiler;
-use once_cell::sync::Lazy;
-use tokio::fs;
 
-pub static CURRENT_EXE: Lazy<PathBuf> =
-    Lazy::new(|| env::current_exe().expect("failed to get current exe"));
+pub static CURRENT_EXE: LazyLock<PathBuf> =
+    LazyLock::new(|| env::current_exe().expect("failed to get current exe"));
 const MAGIC: &[u8; 8] = b"cr3sc3nt";
 
 /*
@@ -60,7 +59,7 @@ impl Metadata {
         let mut patched_bin = fs::read(base_exe_path).await?;
 
         // Compile luau input into bytecode
-        let bytecode = compiler.compile(script_contents.into());
+        let bytecode = compiler.compile(script_contents.into())?;
 
         // Append the bytecode / metadata to the end
         let meta = Self { bytecode };

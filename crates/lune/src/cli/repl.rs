@@ -1,9 +1,10 @@
 use std::{path::PathBuf, process::ExitCode};
 
 use anyhow::{Context, Result};
+use async_fs as fs;
 use clap::Parser;
 use directories::UserDirs;
-use rustyline::{error::ReadlineError, DefaultEditor};
+use rustyline::{DefaultEditor, error::ReadlineError};
 
 use lune::Runtime;
 
@@ -32,7 +33,7 @@ impl ReplCommand {
             .home_dir()
             .join(".lune_history");
         if !history_file_path.exists() {
-            tokio::fs::write(history_file_path, &[]).await?;
+            fs::write(history_file_path, &[]).await?;
         }
 
         let mut repl = DefaultEditor::new()?;
@@ -42,7 +43,7 @@ impl ReplCommand {
         let mut prompt_state = PromptState::Regular;
         let mut source_code = String::new();
 
-        let mut lune_instance = Runtime::new().set_unsafe_library_enabled(self.r#unsafe);
+        let mut lune_instance = Runtime::new()?.with_unsafe_library_enabled(self.r#unsafe);
 
         loop {
             let prompt = match prompt_state {
@@ -85,12 +86,9 @@ impl ReplCommand {
                     eprintln!("REPL ERROR: {err}");
                     return Ok(ExitCode::FAILURE);
                 }
-            };
+            }
 
-            // TODO: Preserve context here somehow?
-            let eval_result = lune_instance.run("REPL", &source_code).await;
-
-            match eval_result {
+            match lune_instance.run_custom("REPL", &source_code).await {
                 Ok(_) => prompt_state = PromptState::Regular,
 
                 Err(err) => {
@@ -101,7 +99,7 @@ impl ReplCommand {
                         eprintln!("{err}");
                     }
                 }
-            };
+            }
         }
 
         repl.save_history(history_file_path)?;

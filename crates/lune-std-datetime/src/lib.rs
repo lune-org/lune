@@ -10,6 +10,16 @@ mod values;
 
 pub use self::date_time::DateTime;
 
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `datetime` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
+
 /**
     Creates the `datetime` standard library module.
 
@@ -17,10 +27,16 @@ pub use self::date_time::DateTime;
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
     TableBuilder::new(lua)?
-        .with_function("fromIsoDate", |_, iso_date: String| {
-            Ok(DateTime::from_iso_date(iso_date)?)
+        .with_function("fromIsoDate", |_, date: String| {
+            Ok(DateTime::from_rfc_3339(date)?) // FUTURE: Remove this rfc3339 alias method
+        })?
+        .with_function("fromRfc3339", |_, date: String| {
+            Ok(DateTime::from_rfc_3339(date)?)
+        })?
+        .with_function("fromRfc2822", |_, date: String| {
+            Ok(DateTime::from_rfc_2822(date)?)
         })?
         .with_function("fromLocalTime", |_, values| {
             Ok(DateTime::from_local_time(&values)?)

@@ -1,52 +1,343 @@
 <!-- markdownlint-disable MD023 -->
 <!-- markdownlint-disable MD033 -->
 
-# Changelog
+## Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## `0.9.0`
+## Unreleased
 
-### Breaking changes
+### Added
 
-- Added two new process spawning functions - `process.create` and `process.exec`, removing the previous `process.spawn` API completely. ([#211])
+- Added a new `ffi` standard library for foreign function interface support, allowing Lune scripts to load
+  dynamic libraries and call C functions directly. Since FFI operations can be inherently unsafe, the library
+  is gated behind a new `--unsafe` CLI flag (`lune run --unsafe script.luau`) and the
+  `Runtime::with_unsafe_library_enabled` API for embedders. ([#243])
 
-  To migrate from `process.spawn`, use the new `process.exec` API which retains the same behavior as the old function.
+[#243]: https://github.com/lune-org/lune/pull/243
+
+## `0.10.5` - July 2nd, 2026
+
+### Added
+
+- Added `QueryDescendants` to instances in the `roblox` standard library.
+- Added `registerClass` and `registerService` functions to the `roblox` standard library, letting classes and services that
+  the reflection database does not know about - such as those only present in specific Roblox builds - be implemented and used:
+
+  ```luau
+  local roblox = require("@lune/roblox")
+
+  roblox.registerService("FileSystemService")
+
+  roblox.implementMethod("FileSystemService", "ReadFile", function(_, path: string)
+      return -- ... read and return the file contents ...
+  end)
+
+  local game = roblox.Instance.new("DataModel")
+  local fss = game:GetService("FileSystemService")
+  ```
+
+### Changed
+
+- Refactored the `roblox` standard library to support multiple independent doms. Instances now have stable references,
+  and place or model files containing colliding referents can be loaded at the same time without conflicts.
+- Updated to Luau version `0.709`
+- Updated to rbx-dom database version `0.728`
+
+### Fixed
+
+- Fixed `task.wait` not gracefully handling negative, `NaN`, and other non-finite durations
+- Fixed datatype arithmetic in `@lune/roblox` not working with a scalar on the left-hand side, such as `2 * Vector3.new(1, 2, 3)`
+- Fixed various completeness and correctness issues across datatypes in the `roblox` standard library
+- Fixed web socket close codes not being set to `1005` (no status) or `1006` (abnormal closure) when a connection was closed without one
+- Fixed error stack traces truncating real file paths on Windows
+- Fixed `NumberSequence.new(start, end)` silently ignoring its second constructor argument
+- Fixed `ColorSequence.new(start, end)` silently ignoring its second constructor argument ([#391])
+- Fixed the `close` method on a child process writer not closing it ([#359])
+- Fixed truncation of `lune build` output paths containing dots on non-Windows targets ([#396])
+- Fixed deserialization of Roblox place/model files failing due to Tags now serializing using SharedString ([#397])
+
+[#391]: https://github.com/lune-org/lune/pull/391
+[#359]: https://github.com/lune-org/lune/pull/359
+[#396]: https://github.com/lune-org/lune/pull/396
+[#397]: https://github.com/lune-org/lune/pull/397
+
+## `0.10.4` - October 14th, 2025
+
+### Added
+
+- Added support for the `jsonc` serialization format in the `serde` standard library
+- Added an `mlua` feature flag to `lune-roblox`, so that it may be used from Rust without bundling the entirety of Luau
+
+### Changed
+
+- Updated to rbx-dom database version `0.694`
+- Updated to Luau version `0.694`
+
+### Fixed
+
+- Fixed attribute name validation being too strict in the `roblox` standard library, not allowing the characters `/.-`
+- Fixed various issues in the `roblox` standard library caused by an outdated reflection database and version of `rbx-dom` ([#358])
+
+[#358]: https://github.com/lune-org/lune/pull/358
+
+## `0.10.3` - October 6th, 2025
+
+### Changed
+
+- Updated to Luau version `0.693`
+
+### Fixed
+
+- Fixed `readToEnd` being slow for child processes with large output ([#354])
+- Fixed `process.exec` not reading stdio until child exits ([#353])
+
+[#354]: https://github.com/lune-org/lune/pull/354
+[#353]: https://github.com/lune-org/lune/pull/353
+
+## `0.10.2` - August 31st, 2025
+
+### Added
+
+- Added support for the ZSTD compression format in the `serde` standard library ([#339])
+- Added support for `UniqueId` properties to the `roblox` standard library ([#343])
+- Added prebuilt Lune binaries for Windows on ARM to GitHub releases
+
+### Changed
+
+- Updated to Luau version `0.688`
+- Lune no longer depends on `liblzma`, making it easier to install on macOS
+- Prebuilt binaries for Ubuntu now use an older version (22.04) for better GLIBC compatibility
+
+### Fixed
+
+- Fixed Lune crashing while emitting an error and parsing its source
+
+[#339]: https://github.com/lune-org/lune/pull/339
+[#343]: https://github.com/lune-org/lune/pull/343
+
+## `0.10.1` - July 16th, 2025
+
+### Fixed
+
+- Fixed a regression where it was not possible to run directories with `init.luau` files in them directly using `lune run directory-name`.
+- Fixed a panic when calling `process.exit` inside a file that `require` was called on. ([#333])
+- Fixed a panic when calling `process.exit` inside a request handler for `net.serve`. ([#333])
+
+[#333]: https://github.com/lune-org/lune/pull/333
+
+## `0.10.0` - July 15th, 2025
+
+This version of Lune contains a major internal refactoring of the `require` function, now using the proper require-by-string APIs exposed by Luau.
+If you relied on any (incorrect) behavior of relative, non-`@self` requires, from within `init.luau` files in Lune `0.9.0`, you may need to update your code.
+No other usages of `require` will be affected - but if you previously encountered any internal bugs or panics during `require`, these will have been fixed!
+
+### Added
+
+- Added support for TCP client in the `net` standard library.
+  It may be used either with TLS or not, and basic usage looks as such:
+
+  ```luau
+  -- Plain TCP connections
+  local stream = net.tcp.connect("example.com", 80)
+
+  -- TLS connections (shorthand)
+  local tlsStream = net.tcp.connect("example.com", 443, true)
+
+  -- Connections with custom TLS setting & TTL
+  local customStream = net.tcp.connect("192.168.1.100", 8080, {
+  	  tls = false,
+  	  ttl = 128
+  })
+
+  -- Interacting with the stream
+  tlsStream:write("GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+
+  while true do
+      local data = tlsStream:read()
+      if data ~= nil then
+          print(data)
+      else
+          break -- Connection was closed
+      end
+  end
+  ```
+
+- Added submodules to the `net` standard library: `http`, `tcp`, and `ws`.
+
+  These will be the preferred way of interacting with the `net` standard library going forward, but none of the old functions have been removed or deprecated yet to allow users time to migrate.
+
+  In a future major version of Lune, direct functions such as `net.socket` will be removed in favor of their equivalent functions in submodules, such as `net.ws.connect`. Here is the full new list of functions:
+  - `net.http.request`
+  - `net.http.serve`
+  - `net.tcp.connect`
+  - `net.ws.connect`
+
+- Added a method `with_lib` to the `Runtime` struct in the `lune` crate, to allow registering custom libraries.
+
+### Changed
+
+- Updated to Luau version `0.682`
+- Upgraded to `mlua` version `0.11` - if you use any of the Lune crates as a dependency, you may also need to upgrade
+
+### Fixed
+
+- Fixed errors being emitted twice when the error is thrown from the main (entrypoint) script
+- Fixed a panic when calling `net.request` and related functions in the main body of a module during `require`
+- Fixed various issues with not conforming to the new Luau require-by-string semantics
+
+## `0.9.4` - June 13th, 2025
+
+### Changed
+
+- `lune setup` now properly sets up a `.luaurc` file instead of using legacy VSCode-specific settings
+- `process.args` and `process.env` are now plain tables again - _not userdata_ - thank you to everyone who provided feedback on this and the usability issues!
+
+### Fixed
+
+- Fixed invalid handling of http redirects in `net.request`
+- Fixed not being able to download binaries for cross-compiling with `lune build`
+- Fixed binary output when running `lune build` not being deterministic and sometimes truncating
+- Fixed `cargo install lune` failing due to a yanked dependency ([#323])
+
+[#323]: https://github.com/lune-org/lune/pull/323
+
+## `0.9.3` - May 6th, 2025
+
+### Added
+
+- Added support for non-UTF8 strings in arguments to `process.exec` and `process.spawn`
+
+### Changed
+
+- Improved cross-platform compatibility and correctness for values in `process.args` and `process.env`, especially on Windows
+
+### Fixed
+
+- Fixed stdin not being properly closed when not providing the stdin option to `process.exec`
+- Fixed various crashes during require that had the error `cannot mutably borrow app data container`
+
+## `0.9.2` - April 30th, 2025
+
+### Changed
+
+- Improved performance of `net.request` and `net.serve` when handling large request bodies
+- Improved performance and memory usage of `task.spawn`, `task.defer`, and `task.delay`
+
+### Fixed
+
+- Fixed accidental breakage of `net.request` in version `0.9.1`
+
+## `0.9.1` - April 29th, 2025
+
+### Added
+
+- Added support for automatic decompression of HTTP requests in `net.serve` ([#310])
+
+### Fixed
+
+- Fixed `net.serve` no longer serving requests if the returned `ServeHandle` is discarded ([#310])
+- Fixed `net.serve` having various performance issues ([#310])
+- Fixed Lune still running after cancelling a task such as `task.delay(5, ...)` and all tasks having completed
+
+[#310]: https://github.com/lune-org/lune/pull/310
+
+## `0.9.0` - April 25th, 2025
+
+The next major version of Lune has finally been released!
+
+This release has been a long time coming, and many breaking changes have been made.
+If you are an existing Lune user upgrading to this version, you will **most likely** be affected.
+The full list of breaking changes can be found on below.
+
+### Breaking changes & additions
+
+- The behavior of `require` has changed, according to the latest Luau RFCs and specifications.
+
+  For the full details, feel free to read documentation [here](https://github.com/luau-lang/rfcs), otherwise, the most notable changes here are:
+  - Paths passed to require must start with either `./`, `../` or `@` - require statements such as `require("foo")` **will now error** and must be changed to `require("./foo")`.
+  - The behavior of require from within `init.luau` and `init.lua` files has changed - previously `require("./foo")` would resolve
+    to the file or directory `foo` _as a **sibling** of the init file_, but will now resolve to the file or directory `foo` _which is a sibling of the **parent directory** of the init file_.
+    To require files inside of the same directory as the init file, the new `@self` alias must be used - like `require("@self/foo")`.
+
+- The main `lune run` subcommand will no longer sink flags passed to it - `lune run --` will now _literally_ pass the string `--` as the first
+  value in `process.args`, and `--` is no longer necessary to be able to pass flag arguments such as `--foo` and `-b` properly to your Lune programs.
+
+- Two new process spawning functions - `process.create` and `process.exec` - replace the previous `process.spawn` API. ([#211])
+
+  To migrate from `process.spawn`, use the new `process.exec` API which retains the same behavior as the old function, with slight changes in how the `stdin` option is passed.
 
   The new `process.create` function is a non-blocking process creation API and can be used to interactively
-  read and write stdio of the process.
+  read and write to standard input and output streams of the child process.
 
   ```lua
   local child = process.create("program", {
-    "cli-argument",
-    "other-cli-argument"
+    "first-argument",
+    "second-argument"
   })
 
   -- Writing to stdin
   child.stdin:write("Hello from Lune!")
 
-  -- Reading from stdout
+  -- Reading partial data from stdout
   local data = child.stdout:read()
-  print(buffer.tostring(data))
+  print(data)
+
+  -- Reading the full stdout
+  local full = child.stdout:readToEnd()
+  print(full)
   ```
+
+- Removed `net.jsonEncode` and `net.jsonDecode` - please use the equivalent `serde.encode("json", ...)` and `serde.decode("json", ...)` instead
 
 - WebSocket methods in `net.socket` and `net.serve` now use standard Lua method calling convention and colon syntax.
   This means `socket.send(...)` is now `socket:send(...)`, `socket.close(...)` is now `socket:close(...)`, and so on.
 
-- `Runtime::run` now returns a more useful value instead of an `ExitCode` ([#178])
+- Various changes have been made to the Lune Rust crates:
+  - `Runtime::run` now returns a more useful value instead of an `ExitCode` ([#178])
+  - All Lune standard library crates now export a `typedefs` function that returns the source code for the respective standard library module type definitions
+  - All Lune crates now depend on `mlua` version `0.10` or above
+  - Most Lune crates have been migrated to the `smol` and `async-*` ecosystem instead of `tokio`, with a full migration expected soon (this will not break public types)
+  - The `roblox` crate re-export has been removed from the main `lune` crate - please depend on `lune-roblox` crate directly instead
+
+### Added
+
+- Added functions for getting Roblox Studio locations to the `roblox` standard library ([#284])
+- Added support for the `Content` datatype in the `roblox` standard library ([#305])
+- Added support for `EnumItem` instance attributes in the `roblox` standard library ([#306])
+- Added support for RFC 2822 dates in the `datetime` standard library using `fromRfc2822` ([#285]) - the `fromIsoDate`
+  function has also been deprecated (not removed yet) and `fromRfc3339` should instead be preferred for any new work.
+- Added a `readLine` function to the `stdio` standard library for reading line-by-line from stdin.
+- Added a way to disable JIT by setting the `LUNE_LUAU_JIT` environment variable to `false` before running Lune.
+- Added `process.endianness` constant ([#267])
 
 ### Changed
 
 - Documentation comments for several standard library properties have been improved ([#248], [#250])
 - Error messages no longer contain redundant or duplicate stack trace information
+- Updated to Luau version `0.663`
+- Updated to rbx-dom database version `0.670`
+
+### Fixed
+
+- Fixed deadlock in `stdio.format` calls in `__tostring` metamethods ([#288])
+- Fixed `task.wait` and `task.delay` not being guaranteed to yield when duration is set to zero or very small values
+- Fixed `__tostring` metamethods sometimes not being respected in `print` and `stdio.format` calls
 
 [#178]: https://github.com/lune-org/lune/pull/178
 [#211]: https://github.com/lune-org/lune/pull/211
 [#248]: https://github.com/lune-org/lune/pull/248
 [#250]: https://github.com/lune-org/lune/pull/250
+[#265]: https://github.com/lune-org/lune/pull/265
+[#267]: https://github.com/lune-org/lune/pull/267
+[#284]: https://github.com/lune-org/lune/pull/284
+[#285]: https://github.com/lune-org/lune/pull/285
+[#288]: https://github.com/lune-org/lune/pull/288
+[#305]: https://github.com/lune-org/lune/pull/305
+[#306]: https://github.com/lune-org/lune/pull/306
 
 ## `0.8.9` - October 7th, 2024
 
@@ -104,7 +395,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`, `sha3-224`, `sha3-256`, `sha3-384`, `sha3-512`, `blake3`
 
 - Added two new options to `luau.load`:
-
   - `codegenEnabled` - whether or not codegen should be enabled for the loaded chunk.
   - `injectGlobals` - whether or not to inject globals into a passed `environment`.
 
@@ -132,7 +422,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Improved table pretty formatting when using `print`, `warn`, and `stdio.format`:
-
   - Keys are sorted numerically / alphabetically when possible.
   - Keys of different types are put in distinct sections for mixed tables.
   - Tables that are arrays no longer display their keys.
@@ -194,7 +483,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split the repository into modular crates instead of a monolith. ([#188])
 
   If you previously depended on Lune as a crate, nothing about it has changed for version `0.8.4`, but now each individual sub-crate has also been published and is available for use:
-
   - `lune` (old)
   - `lune-utils`
   - `lune-roblox`
@@ -273,7 +561,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking Changes
 
 - The Lune CLI now uses subcommands instead of flag options: <br/>
-
   - `lune script_name arg1 arg2 arg3` -> `lune run script_name arg1 arg2 arg3`
   - `lune --list` -> `lune list`
   - `lune --setup` -> `lune setup`
@@ -316,8 +603,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   // .luaurc
   {
     "aliases": {
-      "modules": "./some/long/path/to/modules"
-    }
+      "modules": "./some/long/path/to/modules",
+    },
   }
   ```
 
@@ -331,7 +618,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
 - Added support for multiple values for a single query, and multiple values for a single header, in `net.request`. This is a part of the HTTP specification that is not widely used but that may be useful in certain cases. To clarify:
-
   - Single values remain unchanged and will work exactly the same as before. <br/>
 
     ```lua
@@ -552,7 +838,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update to Luau version `0.591`.
 - Lune's internal task scheduler and `require` functionality has been completely rewritten. <br/>
   The new scheduler is much more stable, conforms to a larger test suite, and has a few additional benefits:
-
   - Built-in libraries are now lazily loaded, meaning nothing gets allocated until the built-in library gets loaded using `require("@lune/builtin-name")`. This also improves startup times slightly.
   - Spawned processes using `process.spawn` now run on different thread(s), freeing up resources for the main thread where luau runs.
   - Serving requests using `net.serve` now processes requests on background threads, also freeing up resources. In the future, this will also allow us to offload heavy tasks such as compression/decompression to background threads.
@@ -564,7 +849,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed not being able to pass arguments to the thread using `coroutine.resume`. ([#86])
 - Fixed a large number of long-standing issues, from the task scheduler rewrite:
-
   - Fixed `require` hanging indefinitely when the module being require-d uses an async function in its main body.
   - Fixed background tasks (such as `net.serve`) not keeping Lune alive even if there are no lua threads to run.
   - Fixed spurious panics and error messages such as `Tried to resume next queued future but none are queued`.
@@ -721,7 +1005,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Globals for the `fs`, `net`, `process`, `stdio`, and `task` builtins have been removed, and the `require("@lune/...")` syntax is now the only way to access builtin libraries. If you have previously been using a global such as `fs` directly, you will now need to put `local fs = require("@lune/fs")` at the top of the file instead.
 
 - Migrated several functions in the `roblox` builtin to new, more flexible APIs:
-
   - `readPlaceFile -> deserializePlace`
   - `readModelFile -> deserializeModel`
   - `writePlaceFile -> serializePlace`
@@ -757,7 +1040,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added support for finding scripts in the current home directory.
   This means that if you have a script called `script-name.luau`, you can place it in the following location:
-
   - `C:\Users\YourName\.lune\script-name.luau` (Windows)
   - `/Users/YourName/.lune/script-name.luau` (macOS)
   - `/home/YourName/.lune/script-name.luau` (Linux)
@@ -809,7 +1091,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `_VERSION` global now follows a consistent format `Lune x.y.z+luau` to allow libraries to check against it for version requirements.
 
   Examples:
-
   - `Lune 0.0.0+0`
   - `Lune 1.0.0+500`
   - `Lune 0.11.22+9999`
@@ -897,7 +1178,6 @@ This release adds some new features and fixes for the `roblox` built-in.
   The plan is for this built-in to contain more serialization and encoding functionality in the future.
 
 - `require` has been reimplemented and overhauled in several ways:
-
   - New built-ins such as `roblox` and `serde` can **_only_** be imported using `require("@lune/roblox")`, `require("@lune/serde")`, ...
   - Previous globals such as `fs`, `net` and others can now _also_ be imported using `require("@lune/fs")`, `require("@lune/net")`, ...
   - Requiring a script is now completely asynchronous and will not block lua threads other than the caller.
@@ -1021,7 +1301,6 @@ This release adds some new features and fixes for the `roblox` built-in.
 - Added support for `query` in `net.request` parameters, which enables usage of query parameters in URLs without having to manually URL encode values.
 - Added a new function `fs.move` to move / rename a file or directory from one path to another.
 - Implemented a new task scheduler which resolves several long-standing issues:
-
   - Issues with yielding across the C-call/metamethod boundary no longer occur when calling certain async APIs that Lune provides.
   - Ordering of interleaved calls to `task.spawn/task.defer` is now completely deterministic, deferring is now guaranteed to run last even in these cases.
   - The minimum wait time possible when using `task.wait` and minimum delay time using `task.delay` are now much smaller, and only limited by the underlying OS implementation. For most systems this means `task.wait` and `task.delay` are now accurate down to about 5 milliseconds or less.
@@ -1230,7 +1509,6 @@ This release adds some new features and fixes for the `roblox` built-in.
 - Added full documentation for all global APIs provided by Lune! This includes over 200 lines of pure documentation about behavior & error cases for all of the current 35 constants & functions. Check the [README](/README.md) to find out how to enable documentation in your editor.
 
 - Added a third argument `options` for `process.spawn`:
-
   - `cwd` - The current working directory for the process
   - `env` - Extra environment variables to give to the process
   - `shell` - Whether to run in a shell or not - set to `true` to run using the default shell, or a string to run using a specific shell
@@ -1284,13 +1562,11 @@ This release adds some new features and fixes for the `roblox` built-in.
 ### Added
 
 - Initial implementation of [Roblox's task library](https://create.roblox.com/docs/reference/engine/libraries/task), with some caveats:
-
   - Minimum wait / delay time is currently set to 10ms, subject to change
   - It is not yet possible to pass arguments to tasks created using `task.spawn` / `task.delay` / `task.defer`
   - Timings for `task.defer` are flaky and deferred tasks are not (yet) guaranteed to run after spawned tasks
 
   With all that said, everything else should be stable!
-
   - Mixing and matching the `coroutine` library with `task` works in all cases
   - `process.exit()` will stop all spawned / delayed / deferred threads and exit the process
   - Lune is guaranteed to keep running until there are no longer any waiting threads
@@ -1409,7 +1685,6 @@ This release adds some new features and fixes for the `roblox` built-in.
   ```
 
 - Added CLI parameters for downloading type definitions:
-
   - `lune --download-selene-types` to download Selene types to the current directory
   - `lune --download-luau-types` to download Luau types to the current directory
 

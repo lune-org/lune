@@ -1,12 +1,12 @@
 use mlua::prelude::*;
 
-use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
+use rbx_dom_weak::types::{SharedString, Variant as DomValue, VariantType as DomType};
 
 use crate::{datatypes::extension::DomValueExt, instance::Instance};
 
 use super::*;
 
-pub(crate) trait LuaToDomValue<'lua> {
+pub(crate) trait LuaToDomValue {
     /**
         Converts a lua value into a weak dom value.
 
@@ -15,16 +15,16 @@ pub(crate) trait LuaToDomValue<'lua> {
     */
     fn lua_to_dom_value(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue>;
 }
 
-pub(crate) trait DomValueToLua<'lua>: Sized {
+pub(crate) trait DomValueToLua: Sized {
     /**
         Converts a weak dom value into a lua value.
     */
-    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self>;
+    fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self>;
 }
 
 /*
@@ -37,8 +37,8 @@ pub(crate) trait DomValueToLua<'lua>: Sized {
 
 */
 
-impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
-    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
+impl DomValueToLua for LuaValue {
+    fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self> {
         use rbx_dom_weak::types as dom;
 
         match LuaAnyUserData::dom_value_to_lua(lua, variant) {
@@ -51,17 +51,17 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
                 DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
                 DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
                 DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(s)?)),
-                DomValue::Content(s) => Ok(LuaValue::String(
+                DomValue::SharedString(s) => Ok(LuaValue::String(lua.create_string(s.data())?)),
+                DomValue::ContentId(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
 
-                // NOTE: Dom references may point to instances that
-                // no longer exist, so we handle that here instead of
-                // in the userdata conversion to be able to return nils
-                DomValue::Ref(value) => match Instance::new_opt(*value) {
-                    Some(inst) => Ok(inst.into_lua(lua)?),
-                    None => Ok(LuaValue::Nil),
-                },
+                // NOTE: Instance refs are dom-relative, and this conversion has
+                // no dom context, so it cannot resolve them. Ref-typed instance
+                // properties are instead resolved (within the owning instance's
+                // dom) in `instance_property_get`; any ref reaching here resolves
+                // to nil. Refs never appear as attribute values.
+                DomValue::Ref(_) => Ok(LuaValue::Nil),
 
                 // NOTE: Some values are either optional or default and we should handle
                 // that properly here since the userdata conversion above will always fail
@@ -76,10 +76,10 @@ impl<'lua> DomValueToLua<'lua> for LuaValue<'lua> {
     }
 }
 
-impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
+impl LuaToDomValue for LuaValue {
     fn lua_to_dom_value(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         variant_type: Option<DomType>,
     ) -> DomConversionResult<DomValue> {
         use rbx_dom_weak::types as dom;
@@ -88,8 +88,8 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
             match (self, variant_type) {
                 (LuaValue::Boolean(b), DomType::Bool) => Ok(DomValue::Bool(*b)),
 
-                (LuaValue::Integer(i), DomType::Int64) => Ok(DomValue::Int64(*i as i64)),
-                (LuaValue::Integer(i), DomType::Int32) => Ok(DomValue::Int32(*i)),
+                (LuaValue::Integer(i), DomType::Int64) => Ok(DomValue::Int64(*i)),
+                (LuaValue::Integer(i), DomType::Int32) => Ok(DomValue::Int32(*i as i32)),
                 (LuaValue::Integer(i), DomType::Float64) => Ok(DomValue::Float64(*i as f64)),
                 (LuaValue::Integer(i), DomType::Float32) => Ok(DomValue::Float32(*i as f32)),
 
@@ -102,10 +102,13 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
                     Ok(DomValue::String(s.to_str()?.to_string()))
                 }
                 (LuaValue::String(s), DomType::BinaryString) => {
-                    Ok(DomValue::BinaryString(s.as_ref().into()))
+                    Ok(DomValue::BinaryString(s.as_bytes().to_vec().into()))
                 }
-                (LuaValue::String(s), DomType::Content) => {
-                    Ok(DomValue::Content(s.to_str()?.to_string().into()))
+                (LuaValue::String(s), DomType::SharedString) => Ok(DomValue::SharedString(
+                    SharedString::new(s.as_bytes().to_vec()),
+                )),
+                (LuaValue::String(s), DomType::ContentId) => {
+                    Ok(DomValue::ContentId(s.to_str()?.to_string().into()))
                 }
 
                 // NOTE: Some values are either optional or default and we
@@ -126,7 +129,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaValue<'lua> {
         } else {
             match self {
                 LuaValue::Boolean(b) => Ok(DomValue::Bool(*b)),
-                LuaValue::Integer(i) => Ok(DomValue::Int32(*i)),
+                LuaValue::Integer(i) => Ok(DomValue::Int32(*i as i32)),
                 LuaValue::Number(n) => Ok(DomValue::Float64(*n)),
                 LuaValue::String(s) => Ok(DomValue::String(s.to_str()?.to_string())),
                 LuaValue::UserData(u) => u.lua_to_dom_value(lua, None),
@@ -186,9 +189,10 @@ macro_rules! userdata_to_dom {
     };
 }
 
-impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
+impl DomValueToLua for LuaAnyUserData {
+    #[allow(clippy::match_same_arms)]
     #[rustfmt::skip]
-    fn dom_value_to_lua(lua: &'lua Lua, variant: &DomValue) -> DomConversionResult<Self> {
+    fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self> {
 		use super::types::*;
 
         use rbx_dom_weak::types as dom;
@@ -200,6 +204,8 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
             DomValue::Color3(value)         => dom_to_userdata!(lua, value => Color3),
             DomValue::Color3uint8(value)    => dom_to_userdata!(lua, value => Color3),
             DomValue::ColorSequence(value)  => dom_to_userdata!(lua, value => ColorSequence),
+            DomValue::Content(value)        => dom_to_userdata!(lua, value => Content),
+            DomValue::EnumItem(value)       => dom_to_userdata!(lua, value => EnumItem),
             DomValue::Faces(value)          => dom_to_userdata!(lua, value => Faces),
             DomValue::Font(value)           => dom_to_userdata!(lua, value => Font),
             DomValue::NumberRange(value)    => dom_to_userdata!(lua, value => NumberRange),
@@ -210,6 +216,7 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
             DomValue::Region3int16(value)   => dom_to_userdata!(lua, value => Region3int16),
             DomValue::UDim(value)           => dom_to_userdata!(lua, value => UDim),
             DomValue::UDim2(value)          => dom_to_userdata!(lua, value => UDim2),
+            DomValue::UniqueId(value)       => dom_to_userdata!(lua, value => UniqueId),
             DomValue::Vector2(value)        => dom_to_userdata!(lua, value => Vector2),
             DomValue::Vector2int16(value)   => dom_to_userdata!(lua, value => Vector2int16),
             DomValue::Vector3(value)        => dom_to_userdata!(lua, value => Vector3),
@@ -233,13 +240,9 @@ impl<'lua> DomValueToLua<'lua> for LuaAnyUserData<'lua> {
     }
 }
 
-impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
+impl LuaToDomValue for LuaAnyUserData {
     #[rustfmt::skip]
-    fn lua_to_dom_value(
-        &self,
-        _: &'lua Lua,
-        variant_type: Option<DomType>,
-    ) -> DomConversionResult<DomValue> {
+    fn lua_to_dom_value(&self, _: &Lua, variant_type: Option<DomType>) -> DomConversionResult<DomValue> {
         use super::types::*;
 
         use rbx_dom_weak::types as dom;
@@ -256,7 +259,8 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 DomType::Color3         => userdata_to_dom!(self as Color3         => dom::Color3),
                 DomType::Color3uint8    => userdata_to_dom!(self as Color3         => dom::Color3uint8),
                 DomType::ColorSequence  => userdata_to_dom!(self as ColorSequence  => dom::ColorSequence),
-                DomType::Enum           => userdata_to_dom!(self as EnumItem       => dom::Enum),
+                DomType::Content        => userdata_to_dom!(self as Content        => dom::Content),
+                DomType::EnumItem       => userdata_to_dom!(self as EnumItem       => dom::EnumItem),
                 DomType::Faces          => userdata_to_dom!(self as Faces          => dom::Faces),
                 DomType::Font           => userdata_to_dom!(self as Font           => dom::Font),
                 DomType::NumberRange    => userdata_to_dom!(self as NumberRange    => dom::NumberRange),
@@ -268,6 +272,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 DomType::Region3int16   => userdata_to_dom!(self as Region3int16   => dom::Region3int16),
                 DomType::UDim           => userdata_to_dom!(self as UDim           => dom::UDim),
                 DomType::UDim2          => userdata_to_dom!(self as UDim2          => dom::UDim2),
+                DomType::UniqueId       => userdata_to_dom!(self as UniqueId       => dom::UniqueId),
                 DomType::Vector2        => userdata_to_dom!(self as Vector2        => dom::Vector2),
                 DomType::Vector2int16   => userdata_to_dom!(self as Vector2int16   => dom::Vector2int16),
                 DomType::Vector3        => userdata_to_dom!(self as Vector3        => dom::Vector3),
@@ -276,13 +281,13 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
 	            // NOTE: The none and default variants of these types are handled in
 				// LuaToDomValue for the LuaValue type instead, allowing for nil/default
                 DomType::OptionalCFrame => {
-                    return match self.borrow::<CFrame>() {
+                    match self.borrow::<CFrame>() {
                         Err(_) => unreachable!("Invalid use of conversion method, should be using LuaValue"),
                         Ok(value) => Ok(DomValue::OptionalCFrame(Some(dom::CFrame::from(*value)))),
                     }
                 }
                 DomType::PhysicalProperties => {
-                    return match self.borrow::<PhysicalProperties>() {
+                    match self.borrow::<PhysicalProperties>() {
                         Err(_) => unreachable!("Invalid use of conversion method, should be using LuaValue"),
                         Ok(value) => {
                             let props = dom::CustomPhysicalProperties::from(*value);
@@ -314,7 +319,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 value if value.is::<CFrame>()         => userdata_to_dom!(value as CFrame         => dom::CFrame),
                 value if value.is::<Color3>()         => userdata_to_dom!(value as Color3         => dom::Color3),
                 value if value.is::<ColorSequence>()  => userdata_to_dom!(value as ColorSequence  => dom::ColorSequence),
-                value if value.is::<Enum>()           => userdata_to_dom!(value as EnumItem       => dom::Enum),
+                value if value.is::<EnumItem>()       => userdata_to_dom!(value as EnumItem       => dom::EnumItem),
                 value if value.is::<Faces>()          => userdata_to_dom!(value as Faces          => dom::Faces),
                 value if value.is::<Font>()           => userdata_to_dom!(value as Font           => dom::Font),
                 value if value.is::<Instance>()       => userdata_to_dom!(value as Instance       => dom::Ref),
@@ -326,6 +331,7 @@ impl<'lua> LuaToDomValue<'lua> for LuaAnyUserData<'lua> {
                 value if value.is::<Region3int16>()   => userdata_to_dom!(value as Region3int16   => dom::Region3int16),
                 value if value.is::<UDim>()           => userdata_to_dom!(value as UDim           => dom::UDim),
                 value if value.is::<UDim2>()          => userdata_to_dom!(value as UDim2          => dom::UDim2),
+                value if value.is::<UniqueId>()       => userdata_to_dom!(value as UniqueId       => dom::UniqueId),
                 value if value.is::<Vector2>()        => userdata_to_dom!(value as Vector2        => dom::Vector2),
                 value if value.is::<Vector2int16>()   => userdata_to_dom!(value as Vector2int16   => dom::Vector2int16),
                 value if value.is::<Vector3>()        => userdata_to_dom!(value as Vector3        => dom::Vector3),

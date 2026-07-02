@@ -1,4 +1,5 @@
 local net = require("@lune/net")
+local serde = require("@lune/serde")
 
 local QUERY: { [string]: string } = {
 	Key = "Value",
@@ -24,7 +25,7 @@ assert(
 
 -- We should get a json response here with an "args" table which is our query
 
-local success, json = pcall(net.jsonDecode, response.body)
+local success, json = pcall(serde.decode, "json" :: "json", response.body)
 assert(success, "Failed to decode json response\n" .. tostring(json))
 
 local args = if type(json.args) == "table" then json.args else nil

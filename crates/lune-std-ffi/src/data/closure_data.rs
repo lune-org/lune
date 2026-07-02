@@ -1,5 +1,5 @@
 use core::ffi::c_void;
-use std::{borrow::Borrow, ptr};
+use std::ptr;
 
 use libffi::{
     low::{closure_alloc, closure_free, ffi_cif},
@@ -19,7 +19,7 @@ use crate::ffi::{
 
 // A closure that can be created with lua function.
 pub struct ClosureData {
-    lua: *const Lua,
+    lua: mlua::WeakLua,
     closure: *mut ffi_closure,
     code: Box<*mut c_void>,
     arg_info_list: Vec<FfiArg>,
@@ -46,7 +46,8 @@ unsafe extern "C" fn callback(
     closure_data: *mut c_void,
 ) {
     let closure_data = closure_data.cast::<ClosureData>().as_ref().unwrap();
-    let lua = closure_data.lua.as_ref().unwrap();
+    let lua = closure_data.lua.try_upgrade().unwrap();
+    let lua = &lua;
     let len = (*cif).nargs as usize;
     let mut args = Vec::<LuaValue>::with_capacity(len + 1);
 
@@ -73,14 +74,9 @@ unsafe extern "C" fn callback(
         ));
     }
 
-    closure_data
-        .func
-        .borrow()
-        .into_lua(lua)
+    lua.registry_value::<LuaFunction>(&closure_data.func)
         .unwrap()
-        .as_function()
-        .unwrap()
-        .call::<_, ()>(LuaMultiValue::from_vec(args))
+        .call::<()>(LuaMultiValue::from_vec(args))
         .unwrap();
 }
 
@@ -97,7 +93,7 @@ impl ClosureData {
         let code = code.as_mut_ptr();
 
         let closure_data = lua.create_userdata(ClosureData {
-            lua: ptr::from_ref(lua),
+            lua: lua.weak(),
             closure,
             code: Box::new(code),
             arg_info_list,
@@ -144,7 +140,7 @@ impl FfiData for ClosureData {
 }
 
 impl LuaUserData for ClosureData {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_function("ref", |lua, this: LuaAnyUserData| {
             let ref_data = lua.create_userdata(RefData::new(
                 unsafe { this.borrow::<ClosureData>()?.get_inner_pointer() },

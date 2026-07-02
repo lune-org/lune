@@ -19,7 +19,9 @@ impl DomValueExt for DomType {
             Color3uint8 => "Color3uint8",
             ColorSequence => "ColorSequence",
             Content => "Content",
+            ContentId => "ContentId",
             Enum => "Enum",
+            EnumItem => "EnumItem",
             Faces => "Faces",
             Float32 => "Float32",
             Float64 => "Float64",
@@ -47,6 +49,7 @@ impl DomValueExt for DomType {
             Vector3int16 => "Vector3int16",
             OptionalCFrame => "OptionalCFrame",
             SecurityCapabilities => "SecurityCapabilities",
+            NetAssetRef => "NetAssetRef",
             _ => return None,
         })
     }

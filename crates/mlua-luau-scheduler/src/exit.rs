@@ -1,24 +1,24 @@
 use std::{cell::Cell, rc::Rc};
 
-use event_listener::Event;
+use crate::events::OnceEvent;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Exit {
     code: Rc<Cell<Option<u8>>>,
-    event: Rc<Event>,
+    event: OnceEvent,
 }
 
 impl Exit {
     pub fn new() -> Self {
         Self {
             code: Rc::new(Cell::new(None)),
-            event: Rc::new(Event::new()),
+            event: OnceEvent::new(),
         }
     }
 
     pub fn set(&self, code: u8) {
         self.code.set(Some(code));
-        self.event.notify(usize::MAX);
+        self.event.notify();
     }
 
     pub fn get(&self) -> Option<u8> {

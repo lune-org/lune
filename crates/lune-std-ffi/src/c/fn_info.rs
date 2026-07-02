@@ -75,11 +75,11 @@ impl CFnInfo {
         })
     }
 
-    pub fn from_table<'lua>(
-        lua: &'lua Lua,
+    pub fn from_table(
+        lua: &Lua,
         arg_table: LuaTable,
         ret: LuaAnyUserData,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         if helper::has_void(&arg_table)? {
             return Err(LuaError::external("Arguments can not include void type"));
         }
@@ -133,12 +133,12 @@ impl CFnInfo {
     }
 
     // Create ClosureData with lua function
-    pub fn create_closure<'lua>(
+    pub fn create_closure(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         this: &LuaAnyUserData,
-        lua_function: LuaFunction<'lua>,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+        lua_function: LuaFunction,
+    ) -> LuaResult<LuaAnyUserData> {
         let closure_data = ClosureData::alloc(
             lua,
             self.cif.as_raw_ptr(),
@@ -154,12 +154,12 @@ impl CFnInfo {
     }
 
     // Create CallableData from RefData
-    pub fn create_callable<'lua>(
+    pub fn create_callable(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         this: &LuaAnyUserData,
         target_ref: &LuaAnyUserData,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         if !target_ref.is::<RefData>() {
             return Err(LuaError::external("Argument 'functionRef' must be RefData"));
         }
@@ -192,10 +192,10 @@ impl CFnInfo {
 }
 
 impl LuaUserData for CFnInfo {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_lua, _this| Ok(SIZE_OF_POINTER));
     }
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // ToString
         method_provider::provide_to_string(methods);
 
@@ -204,14 +204,14 @@ impl LuaUserData for CFnInfo {
             "closure",
             |lua, (cfn, func): (LuaAnyUserData, LuaFunction)| {
                 let this = cfn.borrow::<CFnInfo>()?;
-                this.create_closure(lua, cfn.as_ref(), func)
+                this.create_closure(lua, &cfn, func)
             },
         );
         methods.add_function(
             "callable",
             |lua, (cfn, target): (LuaAnyUserData, LuaAnyUserData)| {
                 let this = cfn.borrow::<CFnInfo>()?;
-                this.create_callable(lua, cfn.as_ref(), &target)
+                this.create_callable(lua, &cfn, &target)
             },
         );
     }

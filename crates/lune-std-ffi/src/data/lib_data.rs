@@ -31,11 +31,11 @@ impl LibData {
     }
 
     // Get named symbol from library
-    pub fn find_symbol<'lua>(
-        lua: &'lua Lua,
-        this: LuaAnyUserData<'lua>,
+    pub fn find_symbol(
+        lua: &Lua,
+        this: LuaAnyUserData,
         name: String,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         let lib = this.borrow::<LibData>()?;
         let sym = unsafe {
             lib.lib
@@ -57,7 +57,7 @@ impl LibData {
 }
 
 impl LuaUserData for LibData {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_function("find", |lua, (this, name): (LuaAnyUserData, String)| {
             LibData::find_symbol(lua, this, name)
         });

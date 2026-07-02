@@ -1,14 +1,14 @@
 use std::io::Write;
 
-use lune_utils::fmt::{pretty_format_multi_value, Label, ValueFormatConfig};
+use lune_utils::fmt::{Label, ValueFormatConfig, pretty_format_multi_value};
 use mlua::prelude::*;
 
 const FORMAT_CONFIG: ValueFormatConfig = ValueFormatConfig::new()
     .with_max_depth(4)
     .with_colors_enabled(true);
 
-pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
-    let f = lua.create_function(|_, args: LuaMultiValue| {
+pub fn create(lua: Lua) -> LuaResult<LuaValue> {
+    let f = lua.create_function(|_: &Lua, args: LuaMultiValue| {
         let formatted = format!(
             "{}\n{}\n",
             Label::Warn,
@@ -19,5 +19,5 @@ pub fn create(lua: &Lua) -> LuaResult<LuaValue> {
         stdout.flush()?;
         Ok(())
     })?;
-    f.into_lua(lua)
+    f.into_lua(&lua)
 }

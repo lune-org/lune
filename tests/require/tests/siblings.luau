@@ -7,5 +7,5 @@ assert(module.Hello == "World", "Required module did not contain correct values"
 require("./children")
 require("./parents")
 
-require("children")
-require("parents")
+require("./children")
+require("./parents")

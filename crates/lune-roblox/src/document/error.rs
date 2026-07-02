@@ -1,5 +1,7 @@
-use mlua::prelude::*;
 use thiserror::Error;
+
+#[cfg(feature = "mlua")]
+use mlua::prelude::*;
 
 #[derive(Debug, Clone, Error)]
 pub enum DocumentError {
@@ -21,6 +23,7 @@ pub enum DocumentError {
     FromInstanceArrayInvalidArgs,
 }
 
+#[cfg(feature = "mlua")]
 impl From<DocumentError> for LuaError {
     fn from(value: DocumentError) -> Self {
         Self::RuntimeError(value.to_string())

@@ -63,11 +63,11 @@ impl BoxData {
     }
 
     // Make FfiRef from box, with boundary check
-    pub fn luaref<'lua>(
-        lua: &'lua Lua,
-        this: LuaAnyUserData<'lua>,
+    pub fn luaref(
+        lua: &Lua,
+        this: LuaAnyUserData,
         offset: Option<isize>,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         let target = this.borrow::<BoxData>()?;
         let mut bounds = RefBounds::new(0, target.size());
         let mut ptr = unsafe { target.get_inner_pointer() };
@@ -133,10 +133,10 @@ impl FfiData for BoxData {
 }
 
 impl LuaUserData for BoxData {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_lua, this| Ok(this.size()));
     }
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
         method_provider::provide_read_string(methods);
         method_provider::provide_write_string(methods);

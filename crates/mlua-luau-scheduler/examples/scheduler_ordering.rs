@@ -4,7 +4,7 @@
 
 use std::time::{Duration, Instant};
 
-use async_io::{block_on, Timer};
+use async_io::{Timer, block_on};
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
@@ -20,8 +20,8 @@ pub fn main() -> LuaResult<()> {
 
     // Set up persistent Lua environment
     let lua = Lua::new();
-    let sched = Scheduler::new(&lua);
-    let fns = Functions::new(&lua)?;
+    let sched = Scheduler::new(lua.clone());
+    let fns = Functions::new(lua.clone())?;
 
     lua.globals().set("spawn", fns.spawn)?;
     lua.globals().set("defer", fns.defer)?;

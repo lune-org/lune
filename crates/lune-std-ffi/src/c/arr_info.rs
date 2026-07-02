@@ -1,4 +1,3 @@
-use std::cell::Ref;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
@@ -39,11 +38,11 @@ impl CArrInfo {
         })
     }
 
-    pub fn from_userdata<'lua>(
-        lua: &'lua Lua,
-        type_userdata: &LuaAnyUserData<'lua>,
+    pub fn from_userdata(
+        lua: &Lua,
+        type_userdata: &LuaAnyUserData,
         length: usize,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         let fields = helper::get_middle_type(type_userdata)?;
         let conv = unsafe { helper::get_conv(type_userdata)? };
         let carr = lua.create_userdata(Self::new(fields, length, conv)?)?;
@@ -85,12 +84,12 @@ impl FfiSize for CArrInfo {
 }
 
 impl FfiConvert for CArrInfo {
-    unsafe fn value_into_data<'lua>(
+    unsafe fn value_into_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-        value: LuaValue<'lua>,
+        data_handle: &dyn FfiData,
+        value: LuaValue,
     ) -> LuaResult<()> {
         let LuaValue::Table(ref table) = value else {
             return Err(LuaError::external("Value is not a table"));
@@ -109,12 +108,12 @@ impl FfiConvert for CArrInfo {
         Ok(())
     }
 
-    unsafe fn value_from_data<'lua>(
+    unsafe fn value_from_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-    ) -> LuaResult<LuaValue<'lua>> {
+        data_handle: &dyn FfiData,
+    ) -> LuaResult<LuaValue> {
         let table = lua.create_table_with_capacity(self.length, 0)?;
         for i in 0..self.length {
             let field_offset = (i * self.inner_size) as isize;
@@ -135,8 +134,8 @@ impl FfiConvert for CArrInfo {
         _lua: &Lua,
         dst_offset: isize,
         src_offset: isize,
-        dst: &Ref<dyn FfiData>,
-        src: &Ref<dyn FfiData>,
+        dst: &dyn FfiData,
+        src: &dyn FfiData,
     ) -> LuaResult<()> {
         dst.get_inner_pointer().byte_offset(dst_offset).copy_from(
             src.get_inner_pointer().byte_offset(src_offset),
@@ -147,7 +146,7 @@ impl FfiConvert for CArrInfo {
 }
 
 impl LuaUserData for CArrInfo {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_lua, this| Ok(this.get_size()));
         fields.add_field_method_get("length", |_lua, this| Ok(this.get_length()));
         fields.add_field_function_get("inner", |lua, this: LuaAnyUserData| {
@@ -156,7 +155,7 @@ impl LuaUserData for CArrInfo {
         });
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);
 

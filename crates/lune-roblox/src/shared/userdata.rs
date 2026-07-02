@@ -23,7 +23,7 @@ pub fn make_list_writer() -> Box<ListWriter> {
     })
 }
 
-/**
+/*
     Userdata metamethod implementations
 
     Note that many of these return [`LuaResult`] even though they don't
@@ -74,54 +74,68 @@ where
     Ok(*datatype - *value)
 }
 
-pub fn userdata_impl_mul_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+fn borrow_datatype<D>(value: &LuaValue) -> Option<D>
+where
+    D: LuaUserData + Copy + 'static,
+{
+    if let LuaValue::UserData(ud) = value {
+        ud.borrow::<D>().ok().map(|d| *d)
+    } else {
+        None
+    }
+}
+
+fn mul_div_error<D>(lhs: &LuaValue, rhs: &LuaValue) -> LuaError {
+    LuaError::FromLuaConversionError {
+        from: rhs.type_name(),
+        to: type_name::<D>().to_string(),
+        message: Some(format!(
+            "Expected {} or number, got {} and {}",
+            type_name::<D>(),
+            lhs.type_name(),
+            rhs.type_name()
+        )),
+    }
+}
+
+// NOTE: Multiplication is registered as a meta *function* (not method) so that
+// scalar-on-the-left (`2 * vector`) works as well as scalar-on-the-right - a
+// meta method would bind `self` to the first operand, which fails when it is
+// the scalar rather than the userdata.
+pub fn userdata_impl_mul_f32<D>(_: &Lua, (lhs, rhs): (LuaValue, LuaValue)) -> LuaResult<D>
 where
     D: LuaUserData + ops::Mul<D, Output = D> + ops::Mul<f32, Output = D> + Copy + 'static,
 {
-    match &rhs {
-        LuaValue::Number(n) => return Ok(*datatype * *n as f32),
-        LuaValue::Integer(i) => return Ok(*datatype * *i as f32),
-        LuaValue::UserData(ud) => {
-            if let Ok(vec) = ud.borrow::<D>() {
-                return Ok(*datatype * *vec);
-            }
-        }
-        _ => {}
+    let scalar = |v: &LuaValue| match v {
+        LuaValue::Number(n) => Some(*n as f32),
+        LuaValue::Integer(i) => Some(*i as f32),
+        _ => None,
     };
-    Err(LuaError::FromLuaConversionError {
-        from: rhs.type_name(),
-        to: type_name::<D>(),
-        message: Some(format!(
-            "Expected {} or number, got {}",
-            type_name::<D>(),
-            rhs.type_name()
-        )),
-    })
+    match (borrow_datatype::<D>(&lhs), borrow_datatype::<D>(&rhs)) {
+        (Some(a), Some(b)) => Some(a * b),
+        (Some(a), None) => scalar(&rhs).map(|s| a * s),
+        (None, Some(b)) => scalar(&lhs).map(|s| b * s),
+        (None, None) => None,
+    }
+    .ok_or_else(|| mul_div_error::<D>(&lhs, &rhs))
 }
 
-pub fn userdata_impl_mul_i32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
+pub fn userdata_impl_mul_i32<D>(_: &Lua, (lhs, rhs): (LuaValue, LuaValue)) -> LuaResult<D>
 where
     D: LuaUserData + ops::Mul<D, Output = D> + ops::Mul<i32, Output = D> + Copy + 'static,
 {
-    match &rhs {
-        LuaValue::Number(n) => return Ok(*datatype * *n as i32),
-        LuaValue::Integer(i) => return Ok(*datatype * *i),
-        LuaValue::UserData(ud) => {
-            if let Ok(vec) = ud.borrow::<D>() {
-                return Ok(*datatype * *vec);
-            }
-        }
-        _ => {}
+    let scalar = |v: &LuaValue| match v {
+        LuaValue::Number(n) => Some(*n as i32),
+        LuaValue::Integer(i) => Some(*i as i32),
+        _ => None,
     };
-    Err(LuaError::FromLuaConversionError {
-        from: rhs.type_name(),
-        to: type_name::<D>(),
-        message: Some(format!(
-            "Expected {} or number, got {}",
-            type_name::<D>(),
-            rhs.type_name()
-        )),
-    })
+    match (borrow_datatype::<D>(&lhs), borrow_datatype::<D>(&rhs)) {
+        (Some(a), Some(b)) => Some(a * b),
+        (Some(a), None) => scalar(&rhs).map(|s| a * s),
+        (None, Some(b)) => scalar(&lhs).map(|s| b * s),
+        (None, None) => None,
+    }
+    .ok_or_else(|| mul_div_error::<D>(&lhs, &rhs))
 }
 
 pub fn userdata_impl_div_f32<D>(_: &Lua, datatype: &D, rhs: LuaValue) -> LuaResult<D>
@@ -137,10 +151,10 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),
@@ -168,10 +182,10 @@ where
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),
@@ -186,17 +200,17 @@ where
 {
     match &rhs {
         LuaValue::Number(n) => return Ok(*datatype / *n as i32),
-        LuaValue::Integer(i) => return Ok(*datatype / *i),
+        LuaValue::Integer(i) => return Ok(*datatype / *i as i32),
         LuaValue::UserData(ud) => {
             if let Ok(vec) = ud.borrow::<D>() {
                 return Ok(*datatype / *vec);
             }
         }
         _ => {}
-    };
+    }
     Err(LuaError::FromLuaConversionError {
         from: rhs.type_name(),
-        to: type_name::<D>(),
+        to: type_name::<D>().to_string(),
         message: Some(format!(
             "Expected {} or number, got {}",
             type_name::<D>(),

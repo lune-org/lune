@@ -1,12 +1,15 @@
 use std::{
     collections::HashMap,
     env::{self},
+    ffi::OsString,
     path::PathBuf,
 };
 
-use directories::UserDirs;
+use lune_utils::process::ProcessArgs;
 use mlua::prelude::*;
-use tokio::process::Command;
+
+use async_process::Command;
+use directories::UserDirs;
 
 mod kind;
 mod stdio;
@@ -22,8 +25,8 @@ pub(super) struct ProcessSpawnOptions {
     pub stdio: ProcessSpawnOptionsStdio,
 }
 
-impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for ProcessSpawnOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         let mut this = Self::default();
         let value = match value {
             LuaValue::Nil => return Ok(this),
@@ -31,12 +34,12 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
             _ => {
                 return Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "ProcessSpawnOptions",
+                    to: "ProcessSpawnOptions".to_string(),
                     message: Some(format!(
                         "Invalid spawn options - expected table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         };
 
@@ -49,7 +52,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
         match value.get("cwd")? {
             LuaValue::Nil => {}
             LuaValue::String(s) => {
-                let mut cwd = PathBuf::from(s.to_str()?);
+                let mut cwd = PathBuf::from(s.to_str()?.to_string());
                 if let Ok(stripped) = cwd.strip_prefix("~") {
                     let user_dirs = UserDirs::new().ok_or_else(|| {
                         LuaError::runtime(
@@ -62,14 +65,14 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
                     return Err(LuaError::runtime(
                         "Invalid value for option 'cwd' - path does not exist",
                     ));
-                };
+                }
                 this.cwd = Some(cwd);
             }
             value => {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'cwd' - expected string, got '{}'",
                     value.type_name()
-                )))
+                )));
             }
         }
 
@@ -88,7 +91,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'env' - expected table, got '{}'",
                     value.type_name()
-                )))
+                )));
             }
         }
 
@@ -100,7 +103,7 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
         */
         match value.get("shell")? {
             LuaValue::Nil => {}
-            LuaValue::String(s) => this.shell = Some(s.to_string_lossy().to_string()),
+            LuaValue::String(s) => this.shell = Some(s.to_string_lossy()),
             LuaValue::Boolean(true) => {
                 this.shell = match env::consts::FAMILY {
                     "unix" => Some("/bin/sh".to_string()),
@@ -112,57 +115,40 @@ impl<'lua> FromLua<'lua> for ProcessSpawnOptions {
                 return Err(LuaError::RuntimeError(format!(
                     "Invalid type for option 'shell' - expected 'true' or 'string', got '{}'",
                     value.type_name()
-                )))
+                )));
             }
         }
 
         /*
-            If we got options for stdio handling, parse those as well - note that
-            we accept a separate "stdin" value here for compatibility with older
-            scripts, but the user should preferrably pass it in the stdio table
+            If we got options for stdio handling, parse those as well
+
+            This may optionally contain configuration for any or all of: stdin, stdout, stderr
         */
         this.stdio = value.get("stdio")?;
-        match value.get("stdin")? {
-            LuaValue::Nil => {}
-            LuaValue::String(s) => this.stdio.stdin = Some(s.as_bytes().to_vec()),
-            value => {
-                return Err(LuaError::RuntimeError(format!(
-                    "Invalid type for option 'stdin' - expected 'string', got '{}'",
-                    value.type_name()
-                )))
-            }
-        }
 
         Ok(this)
     }
 }
 
 impl ProcessSpawnOptions {
-    pub fn into_command(self, program: impl Into<String>, args: Option<Vec<String>>) -> Command {
-        let mut program = program.into();
+    pub fn into_command(self, program: impl Into<OsString>, args: ProcessArgs) -> Command {
+        let mut program: OsString = program.into();
+        let mut args = args.into_iter().collect::<Vec<_>>();
 
         // Run a shell using the command param if wanted
-        let pargs = match self.shell {
-            None => args,
-            Some(shell) => {
-                let shell_args = match args {
-                    Some(args) => vec!["-c".to_string(), format!("{} {}", program, args.join(" "))],
-                    None => vec!["-c".to_string(), program.to_string()],
-                };
-                program = shell.to_string();
-                Some(shell_args)
+        if let Some(shell) = self.shell {
+            let mut shell_command = program.clone();
+            for arg in args {
+                shell_command.push(" ");
+                shell_command.push(arg);
             }
-        };
+            args = vec![OsString::from("-c"), shell_command];
+            program = shell.into();
+        }
 
         // Create command with the wanted options
-        let mut cmd = match pargs {
-            None => Command::new(program),
-            Some(args) => {
-                let mut cmd = Command::new(program);
-                cmd.args(args);
-                cmd
-            }
-        };
+        let mut cmd = Command::new(program);
+        cmd.args(args);
 
         // Set dir to run in and env variables
         if let Some(cwd) = self.cwd {

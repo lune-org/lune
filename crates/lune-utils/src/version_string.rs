@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use mlua::prelude::*;
-use once_cell::sync::Lazy;
+use semver::Version;
 
-static LUAU_VERSION: Lazy<Arc<String>> = Lazy::new(create_luau_version_string);
+static LUAU_VERSION: LazyLock<Arc<String>> = LazyLock::new(create_luau_version_string);
 
 /**
     Returns a Lune version string, in the format `Lune x.y.z+luau`.
@@ -20,12 +20,10 @@ pub fn get_version_string(lune_version: impl AsRef<str>) -> String {
     let lune_version = lune_version.as_ref();
 
     assert!(!lune_version.is_empty(), "Lune version string is empty");
-    assert!(
-        lune_version.chars().all(is_valid_version_char),
-        "Lune version string contains invalid characters"
-    );
-
-    format!("Lune {lune_version}+{}", *LUAU_VERSION)
+    match Version::parse(lune_version) {
+        Ok(semver) => format!("Lune {semver}+{}", *LUAU_VERSION),
+        Err(e) => panic!("Lune version string is not valid semver: {e}"),
+    }
 }
 
 fn create_luau_version_string() -> Arc<String> {
@@ -35,7 +33,7 @@ fn create_luau_version_string() -> Arc<String> {
 
         let luau_version_full = temp_lua
             .globals()
-            .get::<_, LuaString>("_VERSION")
+            .get::<LuaString>("_VERSION")
             .expect("Missing _VERSION global");
 
         luau_version_full

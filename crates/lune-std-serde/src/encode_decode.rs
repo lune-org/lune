@@ -1,7 +1,7 @@
 use mlua::prelude::*;
 
 use serde_json::Value as JsonValue;
-use serde_yaml::Value as YamlValue;
+use serde_yaml2::wrapper::YamlNodeWrapper as YamlValue;
 use toml::Value as TomlValue;
 
 // NOTE: These are options for going from other format -> lua ("serializing" lua values)
@@ -24,20 +24,22 @@ const LUA_DESERIALIZE_OPTIONS: LuaDeserializeOptions = LuaDeserializeOptions::ne
 #[derive(Debug, Clone, Copy)]
 pub enum EncodeDecodeFormat {
     Json,
+    JsonC,
     Yaml,
     Toml,
 }
 
-impl<'lua> FromLua<'lua> for EncodeDecodeFormat {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for EncodeDecodeFormat {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
                 "json" => Ok(Self::Json),
+                "jsonc" => Ok(Self::JsonC),
                 "yaml" => Ok(Self::Yaml),
                 "toml" => Ok(Self::Toml),
                 kind => Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "EncodeDecodeFormat",
+                    to: "EncodeDecodeFormat".to_string(),
                     message: Some(format!(
                         "Invalid format '{kind}', valid formats are:  json, yaml, toml"
                     )),
@@ -46,7 +48,7 @@ impl<'lua> FromLua<'lua> for EncodeDecodeFormat {
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "EncodeDecodeFormat",
+                to: "EncodeDecodeFormat".to_string(),
                 message: None,
             })
         }
@@ -89,13 +91,9 @@ impl From<(EncodeDecodeFormat, bool)> for EncodeDecodeConfig {
 
     Errors when the encoding fails.
 */
-pub fn encode<'lua>(
-    value: LuaValue<'lua>,
-    lua: &'lua Lua,
-    config: EncodeDecodeConfig,
-) -> LuaResult<LuaString<'lua>> {
+pub fn encode(value: LuaValue, lua: &Lua, config: EncodeDecodeConfig) -> LuaResult<LuaString> {
     let bytes = match config.format {
-        EncodeDecodeFormat::Json => {
+        EncodeDecodeFormat::Json | EncodeDecodeFormat::JsonC => {
             let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
             if config.pretty {
                 serde_json::to_vec_pretty(&serialized).into_lua_err()?
@@ -105,9 +103,9 @@ pub fn encode<'lua>(
         }
         EncodeDecodeFormat::Yaml => {
             let serialized: YamlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
-            let mut writer = Vec::with_capacity(128);
-            serde_yaml::to_writer(&mut writer, &serialized).into_lua_err()?;
-            writer
+            serde_yaml2::to_string(serialized)
+                .into_lua_err()?
+                .into_bytes()
         }
         EncodeDecodeFormat::Toml => {
             let serialized: TomlValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
@@ -140,8 +138,16 @@ pub fn decode(
             let value: JsonValue = serde_json::from_slice(bytes).into_lua_err()?;
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
         }
+        EncodeDecodeFormat::JsonC => {
+            let string: String = String::from_utf8(bytes.to_vec()).into_lua_err()?;
+            let value: JsonValue =
+                jsonc_parser::parse_to_serde_value(&string, &jsonc_parser::ParseOptions::default())
+                    .into_lua_err()?;
+            lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
+        }
         EncodeDecodeFormat::Yaml => {
-            let value: YamlValue = serde_yaml::from_slice(bytes).into_lua_err()?;
+            let string: String = String::from_utf8(bytes.to_vec()).into_lua_err()?;
+            let value: YamlValue = serde_yaml2::from_str(&string).into_lua_err()?;
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
         }
         EncodeDecodeFormat::Toml => {

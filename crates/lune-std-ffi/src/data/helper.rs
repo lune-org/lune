@@ -6,10 +6,10 @@ pub mod method_provider {
     use super::*;
 
     // Implement copyFrom method
-    pub fn provide_copy_from<'lua, Target, M>(methods: &mut M)
+    pub fn provide_copy_from<Target, M>(methods: &mut M)
     where
         Target: FfiData + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_function(
             "copyFrom",
@@ -41,10 +41,10 @@ pub mod method_provider {
     }
 
     // Implement readString method
-    pub fn provide_read_string<'lua, Target, M>(methods: &mut M)
+    pub fn provide_read_string<Target, M>(methods: &mut M)
     where
         Target: FfiData + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_method(
             "readString",
@@ -61,10 +61,10 @@ pub mod method_provider {
     }
 
     // Implement writeString method
-    pub fn provide_write_string<'lua, Target, M>(methods: &mut M)
+    pub fn provide_write_string<Target, M>(methods: &mut M)
     where
         Target: FfiData + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_function(
             "writeString",

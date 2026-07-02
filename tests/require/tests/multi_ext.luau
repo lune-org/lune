@@ -1,1 +1,1 @@
-require("multi.ext.file")
+require("./multi.ext.file")

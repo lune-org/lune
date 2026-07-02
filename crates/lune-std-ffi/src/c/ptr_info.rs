@@ -1,4 +1,3 @@
-use std::cell::Ref;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
@@ -33,12 +32,12 @@ impl FfiSize for CPtrInfo {
 
 impl FfiConvert for CPtrInfo {
     // Write address of RefData
-    unsafe fn value_into_data<'lua>(
+    unsafe fn value_into_data(
         &self,
-        _lua: &'lua Lua,
+        _lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-        value: LuaValue<'lua>,
+        data_handle: &dyn FfiData,
+        value: LuaValue,
     ) -> LuaResult<()> {
         let LuaValue::UserData(value_userdata) = value else {
             return Err(LuaError::external(format!(
@@ -54,12 +53,12 @@ impl FfiConvert for CPtrInfo {
     }
 
     // Read address, create RefData
-    unsafe fn value_from_data<'lua>(
+    unsafe fn value_from_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-    ) -> LuaResult<LuaValue<'lua>> {
+        data_handle: &dyn FfiData,
+    ) -> LuaResult<LuaValue> {
         Ok(LuaValue::UserData(
             lua.create_userdata(RefData::new(
                 *data_handle
@@ -82,8 +81,8 @@ impl FfiConvert for CPtrInfo {
         _lua: &Lua,
         dst_offset: isize,
         src_offset: isize,
-        dst: &Ref<dyn FfiData>,
-        src: &Ref<dyn FfiData>,
+        dst: &dyn FfiData,
+        src: &dyn FfiData,
     ) -> LuaResult<()> {
         *dst.get_inner_pointer()
             .byte_offset(dst_offset)
@@ -98,10 +97,10 @@ impl FfiConvert for CPtrInfo {
 impl CPtrInfo {
     // Create pointer type with '.inner' field
     // inner can be CArr, CType or CStruct
-    pub fn from_userdata<'lua>(
-        lua: &'lua Lua,
+    pub fn from_userdata(
+        lua: &Lua,
         inner: &LuaAnyUserData,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         let value = lua.create_userdata(Self {
             inner_is_cptr: inner.is::<CPtrInfo>(),
         })?;
@@ -132,7 +131,7 @@ impl CPtrInfo {
 }
 
 impl LuaUserData for CPtrInfo {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_lua, _this| Ok(SIZE_OF_POINTER));
         fields.add_field_function_get("inner", |lua, this| {
             association::get(lua, CPTR_INNER, this)?
@@ -140,7 +139,7 @@ impl LuaUserData for CPtrInfo {
         });
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);
         method_provider::provide_arr(methods);

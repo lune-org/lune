@@ -1,4 +1,3 @@
-use std::cell::Ref;
 
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
@@ -16,12 +15,12 @@ impl FfiSignedness for CTypeInfo<u8> {
 
 impl FfiConvert for CTypeInfo<u8> {
     // Convert luavalue into data, then write into ptr
-    unsafe fn value_into_data<'lua>(
+    unsafe fn value_into_data(
         &self,
-        _lua: &'lua Lua,
+        _lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-        value: LuaValue<'lua>,
+        data_handle: &dyn FfiData,
+        value: LuaValue,
     ) -> LuaResult<()> {
         let value: u8 = match value {
             LuaValue::Integer(t) => t.as_(),
@@ -43,12 +42,12 @@ impl FfiConvert for CTypeInfo<u8> {
     }
 
     // Read data from ptr, then convert into luavalue
-    unsafe fn value_from_data<'lua>(
+    unsafe fn value_from_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-    ) -> LuaResult<LuaValue<'lua>> {
+        data_handle: &dyn FfiData,
+    ) -> LuaResult<LuaValue> {
         let value = unsafe {
             (*data_handle
                 .get_inner_pointer()
@@ -63,8 +62,8 @@ impl FfiConvert for CTypeInfo<u8> {
         _lua: &Lua,
         dst_offset: isize,
         src_offset: isize,
-        dst: &Ref<dyn FfiData>,
-        src: &Ref<dyn FfiData>,
+        dst: &dyn FfiData,
+        src: &dyn FfiData,
     ) -> LuaResult<()> {
         *dst.get_inner_pointer().byte_offset(dst_offset).cast::<u8>() =
             *src.get_inner_pointer().byte_offset(src_offset).cast::<u8>();
@@ -74,7 +73,7 @@ impl FfiConvert for CTypeInfo<u8> {
         &self,
         _lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
+        data_handle: &dyn FfiData,
     ) -> LuaResult<String> {
         Ok((*data_handle
             .get_inner_pointer()

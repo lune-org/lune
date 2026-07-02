@@ -1,19 +1,18 @@
-use std::io::{copy as copy_std, Cursor, Read as _, Write as _};
+use std::io::{Cursor, Read as _, Write as _, copy as copy_std};
 
 use mlua::prelude::*;
 
+use blocking::unblock;
+use futures_lite::io::{BufReader, copy};
 use lz4::{Decoder, EncoderBuilder};
-use tokio::{
-    io::{copy, BufReader},
-    task::spawn_blocking,
-};
 
 use async_compression::{
-    tokio::bufread::{
-        BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
-    },
     Level::Best as CompressionQuality,
     Level::Precise as PreciseCompressionQuality,
+    futures::bufread::{
+        BrotliDecoder, BrotliEncoder, GzipDecoder, GzipEncoder, ZlibDecoder, ZlibEncoder,
+        ZstdDecoder, ZstdEncoder,
+    },
 };
 
 /**
@@ -25,6 +24,7 @@ pub enum CompressDecompressFormat {
     GZip,
     LZ4,
     ZLib,
+    Zstd,
 }
 
 #[allow(dead_code)]
@@ -35,6 +35,12 @@ impl CompressDecompressFormat {
     #[allow(clippy::missing_panics_doc)]
     pub fn detect_from_bytes(bytes: impl AsRef<[u8]>) -> Option<Self> {
         match bytes.as_ref() {
+            // https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md#zstandard-frames
+            b if b.len() >= 4
+                && matches!(u32::from_le_bytes(b[0..4].try_into().unwrap()), 0xFD2FB528) =>
+            {
+                Some(Self::Zstd)
+            }
             // https://github.com/PSeitz/lz4_flex/blob/main/src/frame/header.rs#L28
             b if b.len() >= 4
                 && matches!(
@@ -79,31 +85,33 @@ impl CompressDecompressFormat {
             "br" | "brotli" => Some(Self::Brotli),
             "deflate" => Some(Self::ZLib),
             "gz" | "gzip" => Some(Self::GZip),
+            "zst" | "zstd" => Some(Self::Zstd),
             _ => None,
         }
     }
 }
 
-impl<'lua> FromLua<'lua> for CompressDecompressFormat {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for CompressDecompressFormat {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
                 "brotli" => Ok(Self::Brotli),
                 "gzip" => Ok(Self::GZip),
                 "lz4" => Ok(Self::LZ4),
                 "zlib" => Ok(Self::ZLib),
+                "zstd" => Ok(Self::Zstd),
                 kind => Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "CompressDecompressFormat",
+                    to: "CompressDecompressFormat".to_string(),
                     message: Some(format!(
-                        "Invalid format '{kind}', valid formats are:  brotli, gzip, lz4, zlib"
+                        "Invalid format '{kind}', valid formats are:  brotli, gzip, lz4, zlib, zstd"
                     )),
                 }),
             }
         } else {
             Err(LuaError::FromLuaConversionError {
                 from: value.type_name(),
-                to: "CompressDecompressFormat",
+                to: "CompressDecompressFormat".to_string(),
                 message: None,
             })
         }
@@ -117,17 +125,14 @@ impl<'lua> FromLua<'lua> for CompressDecompressFormat {
 
     Errors when the compression fails.
 */
-pub async fn compress<'lua>(
+pub async fn compress(
     source: impl AsRef<[u8]>,
     format: CompressDecompressFormat,
     level: Option<i32>,
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return spawn_blocking(move || compress_lz4(source))
-            .await
-            .into_lua_err()?
-            .into_lua_err();
+        return unblock(move || compress_lz4(source)).await.into_lua_err();
     }
 
     let mut bytes = Vec::new();
@@ -150,6 +155,10 @@ pub async fn compress<'lua>(
             let mut encoder = ZlibEncoder::with_quality(reader, compression_quality);
             copy(&mut encoder, &mut bytes).await?;
         }
+        CompressDecompressFormat::Zstd => {
+            let mut encoder = ZstdEncoder::with_quality(reader, compression_quality);
+            copy(&mut encoder, &mut bytes).await?;
+        }
         CompressDecompressFormat::LZ4 => unreachable!(),
     }
 
@@ -163,16 +172,13 @@ pub async fn compress<'lua>(
 
     Errors when the decompression fails.
 */
-pub async fn decompress<'lua>(
+pub async fn decompress(
     source: impl AsRef<[u8]>,
     format: CompressDecompressFormat,
 ) -> LuaResult<Vec<u8>> {
     if let CompressDecompressFormat::LZ4 = format {
         let source = source.as_ref().to_vec();
-        return spawn_blocking(move || decompress_lz4(source))
-            .await
-            .into_lua_err()?
-            .into_lua_err();
+        return unblock(move || decompress_lz4(source)).await.into_lua_err();
     }
 
     let mut bytes = Vec::new();
@@ -189,6 +195,10 @@ pub async fn decompress<'lua>(
         }
         CompressDecompressFormat::ZLib => {
             let mut decoder = ZlibDecoder::new(reader);
+            copy(&mut decoder, &mut bytes).await?;
+        }
+        CompressDecompressFormat::Zstd => {
+            let mut decoder = ZstdDecoder::new(reader);
             copy(&mut decoder, &mut bytes).await?;
         }
         CompressDecompressFormat::LZ4 => unreachable!(),

@@ -1,37 +1,35 @@
 use mlua::prelude::*;
 
-pub fn get_table_type_metavalue<'a>(tab: &'a LuaTable<'a>) -> Option<String> {
-    let s = tab
-        .get_metatable()?
-        .get::<_, LuaString>(LuaMetaMethod::Type.name())
-        .ok()?;
+pub fn get_table_type_metavalue(tab: &LuaTable) -> Option<String> {
+    let meta = tab.metatable()?;
+    let s = meta.get::<LuaString>(LuaMetaMethod::Type.name()).ok()?;
     let s = s.to_str().ok()?;
     Some(s.to_string())
 }
 
-pub fn get_userdata_type_metavalue<'a>(tab: &'a LuaAnyUserData<'a>) -> Option<String> {
-    let s = tab
-        .get_metatable()
-        .ok()?
-        .get::<LuaString>(LuaMetaMethod::Type.name())
-        .ok()?;
+pub fn get_userdata_type_metavalue(usr: &LuaAnyUserData) -> Option<String> {
+    let meta = usr.metatable().ok()?;
+    let s = meta.get::<LuaString>(LuaMetaMethod::Type.name()).ok()?;
     let s = s.to_str().ok()?;
     Some(s.to_string())
 }
 
-pub fn call_table_tostring_metamethod<'a>(tab: &'a LuaTable<'a>) -> Option<String> {
-    tab.get_metatable()?
-        .get::<_, LuaFunction>(LuaMetaMethod::ToString.name())
-        .ok()?
-        .call(tab)
-        .ok()
+pub fn call_table_tostring_metamethod(tab: &LuaTable) -> Option<String> {
+    let meta = tab.metatable()?;
+    let value = meta.get(LuaMetaMethod::ToString.name()).ok()?;
+    match value {
+        LuaValue::String(s) => Some(s.to_string_lossy()),
+        LuaValue::Function(f) => f.call(tab).ok(),
+        _ => None,
+    }
 }
 
-pub fn call_userdata_tostring_metamethod<'a>(tab: &'a LuaAnyUserData<'a>) -> Option<String> {
-    tab.get_metatable()
-        .ok()?
-        .get::<LuaFunction>(LuaMetaMethod::ToString.name())
-        .ok()?
-        .call(tab)
-        .ok()
+pub fn call_userdata_tostring_metamethod(usr: &LuaAnyUserData) -> Option<String> {
+    let meta = usr.metatable().ok()?;
+    let value = meta.get(LuaMetaMethod::ToString.name()).ok()?;
+    match value {
+        LuaValue::String(s) => Some(s.to_string_lossy()),
+        LuaValue::Function(f) => f.call(usr).ok(),
+        _ => None,
+    }
 }

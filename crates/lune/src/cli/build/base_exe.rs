@@ -3,7 +3,8 @@ use std::{
     path::PathBuf,
 };
 
-use tokio::{fs, task};
+use async_fs as fs;
+use blocking::unblock;
 
 use crate::standalone::metadata::CURRENT_EXE;
 
@@ -12,6 +13,21 @@ use super::{
     result::{BuildError, BuildResult},
     target::{BuildTarget, CACHE_DIR},
 };
+
+const RELEASE_REQUEST_HEADERS: &[(&str, &str)] = &[
+    (
+        "User-Agent",
+        concat!(
+            "Lune/",
+            env!("CARGO_PKG_VERSION"),
+            " (",
+            env!("CARGO_PKG_REPOSITORY"),
+            ")"
+        ),
+    ),
+    ("Accept", "application/octet-stream"),
+    // ("Accept-Encoding", "gzip"),
+];
 
 /**
     Discovers the path to the base executable to use for cross-compilation.
@@ -44,26 +60,43 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
     // Try to request to download the zip file from the target url,
     // making sure transient errors are handled gracefully and
     // with a different error message than "not found"
-    let response = reqwest::get(release_url).await?;
-    if !response.status().is_success() {
-        if response.status().as_u16() == 404 {
+    let url = release_url.parse().expect("release url is valid");
+    let headers = RELEASE_REQUEST_HEADERS
+        .iter()
+        .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+        .collect();
+    let res = lune_std_net::fetch(url, None, Some(headers), None)
+        .await
+        .map_err(BuildError::Download)?;
+    let (parts, body) = res.into_inner().into_parts();
+
+    if !parts.status.is_success() {
+        if parts.status.as_u16() == 404 {
             return Err(BuildError::ReleaseTargetNotFound(target));
         }
-        return Err(BuildError::Download(
-            response.error_for_status().unwrap_err(),
-        ));
+        let body = body.into_bytes();
+        return Err(BuildError::Download(format!(
+            "Request was not successful\
+            \nStatus: {}\
+            \nBody: {}",
+            parts.status,
+            if body.len() > 128 {
+                String::from_utf8_lossy(&body[0..128])
+            } else {
+                String::from_utf8_lossy(&body)
+            }
+        )));
     }
 
-    // Receive the full zip file
-    let zip_bytes = response.bytes().await?.to_vec();
-    let zip_file = Cursor::new(zip_bytes);
+    // Start reading the zip file
+    let zip_file = Cursor::new(body.into_bytes());
 
     // Look for and extract the binary file from the zip file
     // NOTE: We use spawn_blocking here since reading a zip
     // archive is a somewhat slow / blocking operation
     let binary_file_name = format!("lune{}", target.exe_suffix());
-    let binary_file_handle = task::spawn_blocking(move || {
-        let mut archive = zip_next::ZipArchive::new(zip_file)?;
+    let binary_file_handle = unblock(move || {
+        let mut archive = zip::ZipArchive::new(zip_file)?;
 
         let mut binary = Vec::new();
         archive
@@ -73,7 +106,7 @@ pub async fn get_or_download_base_executable(target: BuildTarget) -> BuildResult
 
         Ok::<_, BuildError>(binary)
     });
-    let binary_file_contents = binary_file_handle.await??;
+    let binary_file_contents = binary_file_handle.await?;
 
     // Finally, write the extracted binary to the cache
     if !CACHE_DIR.exists() {

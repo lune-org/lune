@@ -18,10 +18,10 @@ use mlua::prelude::*;
         }
     }
 
-    impl LuaExportsTable<'_> for MyType {
+    impl LuaExportsTable for MyType {
         const EXPORT_NAME: &'static str = "MyType";
 
-        fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+        fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
             let my_type_new = |lua, n: Option<usize>| {
                 Self::new(n.unwrap_or_default())
             };
@@ -37,10 +37,10 @@ use mlua::prelude::*;
     }
     ```
 */
-pub trait LuaExportsTable<'lua> {
+pub trait LuaExportsTable {
     const EXPORT_NAME: &'static str;
 
-    fn create_exports_table(lua: &'lua Lua) -> LuaResult<LuaTable<'lua>>;
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable>;
 }
 
 /**
@@ -57,12 +57,12 @@ pub trait LuaExportsTable<'lua> {
     let (name2, table2) = export::<Type2>(lua)?;
     ```
 */
-pub fn export<'lua, T>(lua: &'lua Lua) -> LuaResult<(&'static str, LuaValue<'lua>)>
+pub fn export<T>(lua: Lua) -> LuaResult<(&'static str, LuaValue)>
 where
-    T: LuaExportsTable<'lua>,
+    T: LuaExportsTable,
 {
     Ok((
         T::EXPORT_NAME,
-        <T as LuaExportsTable>::create_exports_table(lua)?.into_lua(lua)?,
+        <T as LuaExportsTable>::create_exports_table(lua.clone())?.into_lua(&lua)?,
     ))
 }

@@ -1,21 +1,17 @@
 local process = require("@lune/process")
 
--- Killing a child process should work as expected
+local expected = "Hello, world!"
 
-local message = "Hello, world!"
-local child = process.create("cat")
+local catChild = process.create("cat")
+catChild.stdin:write(expected)
+catChild:kill()
+local catStatus = catChild:status()
+local catStdout = catChild.stdout:readToEnd()
 
-child.stdin:write(message)
-child.kill()
-
-assert(child.status().code == 9, "Child process should have an exit code of 9 (SIGKILL)")
-
-assert(
-	child.stdout:readToEnd() == message,
-	"Reading from stdout of child process should work even after kill"
-)
+assert(catStatus.code == 9, "Child process should have an exit code of 9 (SIGKILL)")
+assert(catStdout == expected, "Reading from stdout of child process should work even after kill")
 
 local stdinWriteOk = pcall(function()
-	child.stdin:write(message)
+	catChild.stdin:write(expected)
 end)
 assert(not stdinWriteOk, "Writing to stdin of child process should not work after kill")

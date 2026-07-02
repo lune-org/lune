@@ -1,4 +1,4 @@
-use rbx_dom_weak::{types::Ref as DomRef, InstanceBuilder as DomInstanceBuilder, WeakDom};
+use rbx_dom_weak::{InstanceBuilder as DomInstanceBuilder, WeakDom, types::Ref as DomRef};
 use rbx_xml::{
     DecodeOptions as XmlDecodeOptions, DecodePropertyBehavior as XmlDecodePropertyBehavior,
     EncodeOptions as XmlEncodeOptions, EncodePropertyBehavior as XmlEncodePropertyBehavior,
@@ -15,7 +15,7 @@ pub use kind::*;
 
 use postprocessing::*;
 
-use crate::instance::{data_model, Instance};
+use crate::instance::{Instance, dom_registry};
 
 pub type DocumentResult<T> = Result<T, DocumentError>;
 
@@ -226,7 +226,7 @@ impl Document {
 
         let data_model_ref = self
             .dom
-            .insert(dom_root, DomInstanceBuilder::new(data_model::CLASS_NAME));
+            .insert(dom_root, DomInstanceBuilder::new("DataModel"));
         let data_model_child_refs = self.dom.root().children().to_vec();
 
         for child_ref in data_model_child_refs {
@@ -235,7 +235,11 @@ impl Document {
             }
         }
 
-        Ok(Instance::from_external_dom(&mut self.dom, data_model_ref))
+        // Register the parsed dom as-is and reference it directly, rather than
+        // transferring its contents into a shared global dom - this keeps each
+        // place's instances (and their possibly-colliding referents) isolated.
+        let dom_id = dom_registry::register(self.dom);
+        Ok(Instance::new(dom_id, data_model_ref))
     }
 
     /**
@@ -245,16 +249,17 @@ impl Document {
 
         Errors if the document is not a model.
     */
-    pub fn into_instance_array(mut self) -> DocumentResult<Vec<Instance>> {
+    pub fn into_instance_array(self) -> DocumentResult<Vec<Instance>> {
         if self.kind != DocumentKind::Model {
             return Err(DocumentError::IntoInstanceArrayInvalidArgs);
         }
 
         let dom_child_refs = self.dom.root().children().to_vec();
 
+        let dom_id = dom_registry::register(self.dom);
         let root_child_instances = dom_child_refs
             .into_iter()
-            .map(|child_ref| Instance::from_external_dom(&mut self.dom, child_ref))
+            .map(|child_ref| Instance::new(dom_id, child_ref))
             .collect();
 
         Ok(root_child_instances)
@@ -268,7 +273,7 @@ impl Document {
         Errors if the instance is not a `DataModel`.
     */
     pub fn from_data_model_instance(i: Instance) -> DocumentResult<Self> {
-        if i.get_class_name() != data_model::CLASS_NAME {
+        if i.get_class_name() != "DataModel" {
             return Err(DocumentError::FromDataModelInvalidArgs);
         }
 
@@ -279,7 +284,7 @@ impl Document {
             .map(|instance| instance.dom_ref)
             .collect();
 
-        Instance::clone_multiple_into_external_dom(&children, &mut dom);
+        Instance::clone_multiple_into_external_dom(i.dom_id, &children, &mut dom);
         postprocess_dom_for_place(&mut dom);
 
         Ok(Self {
@@ -298,15 +303,19 @@ impl Document {
     */
     pub fn from_instance_array(v: Vec<Instance>) -> DocumentResult<Self> {
         for i in &v {
-            if i.get_class_name() == data_model::CLASS_NAME {
+            if i.get_class_name() == "DataModel" {
                 return Err(DocumentError::FromInstanceArrayInvalidArgs);
             }
         }
 
         let mut dom = WeakDom::new(DomInstanceBuilder::new("ROOT"));
-        let instances: Vec<DomRef> = v.iter().map(|instance| instance.dom_ref).collect();
-
-        Instance::clone_multiple_into_external_dom(&instances, &mut dom);
+        // NOTE: Assumes all instances share a dom (the common case for a model);
+        // clones are taken from the first instance's dom to preserve any refs
+        // between them.
+        if let Some(first) = v.first() {
+            let instances: Vec<DomRef> = v.iter().map(|instance| instance.dom_ref).collect();
+            Instance::clone_multiple_into_external_dom(first.dom_id, &instances, &mut dom);
+        }
         postprocess_dom_for_model(&mut dom);
 
         Ok(Self {
@@ -314,5 +323,19 @@ impl Document {
             format: DocumentFormat::default(),
             dom,
         })
+    }
+}
+
+impl From<(DocumentKind, DocumentFormat, WeakDom)> for Document {
+    fn from((kind, format, dom): (DocumentKind, DocumentFormat, WeakDom)) -> Self {
+        Self { kind, format, dom }
+    }
+}
+
+impl TryFrom<(DocumentFormat, WeakDom)> for Document {
+    type Error = DocumentError;
+    fn try_from((format, dom): (DocumentFormat, WeakDom)) -> Result<Self, Self::Error> {
+        let kind = DocumentKind::from_weak_dom(&dom).ok_or(DocumentError::UnknownKind)?;
+        Ok(Self { kind, format, dom })
     }
 }

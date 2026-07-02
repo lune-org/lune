@@ -1,26 +1,33 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use bstr::BString;
-use mlua::prelude::*;
-use mlua_luau_scheduler::LuaSpawnExt;
-
-mod client;
-mod config;
-mod server;
-mod util;
-mod websocket;
-
 use lune_utils::TableBuilder;
+use mlua::prelude::*;
+
+pub(crate) mod body;
+pub(crate) mod client;
+pub(crate) mod server;
+pub(crate) mod shared;
+pub(crate) mod url;
+
+use crate::shared::{hyper::HyperExecutor, tcp::Tcp};
 
 use self::{
-    client::{NetClient, NetClientBuilder},
-    config::{RequestConfig, ServeConfig},
-    server::serve,
-    util::create_user_agent_header,
-    websocket::NetWebSocket,
+    client::{stream::WsStream, tcp::TcpConfig},
+    server::config::ServeConfig,
+    shared::{request::Request, response::Response, websocket::Websocket},
 };
 
-use lune_std_serde::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
+pub use self::client::fetch;
+
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `net` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
 
 /**
     Creates the `net` standard library module.
@@ -29,74 +36,67 @@ use lune_std_serde::{decode, encode, EncodeDecodeConfig, EncodeDecodeFormat};
 
     Errors when out of memory.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    NetClientBuilder::new()
-        .headers(&[("User-Agent", create_user_agent_header(lua)?)])?
-        .build()?
-        .into_registry(lua);
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
+    HyperExecutor::attach(&lua);
+
+    let submodule_http = TableBuilder::new(lua.clone())?
+        .with_async_function("request", net_http_request)?
+        .with_async_function("serve", net_http_serve)?
+        .build_readonly()?;
+
+    let submodule_tcp = TableBuilder::new(lua.clone())?
+        .with_async_function("connect", net_tcp_connect)?
+        .build_readonly()?;
+
+    let submodule_ws = TableBuilder::new(lua.clone())?
+        .with_async_function("connect", net_ws_connect)?
+        .build_readonly()?;
+
     TableBuilder::new(lua)?
-        .with_function("jsonEncode", net_json_encode)?
-        .with_function("jsonDecode", net_json_decode)?
-        .with_async_function("request", net_request)?
-        .with_async_function("socket", net_socket)?
-        .with_async_function("serve", net_serve)?
+        .with_async_function("request", net_http_request)?
+        .with_async_function("socket", net_ws_connect)?
+        .with_async_function("serve", net_http_serve)?
         .with_function("urlEncode", net_url_encode)?
         .with_function("urlDecode", net_url_decode)?
+        .with_value("http", submodule_http)?
+        .with_value("tcp", submodule_tcp)?
+        .with_value("ws", submodule_ws)?
         .build_readonly()
 }
 
-fn net_json_encode<'lua>(
-    lua: &'lua Lua,
-    (val, pretty): (LuaValue<'lua>, Option<bool>),
-) -> LuaResult<LuaString<'lua>> {
-    let config = EncodeDecodeConfig::from((EncodeDecodeFormat::Json, pretty.unwrap_or_default()));
-    encode(val, lua, config)
+async fn net_http_request(lua: Lua, req: Request) -> LuaResult<Response> {
+    self::client::send(req, lua).await
 }
 
-fn net_json_decode(lua: &Lua, json: BString) -> LuaResult<LuaValue> {
-    let config = EncodeDecodeConfig::from(EncodeDecodeFormat::Json);
-    decode(json, lua, config)
+async fn net_http_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<LuaTable> {
+    self::server::serve(lua.clone(), port, config)
+        .await?
+        .into_lua_table(lua)
 }
 
-async fn net_request(lua: &Lua, config: RequestConfig) -> LuaResult<LuaTable> {
-    let client = NetClient::from_registry(lua);
-    // NOTE: We spawn the request as a background task to free up resources in lua
-    let res = lua.spawn(async move { client.request(config).await });
-    res.await?.into_lua_table(lua)
+async fn net_tcp_connect(_: Lua, (host, port, config): (String, u16, TcpConfig)) -> LuaResult<Tcp> {
+    self::client::connect_tcp(host, port, config).await
 }
 
-async fn net_socket(lua: &Lua, url: String) -> LuaResult<LuaValue> {
-    let (ws, _) = tokio_tungstenite::connect_async(url).await.into_lua_err()?;
-    NetWebSocket::new(ws).into_lua(lua)
+async fn net_ws_connect(_: Lua, url: String) -> LuaResult<Websocket<WsStream>> {
+    let url = url.parse().into_lua_err()?;
+    self::client::connect_ws(url).await
 }
 
-async fn net_serve<'lua>(
-    lua: &'lua Lua,
-    (port, config): (u16, ServeConfig<'lua>),
-) -> LuaResult<LuaTable<'lua>> {
-    serve(lua, port, config).await
+fn net_url_encode(
+    lua: &Lua,
+    (lua_string, as_binary): (LuaString, Option<bool>),
+) -> LuaResult<LuaString> {
+    let as_binary = as_binary.unwrap_or_default();
+    let bytes = self::url::encode(lua_string, as_binary)?;
+    lua.create_string(bytes)
 }
 
-fn net_url_encode<'lua>(
-    lua: &'lua Lua,
-    (lua_string, as_binary): (LuaString<'lua>, Option<bool>),
-) -> LuaResult<LuaValue<'lua>> {
-    if matches!(as_binary, Some(true)) {
-        urlencoding::encode_binary(lua_string.as_bytes()).into_lua(lua)
-    } else {
-        urlencoding::encode(lua_string.to_str()?).into_lua(lua)
-    }
-}
-
-fn net_url_decode<'lua>(
-    lua: &'lua Lua,
-    (lua_string, as_binary): (LuaString<'lua>, Option<bool>),
-) -> LuaResult<LuaValue<'lua>> {
-    if matches!(as_binary, Some(true)) {
-        urlencoding::decode_binary(lua_string.as_bytes()).into_lua(lua)
-    } else {
-        urlencoding::decode(lua_string.to_str()?)
-            .map_err(|e| LuaError::RuntimeError(format!("Encountered invalid encoding - {e}")))?
-            .into_lua(lua)
-    }
+fn net_url_decode(
+    lua: &Lua,
+    (lua_string, as_binary): (LuaString, Option<bool>),
+) -> LuaResult<LuaString> {
+    let as_binary = as_binary.unwrap_or_default();
+    let bytes = self::url::decode(lua_string, as_binary)?;
+    lua.create_string(bytes)
 }

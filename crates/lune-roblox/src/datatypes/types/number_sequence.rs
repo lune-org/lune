@@ -14,38 +14,26 @@ use super::{super::*, NumberSequenceKeypoint};
 /**
     An implementation of the [NumberSequence](https://create.roblox.com/docs/reference/engine/datatypes/NumberSequence) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `NumberSequence` class as of March 2023.
+    This implements all documented properties, methods & constructors of the `NumberSequence` class as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct NumberSequence {
     pub(crate) keypoints: Vec<NumberSequenceKeypoint>,
 }
 
-impl LuaExportsTable<'_> for NumberSequence {
+impl LuaExportsTable for NumberSequence {
     const EXPORT_NAME: &'static str = "NumberSequence";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        type ArgsColor = f32;
-        type ArgsColors = (f32, f32);
-        type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, NumberSequenceKeypoint>>;
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        type ArgsValue = f32;
+        type ArgsValues = (f32, f32);
+        type ArgsKeypoints = Vec<LuaUserDataRef<NumberSequenceKeypoint>>;
 
-        let number_sequence_new = |lua, args: LuaMultiValue| {
-            if let Ok(value) = ArgsColor::from_lua_multi(args.clone(), lua) {
-                Ok(NumberSequence {
-                    keypoints: vec![
-                        NumberSequenceKeypoint {
-                            time: 0.0,
-                            value,
-                            envelope: 0.0,
-                        },
-                        NumberSequenceKeypoint {
-                            time: 1.0,
-                            value,
-                            envelope: 0.0,
-                        },
-                    ],
-                })
-            } else if let Ok((v0, v1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
+        let number_sequence_new = |lua: &Lua, args: LuaMultiValue| {
+            // Try two-arg first: NumberSequence.new(start, end)
+            // Must come before single-arg because from_lua_multi for a single
+            // number succeeds even when multiple args are passed (ignoring extras).
+            if let Ok((v0, v1)) = ArgsValues::from_lua_multi(args.clone(), lua) {
                 Ok(NumberSequence {
                     keypoints: vec![
                         NumberSequenceKeypoint {
@@ -56,6 +44,22 @@ impl LuaExportsTable<'_> for NumberSequence {
                         NumberSequenceKeypoint {
                             time: 1.0,
                             value: v1,
+                            envelope: 0.0,
+                        },
+                    ],
+                })
+            } else if let Ok(value) = ArgsValue::from_lua_multi(args.clone(), lua) {
+                // Single-arg: NumberSequence.new(value) — uniform value
+                Ok(NumberSequence {
+                    keypoints: vec![
+                        NumberSequenceKeypoint {
+                            time: 0.0,
+                            value,
+                            envelope: 0.0,
+                        },
+                        NumberSequenceKeypoint {
+                            time: 1.0,
+                            value,
                             envelope: 0.0,
                         },
                     ],
@@ -79,11 +83,11 @@ impl LuaExportsTable<'_> for NumberSequence {
 }
 
 impl LuaUserData for NumberSequence {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Keypoints", |_, this| Ok(this.keypoints.clone()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

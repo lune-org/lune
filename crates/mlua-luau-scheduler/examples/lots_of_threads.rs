@@ -3,7 +3,8 @@
 
 use std::time::Duration;
 
-use async_io::{block_on, Timer};
+use async_io::{Timer, block_on};
+use futures_lite::future::yield_now;
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
@@ -21,13 +22,16 @@ pub fn main() -> LuaResult<()> {
 
     // Set up persistent Lua environment
     let lua = Lua::new();
-    let sched = Scheduler::new(&lua);
-    let fns = Functions::new(&lua)?;
+    let sched = Scheduler::new(lua.clone());
+    let fns = Functions::new(lua.clone())?;
 
     lua.globals().set("spawn", fns.spawn)?;
     lua.globals().set(
         "sleep",
         lua.create_async_function(|_, ()| async move {
+            // Guarantee that the coroutine that calls this sleep function
+            // always yields, even if the timer completes without doing so
+            yield_now().await;
             // Obviously we can't sleep for a single nanosecond since
             // this uses OS scheduling under the hood, but we can try
             Timer::after(ONE_NANOSECOND).await;

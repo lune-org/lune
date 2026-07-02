@@ -1,9 +1,11 @@
 use std::{collections::HashMap, fmt};
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
 
 use rbx_reflection::EnumDescriptor;
 
+#[cfg(feature = "mlua")]
 use crate::datatypes::{userdata_impl_eq, userdata_impl_to_string};
 
 type DbEnum = &'static EnumDescriptor<'static>;
@@ -44,13 +46,14 @@ impl DatabaseEnum {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl LuaUserData for DatabaseEnum {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.get_name()));
         fields.add_field_method_get("Items", |_, this| Ok(this.get_items()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

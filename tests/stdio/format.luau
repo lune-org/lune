@@ -122,3 +122,23 @@ stdio.ewrite(typeof(errorMessage))
 assertContains("Should format errors similarly to userdata", stdio.format(errorMessage), "<LuaErr")
 assertContains("Should format errors with stack begins", stdio.format(errorMessage), "Stack Begin")
 assertContains("Should format errors with stack ends", stdio.format(errorMessage), "Stack End")
+
+-- Check that calling stdio.format in a __tostring metamethod by print doesn't cause a deadlock
+
+local inner = {}
+setmetatable(inner, {
+	__tostring = function()
+		return stdio.format(5)
+	end,
+})
+
+print(inner)
+
+local outer = {}
+setmetatable(outer, {
+	__tostring = function()
+		return stdio.format(inner)
+	end,
+})
+
+print(outer)

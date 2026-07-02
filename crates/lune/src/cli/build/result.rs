@@ -12,11 +12,9 @@ pub enum BuildError {
     #[error("failed to find lune binary '{0}' in downloaded zip file")]
     ZippedBinaryNotFound(String),
     #[error("failed to download lune binary: {0}")]
-    Download(#[from] reqwest::Error),
+    Download(String),
     #[error("failed to unzip lune binary: {0}")]
-    Unzip(#[from] zip_next::result::ZipError),
-    #[error("panicked while unzipping lune binary: {0}")]
-    UnzipJoin(#[from] tokio::task::JoinError),
+    Unzip(#[from] zip::result::ZipError),
     #[error("io error: {0}")]
     IoError(#[from] std::io::Error),
 }

@@ -1,4 +1,4 @@
-use std::process::ExitCode;
+use std::{env::args_os, process::ExitCode};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -39,7 +39,40 @@ pub struct Cli {
 
 impl Cli {
     pub fn new() -> Self {
-        Self::parse()
+        // TODO: Figure out if there is a better way to do this using clap ... ?
+        // https://github.com/lune-org/lune/issues/253
+        if args_os()
+            .nth(1)
+            .is_some_and(|arg| arg.eq_ignore_ascii_case("run"))
+        {
+            // The `--unsafe` flag may only be passed directly before the script path
+            let r#unsafe = args_os()
+                .nth(2)
+                .is_some_and(|arg| arg.eq_ignore_ascii_case("--unsafe"));
+            let script_path_index = if r#unsafe { 3 } else { 2 };
+
+            let Some(script_path) = args_os()
+                .nth(script_path_index)
+                .and_then(|arg| arg.to_str().map(String::from))
+            else {
+                return Self::parse(); // Will fail and return the help message
+            };
+
+            let script_args = args_os()
+                .skip(script_path_index + 1)
+                .filter_map(|arg| arg.to_str().map(String::from))
+                .collect::<Vec<_>>();
+
+            Self {
+                subcommand: Some(CliSubcommand::Run(RunCommand {
+                    r#unsafe,
+                    script_path,
+                    script_args,
+                })),
+            }
+        } else {
+            Self::parse()
+        }
     }
 
     pub async fn run(self) -> Result<ExitCode> {

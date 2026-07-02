@@ -13,10 +13,10 @@ use mlua::prelude::*;
 
 // You can delete the relationship by changing 'associated' to nil
 #[inline]
-pub fn set<'lua, T, U>(lua: &'lua Lua, regname: &str, value: T, associated: U) -> LuaResult<()>
+pub fn set<T, U>(lua: &Lua, regname: &str, value: T, associated: U) -> LuaResult<()>
 where
-    T: IntoLua<'lua>,
-    U: IntoLua<'lua>,
+    T: IntoLua,
+    U: IntoLua,
 {
     let table = match lua.named_registry_value::<LuaValue>(regname)? {
         LuaValue::Nil => {
@@ -24,7 +24,7 @@ where
             lua.set_named_registry_value(regname, table.clone())?;
             let meta = lua.create_table()?;
             meta.set("__mode", "k")?;
-            table.set_metatable(Some(meta));
+            table.set_metatable(Some(meta))?;
             table
         }
         LuaValue::Table(t) => t,
@@ -40,9 +40,9 @@ where
 // If there is no table in registry, it returns None.
 // If there is no value in table, it returns LuaNil.
 #[inline]
-pub fn get<'lua, T>(lua: &'lua Lua, regname: &str, value: T) -> LuaResult<Option<LuaValue<'lua>>>
+pub fn get<T>(lua: &Lua, regname: &str, value: T) -> LuaResult<Option<LuaValue>>
 where
-    T: IntoLua<'lua>,
+    T: IntoLua,
 {
     match lua.named_registry_value::<LuaValue>(regname)? {
         LuaValue::Nil => Ok(None),

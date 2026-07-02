@@ -12,10 +12,10 @@ pub mod method_provider {
     use super::*;
 
     // Implement tostring
-    pub fn provide_to_string<'lua, Target, M>(methods: &mut M)
+    pub fn provide_to_string<Target, M>(methods: &mut M)
     where
         Target: 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_meta_function(LuaMetaMethod::ToString, |lua, this: LuaAnyUserData| {
             stringify(lua, &this)
@@ -23,10 +23,10 @@ pub mod method_provider {
     }
 
     // Implement ptr method
-    pub fn provide_ptr<'lua, Target, M>(methods: &mut M)
+    pub fn provide_ptr<Target, M>(methods: &mut M)
     where
         Target: 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_function("ptr", |lua, this: LuaAnyUserData| {
             CPtrInfo::from_userdata(lua, &this)
@@ -34,10 +34,10 @@ pub mod method_provider {
     }
 
     // Implement arr method
-    pub fn provide_arr<'lua, Target, M>(methods: &mut M)
+    pub fn provide_arr<Target, M>(methods: &mut M)
     where
         Target: 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_function("arr", |lua, (this, length): (LuaAnyUserData, usize)| {
             CArrInfo::from_userdata(lua, &this, length)
@@ -45,10 +45,10 @@ pub mod method_provider {
     }
 
     // Implement readData method
-    pub fn provide_read_data<'lua, Target, M>(methods: &mut M)
+    pub fn provide_read_data<Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_method(
             "readData",
@@ -69,10 +69,10 @@ pub mod method_provider {
     }
 
     // Implement writeData method
-    pub fn provide_write_data<'lua, Target, M>(methods: &mut M)
+    pub fn provide_write_data<Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_method(
             "writeData",
@@ -94,10 +94,10 @@ pub mod method_provider {
     }
 
     // Implement copyData method
-    pub fn provide_copy_data<'lua, Target, M>(methods: &mut M)
+    pub fn provide_copy_data<Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_method(
             "copyData",
@@ -135,10 +135,10 @@ pub mod method_provider {
     }
 
     // Implement stringifyData method
-    pub fn provide_stringify_data<'lua, Target, M>(methods: &mut M)
+    pub fn provide_stringify_data<Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_method(
             "stringifyData",
@@ -149,10 +149,10 @@ pub mod method_provider {
     }
 
     // Implement box method
-    pub fn provide_box<'lua, Target, M>(methods: &mut M)
+    pub fn provide_box<Target, M>(methods: &mut M)
     where
         Target: FfiSize + FfiConvert + 'static,
-        M: LuaUserDataMethods<'lua, Target>,
+        M: LuaUserDataMethods<Target>,
     {
         methods.add_method("box", |lua, this, value: LuaValue| {
             let result = lua.create_userdata(BoxData::new(this.get_size()))?;
@@ -194,11 +194,11 @@ pub fn create_list<T>(
 // The userdata must live longer than the FfiConvert handle
 pub unsafe fn get_conv(userdata: &LuaAnyUserData) -> LuaResult<*const dyn FfiConvert> {
     if userdata.is::<CStructInfo>() {
-        Ok(userdata.to_pointer().cast::<CStructInfo>() as *const dyn FfiConvert)
+        Ok(&raw const *userdata.borrow::<CStructInfo>()? as *const dyn FfiConvert)
     } else if userdata.is::<CArrInfo>() {
-        Ok(userdata.to_pointer().cast::<CArrInfo>() as *const dyn FfiConvert)
+        Ok(&raw const *userdata.borrow::<CArrInfo>()? as *const dyn FfiConvert)
     } else if userdata.is::<CPtrInfo>() {
-        Ok(userdata.to_pointer().cast::<CPtrInfo>() as *const dyn FfiConvert)
+        Ok(&raw const *userdata.borrow::<CPtrInfo>()? as *const dyn FfiConvert)
     } else {
         ctype_helper::get_conv(userdata)
     }

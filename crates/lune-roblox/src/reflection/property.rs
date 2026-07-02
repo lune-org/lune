@@ -1,11 +1,14 @@
 use std::fmt;
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
 
 use rbx_reflection::{ClassDescriptor, PropertyDescriptor};
 
-use super::utils::*;
+#[cfg(feature = "mlua")]
 use crate::datatypes::{userdata_impl_eq, userdata_impl_to_string};
+
+use super::utils::*;
 
 type DbClass = &'static ClassDescriptor<'static>;
 type DbProp = &'static PropertyDescriptor<'static>;
@@ -68,15 +71,16 @@ impl DatabaseProperty {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl LuaUserData for DatabaseProperty {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.get_name()));
         fields.add_field_method_get("Datatype", |_, this| Ok(this.get_datatype_name()));
         fields.add_field_method_get("Scriptability", |_, this| Ok(this.get_scriptability_str()));
         fields.add_field_method_get("Tags", |_, this| Ok(this.get_tags_str()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

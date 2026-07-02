@@ -4,21 +4,20 @@ use core::fmt;
 use std::ops;
 
 use glam::{EulerRot, Mat3, Mat4, Quat, Vec3};
-use mlua::{prelude::*, Variadic};
+use mlua::{Variadic, prelude::*};
 use rbx_dom_weak::types::{CFrame as DomCFrame, Matrix3 as DomMatrix3, Vector3 as DomVector3};
 
 use lune_utils::TableBuilder;
 
 use crate::exports::LuaExportsTable;
 
-use super::{super::*, Vector3};
+use super::{super::*, EnumItem, Vector3};
 
 /**
     An implementation of the [CFrame](https://create.roblox.com/docs/reference/engine/datatypes/CFrame)
     Roblox datatype, backed by [`glam::Mat4`].
 
-    This implements all documented properties, methods &
-    constructors of the `CFrame` class as of March 2023.
+    This implements all documented properties, methods & constructors of the `CFrame` class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CFrame(pub Mat4);
@@ -43,27 +42,28 @@ impl CFrame {
     }
 }
 
-impl LuaExportsTable<'_> for CFrame {
+impl LuaExportsTable for CFrame {
     const EXPORT_NAME: &'static str = "CFrame";
 
     #[allow(clippy::too_many_lines)]
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let cframe_angles = |_, (rx, ry, rz): (f32, f32, f32)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let cframe_angles = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
         };
 
-        let cframe_from_axis_angle =
-            |_, (v, r): (LuaUserDataRef<Vector3>, f32)| Ok(CFrame(Mat4::from_axis_angle(v.0, r)));
+        let cframe_from_axis_angle = |_: &Lua, (v, r): (LuaUserDataRef<Vector3>, f32)| {
+            Ok(CFrame(Mat4::from_axis_angle(v.0, r)))
+        };
 
-        let cframe_from_euler_angles_xyz = |_, (rx, ry, rz): (f32, f32, f32)| {
+        let cframe_from_euler_angles_xyz = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)))
         };
 
-        let cframe_from_euler_angles_yxz = |_, (rx, ry, rz): (f32, f32, f32)| {
+        let cframe_from_euler_angles_yxz = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
         };
 
-        let cframe_from_matrix = |_,
+        let cframe_from_matrix = |_: &Lua,
                                   (pos, rx, ry, rz): (
             LuaUserDataRef<Vector3>,
             LuaUserDataRef<Vector3>,
@@ -79,11 +79,11 @@ impl LuaExportsTable<'_> for CFrame {
             )))
         };
 
-        let cframe_from_orientation = |_, (rx, ry, rz): (f32, f32, f32)| {
+        let cframe_from_orientation = |_: &Lua, (rx, ry, rz): (f32, f32, f32)| {
             Ok(CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)))
         };
 
-        let cframe_look_at = |_,
+        let cframe_look_at = |_: &Lua,
                               (from, to, up): (
             LuaUserDataRef<Vector3>,
             LuaUserDataRef<Vector3>,
@@ -96,23 +96,79 @@ impl LuaExportsTable<'_> for CFrame {
             )))
         };
 
+        let cframe_look_along = |_: &Lua,
+                                 (at, direction, up): (
+            LuaUserDataRef<Vector3>,
+            LuaUserDataRef<Vector3>,
+            Option<LuaUserDataRef<Vector3>>,
+        )| {
+            Ok(CFrame(look_at(
+                at.0,
+                at.0 + direction.0,
+                up.as_deref().unwrap_or(&Vector3(Vec3::Y)).0,
+            )))
+        };
+
+        let cframe_from_rotation_between_vectors =
+            |_: &Lua, (from, to): (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>)| {
+                Ok(CFrame(Mat4::from_quat(Quat::from_rotation_arc(
+                    from.0.normalize(),
+                    to.0.normalize(),
+                ))))
+            };
+
+        let cframe_from_euler_angles =
+            |_: &Lua, (rx, ry, rz, order): (f32, f32, f32, Option<EnumItem>)| {
+                let order = match &order {
+                    None => "XYZ",
+                    Some(e) if e.parent.desc.name == "RotationOrder" => e.name.as_str(),
+                    Some(_) => {
+                        return Err(LuaError::RuntimeError(
+                            "Expected argument #4 to be an Enum.RotationOrder".to_string(),
+                        ));
+                    }
+                };
+                // glam's `from_euler` consumes the angles in the order named by the
+                // variant, so each axis angle is routed to its matching slot.
+                let cframe = match order {
+                    "XYZ" => CFrame(Mat4::from_euler(EulerRot::XYZ, rx, ry, rz)),
+                    "XZY" => CFrame(Mat4::from_euler(EulerRot::XZY, rx, rz, ry)),
+                    "YXZ" => CFrame(Mat4::from_euler(EulerRot::YXZ, ry, rx, rz)),
+                    "YZX" => CFrame(Mat4::from_euler(EulerRot::YZX, ry, rz, rx)),
+                    "ZXY" => CFrame(Mat4::from_euler(EulerRot::ZXY, rz, rx, ry)),
+                    "ZYX" => CFrame(Mat4::from_euler(EulerRot::ZYX, rz, ry, rx)),
+                    _ => {
+                        return Err(LuaError::RuntimeError(format!(
+                            "Invalid Enum.RotationOrder '{order}'"
+                        )));
+                    }
+                };
+                Ok(cframe)
+            };
+
         // Dynamic args constructor
-        type ArgsPos<'lua> = LuaUserDataRef<'lua, Vector3>;
-        type ArgsLook<'lua> = (
-            LuaUserDataRef<'lua, Vector3>,
-            LuaUserDataRef<'lua, Vector3>,
-            Option<LuaUserDataRef<'lua, Vector3>>,
+        type ArgsPos = LuaUserDataRef<Vector3>;
+        type ArgsPosLookAt = (LuaUserDataRef<Vector3>, LuaUserDataRef<Vector3>);
+        type ArgsLook = (
+            LuaUserDataRef<Vector3>,
+            LuaUserDataRef<Vector3>,
+            Option<LuaUserDataRef<Vector3>>,
         );
 
         type ArgsPosXYZ = (f32, f32, f32);
         type ArgsPosXYZQuat = (f32, f32, f32, f32, f32, f32, f32);
         type ArgsMatrix = (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
 
-        let cframe_new = |lua, args: LuaMultiValue| match args.len() {
+        let cframe_new = |lua: &Lua, args: LuaMultiValue| match args.len() {
             0 => Ok(CFrame(Mat4::IDENTITY)),
 
             1 => match ArgsPos::from_lua_multi(args, lua) {
                 Ok(pos) => Ok(CFrame(Mat4::from_translation(pos.0))),
+                Err(err) => Err(err),
+            },
+
+            2 => match ArgsPosLookAt::from_lua_multi(args, lua) {
+                Ok((pos, look_at_pos)) => Ok(CFrame(look_at(pos.0, look_at_pos.0, Vec3::Y))),
                 Err(err) => Err(err),
             },
 
@@ -154,7 +210,7 @@ impl LuaExportsTable<'_> for CFrame {
             },
 
             _ => Err(LuaError::RuntimeError(format!(
-                "Invalid number of arguments: expected 0, 1, 3, 7, or 12, got {}",
+                "Invalid number of arguments: expected 0, 1, 2, 3, 7, or 12, got {}",
                 args.len()
             ))),
         };
@@ -163,10 +219,16 @@ impl LuaExportsTable<'_> for CFrame {
             .with_function("Angles", cframe_angles)?
             .with_value("identity", CFrame(Mat4::IDENTITY))?
             .with_function("fromAxisAngle", cframe_from_axis_angle)?
+            .with_function("fromEulerAngles", cframe_from_euler_angles)?
             .with_function("fromEulerAnglesXYZ", cframe_from_euler_angles_xyz)?
             .with_function("fromEulerAnglesYXZ", cframe_from_euler_angles_yxz)?
             .with_function("fromMatrix", cframe_from_matrix)?
             .with_function("fromOrientation", cframe_from_orientation)?
+            .with_function(
+                "fromRotationBetweenVectors",
+                cframe_from_rotation_between_vectors,
+            )?
+            .with_function("lookAlong", cframe_look_along)?
             .with_function("lookAt", cframe_look_at)?
             .with_function("new", cframe_new)?
             .build_readonly()
@@ -174,7 +236,7 @@ impl LuaExportsTable<'_> for CFrame {
 }
 
 impl LuaUserData for CFrame {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Position", |_, this| Ok(Vector3(this.position())));
         fields.add_field_method_get("Rotation", |_, this| {
             Ok(CFrame(Mat4::from_cols(
@@ -200,7 +262,7 @@ impl LuaUserData for CFrame {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("Inverse", |_, this, ()| Ok(this.inverse()));
         methods.add_method(
@@ -309,9 +371,66 @@ impl LuaUserData for CFrame {
             let (ry, rx, rz) = Quat::from_mat4(&this.0).to_euler(EulerRot::YXZ);
             Ok((rx, ry, rz))
         });
+        methods.add_method("ToEulerAngles", |_, this, order: Option<EnumItem>| {
+            let order = match &order {
+                None => "XYZ",
+                Some(e) if e.parent.desc.name == "RotationOrder" => e.name.as_str(),
+                Some(_) => {
+                    return Err(LuaError::RuntimeError(
+                        "Expected argument #1 to be an Enum.RotationOrder".to_string(),
+                    ));
+                }
+            };
+            // glam returns the angles in the variant's named order - the bindings
+            // below name each by its axis so we can re-emit them as (rx, ry, rz).
+            let quat = Quat::from_mat4(&this.0);
+            let angles = match order {
+                "XYZ" => {
+                    let (x, y, z) = quat.to_euler(EulerRot::XYZ);
+                    (x, y, z)
+                }
+                "XZY" => {
+                    let (x, z, y) = quat.to_euler(EulerRot::XZY);
+                    (x, y, z)
+                }
+                "YXZ" => {
+                    let (y, x, z) = quat.to_euler(EulerRot::YXZ);
+                    (x, y, z)
+                }
+                "YZX" => {
+                    let (y, z, x) = quat.to_euler(EulerRot::YZX);
+                    (x, y, z)
+                }
+                "ZXY" => {
+                    let (z, x, y) = quat.to_euler(EulerRot::ZXY);
+                    (x, y, z)
+                }
+                "ZYX" => {
+                    let (z, y, x) = quat.to_euler(EulerRot::ZYX);
+                    (x, y, z)
+                }
+                _ => {
+                    return Err(LuaError::RuntimeError(format!(
+                        "Invalid Enum.RotationOrder '{order}'"
+                    )));
+                }
+            };
+            Ok(angles)
+        });
         methods.add_method("ToAxisAngle", |_, this, ()| {
             let (axis, angle) = Quat::from_mat4(&this.0).to_axis_angle();
             Ok((Vector3(axis), angle))
+        });
+        methods.add_method(
+            "FuzzyEq",
+            |_, this, (other, epsilon): (LuaUserDataRef<CFrame>, Option<f32>)| {
+                Ok(this.0.abs_diff_eq(other.0, epsilon.unwrap_or(1e-5)))
+            },
+        );
+        methods.add_method("AngleBetween", |_, this, other: LuaUserDataRef<CFrame>| {
+            let a = Quat::from_mat4(&this.0);
+            let b = Quat::from_mat4(&other.0);
+            Ok(a.angle_between(b))
         });
         // Metamethods
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
@@ -323,10 +442,10 @@ impl LuaUserData for CFrame {
                 } else if let Ok(vec) = ud.borrow::<Vector3>() {
                     return lua.create_userdata(*this * *vec);
                 }
-            };
+            }
             Err(LuaError::FromLuaConversionError {
                 from: rhs.type_name(),
-                to: "userdata",
+                to: "userdata".to_string(),
                 message: Some(format!(
                     "Expected CFrame or Vector3, got {}",
                     rhs.type_name()

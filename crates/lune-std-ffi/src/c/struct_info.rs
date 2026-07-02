@@ -1,4 +1,4 @@
-use std::{cell::Ref, vec::Vec};
+use std::vec::Vec;
 
 use libffi::{low, middle::Type, raw::ffi_get_struct_offsets};
 use mlua::prelude::*;
@@ -15,10 +15,10 @@ pub struct CStructInfo {
     inner_conv_list: Vec<*const dyn FfiConvert>,
 }
 
-fn get_field_table<'lua>(
-    lua: &'lua Lua,
-    userdata: &LuaAnyUserData<'lua>,
-) -> LuaResult<LuaTable<'lua>> {
+fn get_field_table(
+    lua: &Lua,
+    userdata: &LuaAnyUserData,
+) -> LuaResult<LuaTable> {
     let value = association::get(lua, CSTRUCT_INNER, userdata)?
         .ok_or_else(|| LuaError::external("Failed to retrieve inner field table: not found"))?;
     if let LuaValue::Table(table) = value {
@@ -59,10 +59,10 @@ impl CStructInfo {
 
     // Create new CStruct from LuaTable.
     // Freeze and hold table
-    pub fn from_table<'lua>(
-        lua: &'lua Lua,
-        table: LuaTable<'lua>,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    pub fn from_table(
+        lua: &Lua,
+        table: LuaTable,
+    ) -> LuaResult<LuaAnyUserData> {
         if helper::has_void(&table)? {
             return Err(LuaError::external("Void field in sturct is not allowed"));
         }
@@ -124,12 +124,12 @@ impl FfiSignedness for CStructInfo {
 }
 
 impl FfiConvert for CStructInfo {
-    unsafe fn value_into_data<'lua>(
+    unsafe fn value_into_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-        value: LuaValue<'lua>,
+        data_handle: &dyn FfiData,
+        value: LuaValue,
     ) -> LuaResult<()> {
         let LuaValue::Table(ref table) = value else {
             return Err(LuaError::external("Value is not a table"));
@@ -147,12 +147,12 @@ impl FfiConvert for CStructInfo {
         Ok(())
     }
 
-    unsafe fn value_from_data<'lua>(
+    unsafe fn value_from_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-    ) -> LuaResult<LuaValue<'lua>> {
+        data_handle: &dyn FfiData,
+    ) -> LuaResult<LuaValue> {
         let table = lua.create_table_with_capacity(self.inner_conv_list.len(), 0)?;
         for (i, conv) in self.inner_conv_list.iter().enumerate() {
             let field_offset = self.offset(i)? as isize;
@@ -170,8 +170,8 @@ impl FfiConvert for CStructInfo {
         _lua: &Lua,
         dst_offset: isize,
         src_offset: isize,
-        dst: &Ref<dyn FfiData>,
-        src: &Ref<dyn FfiData>,
+        dst: &dyn FfiData,
+        src: &dyn FfiData,
     ) -> LuaResult<()> {
         dst.get_inner_pointer().byte_offset(dst_offset).copy_from(
             src.get_inner_pointer().byte_offset(src_offset),
@@ -182,10 +182,10 @@ impl FfiConvert for CStructInfo {
 }
 
 impl LuaUserData for CStructInfo {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_lua, this| Ok(this.get_size()));
     }
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);
         method_provider::provide_arr(methods);
@@ -207,7 +207,7 @@ impl LuaUserData for CStructInfo {
             |lua, (this, field_index): (LuaAnyUserData, usize)| {
                 let field_table = get_field_table(lua, &this)?;
                 field_table
-                    .raw_get::<_, Option<LuaAnyUserData>>(field_index + 1)?
+                    .raw_get::<Option<LuaAnyUserData>>(field_index + 1)?
                     .ok_or_else(|| LuaError::external("Out of index"))
             },
         );

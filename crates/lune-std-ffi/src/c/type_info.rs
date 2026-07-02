@@ -1,6 +1,6 @@
 #![allow(clippy::inline_always)]
 
-use std::{cell::Ref, marker::PhantomData};
+use std::marker::PhantomData;
 
 use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
@@ -20,8 +20,8 @@ pub trait CTypeCast {
         &self,
         from_ctype: &LuaAnyUserData,
         into_ctype: &LuaAnyUserData,
-        _from: &Ref<dyn FfiData>,
-        _into: &Ref<dyn FfiData>,
+        _from: &dyn FfiData,
+        _into: &dyn FfiData,
         _from_offset: isize,
         _into_offset: isize,
     ) -> LuaResult<()> {
@@ -61,11 +61,11 @@ where
     T: 'static,
     Self: CTypeCast + FfiSignedness + FfiConvert + FfiSize,
 {
-    pub fn from_middle_type<'lua>(
-        lua: &'lua Lua,
+    pub fn from_middle_type(
+        lua: &Lua,
         libffi_type: Type,
         name: &'static str,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    ) -> LuaResult<LuaAnyUserData> {
         let size = get_ensured_size(libffi_type.as_raw_ptr())?;
 
         let ctype = Self {
@@ -93,13 +93,13 @@ where
     T: 'static,
     Self: CTypeCast + FfiSignedness + FfiConvert + FfiSize,
 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_meta_field(LuaMetaMethod::Type, "CTypeInfo");
         fields.add_field_method_get("size", |_lua, this| Ok(this.get_size()));
         fields.add_field_method_get("signedness", |_lua, this| Ok(this.get_signedness()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Subtype
         method_provider::provide_ptr(methods);
         method_provider::provide_arr(methods);

@@ -14,36 +14,26 @@ use super::{super::*, Color3, ColorSequenceKeypoint};
 /**
     An implementation of the [ColorSequence](https://create.roblox.com/docs/reference/engine/datatypes/ColorSequence) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `ColorSequence` class as of March 2023.
+    This implements all documented properties, methods & constructors of the `ColorSequence` class as of May 2026.
 */
 #[derive(Debug, Clone, PartialEq)]
 pub struct ColorSequence {
     pub(crate) keypoints: Vec<ColorSequenceKeypoint>,
 }
 
-impl LuaExportsTable<'_> for ColorSequence {
+impl LuaExportsTable for ColorSequence {
     const EXPORT_NAME: &'static str = "ColorSequence";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        type ArgsColor<'lua> = LuaUserDataRef<'lua, Color3>;
-        type ArgsColors<'lua> = (LuaUserDataRef<'lua, Color3>, LuaUserDataRef<'lua, Color3>);
-        type ArgsKeypoints<'lua> = Vec<LuaUserDataRef<'lua, ColorSequenceKeypoint>>;
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        type ArgsColor = LuaUserDataRef<Color3>;
+        type ArgsColors = (LuaUserDataRef<Color3>, LuaUserDataRef<Color3>);
+        type ArgsKeypoints = Vec<LuaUserDataRef<ColorSequenceKeypoint>>;
 
-        let color_sequence_new = |lua, args: LuaMultiValue| {
-            if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
-                Ok(ColorSequence {
-                    keypoints: vec![
-                        ColorSequenceKeypoint {
-                            time: 0.0,
-                            color: *color,
-                        },
-                        ColorSequenceKeypoint {
-                            time: 1.0,
-                            color: *color,
-                        },
-                    ],
-                })
-            } else if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
+        let color_sequence_new = |lua: &Lua, args: LuaMultiValue| {
+            // Try two-arg first: ColorSequence.new(startColor, endColor)
+            // Must come before single-arg because from_lua_multi for a single
+            // userdata ref succeeds even when multiple args are passed (ignoring extras).
+            if let Ok((c0, c1)) = ArgsColors::from_lua_multi(args.clone(), lua) {
                 Ok(ColorSequence {
                     keypoints: vec![
                         ColorSequenceKeypoint {
@@ -53,6 +43,20 @@ impl LuaExportsTable<'_> for ColorSequence {
                         ColorSequenceKeypoint {
                             time: 1.0,
                             color: *c1,
+                        },
+                    ],
+                })
+            } else if let Ok(color) = ArgsColor::from_lua_multi(args.clone(), lua) {
+                // Single-arg: ColorSequence.new(color) — uniform color
+                Ok(ColorSequence {
+                    keypoints: vec![
+                        ColorSequenceKeypoint {
+                            time: 0.0,
+                            color: *color,
+                        },
+                        ColorSequenceKeypoint {
+                            time: 1.0,
+                            color: *color,
                         },
                     ],
                 })
@@ -75,11 +79,11 @@ impl LuaExportsTable<'_> for ColorSequence {
 }
 
 impl LuaUserData for ColorSequence {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Keypoints", |_, this| Ok(this.keypoints.clone()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }

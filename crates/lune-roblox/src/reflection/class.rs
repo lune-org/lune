@@ -1,12 +1,18 @@
 use core::fmt;
 use std::collections::HashMap;
 
+#[cfg(feature = "mlua")]
 use mlua::prelude::*;
 
 use rbx_dom_weak::types::Variant as DomVariant;
-use rbx_reflection::{ClassDescriptor, DataType};
+use rbx_reflection::ClassDescriptor;
+
+#[cfg(feature = "mlua")]
+use rbx_reflection::DataType;
 
 use super::{property::DatabaseProperty, utils::*};
+
+#[cfg(feature = "mlua")]
 use crate::datatypes::{
     conversion::DomValueToLua, types::EnumItem, userdata_impl_eq, userdata_impl_to_string,
 };
@@ -84,8 +90,9 @@ impl DatabaseClass {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl LuaUserData for DatabaseClass {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.get_name()));
         fields.add_field_method_get("Superclass", |_, this| Ok(this.get_superclass()));
         fields.add_field_method_get("Properties", |_, this| Ok(this.get_properties()));
@@ -108,7 +115,7 @@ impl LuaUserData for DatabaseClass {
         fields.add_field_method_get("Tags", |_, this| Ok(this.get_tags_str()));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
@@ -126,9 +133,10 @@ impl fmt::Display for DatabaseClass {
     }
 }
 
+#[cfg(feature = "mlua")]
 fn find_enum_name(inner: DbClass, name: impl AsRef<str>) -> Option<String> {
     inner.properties.iter().find_map(|(prop_name, prop_info)| {
-        if prop_name == name.as_ref() {
+        if prop_name == &name.as_ref() {
             if let DataType::Enum(enum_name) = &prop_info.data_type {
                 Some(enum_name.to_string())
             } else {
@@ -140,6 +148,7 @@ fn find_enum_name(inner: DbClass, name: impl AsRef<str>) -> Option<String> {
     })
 }
 
+#[cfg(feature = "mlua")]
 fn make_enum_value(inner: DbClass, name: impl AsRef<str>, value: u32) -> LuaResult<EnumItem> {
     let name = name.as_ref();
     let enum_name = find_enum_name(inner, name).ok_or_else(|| {

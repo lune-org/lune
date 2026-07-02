@@ -41,9 +41,9 @@ impl RefData {
         }
     }
 
-    pub fn update<'lua>(
-        lua: &'lua Lua,
-        this: LuaAnyUserData<'lua>,
+    pub fn update(
+        lua: &Lua,
+        this: LuaAnyUserData,
         ptr: *mut (),
         flags: u8,
         boundary: RefBounds,
@@ -59,10 +59,10 @@ impl RefData {
     }
 
     // Create reference of this reference
-    pub fn luaref<'lua>(
-        lua: &'lua Lua,
-        this: LuaAnyUserData<'lua>,
-    ) -> LuaResult<LuaAnyUserData<'lua>> {
+    pub fn luaref(
+        lua: &Lua,
+        this: LuaAnyUserData,
+    ) -> LuaResult<LuaAnyUserData> {
         let target = this.borrow::<RefData>()?;
 
         let luaref = lua.create_userdata(RefData::new(
@@ -163,7 +163,7 @@ impl FfiData for RefData {
 }
 
 impl LuaUserData for RefData {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
         method_provider::provide_read_string(methods);
         method_provider::provide_write_string(methods);

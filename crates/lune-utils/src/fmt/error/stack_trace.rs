@@ -1,18 +1,24 @@
 use std::fmt;
 use std::str::FromStr;
 
+fn has_windows_drive_prefix(s: &str) -> bool {
+    let b = s.as_bytes();
+    b.len() >= 3 && b[0].is_ascii_alphabetic() && b[1] == b':' && (b[2] == b'\\' || b[2] == b'/')
+}
+
 fn parse_path(s: &str) -> Option<(&str, &str)> {
-    let path = s.strip_prefix("[string \"")?;
-    let (path, after) = path.split_once("\"]:")?;
+    // Chunk names loaded from strings usually look like `[string "PATH"]:line:`
+    if let Some(rest) = s.strip_prefix("[string \"")
+        && let Some((path, after)) = rest.split_once("\"]:")
+    {
+        return Some((path, after));
+    }
 
-    // Remove line number after any found colon, this may
-    // exist if the source path is from a rust source file
-    let path = match path.split_once(':') {
-        Some((before, _)) => before,
-        None => path,
-    };
-
-    Some((path, after))
+    // Otherwise this is a bare path like `C:\dir\file:line:` so we will skip a
+    // leading Windows drive letter prefix before locating the separating colon.
+    let search_start = usize::from(has_windows_drive_prefix(s)) * 2;
+    let colon = search_start + s[search_start..].find(':')?;
+    Some((&s[..colon], &s[colon + 1..]))
 }
 
 fn parse_function_name(s: &str) -> Option<&str> {

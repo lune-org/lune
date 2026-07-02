@@ -9,8 +9,10 @@ defaults:
   run:
     shell: bash
 
-jobs:
+env:
+  CARGO_TERM_COLOR: always
 
+jobs:
   fmt:
     name: Check formatting
     runs-on: ubuntu-latest
@@ -27,7 +29,7 @@ jobs:
         uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Check Formatting
-        run: just fmt-check
+        run: ./scripts/format-check.sh
 
   analyze:
     needs: ["fmt"]
@@ -41,7 +43,7 @@ jobs:
         uses: CompeyDev/setup-rokit@v0.1.2
 
       - name: Analyze
-        run: just analyze
+        run: ./scripts/analyze.sh
 
   ci:
     needs: ["fmt"]
@@ -50,19 +52,27 @@ jobs:
       matrix:
         include:
           - name: Windows x86_64
-            runner-os: windows-latest
+            runner-os: windows-2022
             cargo-target: x86_64-pc-windows-msvc
 
+          - name: Windows aarch64
+            runner-os: windows-11-arm
+            cargo-target: aarch64-pc-windows-msvc
+
           - name: Linux x86_64
-            runner-os: ubuntu-latest
+            runner-os: ubuntu-22.04
             cargo-target: x86_64-unknown-linux-gnu
 
+          - name: Linux aarch64
+            runner-os: ubuntu-22.04-arm
+            cargo-target: aarch64-unknown-linux-gnu
+
           - name: macOS x86_64
-            runner-os: macos-13
+            runner-os: macos-15
             cargo-target: x86_64-apple-darwin
 
           - name: macOS aarch64
-            runner-os: macos-14
+            runner-os: macos-15
             cargo-target: aarch64-apple-darwin
 
     name: CI - ${{ matrix.name }}
@@ -79,23 +89,26 @@ jobs:
           components: clippy
           targets: ${{ matrix.cargo-target }}
 
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install nextest
+        run: cargo binstall cargo-nextest
+
       - name: Build
         run: |
-          cargo build \
-          --workspace \
+          cargo build --workspace \
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Lint
         run: |
-          cargo clippy \
-          --workspace \
+          cargo clippy --workspace \
           --locked --all-features \
           --target ${{ matrix.cargo-target }}
 
       - name: Test
         run: |
-          cargo test \
-          --lib --workspace \
+          cargo nextest run --no-fail-fast \
           --locked --all-features \
           --target ${{ matrix.cargo-target }}

@@ -1,1 +1,1 @@
-return require("modules/module")
+return require("./modules/module")

@@ -8,15 +8,15 @@ use crate::shared::{
     instance::class_is_a_service,
 };
 
-use super::Instance;
+use super::{Instance, instance_to_lua, opt_instance_to_lua};
 
 pub const CLASS_NAME: &str = "DataModel";
 
-pub fn add_fields<'lua, F: LuaUserDataFields<'lua, Instance>>(f: &mut F) {
+pub fn add_fields<F: LuaUserDataFields<Instance>>(f: &mut F) {
     add_class_restricted_getter(f, CLASS_NAME, "Workspace", data_model_get_workspace);
 }
 
-pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
+pub fn add_methods<M: LuaUserDataMethods<Instance>>(m: &mut M) {
     add_class_restricted_method(m, CLASS_NAME, "GetService", data_model_get_service);
     add_class_restricted_method(m, CLASS_NAME, "FindService", data_model_find_service);
 }
@@ -28,8 +28,8 @@ pub fn add_methods<'lua, M: LuaUserDataMethods<'lua, Instance>>(m: &mut M) {
     * [`Terrain`](https://create.roblox.com/docs/reference/engine/classes/Workspace#Terrain)
       on the Roblox Developer Hub
 */
-fn data_model_get_workspace(_: &Lua, this: &Instance) -> LuaResult<Instance> {
-    get_or_create_property_ref_instance(this, "Workspace", "Workspace")
+fn data_model_get_workspace(lua: &Lua, this: &Instance) -> LuaResult<LuaValue> {
+    get_or_create_property_ref_instance(lua, this, "Workspace", "Workspace")
 }
 
 /**
@@ -39,17 +39,19 @@ fn data_model_get_workspace(_: &Lua, this: &Instance) -> LuaResult<Instance> {
     * [`GetService`](https://create.roblox.com/docs/reference/engine/classes/ServiceProvider#GetService)
       on the Roblox Developer Hub
 */
-fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> LuaResult<Instance> {
+fn data_model_get_service(lua: &Lua, this: &Instance, service_name: String) -> LuaResult<LuaValue> {
     if matches!(class_is_a_service(&service_name), None | Some(false)) {
         Err(LuaError::RuntimeError(format!(
             "'{service_name}' is not a valid service name",
         )))
     } else if let Some(service) = this.find_child(|child| child.class == service_name) {
-        Ok(service)
+        instance_to_lua(lua, service)
     } else {
-        let service = Instance::new_orphaned(service_name);
-        service.set_parent(Some(this.clone()));
-        Ok(service)
+        // Create the service inside this DataModel's dom so parenting it
+        // below stays within the dom (no cross-dom transfer).
+        let service = Instance::new_in_dom(this.dom_id, service_name);
+        service.set_parent(Some(*this));
+        instance_to_lua(lua, service)
     }
 }
 
@@ -61,17 +63,15 @@ fn data_model_get_service(_: &Lua, this: &Instance, service_name: String) -> Lua
       on the Roblox Developer Hub
 */
 fn data_model_find_service(
-    _: &Lua,
+    lua: &Lua,
     this: &Instance,
     service_name: String,
-) -> LuaResult<Option<Instance>> {
+) -> LuaResult<LuaValue> {
     if matches!(class_is_a_service(&service_name), None | Some(false)) {
         Err(LuaError::RuntimeError(format!(
             "'{service_name}' is not a valid service name",
         )))
-    } else if let Some(service) = this.find_child(|child| child.class == service_name) {
-        Ok(Some(service))
     } else {
-        Ok(None)
+        opt_instance_to_lua(lua, this.find_child(|child| child.class == service_name))
     }
 }

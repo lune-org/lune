@@ -1,6 +1,6 @@
 local DateTime = require("@lune/datetime")
 
-local values = DateTime.fromIsoDate("2023-08-27T05:54:19Z"):toLocalTime()
+local values = DateTime.fromRfc3339("2023-08-27T05:54:19Z"):toLocalTime()
 
 local expectedDateTimeValues = os.date("*t", 1693115659)
 

@@ -1,3 +1,7 @@
-pub(crate) mod classes;
 pub(crate) mod instance;
+
+#[cfg(feature = "mlua")]
+pub(crate) mod classes;
+
+#[cfg(feature = "mlua")]
 pub(crate) mod userdata;

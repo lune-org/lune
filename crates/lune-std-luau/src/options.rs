@@ -1,7 +1,7 @@
 #![allow(clippy::struct_field_names)]
 
-use mlua::prelude::*;
 use mlua::Compiler as LuaCompiler;
+use mlua::prelude::*;
 
 const DEFAULT_DEBUG_NAME: &str = "luau.load(...)";
 
@@ -36,8 +36,8 @@ impl Default for LuauCompileOptions {
     }
 }
 
-impl<'lua> FromLua<'lua> for LuauCompileOptions {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for LuauCompileOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         Ok(match value {
             LuaValue::Nil => Self::default(),
             LuaValue::Table(t) => {
@@ -68,25 +68,25 @@ impl<'lua> FromLua<'lua> for LuauCompileOptions {
             _ => {
                 return Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "CompileOptions",
+                    to: "CompileOptions".to_string(),
                     message: Some(format!(
                         "Invalid compile options - expected table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         })
     }
 }
 
-pub struct LuauLoadOptions<'lua> {
+pub struct LuauLoadOptions {
     pub(crate) debug_name: String,
-    pub(crate) environment: Option<LuaTable<'lua>>,
+    pub(crate) environment: Option<LuaTable>,
     pub(crate) inject_globals: bool,
     pub(crate) codegen_enabled: bool,
 }
 
-impl Default for LuauLoadOptions<'_> {
+impl Default for LuauLoadOptions {
     fn default() -> Self {
         Self {
             debug_name: DEFAULT_DEBUG_NAME.to_string(),
@@ -97,8 +97,8 @@ impl Default for LuauLoadOptions<'_> {
     }
 }
 
-impl<'lua> FromLua<'lua> for LuauLoadOptions<'lua> {
-    fn from_lua(value: LuaValue<'lua>, _: &'lua Lua) -> LuaResult<Self> {
+impl FromLua for LuauLoadOptions {
+    fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         Ok(match value {
             LuaValue::Nil => Self::default(),
             LuaValue::Table(t) => {
@@ -123,7 +123,7 @@ impl<'lua> FromLua<'lua> for LuauLoadOptions<'lua> {
                 options
             }
             LuaValue::String(s) => Self {
-                debug_name: s.to_string_lossy().to_string(),
+                debug_name: s.to_string_lossy(),
                 environment: None,
                 inject_globals: true,
                 codegen_enabled: false,
@@ -131,12 +131,12 @@ impl<'lua> FromLua<'lua> for LuauLoadOptions<'lua> {
             _ => {
                 return Err(LuaError::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "LoadOptions",
+                    to: "LoadOptions".to_string(),
                     message: Some(format!(
                         "Invalid load options - expected string or table, got {}",
                         value.type_name()
                     )),
-                })
+                });
             }
         })
     }

@@ -61,8 +61,8 @@ impl From<StdFileType> for FsMetadataKind {
     }
 }
 
-impl<'lua> IntoLua<'lua> for FsMetadataKind {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl IntoLua for FsMetadataKind {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         if self == Self::None {
             Ok(LuaValue::Nil)
         } else {
@@ -84,8 +84,8 @@ impl From<StdPermissions> for FsPermissions {
     }
 }
 
-impl<'lua> IntoLua<'lua> for FsPermissions {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl IntoLua for FsPermissions {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         let tab = lua.create_table_with_capacity(0, 1)?;
         tab.set("readOnly", self.read_only)?;
         tab.set_readonly(true);
@@ -116,8 +116,8 @@ impl FsMetadata {
     }
 }
 
-impl<'lua> IntoLua<'lua> for FsMetadata {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+impl IntoLua for FsMetadata {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         let tab = lua.create_table_with_capacity(0, 6)?;
         tab.set("kind", self.kind)?;
         tab.set("exists", self.exists)?;

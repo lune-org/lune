@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use crate::get_unsafe_library_enabled;
 
 /**
-    A standard library probloxrovided by Lune.
+    A standard library provided by Lune.
 */
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[rustfmt::skip]
@@ -91,6 +91,30 @@ impl LuneStandardLibrary {
     }
 
     /**
+        Returns type definitions for the library.
+    */
+    #[must_use]
+    #[rustfmt::skip]
+    #[allow(unreachable_patterns)]
+    pub fn typedefs(&self) -> String {
+    	match self {
+            #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::typedefs(),
+            #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::typedefs(),
+            #[cfg(feature = "luau")]     Self::Luau     => lune_std_luau::typedefs(),
+            #[cfg(feature = "net")]      Self::Net      => lune_std_net::typedefs(),
+            #[cfg(feature = "task")]     Self::Task     => lune_std_task::typedefs(),
+            #[cfg(feature = "process")]  Self::Process  => lune_std_process::typedefs(),
+            #[cfg(feature = "regex")]    Self::Regex    => lune_std_regex::typedefs(),
+            #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::typedefs(),
+            #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::typedefs(),
+            #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::typedefs(),
+            #[cfg(feature = "ffi")]      Self::Ffi      => lune_std_ffi::typedefs(),
+
+            _ => unreachable!("no standard library enabled"),
+        }
+    }
+
+    /**
         Creates the Lua module for the library.
 
         # Errors
@@ -99,28 +123,29 @@ impl LuneStandardLibrary {
     */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
-    pub fn module<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaMultiValue<'lua>> {
-        if self.is_unsafe() && !get_unsafe_library_enabled(lua) {
+    pub fn module(&self, lua: Lua) -> LuaResult<LuaTable> {
+        if self.is_unsafe() && !get_unsafe_library_enabled(&lua) {
             return Err(LuaError::external(format!("Standard library '{}' requires unsafe library enabled", self.name())));
         }
 
+        let mod_lua = lua.clone();
         let res: LuaResult<LuaTable> = match self {
-            #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(lua),
-            #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::module(lua),
-            #[cfg(feature = "luau")]     Self::Luau     => lune_std_luau::module(lua),
-            #[cfg(feature = "net")]      Self::Net      => lune_std_net::module(lua),
-            #[cfg(feature = "task")]     Self::Task     => lune_std_task::module(lua),
-            #[cfg(feature = "process")]  Self::Process  => lune_std_process::module(lua),
-            #[cfg(feature = "regex")]    Self::Regex    => lune_std_regex::module(lua),
-            #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::module(lua),
-            #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::module(lua),
-            #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::module(lua),
-            #[cfg(feature = "ffi")]      Self::Ffi      => lune_std_ffi::module(lua),
+            #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(mod_lua),
+            #[cfg(feature = "fs")]       Self::Fs       => lune_std_fs::module(mod_lua),
+            #[cfg(feature = "luau")]     Self::Luau     => lune_std_luau::module(mod_lua),
+            #[cfg(feature = "net")]      Self::Net      => lune_std_net::module(mod_lua),
+            #[cfg(feature = "task")]     Self::Task     => lune_std_task::module(mod_lua),
+            #[cfg(feature = "process")]  Self::Process  => lune_std_process::module(mod_lua),
+            #[cfg(feature = "regex")]    Self::Regex    => lune_std_regex::module(mod_lua),
+            #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::module(mod_lua),
+            #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::module(mod_lua),
+            #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::module(mod_lua),
+            #[cfg(feature = "ffi")]      Self::Ffi      => lune_std_ffi::module(mod_lua),
 
             _ => unreachable!("no standard library enabled"),
         };
         match res {
-            Ok(v) => v.into_lua_multi(lua),
+            Ok(v) => Ok(v),
             Err(e) => Err(e.context(format!(
                 "Failed to create standard library '{}'",
                 self.name()

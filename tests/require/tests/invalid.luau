@@ -1,12 +1,12 @@
 local function test(path: string)
 	local success, message = pcall(function()
-		local _ = require(path) :: any
+		local _ = require("./" .. path) :: any
 	end)
 	if success then
 		error(string.format("Invalid require at path '%s' succeeded", path))
 	else
 		message = tostring(message)
-		if string.find(message, string.format("%s'", path)) == nil then
+		if string.find(message, string.format("%s", path)) == nil then
 			error(
 				string.format(
 					"Invalid require did not mention path '%s' in its error message!\nMessage: %s",
@@ -18,8 +18,8 @@ local function test(path: string)
 	end
 end
 
-test("foo")
-test("bar")
+test("fooo")
+test("baar")
 test("moduuuuule")
 test("modules.nested")
 test(" modules ")

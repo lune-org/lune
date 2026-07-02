@@ -16,16 +16,16 @@ use super::super::*;
     Roblox datatype, backed by [`glam::IVec2`].
 
     This implements all documented properties, methods &
-    constructors of the Vector2int16 class as of March 2023.
+    constructors of the Vector2int16 class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector2int16(pub IVec2);
 
-impl LuaExportsTable<'_> for Vector2int16 {
+impl LuaExportsTable for Vector2int16 {
     const EXPORT_NAME: &'static str = "Vector2int16";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let vector2int16_new = |_, (x, y): (Option<i16>, Option<i16>)| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let vector2int16_new = |_: &Lua, (x, y): (Option<i16>, Option<i16>)| {
             Ok(Vector2int16(IVec2 {
                 x: x.unwrap_or_default() as i32,
                 y: y.unwrap_or_default() as i32,
@@ -39,18 +39,18 @@ impl LuaExportsTable<'_> for Vector2int16 {
 }
 
 impl LuaUserData for Vector2int16 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("X", |_, this| Ok(this.0.x));
         fields.add_field_method_get("Y", |_, this| Ok(this.0.y));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_i32);
+        methods.add_meta_function(LuaMetaMethod::Mul, userdata_impl_mul_i32::<Self>);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_i32);
     }
 }

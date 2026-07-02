@@ -7,16 +7,16 @@ use super::{super::*, Enum};
 /**
     An implementation of the [Enums](https://create.roblox.com/docs/reference/engine/datatypes/Enums) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Enums class as of March 2023.
+    This implements all documented properties, methods & constructors of the Enums class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Enums;
 
 impl LuaUserData for Enums {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("GetEnums", |_, _, ()| {
-            let db = rbx_reflection_database::get();
+            let db = rbx_reflection_database::get().unwrap();
             Ok(db.enums.values().map(Enum::from).collect::<Vec<_>>())
         });
         methods.add_meta_method(

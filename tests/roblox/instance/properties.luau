@@ -33,6 +33,16 @@ part.Shape = Enum.PartType.Ball
 
 assert(part.Shape == Enum.PartType.Ball)
 
+-- Enums should roundtrip through serde without problem
+
+local decal = Instance.new("Decal")
+decal.Face = Enum.NormalId.Top
+
+local decal_ser = roblox.serializeModel({ decal })
+local decal_de = roblox.deserializeModel(decal_ser)
+
+assert(decal_de[1].Face == Enum.NormalId.Top)
+
 -- Properties that don't exist for a class should error
 
 local meshPart = Instance.new("MeshPart")
@@ -47,6 +57,13 @@ assert(meshPart.Anchored == false)
 assert(meshPart.Material == Enum.Material.Plastic)
 assert(meshPart.Size == Vector3.new(4, 1.2, 2))
 assert(meshPart.CustomPhysicalProperties == nil)
+
+-- We should be able to get/set SharedStrings
+
+local SANITY_STRING = "Hello, world!"
+meshPart.PhysicalConfigData = SANITY_STRING
+
+assert(meshPart.PhysicalConfigData == SANITY_STRING)
 
 -- Instance reference properties should work
 

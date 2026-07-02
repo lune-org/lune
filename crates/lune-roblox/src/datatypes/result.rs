@@ -3,11 +3,13 @@ use core::fmt;
 use std::error::Error;
 use std::io::Error as IoError;
 
+#[cfg(feature = "mlua")]
 use mlua::Error as LuaError;
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub(crate) enum DomConversionError {
+    #[cfg(feature = "mlua")]
     LuaError(LuaError),
     External {
         message: String,
@@ -30,12 +32,13 @@ impl fmt::Display for DomConversionError {
             f,
             "{}",
             match self {
+                #[cfg(feature = "mlua")]
                 Self::LuaError(error) => error.to_string(),
-                Self::External { message } => message.to_string(),
+                Self::External { message } => message.clone(),
                 Self::FromDomValue { from, to, detail } | Self::ToDomValue { from, to, detail } => {
                     match detail {
                         Some(d) => format!("Failed to convert from '{from}' into '{to}' - {d}"),
-                        None => format!("Failed to convert from '{from}' into '{to}'",),
+                        None => format!("Failed to convert from '{from}' into '{to}'"),
                     }
                 }
             }
@@ -45,6 +48,7 @@ impl fmt::Display for DomConversionError {
 
 impl Error for DomConversionError {}
 
+#[cfg(feature = "mlua")]
 impl From<DomConversionError> for LuaError {
     fn from(value: DomConversionError) -> Self {
         use DomConversionError as E;
@@ -58,6 +62,7 @@ impl From<DomConversionError> for LuaError {
     }
 }
 
+#[cfg(feature = "mlua")]
 impl From<LuaError> for DomConversionError {
     fn from(value: LuaError) -> Self {
         Self::LuaError(value)

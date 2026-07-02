@@ -1,7 +1,7 @@
 #![allow(clippy::inline_always)]
 
 use core::ffi::*;
-use std::{any::TypeId, cell::Ref};
+use std::any::TypeId;
 
 use libffi::middle::Type;
 use mlua::prelude::*;
@@ -111,8 +111,8 @@ where
         &self,
         from_info: &LuaAnyUserData,
         into_info: &LuaAnyUserData,
-        from: &Ref<dyn FfiData>,
-        into: &Ref<dyn FfiData>,
+        from: &dyn FfiData,
+        into: &dyn FfiData,
         from_offset: isize,
         into_offset: isize,
     ) -> LuaResult<()> {
@@ -130,7 +130,7 @@ pub mod ctype_helper {
     macro_rules! define_get_conv {
         ($userdata:ident, $( $rust_type:ty )*) => {
             $( if $userdata.is::<CTypeInfo<$rust_type>>() {
-                Ok($userdata.to_pointer().cast::<CTypeInfo<$rust_type>>() as *const dyn FfiConvert)
+                Ok(&raw const *$userdata.borrow::<CTypeInfo<$rust_type>>()? as *const dyn FfiConvert)
             } else )* {
                 Err(LuaError::external("Unexpected type"))
             }

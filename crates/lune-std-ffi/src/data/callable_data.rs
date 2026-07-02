@@ -174,7 +174,7 @@ impl CallableData {
 }
 
 impl LuaUserData for CallableData {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(
             LuaMetaMethod::Call,
             |_lua, this: &CallableData, mut args: LuaMultiValue| {

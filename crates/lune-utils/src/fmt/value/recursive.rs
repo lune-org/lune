@@ -19,13 +19,13 @@ const INDENT: &str = "    ";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct LuaValueId(usize);
 
-impl From<&LuaValue<'_>> for LuaValueId {
-    fn from(value: &LuaValue<'_>) -> Self {
+impl From<&LuaValue> for LuaValueId {
+    fn from(value: &LuaValue) -> Self {
         Self(value.to_pointer() as usize)
     }
 }
 
-impl From<&LuaTable<'_>> for LuaValueId {
+impl From<&LuaTable> for LuaValueId {
     fn from(table: &LuaTable) -> Self {
         Self(table.to_pointer() as usize)
     }
@@ -46,7 +46,7 @@ pub(crate) fn format_value_recursive(
 ) -> Result<String, fmt::Error> {
     let mut buffer = String::new();
 
-    if let LuaValue::Table(ref t) = value {
+    if let LuaValue::Table(t) = value {
         if let Some(formatted) = format_typename_and_tostringed(
             get_table_type_metavalue(t),
             call_table_tostring_metamethod(t),
@@ -70,7 +70,7 @@ pub(crate) fn format_value_recursive(
             let is_array = values
                 .iter()
                 .enumerate()
-                .all(|(i, (key, _))| key.as_integer().is_some_and(|x| x == (i as i32) + 1));
+                .all(|(i, (key, _))| key.as_integer().is_some_and(|x| x == (i as i64) + 1));
 
             let formatted_values = if is_array {
                 format_array(values, config, visited, depth)?

@@ -1,7 +1,7 @@
 use core::fmt;
 
 use mlua::prelude::*;
-use rand::seq::SliceRandom;
+use rand::prelude::*;
 use rbx_dom_weak::types::BrickColor as DomBrickColor;
 
 use lune_utils::TableBuilder;
@@ -13,7 +13,7 @@ use super::{super::*, Color3};
 /**
     An implementation of the [BrickColor](https://create.roblox.com/docs/reference/engine/datatypes/BrickColor) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the `BrickColor` class as of March 2023.
+    This implements all documented properties, methods & constructors of the `BrickColor` class as of May 2026.
 */
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BrickColor {
@@ -24,22 +24,25 @@ pub struct BrickColor {
     pub(crate) rgb: (u8, u8, u8),
 }
 
-impl LuaExportsTable<'_> for BrickColor {
+impl LuaExportsTable for BrickColor {
     const EXPORT_NAME: &'static str = "BrickColor";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
         type ArgsNumber = u16;
         type ArgsName = String;
-        type ArgsRgb = (u8, u8, u8);
-        type ArgsColor3<'lua> = LuaUserDataRef<'lua, Color3>;
+        type ArgsRgb = (f32, f32, f32);
+        type ArgsColor3 = LuaUserDataRef<Color3>;
 
-        let brick_color_new = |lua, args: LuaMultiValue| {
-            if let Ok(number) = ArgsNumber::from_lua_multi(args.clone(), lua) {
+        let brick_color_new = |lua: &Lua, args: LuaMultiValue| {
+            // NOTE: The rgb tuple must be tried before the single number, since
+            // `u16::from_lua_multi` would otherwise consume just the first argument
+            // and silently ignore the remaining two, parsing `new(1, 0, 0)` as `new(1)`.
+            if let Ok((r, g, b)) = ArgsRgb::from_lua_multi(args.clone(), lua) {
+                Ok(color_from_rgb(r, g, b))
+            } else if let Ok(number) = ArgsNumber::from_lua_multi(args.clone(), lua) {
                 Ok(color_from_number(number))
             } else if let Ok(name) = ArgsName::from_lua_multi(args.clone(), lua) {
                 Ok(color_from_name(name))
-            } else if let Ok((r, g, b)) = ArgsRgb::from_lua_multi(args.clone(), lua) {
-                Ok(color_from_rgb(r, g, b))
             } else if let Ok(color) = ArgsColor3::from_lua_multi(args.clone(), lua) {
                 Ok(Self::from(*color))
             } else {
@@ -50,7 +53,7 @@ impl LuaExportsTable<'_> for BrickColor {
             }
         };
 
-        let brick_color_palette = |_, index: u16| {
+        let brick_color_palette = |_: &Lua, index: u16| {
             if index == 0 {
                 Err(LuaError::RuntimeError("Invalid index".to_string()))
             } else if let Some(number) = BRICK_COLOR_PALETTE.get((index - 1) as usize) {
@@ -60,8 +63,8 @@ impl LuaExportsTable<'_> for BrickColor {
             }
         };
 
-        let brick_color_random = |_, ()| {
-            let number = BRICK_COLOR_PALETTE.choose(&mut rand::thread_rng());
+        let brick_color_random = |_: &Lua, ()| {
+            let number = BRICK_COLOR_PALETTE.choose(&mut rand::rng());
             Ok(color_from_number(*number.unwrap()))
         };
 
@@ -71,7 +74,7 @@ impl LuaExportsTable<'_> for BrickColor {
             .with_function("random", brick_color_random)?;
 
         for (name, number) in BRICK_COLOR_CONSTRUCTORS {
-            let f = |_, ()| Ok(color_from_number(*number));
+            let f = |_: &Lua, ()| Ok(color_from_number(*number));
             builder = builder.with_function(*name, f)?;
         }
 
@@ -80,7 +83,7 @@ impl LuaExportsTable<'_> for BrickColor {
 }
 
 impl LuaUserData for BrickColor {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Number", |_, this| Ok(this.number));
         fields.add_field_method_get("Name", |_, this| Ok(this.name));
         fields.add_field_method_get("R", |_, this| Ok(this.rgb.0 as f32 / 255f32));
@@ -92,7 +95,7 @@ impl LuaUserData for BrickColor {
         fields.add_field_method_get("Color", |_, this| Ok(Color3::from(*this)));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         methods.add_meta_method(LuaMetaMethod::Eq, userdata_impl_eq);
         methods.add_meta_method(LuaMetaMethod::ToString, userdata_impl_to_string);
     }
@@ -112,10 +115,7 @@ impl fmt::Display for BrickColor {
 
 impl From<Color3> for BrickColor {
     fn from(value: Color3) -> Self {
-        let r = value.r.clamp(u8::MIN as f32, u8::MAX as f32) as u8;
-        let g = value.g.clamp(u8::MIN as f32, u8::MAX as f32) as u8;
-        let b = value.b.clamp(u8::MIN as f32, u8::MAX as f32) as u8;
-        color_from_rgb(r, g, b)
+        color_from_rgb(value.r, value.g, value.b)
     }
 }
 
@@ -181,19 +181,20 @@ fn color_from_name(name: impl AsRef<str>) -> BrickColor {
         .into()
 }
 
-fn color_from_rgb(r: u8, g: u8, b: u8) -> BrickColor {
-    let r = r as i16;
-    let g = g as i16;
-    let b = b as i16;
+fn color_from_rgb(r: f32, g: f32, b: f32) -> BrickColor {
+    let r = (r * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as i16;
+    let g = (g * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as i16;
+    let b = (b * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as i16;
     BRICK_COLOR_VALUES
         .iter()
         .fold(
             (None, u16::MAX),
             |(closest_color, closest_distance), color| {
-                let cr = color.2 .0 as i16;
-                let cg = color.2 .1 as i16;
-                let cb = color.2 .2 as i16;
-                let distance = ((r - cr) + (g - cg) + (b - cb)).unsigned_abs();
+                let cr = color.2.0 as i16;
+                let cg = color.2.1 as i16;
+                let cb = color.2.2 as i16;
+                let distance =
+                    (r - cr).unsigned_abs() + (g - cg).unsigned_abs() + (b - cb).unsigned_abs();
                 if distance < closest_distance {
                     (Some(color), distance)
                 } else {

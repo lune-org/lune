@@ -32,10 +32,10 @@ impl CVoidInfo {
 }
 
 impl LuaUserData for CVoidInfo {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("size", |_lua, _this| Ok(0));
     }
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         method_provider::provide_to_string(methods);
         method_provider::provide_ptr(methods);
     }

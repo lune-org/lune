@@ -38,7 +38,7 @@ mod association_names {
 
 // Export c namespace
 pub fn export_c(lua: &Lua) -> LuaResult<LuaTable> {
-    TableBuilder::new(lua)?
+    TableBuilder::new(lua.clone())?
         .with_value("void", CVoidInfo::new())?
         .with_values(export_c_types(lua)?)?
         .with_function("struct", |lua, types: LuaTable| {

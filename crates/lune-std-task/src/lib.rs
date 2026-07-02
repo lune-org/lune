@@ -1,13 +1,24 @@
 #![allow(clippy::cargo_common_metadata)]
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use async_io::Timer;
+use futures_lite::future::yield_now;
 
 use mlua::prelude::*;
 use mlua_luau_scheduler::Functions;
 
-use tokio::time::{sleep, Instant};
-
 use lune_utils::TableBuilder;
+
+const TYPEDEFS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/types.d.luau"));
+
+/**
+    Returns a string containing type definitions for the `task` standard library.
+*/
+#[must_use]
+pub fn typedefs() -> String {
+    TYPEDEFS.to_string()
+}
 
 /**
     Creates the `task` standard library module.
@@ -16,13 +27,13 @@ use lune_utils::TableBuilder;
 
     Errors when out of memory, or if default Lua globals are missing.
 */
-pub fn module(lua: &Lua) -> LuaResult<LuaTable> {
-    let fns = Functions::new(lua)?;
+pub fn module(lua: Lua) -> LuaResult<LuaTable> {
+    let fns = Functions::new(lua.clone())?;
 
     // Create wait & delay functions
     let task_wait = lua.create_async_function(wait)?;
-    let task_delay_env = TableBuilder::new(lua)?
-        .with_value("select", lua.globals().get::<_, LuaFunction>("select")?)?
+    let task_delay_env = TableBuilder::new(lua.clone())?
+        .with_value("select", lua.globals().get::<LuaFunction>("select")?)?
         .with_value("spawn", fns.spawn.clone())?
         .with_value("defer", fns.defer.clone())?
         .with_value("wait", task_wait.clone())?
@@ -49,12 +60,31 @@ return defer(function(...)
 end, ...)
 ";
 
-async fn wait(_: &Lua, secs: Option<f64>) -> LuaResult<f64> {
-    let duration = Duration::from_secs_f64(secs.unwrap_or_default());
+async fn wait(lua: Lua, secs: Option<f64>) -> LuaResult<f64> {
+    // NOTE: We must guarantee that the task.wait API always yields
+    // from a lua perspective, even if sleep/timer completes instantly
+    yield_now().await;
+    wait_inner(lua, secs).await
+}
 
+async fn wait_inner(_: Lua, secs: Option<f64>) -> LuaResult<f64> {
+    // One millisecond is a reasonable minimum sleep duration,
+    // anything lower than this runs the risk of completing the
+    // the below timer instantly, without giving control to the OS ...
+    //
+    // NOTE: We use `try_from_secs_f64` and fall back to the minimum duration
+    // since `from_secs_f64` panics on non-finite or out-of-range inputs (NaN,
+    // negative, or overflowing values) - this matches Roblox treating such
+    // `task.wait` arguments leniently instead of crashing the process.
+    let duration = Duration::try_from_secs_f64(secs.unwrap_or_default())
+        .unwrap_or(Duration::ZERO)
+        .max(Duration::from_millis(1));
+    // ... however, we should still _guarantee_ that whatever
+    // coroutine that calls this sleep function always yields,
+    // even if the timer is able to complete without doing so
+    yield_now().await;
+    // We may then sleep as normal
     let before = Instant::now();
-    sleep(duration).await;
-    let after = Instant::now();
-
+    let after = Timer::after(duration).await;
     Ok((after - before).as_secs_f64())
 }

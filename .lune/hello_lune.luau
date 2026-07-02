@@ -1,6 +1,7 @@
 local fs = require("@lune/fs")
 local net = require("@lune/net")
 local process = require("@lune/process")
+local serde = require("@lune/serde")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
@@ -145,10 +146,8 @@ local result = process.exec("ping", {
 
 if result.ok then
 	assert(#result.stdout > 0, "Result output was empty")
-	local min, avg, max, stddev = string.match(
-		result.stdout,
-		"min/avg/max/stddev = ([%d%.]+)/([%d%.]+)/([%d%.]+)/([%d%.]+) ms"
-	)
+	local min, avg, max, stddev =
+		string.match(result.stdout, "min/avg/max/stddev = ([%d%.]+)/([%d%.]+)/([%d%.]+)/([%d%.]+) ms")
 	print(string.format("Minimum ping time: %.3fms", assert(tonumber(min))))
 	print(string.format("Maximum ping time: %.3fms", assert(tonumber(max))))
 	print(string.format("Average ping time: %.3fms", assert(tonumber(avg))))
@@ -172,7 +171,7 @@ local apiResult = net.request({
 	headers = {
 		["Content-Type"] = "application/json",
 	} :: { [string]: string },
-	body = net.jsonEncode({
+	body = serde.encode("json", {
 		title = "foo",
 		body = "bar",
 	}),
@@ -192,7 +191,7 @@ type ApiResponse = {
 	userId: number,
 }
 
-local apiResponse: ApiResponse = net.jsonDecode(apiResult.body)
+local apiResponse: ApiResponse = serde.decode("json", apiResult.body)
 assert(apiResponse.title == "foo", "Invalid json response")
 assert(apiResponse.body == "bar", "Invalid json response")
 print("Got valid JSON response with changes applied")

@@ -1,13 +1,13 @@
 use std::{
-    borrow::Borrow,
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
-use mlua::{prelude::*, AppDataRef};
+use mlua::{AppDataRef, prelude::*};
 use thiserror::Error;
 
 use super::Instance;
+use crate::shared::instance::class_name_chain;
 
 type InstanceRegistryMap = HashMap<String, HashMap<String, LuaRegistryKey>>;
 
@@ -58,11 +58,11 @@ impl InstanceRegistry {
 
         - If the method already exists in the registry.
     */
-    pub fn insert_method<'lua>(
-        lua: &'lua Lua,
+    pub fn insert_method(
+        lua: &Lua,
         class_name: &str,
         method_name: &str,
-        method: LuaFunction<'lua>,
+        method: LuaFunction,
     ) -> Result<(), InstanceRegistryError> {
         let registry = Self::get_or_create(lua);
 
@@ -94,11 +94,11 @@ impl InstanceRegistry {
 
         - If the property already exists in the registry.
     */
-    pub fn insert_property_getter<'lua>(
-        lua: &'lua Lua,
+    pub fn insert_property_getter(
+        lua: &Lua,
         class_name: &str,
         property_name: &str,
-        property_getter: LuaFunction<'lua>,
+        property_getter: LuaFunction,
     ) -> Result<(), InstanceRegistryError> {
         let registry = Self::get_or_create(lua);
 
@@ -130,11 +130,11 @@ impl InstanceRegistry {
 
         - If the property already exists in the registry.
     */
-    pub fn insert_property_setter<'lua>(
-        lua: &'lua Lua,
+    pub fn insert_property_setter(
+        lua: &Lua,
         class_name: &str,
         property_name: &str,
-        property_setter: LuaFunction<'lua>,
+        property_setter: LuaFunction,
     ) -> Result<(), InstanceRegistryError> {
         let registry = Self::get_or_create(lua);
 
@@ -165,11 +165,7 @@ impl InstanceRegistry {
         Returns `None` if the method is not found.
     */
     #[must_use]
-    pub fn find_method<'lua>(
-        lua: &'lua Lua,
-        instance: &Instance,
-        method_name: &str,
-    ) -> Option<LuaFunction<'lua>> {
+    pub fn find_method(lua: &Lua, instance: &Instance, method_name: &str) -> Option<LuaFunction> {
         let registry = Self::get_or_create(lua);
         let methods = registry
             .methods
@@ -178,9 +174,9 @@ impl InstanceRegistry {
 
         class_name_chain(&instance.class_name)
             .iter()
-            .find_map(|&class_name| {
+            .find_map(|class_name| {
                 methods
-                    .get(class_name)
+                    .get(class_name.as_str())
                     .and_then(|class_methods| class_methods.get(method_name))
                     .map(|key| lua.registry_value::<LuaFunction>(key).unwrap())
             })
@@ -192,11 +188,11 @@ impl InstanceRegistry {
         Returns `None` if the property getter is not found.
     */
     #[must_use]
-    pub fn find_property_getter<'lua>(
-        lua: &'lua Lua,
+    pub fn find_property_getter(
+        lua: &Lua,
         instance: &Instance,
         property_name: &str,
-    ) -> Option<LuaFunction<'lua>> {
+    ) -> Option<LuaFunction> {
         let registry = Self::get_or_create(lua);
         let getters = registry
             .getters
@@ -205,9 +201,9 @@ impl InstanceRegistry {
 
         class_name_chain(&instance.class_name)
             .iter()
-            .find_map(|&class_name| {
+            .find_map(|class_name| {
                 getters
-                    .get(class_name)
+                    .get(class_name.as_str())
                     .and_then(|class_getters| class_getters.get(property_name))
                     .map(|key| lua.registry_value::<LuaFunction>(key).unwrap())
             })
@@ -219,11 +215,11 @@ impl InstanceRegistry {
         Returns `None` if the property setter is not found.
     */
     #[must_use]
-    pub fn find_property_setter<'lua>(
-        lua: &'lua Lua,
+    pub fn find_property_setter(
+        lua: &Lua,
         instance: &Instance,
         property_name: &str,
-    ) -> Option<LuaFunction<'lua>> {
+    ) -> Option<LuaFunction> {
         let registry = Self::get_or_create(lua);
         let setters = registry
             .setters
@@ -232,43 +228,11 @@ impl InstanceRegistry {
 
         class_name_chain(&instance.class_name)
             .iter()
-            .find_map(|&class_name| {
+            .find_map(|class_name| {
                 setters
-                    .get(class_name)
+                    .get(class_name.as_str())
                     .and_then(|class_setters| class_setters.get(property_name))
                     .map(|key| lua.registry_value::<LuaFunction>(key).unwrap())
             })
     }
-}
-
-/**
-    Gets the class name chain for a given class name.
-
-    The chain starts with the given class name and ends with the root class.
-
-    # Panics
-
-    Panics if the class name is not valid.
-*/
-#[must_use]
-pub fn class_name_chain(class_name: &str) -> Vec<&str> {
-    let db = rbx_reflection_database::get();
-
-    let mut list = vec![class_name];
-    let mut current_name = class_name;
-
-    loop {
-        let class_descriptor = db
-            .classes
-            .get(current_name)
-            .expect("Got invalid class name");
-        if let Some(sup) = &class_descriptor.superclass {
-            current_name = sup.borrow();
-            list.push(current_name);
-        } else {
-            break;
-        }
-    }
-
-    list
 }

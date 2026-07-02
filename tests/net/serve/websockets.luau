@@ -3,7 +3,7 @@ local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 local task = require("@lune/task")
 
-local PORT = 8081
+local PORT = 8855
 local WS_URL = `ws://127.0.0.1:{PORT}`
 local REQUEST = "Hello from client!"
 local RESPONSE = "Hello, lune!"
@@ -50,6 +50,9 @@ assert(socketMessage ~= nil, "Got no web socket response from server")
 assert(socketMessage == RESPONSE, "Invalid web socket response from server")
 
 socket:close()
+
+-- Closing the socket should populate closeCode immediately (#182)
+assert(socket.closeCode == 1000, "closeCode should be 1000 after a normal close")
 
 task.cancel(thread2)
 

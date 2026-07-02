@@ -1,6 +1,6 @@
 use std::fmt;
 
-use console::{style, Color};
+use console::{Color, style};
 
 /**
     Label enum used for consistent output formatting throughout Lune.

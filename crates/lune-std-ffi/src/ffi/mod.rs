@@ -1,4 +1,3 @@
-use std::cell::Ref;
 
 use mlua::prelude::*;
 
@@ -22,36 +21,36 @@ pub trait FfiSignedness {
 // Provide conversion between luau value and ffi types
 pub trait FfiConvert {
     // Write LuaValue into FfiData
-    unsafe fn value_into_data<'lua>(
+    unsafe fn value_into_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-        value: LuaValue<'lua>,
+        data_handle: &dyn FfiData,
+        value: LuaValue,
     ) -> LuaResult<()>;
 
     // Read LuaValue from FfiData
-    unsafe fn value_from_data<'lua>(
+    unsafe fn value_from_data(
         &self,
-        lua: &'lua Lua,
+        lua: &Lua,
         offset: isize,
-        data_handle: &Ref<dyn FfiData>,
-    ) -> LuaResult<LuaValue<'lua>>;
+        data_handle: &dyn FfiData,
+    ) -> LuaResult<LuaValue>;
 
     unsafe fn copy_data(
         &self,
         lua: &Lua,
         dst_offset: isize,
         src_offset: isize,
-        dst: &Ref<dyn FfiData>,
-        src: &Ref<dyn FfiData>,
+        dst: &dyn FfiData,
+        src: &dyn FfiData,
     ) -> LuaResult<()>;
 
     unsafe fn stringify_data(
         &self,
         _lua: &Lua,
         _offset: isize,
-        _data_handle: &Ref<dyn FfiData>,
+        _data_handle: &dyn FfiData,
     ) -> LuaResult<String> {
         Err(LuaError::external("Stringify method not implemented"))
     }
@@ -65,7 +64,7 @@ pub trait FfiData {
     fn is_readable(&self) -> bool;
     unsafe fn copy_from(
         &self,
-        src: &Ref<dyn FfiData>,
+        src: &dyn FfiData,
         length: usize,
         dst_offset: isize,
         src_offset: isize,

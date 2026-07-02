@@ -1,4 +1,3 @@
-use std::cell::Ref;
 
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
@@ -8,8 +7,8 @@ use super::FfiData;
 // Cast number type to another number type, with num::cast library
 #[inline]
 pub fn num_cast<From, Into>(
-    from: &Ref<dyn FfiData>,
-    into: &Ref<dyn FfiData>,
+    from: &dyn FfiData,
+    into: &dyn FfiData,
     from_offset: isize,
     into_offset: isize,
 ) -> LuaResult<()>

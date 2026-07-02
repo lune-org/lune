@@ -8,7 +8,7 @@ use super::{super::*, EnumItem};
 /**
     An implementation of the [Enum](https://create.roblox.com/docs/reference/engine/datatypes/Enum) Roblox datatype.
 
-    This implements all documented properties, methods & constructors of the Enum class as of March 2023.
+    This implements all documented properties, methods & constructors of the Enum class as of May 2026.
 */
 #[derive(Debug, Clone)]
 pub struct Enum {
@@ -17,13 +17,13 @@ pub struct Enum {
 
 impl Enum {
     pub(crate) fn from_name(name: impl AsRef<str>) -> Option<Self> {
-        let db = rbx_reflection_database::get();
+        let db = rbx_reflection_database::get().unwrap();
         db.enums.get(name.as_ref()).map(Enum::from)
     }
 }
 
 impl LuaUserData for Enum {
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
         methods.add_method("GetEnumItems", |_, this, ()| {
             Ok(this

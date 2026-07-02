@@ -2,7 +2,7 @@
 
 use std::{
     cell::Cell,
-    rc::{Rc, Weak as WeakRc},
+    rc::Rc,
     sync::{Arc, Weak as WeakArc},
     thread::panicking,
 };
@@ -11,17 +11,16 @@ use futures_lite::prelude::*;
 use mlua::prelude::*;
 
 use async_executor::{Executor, LocalExecutor};
-use tracing::{debug, instrument, trace, trace_span, Instrument};
+use tracing::{Instrument, debug, instrument, trace, trace_span};
 
 use crate::{
     error_callback::ThreadErrorCallback,
     exit::Exit,
     queue::{DeferredThreadQueue, FuturesQueue, SpawnedThreadQueue},
-    result_map::ThreadResultMap,
     status::Status,
-    thread_id::ThreadId,
+    threads::{ThreadId, ThreadMap},
     traits::IntoLuaThread,
-    util::{run_until_yield, ThreadResult},
+    util::run_until_yield,
 };
 
 const ERR_METADATA_ALREADY_ATTACHED: &str = "\
@@ -43,17 +42,17 @@ Cannot set error callback when scheduler is running!\
     A scheduler for running Lua threads and async tasks.
 */
 #[derive(Clone)]
-pub struct Scheduler<'lua> {
-    lua: &'lua Lua,
+pub struct Scheduler {
+    lua: Lua,
     queue_spawn: SpawnedThreadQueue,
     queue_defer: DeferredThreadQueue,
     error_callback: ThreadErrorCallback,
-    result_map: ThreadResultMap,
+    thread_map: ThreadMap,
     status: Rc<Cell<Status>>,
     exit: Exit,
 }
 
-impl<'lua> Scheduler<'lua> {
+impl Scheduler {
     /**
         Creates a new scheduler for the given Lua state.
 
@@ -64,11 +63,11 @@ impl<'lua> Scheduler<'lua> {
         Panics if the given Lua state already has a scheduler attached to it.
     */
     #[must_use]
-    pub fn new(lua: &'lua Lua) -> Scheduler<'lua> {
+    pub fn new(lua: Lua) -> Scheduler {
         let queue_spawn = SpawnedThreadQueue::new();
         let queue_defer = DeferredThreadQueue::new();
         let error_callback = ThreadErrorCallback::default();
-        let result_map = ThreadResultMap::new();
+        let result_map = ThreadMap::new();
         let exit = Exit::new();
 
         assert!(
@@ -84,7 +83,7 @@ impl<'lua> Scheduler<'lua> {
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
         assert!(
-            lua.app_data_ref::<ThreadResultMap>().is_none(),
+            lua.app_data_ref::<ThreadMap>().is_none(),
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
         assert!(
@@ -105,7 +104,7 @@ impl<'lua> Scheduler<'lua> {
             queue_spawn,
             queue_defer,
             error_callback,
-            result_map,
+            thread_map: result_map,
             status,
             exit,
         }
@@ -197,11 +196,11 @@ impl<'lua> Scheduler<'lua> {
     */
     pub fn push_thread_front(
         &self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
-        let id = self.queue_spawn.push_item(self.lua, thread, args)?;
-        self.result_map.track(id);
+        let id = self.queue_spawn.push_item(&self.lua, thread, args)?;
+        self.thread_map.track(id);
         Ok(id)
     }
 
@@ -224,11 +223,11 @@ impl<'lua> Scheduler<'lua> {
     */
     pub fn push_thread_back(
         &self,
-        thread: impl IntoLuaThread<'lua>,
-        args: impl IntoLuaMulti<'lua>,
+        thread: impl IntoLuaThread,
+        args: impl IntoLuaMulti,
     ) -> LuaResult<ThreadId> {
-        let id = self.queue_defer.push_item(self.lua, thread, args)?;
-        self.result_map.track(id);
+        let id = self.queue_defer.push_item(&self.lua, thread, args)?;
+        self.thread_map.track(id);
         Ok(id)
     }
 
@@ -247,8 +246,8 @@ impl<'lua> Scheduler<'lua> {
         Any subsequent calls after this method returns `Some` will return `None`.
     */
     #[must_use]
-    pub fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue<'lua>>> {
-        self.result_map.remove(id).map(|r| r.value(self.lua))
+    pub fn get_thread_result(&self, id: ThreadId) -> Option<LuaResult<LuaMultiValue>> {
+        self.thread_map.remove(id)
     }
 
     /**
@@ -257,11 +256,13 @@ impl<'lua> Scheduler<'lua> {
         This will return instantly if the thread has already completed.
     */
     pub async fn wait_for_thread(&self, id: ThreadId) {
-        self.result_map.listen(id).await;
+        self.thread_map.listen(id).await;
     }
 
     /**
         Runs the scheduler until all Lua threads have completed.
+
+        This will return instantly if no threads have been scheduled.
 
         Note that the given Lua state must be the same one that was
         used to create this scheduler, otherwise this method will panic.
@@ -273,8 +274,12 @@ impl<'lua> Scheduler<'lua> {
     #[allow(clippy::too_many_lines)]
     #[instrument(level = "debug", name = "Scheduler::run", skip(self))]
     pub async fn run(&self) {
+        if self.queue_spawn.is_empty() && self.queue_defer.is_empty() {
+            return;
+        }
+
         /*
-            Create new executors to use - note that we do not need create multiple executors
+            Create new executors to use - note that we do not need to create multiple executors
             for work stealing, the user may do that themselves if they want to and it will work
             just fine, as long as anything async is .await-ed from within a Lua async function.
 
@@ -286,7 +291,7 @@ impl<'lua> Scheduler<'lua> {
         */
         let local_exec = LocalExecutor::new();
         let main_exec = Arc::new(Executor::new());
-        let fut_queue = Rc::new(FuturesQueue::new());
+        let fut_queue = FuturesQueue::new();
 
         /*
             Store the main executor and queue in Lua, so that they may be used with LuaSchedulerExt.
@@ -299,12 +304,12 @@ impl<'lua> Scheduler<'lua> {
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
         assert!(
-            self.lua.app_data_ref::<WeakRc<FuturesQueue>>().is_none(),
+            self.lua.app_data_ref::<FuturesQueue>().is_none(),
             "{ERR_METADATA_ALREADY_ATTACHED}"
         );
 
         self.lua.set_app_data(Arc::downgrade(&main_exec));
-        self.lua.set_app_data(Rc::downgrade(&fut_queue.clone()));
+        self.lua.set_app_data(fut_queue.clone());
 
         /*
             Manually tick the Lua executor, while running under the main executor.
@@ -320,8 +325,8 @@ impl<'lua> Scheduler<'lua> {
             when there are new Lua threads to enqueue and potentially more work to be done.
         */
         let fut = async {
-            let result_map = self.result_map.clone();
-            let process_thread = |thread: LuaThread<'lua>, args| {
+            let result_map = self.thread_map.clone();
+            let process_thread = |thread: LuaThread, args| {
                 // NOTE: Thread may have been cancelled from Lua
                 // before we got here, so we need to check it again
                 if thread.status() == LuaThreadStatus::Resumable {
@@ -342,16 +347,15 @@ impl<'lua> Scheduler<'lua> {
                                     self.error_callback.call(e);
                                 }
                                 if thread.status() != LuaThreadStatus::Resumable {
-                                    let thread_res = ThreadResult::new(res, self.lua);
-                                    result_map_inner.unwrap().insert(id, thread_res);
+                                    result_map_inner.unwrap().insert(id, res);
                                 }
                             }
                         } else {
                             // Just run until yield
-                            if let Some(res) = run_until_yield(thread, args).await {
-                                if let Err(e) = res.as_ref() {
-                                    self.error_callback.call(e);
-                                }
+                            if let Some(res) = run_until_yield(thread, args).await
+                                && let Err(e) = res.as_ref()
+                            {
+                                self.error_callback.call(e);
                             }
                         }
                     };
@@ -398,21 +402,21 @@ impl<'lua> Scheduler<'lua> {
                 let mut num_futures = 0;
                 {
                     let _span = trace_span!("Scheduler::drain_spawned").entered();
-                    for (thread, args) in self.queue_spawn.drain_items(self.lua) {
+                    for (thread, args) in self.queue_spawn.take_items() {
                         process_thread(thread, args);
                         num_spawned += 1;
                     }
                 }
                 {
                     let _span = trace_span!("Scheduler::drain_deferred").entered();
-                    for (thread, args) in self.queue_defer.drain_items(self.lua) {
+                    for (thread, args) in self.queue_defer.take_items() {
                         process_thread(thread, args);
                         num_deferred += 1;
                     }
                 }
                 {
                     let _span = trace_span!("Scheduler::drain_futures").entered();
-                    for fut in fut_queue.drain_items() {
+                    for fut in fut_queue.take_items() {
                         local_exec.spawn(fut).detach();
                         num_futures += 1;
                     }
@@ -446,12 +450,12 @@ impl<'lua> Scheduler<'lua> {
             .remove_app_data::<WeakArc<Executor>>()
             .expect(ERR_METADATA_REMOVED);
         self.lua
-            .remove_app_data::<WeakRc<FuturesQueue>>()
+            .remove_app_data::<FuturesQueue>()
             .expect(ERR_METADATA_REMOVED);
     }
 }
 
-impl Drop for Scheduler<'_> {
+impl Drop for Scheduler {
     fn drop(&mut self) {
         if panicking() {
             // Do not cause further panics if already panicking, as
@@ -459,7 +463,7 @@ impl Drop for Scheduler<'_> {
             self.lua.remove_app_data::<SpawnedThreadQueue>();
             self.lua.remove_app_data::<DeferredThreadQueue>();
             self.lua.remove_app_data::<ThreadErrorCallback>();
-            self.lua.remove_app_data::<ThreadResultMap>();
+            self.lua.remove_app_data::<ThreadMap>();
             self.lua.remove_app_data::<Exit>();
         } else {
             // In any other case we panic if metadata was removed incorrectly
@@ -473,7 +477,7 @@ impl Drop for Scheduler<'_> {
                 .remove_app_data::<ThreadErrorCallback>()
                 .expect(ERR_METADATA_REMOVED);
             self.lua
-                .remove_app_data::<ThreadResultMap>()
+                .remove_app_data::<ThreadMap>()
                 .expect(ERR_METADATA_REMOVED);
             self.lua
                 .remove_app_data::<Exit>()

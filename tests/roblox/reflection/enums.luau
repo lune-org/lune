@@ -2,6 +2,14 @@ local roblox = require("@lune/roblox")
 
 local db = roblox.getReflectionDatabase()
 
+-- Certain enums are legitimately empty in the database,
+-- and must not make this test fail.
+
+local IGNORED_EMPTY_ENUMS: { string } = {
+	"AudioCaptureMode",
+	"TagReplicability",
+}
+
 -- Make sure database enums exist + fields / properties are correct types
 
 for _, enumName in db:GetEnumNames() do
@@ -28,5 +36,7 @@ for _, enumName in db:GetEnumNames() do
 		)
 		empty = false
 	end
-	assert(not empty, "Enum items map must not be empty")
+	if empty and table.find(IGNORED_EMPTY_ENUMS, enumName) == nil then
+		error(`Enum items map must not be empty - encountered empty enum "{enumName}"`)
+	end
 end

@@ -1,14 +1,15 @@
-use std::fmt;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{
+    fmt,
+    str::FromStr,
+    sync::{Arc, LazyLock},
+};
 
 use console::style;
 use mlua::prelude::*;
-use once_cell::sync::Lazy;
 
 use super::StackTrace;
 
-static STYLED_STACK_BEGIN: Lazy<String> = Lazy::new(|| {
+static STYLED_STACK_BEGIN: LazyLock<String> = LazyLock::new(|| {
     format!(
         "{}{}{}",
         style("[").dim(),
@@ -17,7 +18,7 @@ static STYLED_STACK_BEGIN: Lazy<String> = Lazy::new(|| {
     )
 });
 
-static STYLED_STACK_END: Lazy<String> = Lazy::new(|| {
+static STYLED_STACK_END: LazyLock<String> = LazyLock::new(|| {
     format!(
         "{}{}{}",
         style("[").dim(),
@@ -88,7 +89,7 @@ impl fmt::Display for ErrorComponents {
             writeln!(f, "{message}")?;
         }
         if self.has_trace() {
-            let trace = self.trace.as_ref().unwrap();
+            let trace = self.trace.as_ref().expect("trace exists and is non-empty");
             writeln!(f, "{}", *STYLED_STACK_BEGIN)?;
             for line in trace.lines() {
                 writeln!(f, "{STACK_TRACE_INDENT}{line}")?;
@@ -103,7 +104,7 @@ impl From<LuaError> for ErrorComponents {
     fn from(error: LuaError) -> Self {
         fn lua_error_message(e: &LuaError) -> String {
             if let LuaError::RuntimeError(s) = e {
-                s.to_string()
+                s.clone()
             } else {
                 e.to_string()
             }
@@ -117,6 +118,7 @@ impl From<LuaError> for ErrorComponents {
 
         // Extract any additional "context" messages before the actual error(s)
         // The Arc is necessary here because mlua wraps all inner errors in an Arc
+        #[allow(clippy::arc_with_non_send_sync)]
         let mut error = Arc::new(error);
         let mut messages = Vec::new();
         while let LuaError::WithContext {
@@ -124,7 +126,7 @@ impl From<LuaError> for ErrorComponents {
             ref cause,
         } = *error
         {
-            messages.push(context.to_string());
+            messages.push(context.clone());
             error = cause.clone();
         }
 
@@ -144,7 +146,7 @@ impl From<LuaError> for ErrorComponents {
                 messages.push(message.trim().to_string());
                 lua_stack_trace(traceback)
             } else {
-                messages.push(s.to_string());
+                messages.push(s.clone());
                 None
             }
         } else {
@@ -174,23 +176,32 @@ impl From<LuaError> for ErrorComponents {
 
         // Finally, we do some light postprocessing to remove duplicate
         // information, such as the location prefix in the error message
-        if let Some(message) = messages.last_mut() {
-            if let Some(line) = trace
+        if let Some(message) = messages.last_mut()
+            && let Some(line) = trace
                 .iter()
                 .flat_map(StackTrace::lines)
                 .find(|line| line.source().is_lua())
-            {
-                let location_prefix = format!(
-                    "[string \"{}\"]:{}:",
-                    line.path().unwrap(),
-                    line.line_number().unwrap()
-                );
-                if message.starts_with(&location_prefix) {
-                    *message = message[location_prefix.len()..].trim().to_string();
+        {
+            if let Some(path) = line.path() {
+                let prefix = format!("[string \"{path}\"]:");
+                if message.starts_with(&prefix) {
+                    *message = message[prefix.len()..].trim().to_string();
+                }
+            }
+            if let Some(line) = line.line_number() {
+                let prefix = format!("{line}:");
+                if message.starts_with(&prefix) {
+                    *message = message[prefix.len()..].trim().to_string();
                 }
             }
         }
 
         ErrorComponents { messages, trace }
+    }
+}
+
+impl From<Box<LuaError>> for ErrorComponents {
+    fn from(value: Box<LuaError>) -> Self {
+        Self::from(*value)
     }
 }

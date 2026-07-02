@@ -2,7 +2,7 @@ use core::fmt;
 use std::ops;
 
 use glam::Vec3;
-use mlua::prelude::*;
+use mlua::{Variadic, prelude::*};
 use rbx_dom_weak::types::Vector3 as DomVector3;
 
 use lune_utils::TableBuilder;
@@ -16,7 +16,7 @@ use super::{super::*, EnumItem};
     Roblox datatype, backed by [`glam::Vec3`].
 
     This implements all documented properties, methods &
-    constructors of the Vector3 class as of March 2023.
+    constructors of the Vector3 class as of May 2026.
 
     Note that this does not use native Luau vectors to simplify implementation
     and instead allow us to implement all abovementioned APIs accurately.
@@ -24,11 +24,11 @@ use super::{super::*, EnumItem};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector3(pub Vec3);
 
-impl LuaExportsTable<'_> for Vector3 {
+impl LuaExportsTable for Vector3 {
     const EXPORT_NAME: &'static str = "Vector3";
 
-    fn create_exports_table(lua: &Lua) -> LuaResult<LuaTable> {
-        let vector3_from_axis = |_, normal_id: LuaUserDataRef<EnumItem>| {
+    fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
+        let vector3_from_axis = |_: &Lua, normal_id: LuaUserDataRef<EnumItem>| {
             if normal_id.parent.desc.name == "Axis" {
                 Ok(match normal_id.name.as_str() {
                     "X" => Vector3(Vec3::X),
@@ -37,7 +37,7 @@ impl LuaExportsTable<'_> for Vector3 {
                     name => {
                         return Err(LuaError::RuntimeError(format!(
                             "Axis '{name}' is not known",
-                        )))
+                        )));
                     }
                 })
             } else {
@@ -48,19 +48,19 @@ impl LuaExportsTable<'_> for Vector3 {
             }
         };
 
-        let vector3_from_normal_id = |_, normal_id: LuaUserDataRef<EnumItem>| {
+        let vector3_from_normal_id = |_: &Lua, normal_id: LuaUserDataRef<EnumItem>| {
             if normal_id.parent.desc.name == "NormalId" {
                 Ok(match normal_id.name.as_str() {
-                    "Left" => Vector3(Vec3::X),
+                    "Left" => Vector3(-Vec3::X),
                     "Top" => Vector3(Vec3::Y),
                     "Front" => Vector3(-Vec3::Z),
-                    "Right" => Vector3(-Vec3::X),
+                    "Right" => Vector3(Vec3::X),
                     "Bottom" => Vector3(-Vec3::Y),
                     "Back" => Vector3(Vec3::Z),
                     name => {
                         return Err(LuaError::RuntimeError(format!(
                             "NormalId '{name}' is not known",
-                        )))
+                        )));
                     }
                 })
             } else {
@@ -71,7 +71,7 @@ impl LuaExportsTable<'_> for Vector3 {
             }
         };
 
-        let vector3_new = |_, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
+        let vector3_new = |_: &Lua, (x, y, z): (Option<f32>, Option<f32>, Option<f32>)| {
             Ok(Vector3(Vec3 {
                 x: x.unwrap_or_default(),
                 y: y.unwrap_or_default(),
@@ -93,7 +93,7 @@ impl LuaExportsTable<'_> for Vector3 {
 }
 
 impl LuaUserData for Vector3 {
-    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+    fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Magnitude", |_, this| Ok(this.0.length()));
         fields.add_field_method_get("Unit", |_, this| Ok(Vector3(this.0.normalize())));
         fields.add_field_method_get("X", |_, this| Ok(this.0.x));
@@ -101,11 +101,19 @@ impl LuaUserData for Vector3 {
         fields.add_field_method_get("Z", |_, this| Ok(this.0.z));
     }
 
-    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+    fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("Angle", |_, this, rhs: LuaUserDataRef<Vector3>| {
-            Ok(this.0.angle_between(rhs.0))
-        });
+        methods.add_method(
+            "Angle",
+            |_, this, (rhs, axis): (LuaUserDataRef<Vector3>, Option<LuaUserDataRef<Vector3>>)| {
+                let angle = this.0.angle_between(rhs.0);
+                // With an axis, the sign of the angle follows the right-hand rule about it.
+                Ok(match axis {
+                    Some(axis) if this.0.cross(rhs.0).dot(axis.0) < 0.0 => -angle,
+                    _ => angle,
+                })
+            },
+        );
         methods.add_method("Cross", |_, this, rhs: LuaUserDataRef<Vector3>| {
             Ok(Vector3(this.0.cross(rhs.0)))
         });
@@ -114,7 +122,13 @@ impl LuaUserData for Vector3 {
         });
         methods.add_method(
             "FuzzyEq",
-            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector3>, f32)| {
+            |_, this, (rhs, epsilon): (LuaUserDataRef<Vector3>, Option<f32>)| {
+                let epsilon = epsilon.unwrap_or(1e-5);
+                if !(epsilon > 0.0 && epsilon <= 0.1) {
+                    return Err(LuaError::runtime(
+                        "The eps value provided to FuzzyEq should be a small positive value <= 0.1",
+                    ));
+                }
                 let eq_x = (rhs.0.x - this.0.x).abs() <= epsilon;
                 let eq_y = (rhs.0.y - this.0.y).abs() <= epsilon;
                 let eq_z = (rhs.0.z - this.0.z).abs() <= epsilon;
@@ -127,11 +141,19 @@ impl LuaUserData for Vector3 {
                 Ok(Vector3(this.0.lerp(rhs.0, alpha)))
             },
         );
-        methods.add_method("Max", |_, this, rhs: LuaUserDataRef<Vector3>| {
-            Ok(Vector3(this.0.max(rhs.0)))
+        methods.add_method("Max", |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
+            let mut result = this.0;
+            for vec in rhs {
+                result = result.max(vec.0);
+            }
+            Ok(Vector3(result))
         });
-        methods.add_method("Min", |_, this, rhs: LuaUserDataRef<Vector3>| {
-            Ok(Vector3(this.0.min(rhs.0)))
+        methods.add_method("Min", |_, this, rhs: Variadic<LuaUserDataRef<Vector3>>| {
+            let mut result = this.0;
+            for vec in rhs {
+                result = result.min(vec.0);
+            }
+            Ok(Vector3(result))
         });
         methods.add_method("Abs", |_, this, ()| Ok(Vector3(this.0.abs())));
         methods.add_method("Ceil", |_, this, ()| Ok(Vector3(this.0.ceil())));
@@ -143,7 +165,7 @@ impl LuaUserData for Vector3 {
         methods.add_meta_method(LuaMetaMethod::Unm, userdata_impl_unm);
         methods.add_meta_method(LuaMetaMethod::Add, userdata_impl_add);
         methods.add_meta_method(LuaMetaMethod::Sub, userdata_impl_sub);
-        methods.add_meta_method(LuaMetaMethod::Mul, userdata_impl_mul_f32);
+        methods.add_meta_function(LuaMetaMethod::Mul, userdata_impl_mul_f32::<Self>);
         methods.add_meta_method(LuaMetaMethod::Div, userdata_impl_div_f32);
         methods.add_meta_method(LuaMetaMethod::IDiv, userdata_impl_idiv_f32);
     }
