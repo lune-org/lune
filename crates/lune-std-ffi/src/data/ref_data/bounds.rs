@@ -1,4 +1,5 @@
 // Memory boundaries
+#[derive(Clone, Copy)]
 pub struct RefBounds {
     // How much bytes available above
     pub(crate) above: usize,
@@ -47,8 +48,13 @@ impl RefBounds {
             return false;
         }
 
-        // (Case2) end over below
-        let end = offset + (size as isize);
+        // (Case2) end over below; overflow means the range cannot fit
+        let Ok(size) = isize::try_from(size) else {
+            return false;
+        };
+        let Some(end) = offset.checked_add(size) else {
+            return false;
+        };
         end <= 0 || self.below >= end.unsigned_abs()
     }
 
@@ -67,6 +73,7 @@ impl RefBounds {
     //   ∨ ───∨───
     // Below = 3
     //
+    // Saturating keeps UNSIZED_BOUNDS (usize::MAX) unsized after offsetting
     #[inline]
     pub fn offset(&self, offset: isize) -> Self {
         let sign = offset.signum();
@@ -74,26 +81,17 @@ impl RefBounds {
 
         Self {
             above: match sign {
-                -1 => self.above - offset_abs,
-                1 => self.above + offset_abs,
+                -1 => self.above.saturating_sub(offset_abs),
+                1 => self.above.saturating_add(offset_abs),
                 0 => self.above,
                 _ => unreachable!(),
             },
             below: match sign {
-                -1 => self.below + offset_abs,
-                1 => self.below - offset_abs,
+                -1 => self.below.saturating_add(offset_abs),
+                1 => self.below.saturating_sub(offset_abs),
                 0 => self.below,
                 _ => unreachable!(),
             },
-        }
-    }
-}
-
-impl Clone for RefBounds {
-    fn clone(&self) -> Self {
-        Self {
-            above: self.above,
-            below: self.below,
         }
     }
 }
