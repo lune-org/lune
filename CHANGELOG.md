@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD023 -->
 <!-- markdownlint-disable MD033 -->
 
-# Changelog
+## `0.10.5` - July 2nd, 2026
 
 All notable changes to this project will be documented in this file.
 
@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the reflection database does not know about - such as those only present in specific Roblox builds - be implemented and used:
 
   ```luau
+  local roblox = require("@lune/roblox")
+
   roblox.registerService("FileSystemService")
 
   roblox.implementMethod("FileSystemService", "ReadFile", function(_, path: string)
@@ -45,10 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `ColorSequence.new(start, end)` silently ignoring its second constructor argument ([#391])
 - Fixed the `close` method on a child process writer not closing it ([#359])
 - Fixed truncation of `lune build` output paths containing dots on non-Windows targets ([#396])
+- Fixed deserialization of Roblox place/model files failing due to Tags now serializing using SharedString ([#397])
 
 [#391]: https://github.com/lune-org/lune/pull/391
 [#359]: https://github.com/lune-org/lune/pull/359
 [#396]: https://github.com/lune-org/lune/pull/396
+[#397]: https://github.com/lune-org/lune/pull/397
 
 ## `0.10.4` - October 14th, 2025
 
