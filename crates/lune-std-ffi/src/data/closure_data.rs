@@ -1,5 +1,5 @@
 use core::ffi::c_void;
-use std::ptr;
+use std::{panic::AssertUnwindSafe, ptr};
 
 use libffi::{
     low::{closure_alloc, closure_free, ffi_cif},
@@ -45,39 +45,50 @@ unsafe extern "C" fn callback(
     arg_pointers: *mut *mut c_void,
     closure_data: *mut c_void,
 ) {
-    let closure_data = closure_data.cast::<ClosureData>().as_ref().unwrap();
-    let lua = closure_data.lua.try_upgrade().unwrap();
-    let lua = &lua;
-    let len = (*cif).nargs as usize;
-    let mut args = Vec::<LuaValue>::with_capacity(len + 1);
+    let closure_data = &*closure_data.cast::<ClosureData>();
 
-    // Push result pointer (ref)
-    args.push(LuaValue::UserData(
-        lua.create_userdata(RefData::new(
+    // Zero the result first so a failed or silent callback returns a defined
+    // value instead of stack garbage.
+    if closure_data.result_info.size > 0 && !result_pointer.is_null() {
+        ptr::write_bytes(result_pointer.cast::<u8>(), 0, closure_data.result_info.size);
+    }
+
+    // A panic must not unwind across the C frame libffi called us from, so
+    // catch it and report it, leaving the zeroed result in place.
+    let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let lua = closure_data
+            .lua
+            .try_upgrade()
+            .ok_or_else(|| LuaError::external("Lua state has already been dropped"))?;
+        let len = (*cif).nargs as usize;
+        let mut args = Vec::<LuaValue>::with_capacity(len + 1);
+
+        // Push result pointer (ref)
+        args.push(LuaValue::UserData(lua.create_userdata(RefData::new(
             result_pointer.cast::<()>(),
             RESULT_REF_FLAGS,
             RefBounds::new(0, closure_data.result_info.size),
-        ))
-        .unwrap(),
-    ));
+        ))?));
 
-    // Push arg pointer (ref)
-    for i in 0..len {
-        let arg_info = closure_data.arg_info_list.get(i).unwrap();
-        args.push(LuaValue::UserData(
-            lua.create_userdata(RefData::new(
+        // Push arg pointer (ref)
+        for i in 0..len {
+            let arg_info = &closure_data.arg_info_list[i];
+            args.push(LuaValue::UserData(lua.create_userdata(RefData::new(
                 (*arg_pointers.add(i)).cast::<()>(),
                 arg_info.callback_ref_flag,
                 RefBounds::new(0, arg_info.size),
-            ))
-            .unwrap(),
-        ));
-    }
+            ))?));
+        }
 
-    lua.registry_value::<LuaFunction>(&closure_data.func)
-        .unwrap()
-        .call::<()>(LuaMultiValue::from_vec(args))
-        .unwrap();
+        lua.registry_value::<LuaFunction>(&closure_data.func)?
+            .call::<()>(LuaMultiValue::from_vec(args))
+    }));
+
+    match outcome {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) => eprintln!("[lune-std-ffi] error in ffi closure callback: {err}"),
+        Err(_) => eprintln!("[lune-std-ffi] panic in ffi closure callback"),
+    }
 }
 
 impl ClosureData {
@@ -90,6 +101,11 @@ impl ClosureData {
         func: LuaRegistryKey,
     ) -> LuaResult<LuaAnyUserData> {
         let (closure, code) = closure_alloc();
+        if closure.is_null() {
+            return Err(LuaError::external(
+                "Failed to allocate memory for the ffi closure",
+            ));
+        }
         let code = code.as_mut_ptr();
 
         let closure_data = lua.create_userdata(ClosureData {
