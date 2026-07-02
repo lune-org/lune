@@ -10,8 +10,8 @@ use libffi::{
 };
 use mlua::prelude::*;
 
-use super::{GetFfiData, RefData};
-use crate::ffi::{FfiArg, FfiData, FfiResult};
+use super::{FfiDataRef, GetFfiData};
+use crate::ffi::{libffi_helper::SIZE_OF_FFI_ARG, FfiArg, FfiData, FfiResult};
 
 // A function pointer that luau can call. it stores libffi cif for calling convention.
 pub struct CallableData {
@@ -21,36 +21,67 @@ pub struct CallableData {
     code: CodePtr,
 }
 
-const VOID_RESULT_PTR: *mut () = ptr::null_mut();
+const VOID_RESULT_PTR: *mut c_void = ptr::null_mut();
 const ZERO_SIZE_ARG_PTR: *mut *mut c_void = ptr::null_mut();
+
+// Get the pointer libffi reads an argument from. The userdata stays alive via
+// the caller's LuaMultiValue, so the pointer is valid for the call.
+#[inline]
+unsafe fn get_arg_pointer(
+    arg_info: &FfiArg,
+    arg_value: Option<&LuaValue>,
+    index: usize,
+) -> LuaResult<*mut c_void> {
+    let arg_value = arg_value
+        .ok_or_else(|| LuaError::external(format!("Argument {index} is required, but got none")))?;
+
+    let data = arg_value.get_ffi_data().map_err(|_| {
+        LuaError::external(format!(
+            "Argument {index} must be a BoxData, RefData or ClosureData"
+        ))
+    })?;
+
+    let pointer = data.get_inner_pointer();
+    if pointer.is_null() {
+        return Err(LuaError::external(format!(
+            "Argument {index} points to a null address"
+        )));
+    }
+    if !data.check_inner_boundary(0, arg_info.size) {
+        return Err(LuaError::external(format!(
+            "Argument {index} is too small for its type (expected {} bytes)",
+            arg_info.size
+        )));
+    }
+
+    Ok(pointer.cast::<c_void>())
+}
+
+// Where libffi writes the return value, plus what's needed to copy it back out
+// when it was widened.
+struct ResultTarget {
+    // Kept alive so the destination pointer stays valid during the call
+    data: Option<FfiDataRef>,
+    bounce: bool,
+}
 
 // Optimization:
 // Use known size array in stack instead of creating new Vec to eliminate heap allocation
 macro_rules! create_caller {
     ($len:expr) => {
         |callable: &CallableData, result: LuaValue, args: LuaMultiValue| unsafe {
-            // Get `rvalue: *mut c_void` result pointer
-            let result_pointer = if callable.result_info.size == 0 {
-                VOID_RESULT_PTR
-            } else {
-                result.get_ffi_data()?.get_inner_pointer()
-            }
-            .cast::<c_void>();
+            let mut widen_buffer = [0u8; SIZE_OF_FFI_ARG];
+            let (result_target, result_pointer) =
+                callable.prepare_result(result, &mut widen_buffer)?;
 
             // Create `avalue: *mut *mut c_void` argument list
             let mut arg_list: [MaybeUninit<*mut c_void>; $len] = [MaybeUninit::uninit(); $len];
             for (index, arg) in arg_list.iter_mut().enumerate() {
-                let arg_value = args
-                    .get(index)
-                    .ok_or_else(|| LuaError::external(format!("Argument {index} required")))?
-                    .as_userdata()
-                    .ok_or_else(|| LuaError::external("Argument must be a RefData"))?;
-
-                if let Ok(arg_ref) = arg_value.borrow::<RefData>() {
-                    arg.write(arg_ref.get_inner_pointer().cast::<c_void>());
-                } else {
-                    return Err(LuaError::external("Argument must be a RefData"));
-                }
+                arg.write(get_arg_pointer(
+                    &callable.arg_info_list[index],
+                    args.get(index),
+                    index,
+                )?);
             }
 
             ffi_call(
@@ -62,6 +93,7 @@ macro_rules! create_caller {
                     .as_mut_ptr(),
             );
 
+            callable.finish_result(&result_target, &widen_buffer);
             Ok(())
         }
     };
@@ -74,12 +106,8 @@ unsafe fn zero_size_caller(
     result: LuaValue,
     _args: LuaMultiValue,
 ) -> LuaResult<()> {
-    let result_pointer = if callable.result_info.size == 0 {
-        VOID_RESULT_PTR
-    } else {
-        result.get_ffi_data()?.get_inner_pointer()
-    }
-    .cast::<c_void>();
+    let mut widen_buffer = [0u8; SIZE_OF_FFI_ARG];
+    let (result_target, result_pointer) = callable.prepare_result(result, &mut widen_buffer)?;
 
     ffi_call(
         callable.cif,
@@ -88,6 +116,7 @@ unsafe fn zero_size_caller(
         ZERO_SIZE_ARG_PTR,
     );
 
+    callable.finish_result(&result_target, &widen_buffer);
     Ok(())
 }
 
@@ -130,6 +159,80 @@ impl CallableData {
         format!("0x{:x}", self.code.as_ptr() as usize)
     }
 
+    // libffi widens integral returns narrower than ffi_arg to a full word, so
+    // small returns bounce through widen_buffer and get copied out by
+    // finish_result; larger returns are written straight to the destination.
+    unsafe fn prepare_result(
+        &self,
+        result: LuaValue,
+        widen_buffer: &mut [u8; SIZE_OF_FFI_ARG],
+    ) -> LuaResult<(ResultTarget, *mut c_void)> {
+        let size = self.result_info.size;
+        if size == 0 {
+            return Ok((
+                ResultTarget {
+                    data: None,
+                    bounce: false,
+                },
+                VOID_RESULT_PTR,
+            ));
+        }
+
+        let data = result.get_ffi_data().map_err(|_| {
+            LuaError::external("Result must be a BoxData or RefData when the function returns a value")
+        })?;
+        if !data.is_writable() {
+            return Err(LuaError::external("Result is not writable"));
+        }
+        if !data.check_inner_boundary(0, size) {
+            return Err(LuaError::external(format!(
+                "Result is too small for the return type (expected {size} bytes)"
+            )));
+        }
+
+        if size < SIZE_OF_FFI_ARG {
+            Ok((
+                ResultTarget {
+                    data: Some(data),
+                    bounce: true,
+                },
+                widen_buffer.as_mut_ptr().cast::<c_void>(),
+            ))
+        } else {
+            let pointer = data.get_inner_pointer().cast::<c_void>();
+            Ok((
+                ResultTarget {
+                    data: Some(data),
+                    bounce: false,
+                },
+                pointer,
+            ))
+        }
+    }
+
+    // Copy a widened return value out of the bounce buffer into the destination.
+    unsafe fn finish_result(&self, target: &ResultTarget, widen_buffer: &[u8; SIZE_OF_FFI_ARG]) {
+        if !target.bounce {
+            return;
+        }
+        let size = self.result_info.size;
+        let destination = target
+            .data
+            .as_ref()
+            .expect("bounced result always has a destination")
+            .get_inner_pointer()
+            .cast::<u8>();
+
+        // On little-endian the value occupies the low `size` bytes; on
+        // big-endian, integral returns are right-justified within the word.
+        let source_offset = if cfg!(target_endian = "big") {
+            SIZE_OF_FFI_ARG - size
+        } else {
+            0
+        };
+        destination.copy_from(widen_buffer.as_ptr().add(source_offset), size);
+    }
+
     pub unsafe fn call(&self, result: LuaValue, args: LuaMultiValue) -> LuaResult<()> {
         let arg_len = self.arg_info_list.len();
         // Optimization: use sized caller when possible
@@ -137,28 +240,17 @@ impl CallableData {
             return SIZED_CALLERS[arg_len](self, result, args);
         }
 
-        // Get `rvalue: *mut c_void` result pointer
-        let result_pointer = if self.result_info.size == 0 {
-            VOID_RESULT_PTR
-        } else {
-            result.get_ffi_data()?.get_inner_pointer()
-        }
-        .cast::<c_void>();
+        let mut widen_buffer = [0u8; SIZE_OF_FFI_ARG];
+        let (result_target, result_pointer) = self.prepare_result(result, &mut widen_buffer)?;
 
         // Create `avalue: *mut *mut c_void` argument list
         let mut arg_list = Vec::<*mut c_void>::with_capacity(arg_len);
         for index in 0..arg_len {
-            let arg_value = args
-                .get(index)
-                .ok_or_else(|| LuaError::external(format!("Argument {index} required")))?
-                .as_userdata()
-                .ok_or_else(|| LuaError::external("Argument must be a RefData"))?;
-
-            if let Ok(arg_ref) = arg_value.borrow::<RefData>() {
-                arg_list.push(arg_ref.get_inner_pointer().cast::<c_void>());
-            } else {
-                return Err(LuaError::external("Argument must be a RefData"));
-            }
+            arg_list.push(get_arg_pointer(
+                &self.arg_info_list[index],
+                args.get(index),
+                index,
+            )?);
         }
 
         // Call libffi::raw::ffi_call
@@ -169,6 +261,7 @@ impl CallableData {
             arg_list.as_mut_ptr(),
         );
 
+        self.finish_result(&result_target, &widen_buffer);
         Ok(())
     }
 }

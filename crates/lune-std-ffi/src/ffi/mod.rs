@@ -104,25 +104,14 @@ pub trait FfiData {
 }
 
 // Function argument informations
+#[derive(Clone)]
 pub struct FfiArg {
     pub size: usize,
     pub callback_ref_flag: u8,
 }
-impl Clone for FfiArg {
-    fn clone(&self) -> Self {
-        Self {
-            size: self.size,
-            callback_ref_flag: self.callback_ref_flag,
-        }
-    }
-}
 
 // Function result information
+#[derive(Clone)]
 pub struct FfiResult {
     pub size: usize,
-}
-impl Clone for FfiResult {
-    fn clone(&self) -> Self {
-        Self { size: self.size }
-    }
 }

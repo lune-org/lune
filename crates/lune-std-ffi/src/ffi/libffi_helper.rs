@@ -5,6 +5,12 @@ use mlua::prelude::*;
 
 pub const SIZE_OF_POINTER: usize = size_of::<*mut ()>();
 
+// libffi widens any integral return value narrower than `ffi_arg` to a full
+// `ffi_arg` word when writing it through the result pointer. Callers must
+// therefore provide a result buffer of at least this many bytes.
+// See: <http://www.chiark.greenend.org.uk/doc/libffi-dev/html/The-Basics.html>
+pub const SIZE_OF_FFI_ARG: usize = size_of::<raw::ffi_arg>();
+
 // Get ensured size of ctype (raw::libffi_type)
 pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {
     let mut cif = low::ffi_cif::default();
