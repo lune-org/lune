@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored the `roblox` standard library to support multiple independent doms. Instances now have stable references,
   and place or model files containing colliding referents can be loaded at the same time without conflicts.
 - Updated to Luau version `0.709`
-- Updated to rbx-dom database version `0.700`
+- Updated to rbx-dom database version `0.728`
 
 ### Fixed
 
