@@ -23,10 +23,10 @@ glam = "0.33"
 rand = "0.10"
 thiserror = "2.0"
 
-rbx_binary = "3.0.0"
+rbx_binary = "3.0"
 rbx_dom_weak = "4.0"
-rbx_reflection = "7.0.0"
-rbx_reflection_database = "3.0.0+roblox-728"
-rbx_xml = "3.0.0"
+rbx_reflection = "7.0"
+rbx_reflection_database = "3.0"
+rbx_xml = "3.0"
 
 lune-utils = { version = "0.3.4", optional = true, path = "../lune-utils" }
