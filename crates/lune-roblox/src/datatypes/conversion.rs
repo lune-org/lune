@@ -1,6 +1,6 @@
 use mlua::prelude::*;
 
-use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
+use rbx_dom_weak::types::{SharedString, Variant as DomValue, VariantType as DomType};
 
 use crate::{datatypes::extension::DomValueExt, instance::Instance};
 
@@ -51,6 +51,7 @@ impl DomValueToLua for LuaValue {
                 DomValue::Float32(n) => Ok(LuaValue::Number(*n as f64)),
                 DomValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
                 DomValue::BinaryString(s) => Ok(LuaValue::String(lua.create_string(s)?)),
+                DomValue::SharedString(s) => Ok(LuaValue::String(lua.create_string(s.data())?)),
                 DomValue::ContentId(s) => Ok(LuaValue::String(
                     lua.create_string(AsRef::<str>::as_ref(s))?,
                 )),
@@ -103,6 +104,9 @@ impl LuaToDomValue for LuaValue {
                 (LuaValue::String(s), DomType::BinaryString) => {
                     Ok(DomValue::BinaryString(s.as_bytes().to_vec().into()))
                 }
+                (LuaValue::String(s), DomType::SharedString) => Ok(DomValue::SharedString(
+                    SharedString::new(s.as_bytes().to_vec()),
+                )),
                 (LuaValue::String(s), DomType::ContentId) => {
                     Ok(DomValue::ContentId(s.to_str()?.to_string().into()))
                 }
