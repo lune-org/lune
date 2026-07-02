@@ -46,9 +46,9 @@ gcc for library compiling (for external-\*)
 **Pretty Print**
 
 - [x] [arr](./pretty_print/arr.luau)
-- [ ] [box](./pretty_print/box.luau) Need assertion
-- [ ] [ref](./pretty_print/ref.luau) Need assertion
-- [ ] [lib](./pretty_print/lib.luau) Need assertion
+- [x] [box](./pretty_print/box.luau)
+- [x] [ref](./pretty_print/ref.luau)
+- [x] [lib](./pretty_print/lib.luau)
 - [x] [fn](./pretty_print/fn.luau)
 - [x] [ptr](./pretty_print/ptr.luau)
 - [x] [struct](./pretty_print/struct.luau)
