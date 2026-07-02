@@ -150,6 +150,10 @@ pub mod method_provider {
         );
     }
 
+    // TODO: Should we add readBuffer/writeBuffer to move bytes to/from a Luau buffer, which
+    // is mutable unlike a string? Only copy-based for now; using a buffer as
+    // FFI memory directly needs mlua to expose the buffer's data pointer.
+
     // Bitwise ops are covered by Luau's bit32 (read an integer, operate, write
     // it back); only C bit-fields would need more. Base64 is covered by
     // @lune/serde paired with readString/writeString.
