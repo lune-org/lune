@@ -15,14 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a new `ffi` standard library for foreign function interface support, allowing Lune scripts to load
   dynamic libraries and call C functions directly. Since FFI operations can be inherently unsafe, the library
   is gated behind a new `--unsafe` CLI flag (`lune run --unsafe script.luau`) and the
-  `Runtime::with_unsafe_library_enabled` API for embedders. ([#243])
+  `Runtime::with_unsafe_library_enabled` API for embedders. ([#399])
 
   The `ffi` library also gained support for calling variadic C functions (`ffi.c.fn(args, ret, fixedArgs)`),
   a `readCString` method on boxes and references for reading null-terminated strings, a `box` method on
   pointer types for building pointer-to-pointer values, and callables now accept boxes, references, and
   closures directly as arguments.
 
-[#243]: https://github.com/lune-org/lune/pull/243
+[#399]: https://github.com/lune-org/lune/pull/399
 
 ## `0.10.5` - July 2nd, 2026
 
