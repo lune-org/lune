@@ -6,7 +6,7 @@ use libffi::middle::Type;
 use lune_utils::fmt::{pretty_format_value, ValueFormatConfig};
 use mlua::prelude::*;
 
-use super::method_provider;
+use super::{helper, method_provider};
 use crate::{
     data::GetFfiData,
     ffi::{libffi_helper::get_ensured_size, FfiConvert, FfiData, FfiSignedness, FfiSize},
@@ -115,7 +115,8 @@ where
         method_provider::provide_stringify_data(methods);
 
         // Math
-        // TODO: Math support for numeric types
+        // TODO: arithmetic methods, once Lune has a Luau with 64-bit integers
+        // (f64 can't represent i64/u64/i128/u128 losslessly)
 
         methods.add_function(
             "cast",
@@ -128,13 +129,33 @@ where
                 Option<isize>,
                 Option<isize>,
             )| {
+                let from_offset = from_offset.unwrap_or(0);
+                let into_offset = into_offset.unwrap_or(0);
+
+                let from_data = from.get_ffi_data()?;
+                let into_data = into.get_ffi_data()?;
+
+                if !from_data.check_inner_boundary(from_offset, from_type.borrow::<Self>()?.get_size())
+                {
+                    return Err(LuaError::external("Source out of bounds"));
+                }
+                if !from_data.is_readable() {
+                    return Err(LuaError::external("Source is not readable"));
+                }
+                if !into_data.check_inner_boundary(into_offset, helper::get_size(&into_type)?) {
+                    return Err(LuaError::external("Destination out of bounds"));
+                }
+                if !into_data.is_writable() {
+                    return Err(LuaError::external("Destination is not writable"));
+                }
+
                 from_type.borrow::<Self>()?.cast(
                     &from_type,
                     &into_type,
-                    &from.get_ffi_data()?,
-                    &into.get_ffi_data()?,
-                    from_offset.unwrap_or(0),
-                    into_offset.unwrap_or(0),
+                    &from_data,
+                    &into_data,
+                    from_offset,
+                    into_offset,
                 )
             },
         );

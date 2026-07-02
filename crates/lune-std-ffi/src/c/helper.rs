@@ -57,10 +57,12 @@ pub mod method_provider {
 
                 let data_handle = &target.get_ffi_data()?;
                 if !data_handle.check_inner_boundary(offset, this.get_size()) {
-                    return Err(LuaError::external("Out of bounds"));
+                    return Err(LuaError::external(
+                        "Target is too small to read this type at the given offset",
+                    ));
                 }
                 if !data_handle.is_readable() {
-                    return Err(LuaError::external("Unreadable data"));
+                    return Err(LuaError::external("Target data is not readable"));
                 }
 
                 unsafe { this.value_from_data(lua, offset, data_handle) }
@@ -80,12 +82,13 @@ pub mod method_provider {
                 let offset = offset.unwrap_or(0);
 
                 let data_handle = &target.get_ffi_data()?;
-                // use or functions
                 if !data_handle.check_inner_boundary(offset, this.get_size()) {
-                    return Err(LuaError::external("Out of bounds"));
+                    return Err(LuaError::external(
+                        "Target is too small to write this type at the given offset",
+                    ));
                 }
                 if !data_handle.is_writable() {
-                    return Err(LuaError::external("Unwritable data"));
+                    return Err(LuaError::external("Target data is not writable"));
                 }
 
                 unsafe { this.value_into_data(lua, offset, data_handle, value) }
@@ -113,20 +116,19 @@ pub mod method_provider {
                 let src_offset = src_offset.unwrap_or(0);
 
                 let dst = &dst.get_ffi_data()?;
-                // use or functions
                 if !dst.check_inner_boundary(dst_offset, this.get_size()) {
                     return Err(LuaError::external("Destination out of bounds"));
                 }
                 if !dst.is_writable() {
-                    return Err(LuaError::external("Destination is unwritable"));
+                    return Err(LuaError::external("Destination is not writable"));
                 }
 
                 let src = &src.get_ffi_data()?;
-                if !src.check_inner_boundary(dst_offset, this.get_size()) {
+                if !src.check_inner_boundary(src_offset, this.get_size()) {
                     return Err(LuaError::external("Source out of bounds"));
                 }
                 if !src.is_readable() {
-                    return Err(LuaError::external("Source is unreadable"));
+                    return Err(LuaError::external("Source is not readable"));
                 }
 
                 unsafe { this.copy_data(lua, dst_offset, src_offset, dst, src) }
@@ -143,7 +145,15 @@ pub mod method_provider {
         methods.add_method(
             "stringifyData",
             |lua, this, (target, offset): (LuaAnyUserData, Option<isize>)| unsafe {
-                this.stringify_data(lua, offset.unwrap_or(0), &target.get_ffi_data()?)
+                let offset = offset.unwrap_or(0);
+                let data_handle = &target.get_ffi_data()?;
+                if !data_handle.check_inner_boundary(offset, this.get_size()) {
+                    return Err(LuaError::external("Out of bounds"));
+                }
+                if !data_handle.is_readable() {
+                    return Err(LuaError::external("Target data is not readable"));
+                }
+                this.stringify_data(lua, offset, data_handle)
             },
         );
     }
@@ -155,7 +165,7 @@ pub mod method_provider {
         M: LuaUserDataMethods<Target>,
     {
         methods.add_method("box", |lua, this, value: LuaValue| {
-            let result = lua.create_userdata(BoxData::new(this.get_size()))?;
+            let result = lua.create_userdata(BoxData::new(this.get_size())?)?;
             unsafe { this.value_into_data(lua, 0, &result.get_ffi_data()?, value)? };
             Ok(result)
         });
@@ -167,7 +177,7 @@ fn get_userdata(value: LuaValue) -> LuaResult<LuaAnyUserData> {
         Ok(field_type)
     } else {
         Err(LuaError::external(format!(
-            "CStruct, CType, CFn, CVoid or CArr is required but got {}",
+            "A C type (CType, CPtr, CArr, CStruct, CFn or CVoid) is required, but got {}",
             pretty_format_value(&value, &ValueFormatConfig::new())
         )))
     }
@@ -223,7 +233,7 @@ pub fn get_middle_type(userdata: &LuaAnyUserData) -> LuaResult<Type> {
         Ok(CFnInfo::get_middle_type())
     } else {
         Err(LuaError::external(format!(
-            "CStruct, CType, CFn, CVoid or CArr is required but got {}",
+            "A C type (CType, CPtr, CArr, CStruct, CFn or CVoid) is required, but got {}",
             pretty_format_value(
                 // Since the data is in the Lua location,
                 // there is no problem with the clone.
@@ -259,7 +269,7 @@ pub fn has_void(table: &LuaTable) -> LuaResult<bool> {
     for i in 0..table.raw_len() {
         let value: LuaValue = table.raw_get(i + 1)?;
         if get_userdata(value)?.is::<CVoidInfo>() {
-            return Ok(false);
+            return Ok(true);
         }
     }
     Ok(false)

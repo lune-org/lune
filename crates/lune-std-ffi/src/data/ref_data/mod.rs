@@ -69,8 +69,8 @@ impl RefData {
             ptr::from_ref(&**target.ptr) as *mut (),
             REF_REF_FLAGS,
             RefBounds {
-                below: 0,
-                above: size_of::<usize>(),
+                above: 0,
+                below: size_of::<usize>(),
             },
         ))?;
 
@@ -166,6 +166,7 @@ impl LuaUserData for RefData {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         method_provider::provide_copy_from(methods);
         method_provider::provide_read_string(methods);
+        method_provider::provide_read_c_string(methods);
         method_provider::provide_write_string(methods);
 
         methods.add_method("deref", |_lua, this, ()| unsafe { this.dereference() });
