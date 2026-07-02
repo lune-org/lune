@@ -28,7 +28,12 @@ where
             table
         }
         LuaValue::Table(t) => t,
-        _ => panic!(""),
+        other => {
+            return Err(LuaError::external(format!(
+                "FFI association registry '{regname}' is corrupt: expected a table, got {}",
+                other.type_name()
+            )))
+        }
     };
 
     table.set(value, associated)?;
@@ -47,6 +52,9 @@ where
     match lua.named_registry_value::<LuaValue>(regname)? {
         LuaValue::Nil => Ok(None),
         LuaValue::Table(t) => Ok(Some(t.get(value)?)),
-        _ => panic!(),
+        other => Err(LuaError::external(format!(
+            "FFI association registry '{regname}' is corrupt: expected a table, got {}",
+            other.type_name()
+        ))),
     }
 }

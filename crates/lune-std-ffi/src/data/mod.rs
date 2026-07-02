@@ -73,7 +73,7 @@ impl GetFfiData for LuaAnyUserData {
         } else {
             let config = ValueFormatConfig::new();
             Err(LuaError::external(format!(
-                "Expected FfiBox, FfiRef or ClosureData. got {}",
+                "Expected a BoxData, RefData or ClosureData, got {}",
                 pretty_format_value(&LuaValue::UserData(self.to_owned()), &config)
             )))
         }
@@ -85,7 +85,7 @@ impl GetFfiData for LuaValue {
             .ok_or_else(|| {
                 let config = ValueFormatConfig::new();
                 LuaError::external(format!(
-                    "Expected FfiBox, FfiRef or ClosureData. got {}",
+                    "Expected a BoxData, RefData or ClosureData, got {}",
                     pretty_format_value(self, &config)
                 ))
             })?
