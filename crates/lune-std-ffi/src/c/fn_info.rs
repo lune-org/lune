@@ -21,6 +21,8 @@ pub struct CFnInfo {
     cif: Cif,
     arg_info_list: Vec<FfiArg>,
     result_info: FfiResult,
+    // Number of fixed (named) arguments when the signature is variadic
+    fixed_args: Option<usize>,
 }
 
 impl FfiSignedness for CFnInfo {
@@ -67,11 +69,19 @@ impl CFnInfo {
         ret: Type,
         arg_info_list: Vec<FfiArg>,
         result_info: FfiResult,
+        fixed_args: Option<usize>,
     ) -> LuaResult<Self> {
+        // A fixed-arg count marks the signature variadic: the first `fixed_args`
+        // are named, the rest variadic.
+        let cif = match fixed_args {
+            Some(fixed) => Cif::new_variadic(args, fixed, ret),
+            None => Cif::new(args, ret),
+        };
         Ok(Self {
-            cif: Cif::new(args.clone(), ret.clone()),
+            cif,
             arg_info_list,
             result_info,
+            fixed_args,
         })
     }
 
@@ -79,6 +89,7 @@ impl CFnInfo {
         lua: &Lua,
         arg_table: LuaTable,
         ret: LuaAnyUserData,
+        fixed_args: Option<usize>,
     ) -> LuaResult<LuaAnyUserData> {
         if helper::has_void(&arg_table)? {
             return Err(LuaError::external("Arguments can not include void type"));
@@ -87,13 +98,33 @@ impl CFnInfo {
         let args_types = helper::get_middle_type_list(&arg_table)?;
         let ret_type = helper::get_middle_type(&ret)?;
 
+        // C needs at least one named argument before the variadic part
+        if let Some(fixed) = fixed_args {
+            if fixed == 0 {
+                return Err(LuaError::external(
+                    "A variadic function must have at least one fixed argument",
+                ));
+            }
+            if fixed > args_types.len() {
+                return Err(LuaError::external(format!(
+                    "Fixed argument count {fixed} exceeds the number of arguments ({})",
+                    args_types.len()
+                )));
+            }
+        }
+
         let arg_info_list = helper::create_list(&arg_table, create_arg_info)?;
         let result_info = FfiResult {
             size: helper::get_size(&ret)?,
         };
 
-        let cfn =
-            lua.create_userdata(Self::new(args_types, ret_type, arg_info_list, result_info)?)?;
+        let cfn = lua.create_userdata(Self::new(
+            args_types,
+            ret_type,
+            arg_info_list,
+            result_info,
+            fixed_args,
+        )?)?;
 
         // Create association to hold argument and result type
         association::set(lua, CFN_ARGS, &cfn, arg_table)?;
@@ -103,28 +134,27 @@ impl CFnInfo {
     }
 
     // Stringify for pretty-print
-    // ex: <CFn( (u8, i32) -> u8 )>
+    // ex: <CFn( (u8, i32) -> u8 )>, or <CFn( (i32, ..., i32) -> i32 )> variadic
     pub fn stringify(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<String> {
+        let fixed_args = userdata.borrow::<CFnInfo>()?.fixed_args;
         let mut result = String::from(" (");
         if let (Some(LuaValue::Table(arg_table)), Some(LuaValue::UserData(result_userdata))) = (
             association::get(lua, CFN_ARGS, userdata)?,
             association::get(lua, CFN_RESULT, userdata)?,
         ) {
             let len = arg_table.raw_len();
+            let mut parts = Vec::<String>::with_capacity(len + 1);
             for arg_index in 1..=len {
+                // Insert the variadic marker just before the first variadic arg
+                if fixed_args == Some(arg_index - 1) {
+                    parts.push(String::from("..."));
+                }
                 let arg_userdata: LuaAnyUserData = arg_table.raw_get(arg_index)?;
-                let pretty_formatted = helper::pretty_format(lua, &arg_userdata)?;
-                result.push_str(
-                    (if len == arg_index {
-                        pretty_formatted
-                    } else {
-                        format!("{pretty_formatted}, ")
-                    })
-                    .as_str(),
-                );
+                parts.push(helper::pretty_format(lua, &arg_userdata)?);
             }
+            result.push_str(parts.join(", ").as_str());
             result.push_str(
-                format!(") -> {} ", helper::pretty_format(lua, &result_userdata)?,).as_str(),
+                format!(") -> {} ", helper::pretty_format(lua, &result_userdata)?).as_str(),
             );
             Ok(result)
         } else {
