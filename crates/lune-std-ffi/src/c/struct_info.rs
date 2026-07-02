@@ -63,8 +63,15 @@ impl CStructInfo {
         lua: &Lua,
         table: LuaTable,
     ) -> LuaResult<LuaAnyUserData> {
+        if table.raw_len() == 0 {
+            return Err(LuaError::external(
+                "Struct must have at least one field, but the field list is empty",
+            ));
+        }
         if helper::has_void(&table)? {
-            return Err(LuaError::external("Void field in sturct is not allowed"));
+            return Err(LuaError::external(
+                "Void type is not allowed as a struct field",
+            ));
         }
 
         let cstruct = lua
@@ -102,7 +109,12 @@ impl CStructInfo {
         Ok(self
             .inner_offset_list
             .get(index)
-            .ok_or_else(|| LuaError::external("Out of index"))?
+            .ok_or_else(|| {
+                LuaError::external(format!(
+                    "Field index {index} out of range (struct has {} fields)",
+                    self.inner_offset_list.len()
+                ))
+            })?
             .to_owned())
     }
 
@@ -173,10 +185,14 @@ impl FfiConvert for CStructInfo {
         dst: &dyn FfiData,
         src: &dyn FfiData,
     ) -> LuaResult<()> {
-        dst.get_inner_pointer().byte_offset(dst_offset).copy_from(
-            src.get_inner_pointer().byte_offset(src_offset),
-            self.get_size(),
-        );
+        // Cast to u8 so the count is in bytes; `*mut ()` would copy zero-sized units
+        dst.get_inner_pointer()
+            .cast::<u8>()
+            .byte_offset(dst_offset)
+            .copy_from(
+                src.get_inner_pointer().cast::<u8>().byte_offset(src_offset),
+                self.get_size(),
+            );
         Ok(())
     }
 }
@@ -208,7 +224,9 @@ impl LuaUserData for CStructInfo {
                 let field_table = get_field_table(lua, &this)?;
                 field_table
                     .raw_get::<Option<LuaAnyUserData>>(field_index + 1)?
-                    .ok_or_else(|| LuaError::external("Out of index"))
+                    .ok_or_else(|| {
+                        LuaError::external(format!("Field index {field_index} out of range"))
+                    })
             },
         );
     }

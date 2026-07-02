@@ -26,13 +26,19 @@ impl CArrInfo {
         length: usize,
         inner_conv: *const dyn FfiConvert,
     ) -> LuaResult<Self> {
+        if length == 0 {
+            return Err(LuaError::external("Array length must be greater than 0"));
+        }
         let inner_size = get_ensured_size(element_type.as_raw_ptr())?;
+        let size = inner_size
+            .checked_mul(length)
+            .ok_or_else(|| LuaError::external("Array size (length * element size) overflows"))?;
         let struct_type = Type::structure(vec![element_type.clone(); length]);
 
         Ok(Self {
             struct_type,
             length,
-            size: inner_size * length,
+            size,
             inner_size,
             inner_conv,
         })
@@ -137,10 +143,14 @@ impl FfiConvert for CArrInfo {
         dst: &dyn FfiData,
         src: &dyn FfiData,
     ) -> LuaResult<()> {
-        dst.get_inner_pointer().byte_offset(dst_offset).copy_from(
-            src.get_inner_pointer().byte_offset(src_offset),
-            self.get_size(),
-        );
+        // Cast to u8 so the count is in bytes; `*mut ()` would copy zero-sized units
+        dst.get_inner_pointer()
+            .cast::<u8>()
+            .byte_offset(dst_offset)
+            .copy_from(
+                src.get_inner_pointer().cast::<u8>().byte_offset(src_offset),
+                self.get_size(),
+            );
         Ok(())
     }
 }
@@ -168,11 +178,14 @@ impl LuaUserData for CArrInfo {
         method_provider::provide_write_data(methods);
         method_provider::provide_copy_data(methods);
 
-        methods.add_method("offset", |_lua, this, offset: isize| {
-            if this.length > (offset as usize) && offset >= 0 {
-                Ok(this.inner_size * (offset as usize))
+        methods.add_method("offset", |_lua, this, index: isize| {
+            if index >= 0 && (index as usize) < this.length {
+                Ok(this.inner_size * (index as usize))
             } else {
-                Err(LuaError::external("Out of index"))
+                Err(LuaError::external(format!(
+                    "Array index {index} out of range (array length is {})",
+                    this.length
+                )))
             }
         });
     }
