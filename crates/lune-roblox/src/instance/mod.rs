@@ -48,8 +48,11 @@ const PROPERTY_NAME_TAGS: &str = "Tags";
 
 #[derive(Debug, Clone, Copy)]
 pub struct Instance {
-    pub(crate) dom_id: DomId,
-    pub(crate) dom_ref: DomRef,
+    #[doc(hidden)]
+    pub dom_id: DomId,
+    #[doc(hidden)]
+    pub dom_ref: DomRef,
+    // NOTE: This is not public since we want the accessor to be &str and never Ustr
     pub(crate) class_name: Ustr,
 }
 
