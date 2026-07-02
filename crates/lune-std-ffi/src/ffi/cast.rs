@@ -27,8 +27,9 @@ where
             .cast::<Into>()
     };
 
+    // Offsets are caller-supplied, so the pointers may be unaligned
     unsafe {
-        *into_ptr = (*from_ptr).as_();
+        into_ptr.write_unaligned(from_ptr.read_unaligned().as_());
     }
 
     Ok(())

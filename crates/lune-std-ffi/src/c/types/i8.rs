@@ -23,19 +23,18 @@ impl FfiConvert for CTypeInfo<i8> {
     ) -> LuaResult<()> {
         let value: i8 = match value {
             LuaValue::Integer(t) => t.as_(),
+            LuaValue::Number(t) => t.as_(),
+            // For a single-byte type, a string writes its first byte (like a C char)
             LuaValue::String(t) => t.as_bytes().first().map_or(0, u8::to_owned).as_(),
             _ => {
                 return Err(LuaError::external(format!(
-                    "Value must be a Integer or String, got {}",
+                    "Value must be an Integer, Number or String, got {}",
                     value.type_name()
                 )))
             }
         };
         unsafe {
-            *(data_handle
-                .get_inner_pointer()
-                .byte_offset(offset)
-                .cast::<i8>()) = value;
+            data_handle.get_inner_pointer().byte_offset(offset).cast::<i8>().write_unaligned(value);
         }
         Ok(())
     }
@@ -46,11 +45,7 @@ impl FfiConvert for CTypeInfo<i8> {
         data_handle: &dyn FfiData,
     ) -> LuaResult<LuaValue> {
         let value = unsafe {
-            (*data_handle
-                .get_inner_pointer()
-                .byte_offset(offset)
-                .cast::<i8>())
-            .into_lua(lua)?
+            data_handle.get_inner_pointer().byte_offset(offset).cast::<i8>().read_unaligned().into_lua(lua)?
         };
         Ok(value)
     }
@@ -62,8 +57,7 @@ impl FfiConvert for CTypeInfo<i8> {
         dst: &dyn FfiData,
         src: &dyn FfiData,
     ) -> LuaResult<()> {
-        *dst.get_inner_pointer().byte_offset(dst_offset).cast::<i8>() =
-            *src.get_inner_pointer().byte_offset(src_offset).cast::<i8>();
+        dst.get_inner_pointer().byte_offset(dst_offset).cast::<i8>().write_unaligned(src.get_inner_pointer().byte_offset(src_offset).cast::<i8>().read_unaligned());
         Ok(())
     }
     unsafe fn stringify_data(
@@ -72,10 +66,6 @@ impl FfiConvert for CTypeInfo<i8> {
         offset: isize,
         data_handle: &dyn FfiData,
     ) -> LuaResult<String> {
-        Ok((*data_handle
-            .get_inner_pointer()
-            .byte_offset(offset)
-            .cast::<i8>())
-        .to_string())
+        Ok(data_handle.get_inner_pointer().byte_offset(offset).cast::<i8>().read_unaligned().to_string())
     }
 }

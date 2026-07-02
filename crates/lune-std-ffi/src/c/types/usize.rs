@@ -36,10 +36,7 @@ impl FfiConvert for CTypeInfo<usize> {
             }
         };
         unsafe {
-            *(data_handle
-                .get_inner_pointer()
-                .byte_offset(offset)
-                .cast::<usize>()) = value;
+            data_handle.get_inner_pointer().byte_offset(offset).cast::<usize>().write_unaligned(value);
         }
         Ok(())
     }
@@ -50,11 +47,7 @@ impl FfiConvert for CTypeInfo<usize> {
         data_handle: &dyn FfiData,
     ) -> LuaResult<LuaValue> {
         let value = unsafe {
-            (*data_handle
-                .get_inner_pointer()
-                .byte_offset(offset)
-                .cast::<usize>())
-            .into_lua(lua)?
+            data_handle.get_inner_pointer().byte_offset(offset).cast::<usize>().read_unaligned().into_lua(lua)?
         };
         Ok(value)
     }
@@ -66,12 +59,7 @@ impl FfiConvert for CTypeInfo<usize> {
         dst: &dyn FfiData,
         src: &dyn FfiData,
     ) -> LuaResult<()> {
-        *dst.get_inner_pointer()
-            .byte_offset(dst_offset)
-            .cast::<usize>() = *src
-            .get_inner_pointer()
-            .byte_offset(src_offset)
-            .cast::<usize>();
+        dst.get_inner_pointer().byte_offset(dst_offset).cast::<usize>().write_unaligned(src.get_inner_pointer().byte_offset(src_offset).cast::<usize>().read_unaligned());
         Ok(())
     }
     unsafe fn stringify_data(
@@ -80,10 +68,6 @@ impl FfiConvert for CTypeInfo<usize> {
         offset: isize,
         data_handle: &dyn FfiData,
     ) -> LuaResult<String> {
-        Ok((*data_handle
-            .get_inner_pointer()
-            .byte_offset(offset)
-            .cast::<usize>())
-        .to_string())
+        Ok(data_handle.get_inner_pointer().byte_offset(offset).cast::<usize>().read_unaligned().to_string())
     }
 }
