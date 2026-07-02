@@ -59,10 +59,7 @@ impl RefData {
     }
 
     // Create reference of this reference
-    pub fn luaref(
-        lua: &Lua,
-        this: LuaAnyUserData,
-    ) -> LuaResult<LuaAnyUserData> {
+    pub fn luaref(lua: &Lua, this: LuaAnyUserData) -> LuaResult<LuaAnyUserData> {
         let target = this.borrow::<RefData>()?;
 
         let luaref = lua.create_userdata(RefData::new(

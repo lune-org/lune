@@ -1,11 +1,11 @@
 local ffi = require("@lune/ffi")
-local lib = require("../../utils/compile")("./tests/ffi/benchmark/external_call/lib.c")
+local lib = require("./../utils/compile")("./tests/ffi/benchmark/external_call/lib.c")
 local process = require("@lune/process")
 local c = ffi.c
 local BENCH_SCALE: number = tonumber(process.env.BENCH_SCALE) or 1000000
 
 -- Get clock provider
-local procClock = require("../../utils/proc_clock")
+local procClock = require("./../utils/proc_clock")
 local before, after = procClock.newBox()
 local getClock = procClock.getClock
 

@@ -1,4 +1,3 @@
-
 use libffi::middle::Type;
 use mlua::prelude::*;
 

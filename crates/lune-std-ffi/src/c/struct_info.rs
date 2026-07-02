@@ -15,10 +15,7 @@ pub struct CStructInfo {
     inner_conv_list: Vec<*const dyn FfiConvert>,
 }
 
-fn get_field_table(
-    lua: &Lua,
-    userdata: &LuaAnyUserData,
-) -> LuaResult<LuaTable> {
+fn get_field_table(lua: &Lua, userdata: &LuaAnyUserData) -> LuaResult<LuaTable> {
     let value = association::get(lua, CSTRUCT_INNER, userdata)?
         .ok_or_else(|| LuaError::external("Failed to retrieve inner field table: not found"))?;
     if let LuaValue::Table(table) = value {
@@ -59,10 +56,7 @@ impl CStructInfo {
 
     // Create new CStruct from LuaTable.
     // Freeze and hold table
-    pub fn from_table(
-        lua: &Lua,
-        table: LuaTable,
-    ) -> LuaResult<LuaAnyUserData> {
+    pub fn from_table(lua: &Lua, table: LuaTable) -> LuaResult<LuaAnyUserData> {
         if table.raw_len() == 0 {
             return Err(LuaError::external(
                 "Struct must have at least one field, but the field list is empty",

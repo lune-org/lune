@@ -22,14 +22,8 @@ local cases: { Case } = {
 }
 
 for _, case in cases do
-	assert(
-		case.type.size == case.size,
-		`size mismatch: expected {case.size}, got {case.type.size}`
-	)
-	assert(
-		case.type.signedness == case.signed,
-		`signedness mismatch for a size-{case.size} type`
-	)
+	assert(case.type.size == case.size, `size mismatch: expected {case.size}, got {case.type.size}`)
+	assert(case.type.signedness == case.signed, `signedness mismatch for a size-{case.size} type`)
 
 	local box = ffi.box(case.type.size)
 	for _, value in case.values do

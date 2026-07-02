@@ -1,4 +1,3 @@
-
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 
@@ -36,7 +35,11 @@ impl FfiConvert for CTypeInfo<i128> {
             }
         };
         unsafe {
-            data_handle.get_inner_pointer().byte_offset(offset).cast::<i128>().write_unaligned(value);
+            data_handle
+                .get_inner_pointer()
+                .byte_offset(offset)
+                .cast::<i128>()
+                .write_unaligned(value);
         }
         Ok(())
     }
@@ -47,7 +50,12 @@ impl FfiConvert for CTypeInfo<i128> {
         data_handle: &dyn FfiData,
     ) -> LuaResult<LuaValue> {
         let value = unsafe {
-            data_handle.get_inner_pointer().byte_offset(offset).cast::<i128>().read_unaligned().into_lua(lua)?
+            data_handle
+                .get_inner_pointer()
+                .byte_offset(offset)
+                .cast::<i128>()
+                .read_unaligned()
+                .into_lua(lua)?
         };
         Ok(value)
     }
@@ -59,7 +67,15 @@ impl FfiConvert for CTypeInfo<i128> {
         dst: &dyn FfiData,
         src: &dyn FfiData,
     ) -> LuaResult<()> {
-        dst.get_inner_pointer().byte_offset(dst_offset).cast::<i128>().write_unaligned(src.get_inner_pointer().byte_offset(src_offset).cast::<i128>().read_unaligned());
+        dst.get_inner_pointer()
+            .byte_offset(dst_offset)
+            .cast::<i128>()
+            .write_unaligned(
+                src.get_inner_pointer()
+                    .byte_offset(src_offset)
+                    .cast::<i128>()
+                    .read_unaligned(),
+            );
         Ok(())
     }
     unsafe fn stringify_data(
@@ -68,6 +84,11 @@ impl FfiConvert for CTypeInfo<i128> {
         offset: isize,
         data_handle: &dyn FfiData,
     ) -> LuaResult<String> {
-        Ok(data_handle.get_inner_pointer().byte_offset(offset).cast::<i128>().read_unaligned().to_string())
+        Ok(data_handle
+            .get_inner_pointer()
+            .byte_offset(offset)
+            .cast::<i128>()
+            .read_unaligned()
+            .to_string())
     }
 }

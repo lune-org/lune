@@ -55,7 +55,8 @@ for name, ctype in all do
 end
 
 -- Negatives roundtrip through the signed types
-local signed = { schar = c.schar, short = c.short, int = c.int, long = c.long, longlong = c.longlong }
+local signed =
+	{ schar = c.schar, short = c.short, int = c.int, long = c.long, longlong = c.longlong }
 for name, ctype in signed do
 	local box = ctype:box(-2)
 	assert(ctype:readData(box) == -2, `{name} did not roundtrip -2`)

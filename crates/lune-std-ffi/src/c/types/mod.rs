@@ -67,12 +67,20 @@ pub fn export_fixed_types(lua: &Lua) -> LuaResult<Vec<(&'static str, LuaAnyUserD
         ("u64", u64, Type::u64()),
         // libffi has no 128-bit integer; two u64 give the right size and align.
         // Signedness lives in the Rust CTypeInfo type, not the libffi type.
-        ("u128", u128, Type::structure(vec![Type::u64(), Type::u64()])),
+        (
+            "u128",
+            u128,
+            Type::structure(vec![Type::u64(), Type::u64()])
+        ),
         ("i8", i8, Type::i8()),
         ("i16", i16, Type::i16()),
         ("i32", i32, Type::i32()),
         ("i64", i64, Type::i64()),
-        ("i128", i128, Type::structure(vec![Type::u64(), Type::u64()])),
+        (
+            "i128",
+            i128,
+            Type::structure(vec![Type::u64(), Type::u64()])
+        ),
         ("f32", f32, Type::f32()),
         ("f64", f64, Type::f64()),
         ("usize", usize, Type::usize()),

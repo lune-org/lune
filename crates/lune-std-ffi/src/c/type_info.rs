@@ -135,7 +135,8 @@ where
                 let from_data = from.get_ffi_data()?;
                 let into_data = into.get_ffi_data()?;
 
-                if !from_data.check_inner_boundary(from_offset, from_type.borrow::<Self>()?.get_size())
+                if !from_data
+                    .check_inner_boundary(from_offset, from_type.borrow::<Self>()?.get_size())
                 {
                     return Err(LuaError::external("Source out of bounds"));
                 }

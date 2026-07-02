@@ -1,4 +1,3 @@
-
 use mlua::prelude::*;
 use num::cast::AsPrimitive;
 

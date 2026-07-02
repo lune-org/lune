@@ -179,7 +179,9 @@ impl CallableData {
         }
 
         let data = result.get_ffi_data().map_err(|_| {
-            LuaError::external("Result must be a BoxData or RefData when the function returns a value")
+            LuaError::external(
+                "Result must be a BoxData or RefData when the function returns a value",
+            )
         })?;
         if !data.is_writable() {
             return Err(LuaError::external("Result is not writable"));

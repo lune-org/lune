@@ -43,8 +43,8 @@ checkReturn("ret_i64", ffi.i64, -9000000000)
 checkReturn("ret_u64", ffi.u64, 18000000000)
 
 -- Multiple arguments through the sized-caller fast path
-local sum4 = ffi.c.fn({ ffi.c.int, ffi.c.int, ffi.c.int, ffi.c.int }, ffi.c.int)
-	:callable(lib:find("sum4"))
+local sum4 =
+	ffi.c.fn({ ffi.c.int, ffi.c.int, ffi.c.int, ffi.c.int }, ffi.c.int):callable(lib:find("sum4"))
 local sumResult = ffi.box(ffi.c.int.size)
 sum4(
 	sumResult,

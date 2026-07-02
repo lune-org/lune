@@ -50,7 +50,11 @@ unsafe extern "C" fn callback(
     // Zero the result first so a failed or silent callback returns a defined
     // value instead of stack garbage.
     if closure_data.result_info.size > 0 && !result_pointer.is_null() {
-        ptr::write_bytes(result_pointer.cast::<u8>(), 0, closure_data.result_info.size);
+        ptr::write_bytes(
+            result_pointer.cast::<u8>(),
+            0,
+            closure_data.result_info.size,
+        );
     }
 
     // A panic must not unwind across the C frame libffi called us from, so

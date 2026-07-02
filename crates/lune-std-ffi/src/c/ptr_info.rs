@@ -1,4 +1,3 @@
-
 use libffi::middle::Type;
 use mlua::prelude::*;
 
@@ -112,10 +111,7 @@ impl FfiConvert for CPtrInfo {
 impl CPtrInfo {
     // Create pointer type with '.inner' field
     // inner can be CArr, CType or CStruct
-    pub fn from_userdata(
-        lua: &Lua,
-        inner: &LuaAnyUserData,
-    ) -> LuaResult<LuaAnyUserData> {
+    pub fn from_userdata(lua: &Lua, inner: &LuaAnyUserData) -> LuaResult<LuaAnyUserData> {
         let value = lua.create_userdata(Self {
             inner_is_cptr: inner.is::<CPtrInfo>(),
         })?;

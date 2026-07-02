@@ -133,7 +133,7 @@ pub mod method_provider {
 
                 // Source string boundary check
                 let source_end = src_offset.checked_add(length);
-                if source_end.is_none() || source_end.is_some_and(|end| string_len < end) {
+                if source_end.is_none_or(|end| string_len < end) {
                     return Err(LuaError::external("Source out of bounds"));
                 }
 
