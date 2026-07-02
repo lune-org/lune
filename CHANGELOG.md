@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is gated behind a new `--unsafe` CLI flag (`lune run --unsafe script.luau`) and the
   `Runtime::with_unsafe_library_enabled` API for embedders. ([#243])
 
+  The `ffi` library also gained support for calling variadic C functions (`ffi.c.fn(args, ret, fixedArgs)`),
+  a `readCString` method on boxes and references for reading null-terminated strings, a `box` method on
+  pointer types for building pointer-to-pointer values, and callables now accept boxes, references, and
+  closures directly as arguments.
+
 [#243]: https://github.com/lune-org/lune/pull/243
 
 ## `0.10.5` - July 2nd, 2026

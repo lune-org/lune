@@ -16,14 +16,23 @@ gcc for library compiling (for external-\*)
 - [x] [external_pointer](./external_pointer/init.luau)
 - [x] [external_print](./external_print/init.luau)
 - [x] [external_struct](./external_struct/init.luau)
+- [x] [external_types/returns](./external_types/returns.luau) (integer-width returns, multi-arg calls, out-parameters, array-by-value args)
+- [x] [external_types/variadic](./external_types/variadic.luau) (variadic `...` function calls)
 
 **Luau-side**
 
 - [x] [cast](./cast.luau)
 - [x] [free](./free.luau)
 - [x] [isInteger](./isInteger.luau)
-- [x] [read_boundary](./read_boundary.luau)
-- [x] [write_boundary](./write_boundary.luau)
+- [x] [read_boundary](./readBoundary.luau)
+- [x] [write_boundary](./writeBoundary.luau)
+- [x] [numbers](./numbers.luau) (every numeric ctype roundtrip, incl. 16-byte u128/i128)
+- [x] [boxHandling](./boxHandling.luau) (allocation, zeroing, refs, freeing lifecycle)
+- [x] [arrays](./arrays.luau) (layout, whole-array/element access, large and struct arrays)
+- [x] [structs](./structs.luau) (padded layout, nesting, copyData, introspection)
+- [x] [pointers](./pointers.luau) (null checks, readRef/writeRef, pointer boxes)
+- [x] [readCString](./readCString.luau) (null-terminated string reads)
+- [x] [safety](./safety.luau) (bounds/permission guards reject invalid access)
 
 **Types**
 

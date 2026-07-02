@@ -152,6 +152,22 @@ export type RefData = {
 	--[=[
 		@within RefData
 		@tag Method
+		@method readCString
+
+		Read a null-terminated (C) string from data, stopping at the first
+		zero byte. The null terminator is not included in the result.
+
+		For bounded data (ex: a box), scanning stops at the boundary and
+		errors if no terminator is found. Unbounded references are scanned
+		like a raw C string, so the caller must ensure a terminator exists.
+
+		@param offset Offset to start reading the string from
+		@return A string
+	]=]
+	readCString: (self: RefData, offset: number?) -> string,
+	--[=[
+		@within RefData
+		@tag Method
 		@method writeString
 
 		Write string into data without null termination.
@@ -257,6 +273,20 @@ export type BoxData = {
 	--[=[
 		@within BoxData
 		@tag Method
+		@method readCString
+
+		Read a null-terminated (C) string from the box, stopping at the first
+		zero byte. The null terminator is not included in the result.
+
+		Scanning stops at the box boundary and errors if no terminator is found.
+
+		@param offset Offset to start reading the string from
+		@return A string
+	]=]
+	readCString: (self: BoxData, offset: number?) -> string,
+	--[=[
+		@within BoxData
+		@tag Method
 		@method writeString
 
 		Write string into data without null termination.
@@ -306,7 +336,7 @@ export type LibData = {
 ]=]
 export type CallableData = (
 	ret: (RefData | BoxData)?,
-	...RefData
+	...(RefData | BoxData | ClosureData)
 ) -> () & {
 	-- apply: (self: Callable, args: Args)->AppliedCallable,
 }
@@ -515,6 +545,21 @@ export type CPtrInfo<T> = {
 		@return A pointer subtype
 	]=]
 	ptr: (self: CPtrInfo<T>) -> any,
+
+	-- Create
+	--[=[
+		@within CPtrInfo
+		@tag Method
+		@Method box
+
+		Create a pointer-sized box holding the address of the given data.
+
+		Useful for building pointer-to-pointer values or arrays of pointers.
+
+		@param value The data whose address will be stored
+		@return A box holding the address
+	]=]
+	box: (self: CPtrInfo<T>, value: RefData | BoxData | ClosureData) -> BoxData,
 
 	-- Address
 	--[=[
@@ -1140,11 +1185,17 @@ export type CTypes =
 
 	Create a function signature type information.
 
+	To describe a variadic function, pass `fixedArgs` - the number of fixed
+	(named) arguments. The remaining entries in `args` are the variadic
+	arguments for the call pattern being described, and must already follow C's
+	default argument promotions (for example, use `f64` rather than `f32`).
+
 	@param args An array of CTypes represents the arguments of the function
 	@param ret The return type of the function
+	@param fixedArgs The number of fixed arguments, if the function is variadic
 	@return A function signature type information
 ]=]
-function c.fn(args: { CTypes }, ret: CTypes): CFnInfo
+function c.fn(args: { CTypes }, ret: CTypes, fixedArgs: number?): CFnInfo
 	return nil :: any
 end
 
