@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Fixed the `close` method on web sockets always erroring with "Socket has been closed" instead of closing the socket
+
 ### Added
 
 - Added a new `ffi` standard library for foreign function interface support, allowing Lune scripts to load
@@ -22,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pointer types for building pointer-to-pointer values, and callables now accept boxes, references, and
   closures directly as arguments.
 
+[#400]: https://github.com/lune-org/lune/pull/400
 [#399]: https://github.com/lune-org/lune/pull/399
 
 ## `0.10.5` - July 2nd, 2026
