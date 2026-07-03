@@ -15,6 +15,7 @@ workspace = true
 [features]
 default = [
     "datetime",
+    "ffi",
     "fs",
     "luau",
     "net",
@@ -27,6 +28,7 @@ default = [
 ]
 
 datetime = ["dep:lune-std-datetime"]
+ffi = ["dep:lune-std-ffi"]
 fs = ["dep:lune-std-fs"]
 luau = ["dep:lune-std-luau"]
 net = ["dep:lune-std-net"]
@@ -51,6 +53,7 @@ serde_json = "1.0"
 lune-utils = { version = "0.3.5", path = "../lune-utils" }
 
 lune-std-datetime = { optional = true, version = "0.3.5", path = "../lune-std-datetime" }
+lune-std-ffi = { optional = true, version = "0.3.5", path = "../lune-std-ffi" }
 lune-std-fs = { optional = true, version = "0.3.5", path = "../lune-std-fs" }
 lune-std-luau = { optional = true, version = "0.3.5", path = "../lune-std-luau" }
 lune-std-net = { optional = true, version = "0.3.5", path = "../lune-std-net" }
