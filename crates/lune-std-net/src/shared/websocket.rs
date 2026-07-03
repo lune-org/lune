@@ -98,13 +98,15 @@ where
         // the closure even if `next` is never called by the user
         self.set_close_code_if_unset(code);
 
-        self.send(TungsteniteMessage::Close(Some(CloseFrame {
+        // `send` rejects everything once a close code has been recorded
+        let mut ws = self.write_stream.lock().await;
+        ws.send(TungsteniteMessage::Close(Some(CloseFrame {
             code: CloseCode::from(code),
             reason: "".into(),
         })))
-        .await?;
+        .await
+        .into_lua_err()?;
 
-        let mut ws = self.write_stream.lock().await;
         ws.close().await.into_lua_err()
     }
 }
