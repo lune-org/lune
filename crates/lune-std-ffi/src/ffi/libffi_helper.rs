@@ -9,7 +9,17 @@ pub const SIZE_OF_POINTER: usize = size_of::<*mut ()>();
 // `ffi_arg` word when writing it through the result pointer. Callers must
 // therefore provide a result buffer of at least this many bytes.
 // See: <http://www.chiark.greenend.org.uk/doc/libffi-dev/html/The-Basics.html>
-pub const SIZE_OF_FFI_ARG: usize = size_of::<raw::ffi_arg>();
+//
+// libffi-sys binds `ffi_arg` as c_ulong, which is 4 bytes on LLP64 targets
+// (windows) even though the C definition is pointer sized there, so clamp
+// to at least the size of a pointer
+pub const SIZE_OF_FFI_ARG: usize = {
+    if size_of::<raw::ffi_arg>() > size_of::<usize>() {
+        size_of::<raw::ffi_arg>()
+    } else {
+        size_of::<usize>()
+    }
+};
 
 // Get ensured size of ctype (raw::libffi_type)
 pub fn get_ensured_size(ffi_type: *mut raw::ffi_type) -> LuaResult<usize> {

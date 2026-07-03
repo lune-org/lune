@@ -24,6 +24,10 @@ pub struct CallableData {
 const VOID_RESULT_PTR: *mut c_void = ptr::null_mut();
 const ZERO_SIZE_ARG_PTR: *mut *mut c_void = ptr::null_mut();
 
+// The widen buffer is a u64 so it is large enough and properly aligned
+// for libffi to write a full `ffi_arg` into it
+const _: () = assert!(SIZE_OF_FFI_ARG <= size_of::<u64>());
+
 // Get the pointer libffi reads an argument from. The userdata stays alive via
 // the caller's LuaMultiValue, so the pointer is valid for the call.
 #[inline]
@@ -70,7 +74,7 @@ struct ResultTarget {
 macro_rules! create_caller {
     ($len:expr) => {
         |callable: &CallableData, result: LuaValue, args: LuaMultiValue| unsafe {
-            let mut widen_buffer = [0u8; SIZE_OF_FFI_ARG];
+            let mut widen_buffer = 0u64;
             let (result_target, result_pointer) =
                 callable.prepare_result(result, &mut widen_buffer)?;
 
@@ -93,7 +97,7 @@ macro_rules! create_caller {
                     .as_mut_ptr(),
             );
 
-            callable.finish_result(&result_target, &widen_buffer);
+            callable.finish_result(&result_target, widen_buffer);
             Ok(())
         }
     };
@@ -106,7 +110,7 @@ unsafe fn zero_size_caller(
     result: LuaValue,
     _args: LuaMultiValue,
 ) -> LuaResult<()> {
-    let mut widen_buffer = [0u8; SIZE_OF_FFI_ARG];
+    let mut widen_buffer = 0u64;
     let (result_target, result_pointer) = callable.prepare_result(result, &mut widen_buffer)?;
 
     ffi_call(
@@ -116,7 +120,7 @@ unsafe fn zero_size_caller(
         ZERO_SIZE_ARG_PTR,
     );
 
-    callable.finish_result(&result_target, &widen_buffer);
+    callable.finish_result(&result_target, widen_buffer);
     Ok(())
 }
 
@@ -165,7 +169,7 @@ impl CallableData {
     unsafe fn prepare_result(
         &self,
         result: LuaValue,
-        widen_buffer: &mut [u8; SIZE_OF_FFI_ARG],
+        widen_buffer: &mut u64,
     ) -> LuaResult<(ResultTarget, *mut c_void)> {
         let size = self.result_info.size;
         if size == 0 {
@@ -198,7 +202,7 @@ impl CallableData {
                     data: Some(data),
                     bounce: true,
                 },
-                widen_buffer.as_mut_ptr().cast::<c_void>(),
+                ptr::from_mut(widen_buffer).cast::<c_void>(),
             ))
         } else {
             let pointer = data.get_inner_pointer().cast::<c_void>();
@@ -213,7 +217,7 @@ impl CallableData {
     }
 
     // Copy a widened return value out of the bounce buffer into the destination.
-    unsafe fn finish_result(&self, target: &ResultTarget, widen_buffer: &[u8; SIZE_OF_FFI_ARG]) {
+    unsafe fn finish_result(&self, target: &ResultTarget, widen_buffer: u64) {
         if !target.bounce {
             return;
         }
@@ -227,12 +231,13 @@ impl CallableData {
 
         // On little-endian the value occupies the low `size` bytes; on
         // big-endian, integral returns are right-justified within the word.
+        let bytes = widen_buffer.to_ne_bytes();
         let source_offset = if cfg!(target_endian = "big") {
             SIZE_OF_FFI_ARG - size
         } else {
             0
         };
-        destination.copy_from(widen_buffer.as_ptr().add(source_offset), size);
+        destination.copy_from(bytes.as_ptr().add(source_offset), size);
     }
 
     pub unsafe fn call(&self, result: LuaValue, args: LuaMultiValue) -> LuaResult<()> {
@@ -242,7 +247,7 @@ impl CallableData {
             return SIZED_CALLERS[arg_len](self, result, args);
         }
 
-        let mut widen_buffer = [0u8; SIZE_OF_FFI_ARG];
+        let mut widen_buffer = 0u64;
         let (result_target, result_pointer) = self.prepare_result(result, &mut widen_buffer)?;
 
         // Create `avalue: *mut *mut c_void` argument list
@@ -263,7 +268,7 @@ impl CallableData {
             arg_list.as_mut_ptr(),
         );
 
-        self.finish_result(&result_target, &widen_buffer);
+        self.finish_result(&result_target, widen_buffer);
         Ok(())
     }
 }
