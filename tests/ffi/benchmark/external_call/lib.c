@@ -1,10 +1,16 @@
 #include <time.h>
 
-int add(int a, int b) {
+#ifdef _WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT
+#endif
+
+EXPORT int add(int a, int b) {
     return a + b;
 }
 
-double c_test() {
+EXPORT double c_test() {
     clock_t before = clock();
 
     int a = 0;

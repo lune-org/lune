@@ -1,7 +1,13 @@
-void pointer_write(int *a) {
+#ifdef _WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT
+#endif
+
+EXPORT void pointer_write(int *a) {
     *a = 123;
 }
 
-int pointer_read(int *a) {
+EXPORT int pointer_read(int *a) {
     return *a;
 }
