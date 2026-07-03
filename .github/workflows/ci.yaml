@@ -93,7 +93,7 @@ jobs:
         uses: cargo-bins/cargo-binstall@main
 
       - name: Install nextest
-        run: cargo binstall cargo-nextest
+        run: cargo binstall cargo-nextest --locked
 
       - name: Build
         run: |
