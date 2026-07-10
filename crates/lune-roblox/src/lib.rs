@@ -39,6 +39,7 @@ fn create_all_exports(lua: Lua) -> LuaResult<Vec<(&'static str, LuaValue)>> {
         export::<PhysicalProperties>(lua.clone())?,
         export::<Ray>(lua.clone())?,
         export::<Rect>(lua.clone())?,
+        export::<TweenInfo>(lua.clone())?,
         export::<UDim>(lua.clone())?,
         export::<UDim2>(lua.clone())?,
         export::<UniqueId>(lua.clone())?,

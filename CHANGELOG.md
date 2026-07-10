@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added the `TweenInfo` datatype to the `roblox` standard library, including its `new` constructor, all documented properties (`Time`, `EasingStyle`, `EasingDirection`, `RepeatCount`, `Reverses`, `DelayTime`), equality, and tostring
+
 ### Fixed
 
 - Fixed the `close` method on web sockets always erroring with "Socket has been closed" instead of closing the socket

@@ -184,6 +184,7 @@ create_tests! {
     roblox_datatype_physical_properties: "roblox/datatypes/PhysicalProperties",
     roblox_datatype_ray: "roblox/datatypes/Ray",
     roblox_datatype_rect: "roblox/datatypes/Rect",
+    roblox_datatype_tween_info: "roblox/datatypes/TweenInfo",
     roblox_datatype_udim: "roblox/datatypes/UDim",
     roblox_datatype_udim2: "roblox/datatypes/UDim2",
     roblox_datatype_uniqueid: "roblox/datatypes/UniqueId",
