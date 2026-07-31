@@ -2,18 +2,20 @@
 	@within Serde
 	@interface EncodeDecodeFormat
 
-	A serialization/deserialization format supported by the Serde library.
+	A serialization or binary-to-text encoding format supported by the Serde library.
 
 	Currently supported formats:
 
-	| Name    | Learn More           | Note                        |
-	|:--------|:---------------------|:----------------------------|
-	| `json`  | https://www.json.org |                             |
-	| `jsonc` | https://www.json.org | JSON, with comments allowed |
-	| `yaml`  | https://yaml.org     |                             |
-	| `toml`  | https://toml.io      |                             |
+	| Name     | Learn More                                   | Note                        |
+	|:---------|:---------------------------------------------|:----------------------------|
+	| `base64` | https://www.rfc-editor.org/rfc/rfc4648.html | Binary-to-text encoding     |
+	| `hex`    | https://www.rfc-editor.org/rfc/rfc4648.html | Binary-to-text encoding     |
+	| `json`   | https://www.json.org                         |                             |
+	| `jsonc`  | https://www.json.org                         | JSON, with comments allowed |
+	| `yaml`   | https://yaml.org                             |                             |
+	| `toml`   | https://toml.io                              |                             |
 ]=]
-export type EncodeDecodeFormat = "json" | "jsonc" | "yaml" | "toml"
+export type EncodeDecodeFormat = "base64" | "hex" | "json" | "jsonc" | "yaml" | "toml"
 
 --[=[
 	@within Serde
@@ -103,6 +105,8 @@ local serde = {}
 
 	See [`EncodeDecodeFormat`] for a list of supported formats.
 
+	Base64 and hex encoding accept strings and buffers.
+
 	@param format The format to use
 	@param value The value to encode
 	@param pretty If the encoded string should be human-readable, including things such as newlines and spaces. Only supported for json and toml formats, and defaults to false
@@ -121,8 +125,8 @@ end
 	See [`EncodeDecodeFormat`] for a list of supported formats.
 
 	@param format The format to use
-	@param encoded The string to decode
-	@return The decoded lua value
+	@param encoded The string or buffer to decode
+	@return The decoded value
 ]=]
 function serde.decode(format: EncodeDecodeFormat, encoded: buffer | string): any
 	return nil :: any

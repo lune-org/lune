@@ -1700,6 +1700,7 @@ dependencies = [
  "blake3",
  "blocking",
  "bstr",
+ "data-encoding",
  "digest",
  "futures-lite",
  "hmac",
