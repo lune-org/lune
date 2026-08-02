@@ -35,6 +35,13 @@ assert(metaDir.kind == "dir", "Dir metadata kind was invalid")
 assert(metaFile.kind == "file", "File metadata kind was invalid")
 
 --[[
+	1. Size should be `nil` for our temp directory
+	2. Size should match the length of the binary blob for our temp file
+]]
+assert(metaDir.size == nil, "Dir metadata should not have a size")
+assert(metaFile.size == buffer.len(utils.binaryBlob), "File metadata size was incorrect")
+
+--[[
 	1. Capture initial metadata
 	2. Wait for a bit so that timestamps can change
 	3. Write the file, with an extra newline
