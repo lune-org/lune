@@ -187,13 +187,14 @@ end
 	@tag must_use
 
 	Hashes the given message using HMAC with the given secret
-	and algorithm, returning the hash as a base64 string.
+	and algorithm, returning the hash as a hex string.
 
 	See [`HashAlgorithm`] for a list of supported algorithms.
 
 	@param algorithm The algorithm to use
 	@param message The message to hash
-	@return The hash as a base64 string
+	@param secret The secret key to use
+	@return The hash as a hex string
 ]=]
 function serde.hmac(
 	algorithm: HashAlgorithm,
