@@ -3,7 +3,7 @@
 local DateTime = require("@lune/datetime")
 type DateTime = DateTime.DateTime
 
-export type MetadataKind = "file" | "dir" | "symlink"
+export type MetadataKind = "file" | "dir"
 
 --[=[
 	@interface MetadataPermissions
@@ -39,21 +39,34 @@ export type MetadataPermissions = {
 	Note that timestamps are relative to the unix epoch, and
 	may not be accurate if the system clock is not accurate.
 ]=]
-export type Metadata = {
-	kind: MetadataKind,
-	exists: true,
-	createdAt: DateTime,
-	modifiedAt: DateTime,
-	accessedAt: DateTime,
-	permissions: MetadataPermissions,
-} | {
-	kind: nil,
-	exists: false,
-	createdAt: nil,
-	modifiedAt: nil,
-	accessedAt: nil,
-	permissions: nil,
-}
+export type Metadata =
+	{
+		kind: "file",
+		exists: true,
+		size: number,
+		createdAt: DateTime,
+		modifiedAt: DateTime,
+		accessedAt: DateTime,
+		permissions: MetadataPermissions,
+	}
+	| {
+		kind: "dir",
+		exists: true,
+		size: nil,
+		createdAt: DateTime,
+		modifiedAt: DateTime,
+		accessedAt: DateTime,
+		permissions: MetadataPermissions,
+	}
+	| {
+		kind: nil,
+		exists: false,
+		size: nil,
+		createdAt: nil,
+		modifiedAt: nil,
+		accessedAt: nil,
+		permissions: nil,
+	}
 
 --[=[
 	@interface WriteOptions

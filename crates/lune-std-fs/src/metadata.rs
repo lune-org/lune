@@ -97,6 +97,7 @@ impl IntoLua for FsPermissions {
 pub struct FsMetadata {
     pub(crate) kind: FsMetadataKind,
     pub(crate) exists: bool,
+    pub(crate) size: Option<u64>,
     pub(crate) created_at: Option<DateTime>,
     pub(crate) modified_at: Option<DateTime>,
     pub(crate) accessed_at: Option<DateTime>,
@@ -108,6 +109,7 @@ impl FsMetadata {
         Self {
             kind: FsMetadataKind::None,
             exists: false,
+            size: None,
             created_at: None,
             modified_at: None,
             accessed_at: None,
@@ -121,6 +123,7 @@ impl IntoLua for FsMetadata {
         let tab = lua.create_table_with_capacity(0, 6)?;
         tab.set("kind", self.kind)?;
         tab.set("exists", self.exists)?;
+        tab.set("size", self.size)?;
         tab.set("createdAt", self.created_at)?;
         tab.set("modifiedAt", self.modified_at)?;
         tab.set("accessedAt", self.accessed_at)?;
@@ -132,9 +135,11 @@ impl IntoLua for FsMetadata {
 
 impl From<StdMetadata> for FsMetadata {
     fn from(value: StdMetadata) -> Self {
+        let file_type = value.file_type();
         Self {
-            kind: value.file_type().into(),
+            kind: file_type.into(),
             exists: true,
+            size: file_type.is_file().then_some(value.len()),
             created_at: system_time_to_timestamp(value.created()),
             modified_at: system_time_to_timestamp(value.modified()),
             accessed_at: system_time_to_timestamp(value.accessed()),
