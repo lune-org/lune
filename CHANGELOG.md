@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed the `close` method on web sockets always erroring with "Socket has been closed" instead of closing the socket
 - Fixed the documentation for `serde.hmac` saying it returns a base64 string, when it returns a hex string
+- Fixed `CFrame.lookAt`, `CFrame.lookAlong` and `CFrame.new(pos, lookAt)` producing incorrect rotations when not rotating purely around the Y axis
 
 ## `0.10.5` - July 2nd, 2026
 
