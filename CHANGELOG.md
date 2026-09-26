@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed the `close` method on web sockets always erroring with "Socket has been closed" instead of closing the socket
+- Fixed the documentation for `serde.hmac` saying it returns a base64 string, when it returns a hex string
 
 ## `0.10.5` - July 2nd, 2026
 
