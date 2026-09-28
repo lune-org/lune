@@ -1,3 +1,5 @@
+use bstr::BString;
+use data_encoding::{BASE64, HEXLOWER};
 use mlua::prelude::*;
 
 use serde_json::Value as JsonValue;
@@ -17,12 +19,12 @@ const LUA_DESERIALIZE_OPTIONS: LuaDeserializeOptions = LuaDeserializeOptions::ne
     .deny_unsupported_types(true);
 
 /**
-    An encoding and decoding format supported by Lune.
-
-    Encode / decode in this case is synonymous with serialize / deserialize.
+    A format supported by Lune's encoding and decoding APIs.
 */
 #[derive(Debug, Clone, Copy)]
 pub enum EncodeDecodeFormat {
+    Base64,
+    Hex,
     Json,
     JsonC,
     Yaml,
@@ -33,6 +35,8 @@ impl FromLua for EncodeDecodeFormat {
     fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
         if let LuaValue::String(s) = &value {
             match s.to_string_lossy().to_ascii_lowercase().trim() {
+                "base64" => Ok(Self::Base64),
+                "hex" => Ok(Self::Hex),
                 "json" => Ok(Self::Json),
                 "jsonc" => Ok(Self::JsonC),
                 "yaml" => Ok(Self::Yaml),
@@ -41,7 +45,7 @@ impl FromLua for EncodeDecodeFormat {
                     from: value.type_name(),
                     to: "EncodeDecodeFormat".to_string(),
                     message: Some(format!(
-                        "Invalid format '{kind}', valid formats are:  json, yaml, toml"
+                        "Invalid format '{kind}', valid formats are: base64, hex, json, jsonc, yaml, toml"
                     )),
                 }),
             }
@@ -57,8 +61,6 @@ impl FromLua for EncodeDecodeFormat {
 
 /**
     Configuration for encoding and decoding values.
-
-    Encoding / decoding in this case is synonymous with serialize / deserialize.
 */
 #[derive(Debug, Clone, Copy)]
 pub struct EncodeDecodeConfig {
@@ -93,6 +95,14 @@ impl From<(EncodeDecodeFormat, bool)> for EncodeDecodeConfig {
 */
 pub fn encode(value: LuaValue, lua: &Lua, config: EncodeDecodeConfig) -> LuaResult<LuaString> {
     let bytes = match config.format {
+        EncodeDecodeFormat::Base64 => {
+            let bytes = BString::from_lua(value, lua)?;
+            BASE64.encode(bytes.as_ref()).into_bytes()
+        }
+        EncodeDecodeFormat::Hex => {
+            let bytes = BString::from_lua(value, lua)?;
+            HEXLOWER.encode(bytes.as_ref()).into_bytes()
+        }
         EncodeDecodeFormat::Json | EncodeDecodeFormat::JsonC => {
             let serialized: JsonValue = lua.from_value_with(value, LUA_DESERIALIZE_OPTIONS)?;
             if config.pretty {
@@ -134,6 +144,16 @@ pub fn decode(
 ) -> LuaResult<LuaValue> {
     let bytes = bytes.as_ref();
     match config.format {
+        EncodeDecodeFormat::Base64 => {
+            let decoded = BASE64.decode(bytes).into_lua_err()?;
+            lua.create_string(decoded).map(LuaValue::String)
+        }
+        EncodeDecodeFormat::Hex => {
+            let decoded = HEXLOWER
+                .decode(&bytes.to_ascii_lowercase())
+                .into_lua_err()?;
+            lua.create_string(decoded).map(LuaValue::String)
+        }
         EncodeDecodeFormat::Json => {
             let value: JsonValue = serde_json::from_slice(bytes).into_lua_err()?;
             lua.to_value_with(&value, LUA_SERIALIZE_OPTIONS)
