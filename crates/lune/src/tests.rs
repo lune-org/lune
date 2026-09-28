@@ -172,7 +172,6 @@ create_tests! {
     roblox_datatype_brick_color: "roblox/datatypes/BrickColor",
     roblox_datatype_cframe: "roblox/datatypes/CFrame",
     roblox_datatype_color3: "roblox/datatypes/Color3",
-    roblox_datatype_color3_to_hex: "roblox/datatypes/Color3ToHex",
     roblox_datatype_color_sequence: "roblox/datatypes/ColorSequence",
     roblox_datatype_color_sequence_keypoint: "roblox/datatypes/ColorSequenceKeypoint",
     roblox_datatype_content: "roblox/datatypes/Content",
