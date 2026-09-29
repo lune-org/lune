@@ -173,10 +173,16 @@ impl LuaUserData for Color3 {
         });
         methods.add_method("ToHex", |_, this, ()| {
             Ok(format!(
-                "{:02X}{:02X}{:02X}",
-                (this.r * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-                (this.g * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as u8,
-                (this.b * 255.0).clamp(u8::MIN as f32, u8::MAX as f32) as u8,
+                "{:02x}{:02x}{:02x}",
+                (this.r * 255.0)
+                    .clamp(u8::MIN as f32, u8::MAX as f32)
+                    .round() as u8,
+                (this.g * 255.0)
+                    .clamp(u8::MIN as f32, u8::MAX as f32)
+                    .round() as u8,
+                (this.b * 255.0)
+                    .clamp(u8::MIN as f32, u8::MAX as f32)
+                    .round() as u8,
             ))
         });
         // Metamethods
