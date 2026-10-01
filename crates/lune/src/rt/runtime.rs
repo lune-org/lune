@@ -69,6 +69,7 @@ pub struct Runtime {
     args: ProcessArgs,
     env: ProcessEnv,
     jit: ProcessJitEnablement,
+    unsafe_library_enabled: bool,
 }
 
 impl Runtime {
@@ -96,6 +97,7 @@ impl Runtime {
         // Inject all the globals that are enabled
         #[cfg(any(
             feature = "std-datetime",
+            feature = "std-ffi",
             feature = "std-fs",
             feature = "std-luau",
             feature = "std-net",
@@ -118,6 +120,7 @@ impl Runtime {
         // otherwise it will be read-only and completely unusable
         #[cfg(any(
             feature = "std-datetime",
+            feature = "std-ffi",
             feature = "std-fs",
             feature = "std-luau",
             feature = "std-net",
@@ -144,6 +147,7 @@ impl Runtime {
             args,
             env,
             jit,
+            unsafe_library_enabled: false,
         })
     }
 
@@ -187,6 +191,18 @@ impl Runtime {
         J: Into<ProcessJitEnablement>,
     {
         self.jit = jit_status.into();
+        self
+    }
+
+    /**
+        Enables or disables unsafe standard libraries, such as `ffi`.
+
+        Unsafe libraries are disabled by default, and requiring
+        them from a script will error unless this is enabled.
+    */
+    #[must_use]
+    pub fn with_unsafe_library_enabled(mut self, enabled: bool) -> Self {
+        self.unsafe_library_enabled = enabled;
         self
     }
 
@@ -354,6 +370,7 @@ impl Runtime {
         // storing the args/env, since some standard libraries use those during initialization
         #[cfg(any(
             feature = "std-datetime",
+            feature = "std-ffi",
             feature = "std-fs",
             feature = "std-luau",
             feature = "std-net",
@@ -365,6 +382,7 @@ impl Runtime {
             feature = "std-task",
         ))]
         {
+            lune_std::set_unsafe_library_enabled(&self.lua, self.unsafe_library_enabled);
             lune_std::inject_std(self.lua.clone())?;
         }
 

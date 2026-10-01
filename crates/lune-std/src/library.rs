@@ -2,6 +2,8 @@ use std::str::FromStr;
 
 use mlua::prelude::*;
 
+use crate::get_unsafe_library_enabled;
+
 /**
     A standard library provided by Lune.
 */
@@ -18,6 +20,7 @@ pub enum LuneStandardLibrary {
     #[cfg(feature = "serde")]    Serde,
     #[cfg(feature = "stdio")]    Stdio,
     #[cfg(feature = "roblox")]   Roblox,
+    #[cfg(feature = "ffi")]      Ffi,
 }
 
 impl LuneStandardLibrary {
@@ -36,6 +39,7 @@ impl LuneStandardLibrary {
         #[cfg(feature = "serde")]    Self::Serde,
         #[cfg(feature = "stdio")]    Self::Stdio,
         #[cfg(feature = "roblox")]   Self::Roblox,
+        #[cfg(feature = "ffi")]      Self::Ffi,
     ];
 
     /**
@@ -56,6 +60,31 @@ impl LuneStandardLibrary {
             #[cfg(feature = "serde")]    Self::Serde    => "serde",
             #[cfg(feature = "stdio")]    Self::Stdio    => "stdio",
             #[cfg(feature = "roblox")]   Self::Roblox   => "roblox",
+            #[cfg(feature = "ffi")]      Self::Ffi      => "ffi",
+
+            _ => unreachable!("no standard library enabled"),
+        }
+    }
+
+    /**
+        Gets whether the library is unsafe.
+    */
+    #[must_use]
+    #[rustfmt::skip]
+    #[allow(unreachable_patterns)]
+    pub fn is_unsafe(&self) -> bool {
+        match self {
+            #[cfg(feature = "datetime")] Self::DateTime => false,
+            #[cfg(feature = "fs")]       Self::Fs       => false,
+            #[cfg(feature = "luau")]     Self::Luau     => false,
+            #[cfg(feature = "net")]      Self::Net      => false,
+            #[cfg(feature = "task")]     Self::Task     => false,
+            #[cfg(feature = "process")]  Self::Process  => false,
+            #[cfg(feature = "regex")]    Self::Regex    => false,
+            #[cfg(feature = "serde")]    Self::Serde    => false,
+            #[cfg(feature = "stdio")]    Self::Stdio    => false,
+            #[cfg(feature = "roblox")]   Self::Roblox   => false,
+            #[cfg(feature = "ffi")]      Self::Ffi      => true,
 
             _ => unreachable!("no standard library enabled"),
         }
@@ -79,6 +108,7 @@ impl LuneStandardLibrary {
             #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::typedefs(),
             #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::typedefs(),
             #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::typedefs(),
+            #[cfg(feature = "ffi")]      Self::Ffi      => lune_std_ffi::typedefs(),
 
             _ => unreachable!("no standard library enabled"),
         }
@@ -89,11 +119,15 @@ impl LuneStandardLibrary {
 
         # Errors
 
-        If the library could not be created.
+        If the library could not be created, or if requiring an unsafe library without enabling the unsafe library.
     */
     #[rustfmt::skip]
     #[allow(unreachable_patterns)]
     pub fn module(&self, lua: Lua) -> LuaResult<LuaTable> {
+        if self.is_unsafe() && !get_unsafe_library_enabled(&lua) {
+            return Err(LuaError::external(format!("Standard library '{}' requires unsafe library enabled", self.name())));
+        }
+
         let mod_lua = lua.clone();
         let res: LuaResult<LuaTable> = match self {
             #[cfg(feature = "datetime")] Self::DateTime => lune_std_datetime::module(mod_lua),
@@ -106,6 +140,7 @@ impl LuneStandardLibrary {
             #[cfg(feature = "serde")]    Self::Serde    => lune_std_serde::module(mod_lua),
             #[cfg(feature = "stdio")]    Self::Stdio    => lune_std_stdio::module(mod_lua),
             #[cfg(feature = "roblox")]   Self::Roblox   => lune_std_roblox::module(mod_lua),
+            #[cfg(feature = "ffi")]      Self::Ffi      => lune_std_ffi::module(mod_lua),
 
             _ => unreachable!("no standard library enabled"),
         };
@@ -135,6 +170,7 @@ impl FromStr for LuneStandardLibrary {
             #[cfg(feature = "serde")]    "serde"    => Self::Serde,
             #[cfg(feature = "stdio")]    "stdio"    => Self::Stdio,
             #[cfg(feature = "roblox")]   "roblox"   => Self::Roblox,
+            #[cfg(feature = "ffi")]      "ffi"      => Self::Ffi,
 
             _ => {
                 return Err(format!(

@@ -12,6 +12,9 @@ use super::utils::files::discover_script_path_including_lune_dirs;
 /// Run a script
 #[derive(Debug, Clone, Parser)]
 pub struct RunCommand {
+    /// Allow unsafe libraries
+    #[clap(long, action)]
+    pub(super) r#unsafe: bool,
     /// Script name or full path to the file to run
     pub(super) script_path: String,
     /// Arguments to pass to the script, stored in process.args
@@ -28,7 +31,8 @@ impl RunCommand {
         // Create a new lune runtime with all globals & run the script
         let mut rt = Runtime::new()?
             .with_args(self.script_args)
-            .with_jit(!jit_disabled);
+            .with_jit(!jit_disabled)
+            .with_unsafe_library_enabled(self.r#unsafe);
 
         // Figure out if we should run stdin or run a file,
         // reading from stdin is marked by passing a single "-"

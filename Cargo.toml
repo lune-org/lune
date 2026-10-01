@@ -15,6 +15,7 @@ members = [
     "crates/lune-std-serde",
     "crates/lune-std-stdio",
     "crates/lune-std-task",
+    "crates/lune-std-ffi",
     "crates/lune-utils",
     "crates/mlua-luau-scheduler",
 ]

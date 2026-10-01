@@ -18,7 +18,11 @@ enum PromptState {
 
 /// Launch an interactive REPL (default)
 #[derive(Debug, Clone, Default, Parser)]
-pub struct ReplCommand {}
+pub struct ReplCommand {
+    /// Allow unsafe libraries
+    #[clap(long, action)]
+    r#unsafe: bool,
+}
 
 impl ReplCommand {
     pub async fn run(self) -> Result<ExitCode> {
@@ -39,7 +43,7 @@ impl ReplCommand {
         let mut prompt_state = PromptState::Regular;
         let mut source_code = String::new();
 
-        let mut lune_instance = Runtime::new()?;
+        let mut lune_instance = Runtime::new()?.with_unsafe_library_enabled(self.r#unsafe);
 
         loop {
             let prompt = match prompt_state {

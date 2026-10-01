@@ -26,7 +26,10 @@ fn run_test(path: &str) -> Result<ExitCode> {
         set_colors_enabled_stderr(false);
 
         // The rest of the test logic can continue as normal
-        let mut rt = Runtime::new()?.with_args(ARGS).with_jit(true);
+        let mut rt = Runtime::new()?
+            .with_args(ARGS)
+            .with_jit(true)
+            .with_unsafe_library_enabled(true);
 
         let script_path = workspace_dir.join("tests").join(format!("{path}.luau"));
         let script_values = rt.run_file(script_path).await?;
@@ -95,6 +98,48 @@ create_tests! {
     datetime_to_rfc_3339: "datetime/toRfc3339",
     datetime_to_local_time: "datetime/toLocalTime",
     datetime_to_universal_time: "datetime/toUniversalTime",
+}
+
+#[cfg(feature = "std-ffi")]
+create_tests! {
+    ffi_external_closure_call_closure: "ffi/external_closure/callClosure",
+    ffi_external_closure_call_closure_with_pointer: "ffi/external_closure/callClosureWithPointer",
+    ffi_external_closure_call_hello_world: "ffi/external_closure/callHelloWorld",
+    ffi_external_closure_errors: "ffi/external_closure/errors",
+    ffi_external_math_add_int: "ffi/external_math/addInt",
+    ffi_external_math_mul_int: "ffi/external_math/mulInt",
+    ffi_external_pointer_pointer_read: "ffi/external_pointer/pointerRead",
+    ffi_external_pointer_pointer_write: "ffi/external_pointer/pointerWrite",
+    ffi_external_print_hello_world: "ffi/external_print/helloWorld",
+    ffi_external_struct_ab: "ffi/external_struct/ab",
+    ffi_external_types_returns: "ffi/external_types/returns",
+    ffi_external_types_variadic: "ffi/external_types/variadic",
+    ffi_pretty_print_arr: "ffi/pretty_print/arr",
+    ffi_pretty_print_box: "ffi/pretty_print/box",
+    ffi_pretty_print_fn: "ffi/pretty_print/fn",
+    ffi_pretty_print_lib: "ffi/pretty_print/lib",
+    ffi_pretty_print_ptr: "ffi/pretty_print/ptr",
+    ffi_pretty_print_ref: "ffi/pretty_print/ref",
+    ffi_pretty_print_struct: "ffi/pretty_print/struct",
+    ffi_pretty_print_type: "ffi/pretty_print/type",
+    ffi_types_arr: "ffi/types/arr",
+    ffi_types_ptr: "ffi/types/ptr",
+    ffi_types_struct: "ffi/types/struct",
+    ffi_arrays: "ffi/arrays",
+    ffi_box_handling: "ffi/boxHandling",
+    ffi_c_types: "ffi/cTypes",
+    ffi_cast: "ffi/cast",
+    ffi_casts: "ffi/casts",
+    ffi_free: "ffi/free",
+    ffi_is_integer: "ffi/isInteger",
+    ffi_numbers: "ffi/numbers",
+    ffi_pointers: "ffi/pointers",
+    ffi_read_boundary: "ffi/readBoundary",
+    ffi_read_c_string: "ffi/readCString",
+    ffi_read_write_string: "ffi/stringReadWrite",
+    ffi_safety: "ffi/safety",
+    ffi_structs: "ffi/structs",
+    ffi_write_boundary: "ffi/writeBoundary",
 }
 
 #[cfg(feature = "std-fs")]

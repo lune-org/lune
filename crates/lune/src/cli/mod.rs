@@ -45,20 +45,27 @@ impl Cli {
             .nth(1)
             .is_some_and(|arg| arg.eq_ignore_ascii_case("run"))
         {
-            let Some(script_path) = args_os()
+            // The `--unsafe` flag may only be passed directly before the script path
+            let r#unsafe = args_os()
                 .nth(2)
+                .is_some_and(|arg| arg.eq_ignore_ascii_case("--unsafe"));
+            let script_path_index = if r#unsafe { 3 } else { 2 };
+
+            let Some(script_path) = args_os()
+                .nth(script_path_index)
                 .and_then(|arg| arg.to_str().map(String::from))
             else {
                 return Self::parse(); // Will fail and return the help message
             };
 
             let script_args = args_os()
-                .skip(3)
+                .skip(script_path_index + 1)
                 .filter_map(|arg| arg.to_str().map(String::from))
                 .collect::<Vec<_>>();
 
             Self {
                 subcommand: Some(CliSubcommand::Run(RunCommand {
+                    r#unsafe,
                     script_path,
                     script_args,
                 })),
