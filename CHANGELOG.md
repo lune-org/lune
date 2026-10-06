@@ -8,6 +8,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added a `--coverage` option to `lune run`, which writes the line coverage of the script, the modules it requires, and the chunks it loads using `luau.load`, to an LCOV file (`lcov.info` by default):
+
+  ```sh
+  lune run --coverage tests
+  lune run --coverage=coverage/lcov.info tests
+  ```
+
+  Options for `lune run` go before the script path, since any arguments after it are passed to the script.
+  Embedders can collect coverage using `Runtime::with_coverage` and `Runtime::coverage_lcov`.
+
 ## `0.11.0` - October 11th, 2026
 
 This version of Lune contains one breaking change for scripts - the `stop` function on web server handles returned by `net.serve` is now a method, meaning `handle.stop()` is now `handle:stop()`.

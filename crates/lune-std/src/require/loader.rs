@@ -8,7 +8,7 @@ use std::{
 use async_channel::{Receiver, Sender};
 use async_fs::read as read_file;
 
-use lune_utils::path::constants::FILE_CHUNK_PREFIX;
+use lune_utils::{coverage::Coverage, path::constants::FILE_CHUNK_PREFIX};
 use mlua::prelude::*;
 use mlua_luau_scheduler::LuaSchedulerExt;
 
@@ -95,7 +95,8 @@ impl RequireLoader {
                     let chunk_name = format!("{FILE_CHUNK_PREFIX}{}", relative_path.display());
                     let chunk_bytes = read_file(&absolute_path).await?;
 
-                    let chunk = lua.load(chunk_bytes).set_name(chunk_name);
+                    let chunk = lua.load(chunk_bytes).set_name(chunk_name).into_function()?;
+                    Coverage::track(&lua, absolute_path.display().to_string(), &chunk);
 
                     let thread_id = lua.push_thread_back(chunk, ())?;
                     lua.track_thread(thread_id);
