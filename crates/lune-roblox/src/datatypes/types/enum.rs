@@ -73,3 +73,31 @@ impl From<&'static EnumDescriptor<'static>> for Enum {
         Self { desc: value }
     }
 }
+
+/*
+    Userdata interning
+
+    Enums are interned in the same way as enum items and instances, so that
+    two reads of the same enum give the *same* userdata - matching Roblox,
+    and making enums work correctly as table keys and with rawequal.
+*/
+const ENUM_CACHE_KEY: &str = "__lune_roblox_enum_cache";
+
+/**
+    Converts an enum into its canonical lua userdata, creating and caching
+    it the first time and returning the same userdata on subsequent calls.
+
+    # Errors
+
+    Errors if creating the userdata or accessing the interning cache fails.
+*/
+pub(crate) fn enum_to_lua(lua: &Lua, r#enum: Enum) -> LuaResult<LuaValue> {
+    let cache = interning_cache(lua, ENUM_CACHE_KEY)?;
+    let key = r#enum.to_string();
+    if let Ok(LuaValue::UserData(existing)) = cache.get::<LuaValue>(key.as_str()) {
+        return Ok(LuaValue::UserData(existing));
+    }
+    let userdata = lua.create_userdata(r#enum)?;
+    cache.set(key, &userdata)?;
+    Ok(LuaValue::UserData(userdata))
+}

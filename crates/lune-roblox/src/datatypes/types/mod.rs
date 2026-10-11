@@ -34,6 +34,7 @@ pub use color_sequence_keypoint::ColorSequenceKeypoint;
 pub use color3::Color3;
 pub use content::Content;
 pub use r#enum::Enum;
+pub(crate) use r#enum::enum_to_lua;
 pub use r#enum_item::EnumItem;
 pub(crate) use r#enum_item::{enum_item_to_lua, opt_enum_item_to_lua};
 pub use r#enums::Enums;

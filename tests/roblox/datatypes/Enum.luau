@@ -79,3 +79,14 @@ assert(
 	rawequal(part:GetAttribute("Material"), Enum.Material.Wood),
 	"Enum items read from attributes should give the same userdata"
 )
+
+-- Enums should keep a stable identity too, just like enum items
+
+assert(rawequal(Enum.KeyCode, Enum.KeyCode), "Reading an enum twice should give the same userdata")
+assert(rawequal(Enum.KeyCode, Enum.KeyCode.X.EnumType), "EnumType should give the same userdata")
+
+for _, enum in Enum:GetEnums() do
+	if enum == Enum.KeyCode then
+		assert(rawequal(enum, Enum.KeyCode), "GetEnums should give the same userdata")
+	end
+end

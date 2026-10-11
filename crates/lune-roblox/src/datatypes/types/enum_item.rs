@@ -3,7 +3,7 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_dom_weak::types::EnumItem as DomEnumItem;
 
-use super::{super::*, Enum};
+use super::{super::*, Enum, enum_to_lua};
 
 /**
     An implementation of the [EnumItem](https://create.roblox.com/docs/reference/engine/datatypes/EnumItem) Roblox datatype.
@@ -65,7 +65,9 @@ impl LuaUserData for EnumItem {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("Name", |_, this| Ok(this.name.clone()));
         fields.add_field_method_get("Value", |_, this| Ok(this.value));
-        fields.add_field_method_get("EnumType", |_, this| Ok(this.parent.clone()));
+        fields.add_field_method_get("EnumType", |lua, this| {
+            enum_to_lua(lua, this.parent.clone())
+        });
     }
 
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {

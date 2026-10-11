@@ -2,7 +2,7 @@ use core::fmt;
 
 use mlua::prelude::*;
 
-use super::{super::*, Enum};
+use super::{super::*, Enum, enum_to_lua};
 
 /**
     An implementation of the [Enums](https://create.roblox.com/docs/reference/engine/datatypes/Enums) Roblox datatype.
@@ -15,14 +15,17 @@ pub struct Enums;
 impl LuaUserData for Enums {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("GetEnums", |_, _, ()| {
+        methods.add_method("GetEnums", |lua, _, ()| {
             let db = rbx_reflection_database::get().unwrap();
-            Ok(db.enums.values().map(Enum::from).collect::<Vec<_>>())
+            db.enums
+                .values()
+                .map(|desc| enum_to_lua(lua, Enum::from(desc)))
+                .collect::<LuaResult<Vec<_>>>()
         });
         methods.add_meta_method(
             LuaMetaMethod::Index,
-            |_, _, name: String| match Enum::from_name(&name) {
-                Some(e) => Ok(e),
+            |lua, _, name: String| match Enum::from_name(&name) {
+                Some(e) => enum_to_lua(lua, e),
                 None => Err(LuaError::RuntimeError(format!(
                     "The enum '{name}' does not exist",
                 ))),
