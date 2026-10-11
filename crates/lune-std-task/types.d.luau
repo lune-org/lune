@@ -58,7 +58,11 @@ end
 	@param functionOrThread The function or thread to delay
 	@return The thread that will be delayed
 ]=]
-function task.delay<T...>(duration: number, functionOrThread: thread | (T...) -> ...any, ...: T...): thread
+function task.delay<T...>(
+	duration: number,
+	functionOrThread: thread | (T...) -> ...any,
+	...: T...
+): thread
 	return nil :: any
 end
 
