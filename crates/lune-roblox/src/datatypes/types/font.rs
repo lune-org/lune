@@ -309,11 +309,9 @@ impl IntoLua for FontWeight {
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match EnumItem::from_enum_name_and_name("FontWeight", self.to_string()) {
             Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
-            None => Err(LuaError::ToLuaConversionError {
-                from: "FontWeight".to_string(),
-                to: "EnumItem",
-                message: Some(format!("Found unknown Enum.FontWeight value '{self}'")),
-            }),
+            None => Err(LuaError::RuntimeError(format!(
+                "Found unknown Enum.FontWeight value '{self}'"
+            ))),
         }
     }
 }
@@ -398,11 +396,9 @@ impl IntoLua for FontStyle {
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match EnumItem::from_enum_name_and_name("FontStyle", self.to_string()) {
             Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
-            None => Err(LuaError::ToLuaConversionError {
-                from: "FontStyle".to_string(),
-                to: "EnumItem",
-                message: Some(format!("Found unknown Enum.FontStyle value '{self}'")),
-            }),
+            None => Err(LuaError::RuntimeError(format!(
+                "Found unknown Enum.FontStyle value '{self}'"
+            ))),
         }
     }
 }

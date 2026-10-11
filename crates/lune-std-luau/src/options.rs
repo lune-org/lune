@@ -1,6 +1,5 @@
 #![allow(clippy::struct_field_names)]
 
-use mlua::Compiler as LuaCompiler;
 use mlua::prelude::*;
 
 const DEFAULT_DEBUG_NAME: &str = "luau.load(...)";
