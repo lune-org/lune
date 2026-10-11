@@ -127,6 +127,7 @@ create_tests! {
     net_serve_handles: "net/serve/handles",
     net_serve_non_blocking: "net/serve/non_blocking",
     net_serve_requests: "net/serve/requests",
+    net_serve_responses: "net/serve/responses",
     net_serve_websockets: "net/serve/websockets",
 
     net_socket_basic: "net/socket/basic",

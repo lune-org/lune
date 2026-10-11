@@ -100,8 +100,8 @@ impl FromLua for Response {
                 decompressed: false,
             })
         } else if let LuaValue::Table(tab) = value {
-            // Extract status (required)
-            let status = tab.get::<u16>("status")?;
+            // Extract status (optional, defaults to 200)
+            let status = tab.get::<Option<u16>>("status")?.unwrap_or(200);
             let status = StatusCode::from_u16(status).into_lua_err()?;
 
             // Extract headers

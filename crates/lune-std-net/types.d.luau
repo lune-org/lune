@@ -94,7 +94,7 @@ export type ServeRequest = {
 
 	This is a dictionary that may contain one or more of the following values:
 
-	* `status` - The status code for the request, in the range `100` -> `599`
+	* `status` - The status code for the request, in the range `100` -> `599`. Will be `200` if not specified
 	* `headers` - A table of key-value pairs representing headers
 	* `body` - The response body
 ]=]
