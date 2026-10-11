@@ -1,4 +1,4 @@
 [tools]
-luau-lsp = "JohnnyMorganz/luau-lsp@1.54.0"
-lune = "lune-org/lune@0.10.4"
-stylua = "JohnnyMorganz/StyLua@2.3.0"
+luau-lsp = "JohnnyMorganz/luau-lsp@1.70.1"
+lune = "lune-org/lune@0.10.5"
+stylua = "JohnnyMorganz/StyLua@2.6.0"
