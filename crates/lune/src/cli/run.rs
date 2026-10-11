@@ -21,9 +21,8 @@ pub struct RunCommand {
 impl RunCommand {
     pub async fn run(self) -> Result<ExitCode> {
         // Check if the user has explicitly disabled JIT (on by default)
-        let jit_disabled = env::var("LUNE_LUAU_JIT")
-            .ok()
-            .is_some_and(|s| matches!(s.as_str(), "0" | "false" | "off"));
+        let jit_disabled =
+            env::var("LUNE_LUAU_JIT").is_ok_and(|s| matches!(s.as_str(), "0" | "false" | "off"));
 
         // Create a new lune runtime with all globals & run the script
         let mut rt = Runtime::new()?

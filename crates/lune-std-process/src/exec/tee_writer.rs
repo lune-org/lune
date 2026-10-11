@@ -45,7 +45,7 @@ where
         let mut this = self.project();
         match this.writer.as_mut().poll_write(cx, buf) {
             Poll::Ready(res) => {
-                Write::write_all(&mut this.buffer, buf)
+                Write::write_all(&mut *this.buffer, buf)
                     .expect("Failed to write to internal tee buffer");
                 Poll::Ready(res)
             }
