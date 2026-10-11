@@ -235,8 +235,9 @@ fn ensure_not_destroyed(inst: &Instance) -> LuaResult<()> {
     2. Check if a property exists for the wanted name
         2a. Get an existing instance property OR
         2b. Get a property from a known default value
-    3. Get a current child of the instance
-    4. No valid property or instance found, throw error
+    3. Get a property or method implemented using implementProperty / implementMethod
+    4. Get a current child of the instance
+    5. No valid property or instance found, throw error
 */
 fn instance_property_get(
     lua: &Lua,
@@ -303,14 +304,14 @@ fn instance_property_get(
                 "Failed to get property '{prop_name}' - malformed property info",
             )))
         }
-    } else if let Some(inst) = this.find_child(|inst| inst.name == prop_name) {
-        instance_to_lua(lua, inst)
     } else if let Some(getter) = InstanceRegistry::find_property_getter(lua, &this, &prop_name) {
         // The canonical userdata is passed - no borrow is held at this point,
         // so the callback may freely call methods on it.
         getter.call(this_ud.clone())
     } else if let Some(method) = InstanceRegistry::find_method(lua, &this, &prop_name) {
         Ok(LuaValue::Function(method))
+    } else if let Some(inst) = this.find_child(|inst| inst.name == prop_name) {
+        instance_to_lua(lua, inst)
     } else {
         Err(LuaError::RuntimeError(format!(
             "{prop_name} is not a valid member of {this}",

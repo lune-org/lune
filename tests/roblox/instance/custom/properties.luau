@@ -61,3 +61,15 @@ roblox.implementProperty("Instance", "Parent", function()
 end)
 local _ = inst.Parent
 local _ = part.Parent
+
+-- Properties implemented using implementProperty should take precedence over children with the same name
+
+roblox.implementProperty("Instance", "Hello", function()
+	return "World!"
+end)
+
+local child = roblox.Instance.new("Folder")
+child.Name = "Hello"
+child.Parent = part
+
+assert(part.Hello == "World!", "implementProperty callback should take precedence over children")

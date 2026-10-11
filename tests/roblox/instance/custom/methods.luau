@@ -46,3 +46,15 @@ roblox.implementMethod("Instance", "FindFirstChild", function()
 end)
 inst:FindFirstChild("Test")
 part:FindFirstChild("Test")
+
+-- Methods implemented using implementMethod should take precedence over children with the same name
+
+roblox.implementMethod("Instance", "Hello", function()
+	return "World!"
+end)
+
+local child = roblox.Instance.new("Folder")
+child.Name = "Hello"
+child.Parent = part
+
+assert(part:Hello() == "World!", "implementMethod callback should take precedence over children")
