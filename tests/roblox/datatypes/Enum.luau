@@ -31,3 +31,14 @@ for _, keyCode in Enum.KeyCode:GetEnumItems() do
 	end
 end
 assert(foundKeyCodeX, "GetEnumItems did not contain X for Enum.KeyCode")
+
+for _, keyCode in Enum.KeyCode:GetEnumItems() do
+	assert(
+		Enum.KeyCode:FromValue(keyCode.Value) == keyCode,
+		"FromValue did not return the KeyCode from its value"
+	)
+	assert(
+		Enum.KeyCode:FromName(keyCode.Name) == keyCode,
+		"FromName did not return the KeyCode from its name"
+	)
+end

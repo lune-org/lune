@@ -37,6 +37,12 @@ impl LuaUserData for Enum {
                 })
                 .collect::<Vec<_>>())
         });
+        methods.add_method("FromName", |_, this, name: LuaBorrowedStr| {
+            Ok(EnumItem::from_enum_and_name(this, name))
+        });
+        methods.add_method("FromValue", |_, this, value: u32| {
+            Ok(EnumItem::from_enum_and_value(this, value))
+        });
         methods.add_meta_method(LuaMetaMethod::Index, |_, this, name: String| {
             match EnumItem::from_enum_and_name(this, &name) {
                 Some(item) => Ok(item),
