@@ -2,7 +2,7 @@
 
 use mlua::prelude::*;
 
-use lune_utils::{TableBuilder, jit::JitEnablement};
+use lune_utils::{TableBuilder, process::ProcessJitEnablement};
 
 mod options;
 
@@ -84,7 +84,7 @@ fn load_source(
     lua.enable_jit(options.codegen_enabled && !env_changed);
     let function = chunk.into_function()?;
     lua.enable_jit(
-        lua.app_data_ref::<JitEnablement>()
+        lua.app_data_ref::<ProcessJitEnablement>()
             .ok_or(LuaError::runtime(
                 "Failed to get current JitStatus ref from AppData",
             ))?
