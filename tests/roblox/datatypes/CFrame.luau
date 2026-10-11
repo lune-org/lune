@@ -125,6 +125,20 @@ assertEq(
 	CFrame.lookAt(Vector3.new(0, 0, -5), Vector3.new(0, 0, -5) - Vector3.xAxis)
 )
 
+local lookFrom = Vector3.new(3.25, -7.5, 11.75)
+local lookDir = Vector3.new(2.1, 1.3, -4.7)
+local lookUp = Vector3.new(-0.2, 1, 0.35)
+local lookRight = lookDir:Cross(lookUp).Unit
+assertEq(
+	CFrame.lookAt(lookFrom, lookFrom + lookDir, lookUp),
+	CFrame.fromMatrix(lookFrom, lookRight, lookRight:Cross(lookDir).Unit)
+)
+assertEq(
+	CFrame.lookAlong(lookFrom, lookDir, lookUp),
+	CFrame.fromMatrix(lookFrom, lookRight, lookRight:Cross(lookDir).Unit)
+)
+assert(CFrame.lookAt(lookFrom, lookFrom + lookDir, lookUp).LookVector:FuzzyEq(lookDir.Unit, 1e-4))
+
 -- Angles
 
 -- stylua: ignore start

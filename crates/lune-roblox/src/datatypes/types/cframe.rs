@@ -550,13 +550,13 @@ impl From<CFrame> for DomCFrame {
 */
 fn look_at(from: Vec3, to: Vec3, up: Vec3) -> Mat4 {
     let dir = (to - from).normalize();
-    let xaxis = up.cross(dir).normalize();
-    let yaxis = dir.cross(xaxis).normalize();
+    let xaxis = dir.cross(up).normalize();
+    let yaxis = xaxis.cross(dir).normalize();
 
     Mat4::from_cols(
-        Vec3::new(xaxis.x, yaxis.x, dir.x).extend(0.0),
-        Vec3::new(xaxis.y, yaxis.y, dir.y).extend(0.0),
-        Vec3::new(xaxis.z, yaxis.z, dir.z).extend(0.0),
+        xaxis.extend(0.0),
+        yaxis.extend(0.0),
+        (-dir).extend(0.0),
         from.extend(1.0),
     )
 }
