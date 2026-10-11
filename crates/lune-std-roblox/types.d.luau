@@ -330,6 +330,11 @@ end
 	official Roblox endpoints. To get the raw cookie value without any
 	additional formatting, you can pass `true` as the first and only parameter.
 
+	The cookie is read from the `ROBLOSECURITY` environment variable if it is set,
+	and otherwise from the cookie storage of Roblox Studio on Windows and macOS.
+	The exact lookup is done by the [rbx_cookie](https://crates.io/crates/rbx_cookie)
+	crate and may change over time.
+
 	### Example usage
 
 	```lua

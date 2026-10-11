@@ -311,6 +311,59 @@ function tcp.connect(host: string, port: number, config: (true | TcpConfig)?): T
 end
 
 --[=[
+	HTTP primitives for the `net` library
+
+	Provides the `request` and `serve` functions for sending HTTP requests and
+	creating HTTP servers.
+]=]
+local http = {}
+
+--[=[
+	Sends an HTTP request using the given url and / or parameters, and returns a dictionary that describes the response received.
+
+	Only throws an error if a miscellaneous network or I/O error occurs, never for unsuccessful status codes.
+
+	@param config The URL or request config to use
+	@return A dictionary representing the response for the request
+]=]
+function http.request(config: string | FetchParams): FetchResponse
+	return nil :: any
+end
+
+--[=[
+	Creates an HTTP server that listens on the given `port`.
+
+	This will ***not*** block and will keep listening for requests on the given `port`
+	until the `stop` method on the returned `ServeHandle` has been called.
+
+	@param port The port to use for the server
+	@param handlerOrConfig The handler function or config to use for the server
+]=]
+function http.serve(port: number, handlerOrConfig: ServeHttpHandler | ServeConfig): ServeHandle
+	return nil :: any
+end
+
+--[=[
+	Web socket primitives for the `net` library
+
+	Provides the `connect` function for connecting to web socket servers.
+]=]
+local ws = {}
+
+--[=[
+	Connects to a web socket at the given URL.
+
+	Throws an error if the server at the given URL does not support
+	web sockets, or if a miscellaneous network or I/O error occurs.
+
+	@param url The URL to connect to
+	@return A web socket handle
+]=]
+function ws.connect(url: string): WebSocket
+	return nil :: any
+end
+
+--[=[
 	@class Net
 
 	Built-in library for network access
@@ -355,7 +408,9 @@ end
 ]=]
 local net = {}
 
+net.http = http
 net.tcp = tcp
+net.ws = ws
 
 --[=[
 	@within Net

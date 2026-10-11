@@ -36,7 +36,10 @@ end
 --[=[
 	@class RegexCaptures
 
-	Captures from a regular expression.
+	Capture groups from a single match of a regular expression.
+
+	The length operator (`#`) returns the number of numbered and named capture
+	groups, not including the full match, which can be retrieved using `get(0)`.
 ]=]
 export type RegexCaptures = typeof(setmetatable(
 	{} :: {
@@ -45,9 +48,11 @@ export type RegexCaptures = typeof(setmetatable(
 			@tag Method
 			@method get
 
-			Returns the match at the given index, if one exists.
+			Returns the match for the capture group at the given index, if one exists.
 
-			@param index -- The index of the match to get
+			Index `0` is the full match, and index `1` is the first capture group.
+
+			@param index -- The index of the capture group to get
 			@return RegexMatch -- The match, if one exists
 		]=]
 
@@ -133,9 +138,9 @@ end
 	@within Regex
 	@tag Method
 
-	Finds all matches in the given text as a `RegexCaptures` object.
+	Finds the first match in the given text, and returns its capture groups as a `RegexCaptures` object.
 
-	Returns `nil` if no matches are found.
+	Returns `nil` if no match was found.
 
 	@param text -- The text to search
 	@return RegexCaptures? -- The captures object
@@ -197,7 +202,7 @@ export type Regex = typeof(Regex)
 	```lua
 	local Regex = require("@lune/regex")
 
-	local re = Regex.new("hello")
+	local re = Regex.new("(\\w+), (\\w+)!")
 
 	if re:isMatch("hello, world!") then
 		print("Matched!")
@@ -206,8 +211,8 @@ export type Regex = typeof(Regex)
 	local caps = re:captures("hello, world! hello, again!")
 
 	print(#caps) -- 2
-	print(caps:get(1)) -- "hello"
-	print(caps:get(2)) -- "hello"
+	print(caps:get(1).text) -- "hello"
+	print(caps:get(2).text) -- "world"
 	print(caps:get(3)) -- nil
 	```
 ]=]
