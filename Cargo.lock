@@ -1542,7 +1542,6 @@ dependencies = [
  "blocking",
  "clap",
  "console",
- "dialoguer",
  "directories",
  "futures-lite",
  "lune-std",
@@ -1581,7 +1580,6 @@ version = "0.3.5"
 dependencies = [
  "async-channel",
  "async-fs",
- "async-lock",
  "lune-std-datetime",
  "lune-std-fs",
  "lune-std-luau",
@@ -1596,7 +1594,6 @@ dependencies = [
  "mlua",
  "mlua-luau-scheduler",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -1640,7 +1637,6 @@ dependencies = [
  "async-lock",
  "async-net",
  "async-tungstenite",
- "blocking",
  "bstr",
  "form_urlencoded",
  "futures",
@@ -1657,7 +1653,6 @@ dependencies = [
  "rustls-pki-types",
  "url",
  "urlencoding",
- "webpki",
  "webpki-roots",
 ]
 
@@ -1731,7 +1726,6 @@ dependencies = [
 name = "lune-std-stdio"
 version = "0.3.5"
 dependencies = [
- "async-io",
  "async-lock",
  "blocking",
  "dialoguer",
@@ -3412,16 +3406,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23f0c9c52aa7cd7d77769a4cfe2a9adb1b331f489a41d912ce14513d5ab995c6"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "webpki"
-version = "0.22.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed63aea5ce73d0ff405984102c42de94fc55a6b75765d621c65262469b3c9b53"
-dependencies = [
- "ring",
- "untrusted",
 ]
 
 [[package]]
