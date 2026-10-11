@@ -1,6 +1,6 @@
 [package]
 name = "lune-std-net"
-version = "0.3.5"
+version = "0.4.0"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 mlua = { version = "0.12.2", features = ["luau"] }
-mlua-luau-scheduler = { version = "0.2.4", path = "../mlua-luau-scheduler" }
+mlua-luau-scheduler = { version = "0.3.0", path = "../mlua-luau-scheduler" }
 
 async-channel = "2.3"
 async-executor = "1.13"
@@ -36,5 +36,5 @@ url = "2.5"
 urlencoding = "2.1"
 webpki-roots = "1.0"
 
-lune-utils = { version = "0.3.5", path = "../lune-utils" }
-lune-std-serde = { version = "0.3.5", path = "../lune-std-serde" }
+lune-utils = { version = "0.4.0", path = "../lune-utils" }
+lune-std-serde = { version = "0.4.0", path = "../lune-std-serde" }
