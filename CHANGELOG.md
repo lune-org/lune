@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD023 -->
 <!-- markdownlint-disable MD033 -->
 
-## Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -10,11 +10,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+This version of Lune contains one breaking change for scripts - the `stop` function on web server handles returned by `net.serve` is now a method, meaning `handle.stop()` is now `handle:stop()`.
+If you use any of the Lune crates as a dependency, Lune now also uses `mlua` version `0.12`, and you may need to upgrade as well.
+
+### Added
+
+- Added a `size` field to the metadata returned by `fs.metadata`, containing the file size in bytes, or `nil` for directories ([#405])
+- Added `FromName` and `FromValue` methods to the `Enum` datatype in the `roblox` standard library ([#423])
+
+### Changed
+
+- Web server handles returned by `net.serve` now use standard Lua method calling convention and colon syntax, just like web sockets - `handle.stop()` is now `handle:stop()`
+- Improved the documentation for `roblox.getAuthCookie` and for web sockets in the `net` standard library
+- Updated to Luau version `0.740`
+- Updated to rbx-dom database version `0.741`
+
 ### Fixed
 
-- Fixed the `close` method on web sockets always erroring with "Socket has been closed" instead of closing the socket
-- Fixed the documentation for `serde.hmac` saying it returns a base64 string, when it returns a hex string
-- Fixed `CFrame.lookAt`, `CFrame.lookAlong` and `CFrame.new(pos, lookAt)` producing incorrect rotations when not rotating purely around the Y axis
+- Fixed the `close` method on web sockets always erroring with "Socket has been closed" instead of closing the socket ([#400])
+- Fixed the documentation for `serde.hmac` saying it returns a base64 string, when it returns a hex string ([#417])
+- Fixed `CFrame.lookAt`, `CFrame.lookAlong` and `CFrame.new(pos, lookAt)` producing incorrect rotations when not rotating purely around the Y axis ([#419])
+- Fixed `Color3:ToHex` truncating color channels instead of rounding them, and returning uppercase hex digits instead of lowercase ([#410])
+- Fixed `net.serve` responding with a `500` error when a response table does not contain a `status`, which now defaults to `200`
+- Fixed methods and properties added using `roblox.implementMethod` and `roblox.implementProperty` being shadowed by children with the same name
+- Fixed `Enum` and `EnumItem` values in the `roblox` standard library not having a stable identity, making them unusable as table keys
+- Fixed type definitions for the `net` standard library missing the `http` and `ws` submodules, as well as the `ip` and `port` fields on `ServeHandle`
+- Fixed the `MetadataKind` type definition including `symlink`, which `fs.metadata` never returns since symlinks are always followed ([#405])
+- Fixed the documentation for `captures` in the `regex` standard library describing it as finding all matches, when it only returns the capture groups of the first match
+
+### Internal Changes
+
+- Upgraded to `mlua` version `0.12` - if you use any of the Lune crates as a dependency, you may also need to upgrade
+- Removed the deprecated `jit` module alias from the `lune-utils` crate - please use the `process` module directly instead
+- Updated all dependencies to their latest major versions, and removed several unused ones
+
+[#405]: https://github.com/lune-org/lune/pull/405
+[#423]: https://github.com/lune-org/lune/pull/423
+[#400]: https://github.com/lune-org/lune/pull/400
+[#417]: https://github.com/lune-org/lune/pull/417
+[#419]: https://github.com/lune-org/lune/pull/419
+[#410]: https://github.com/lune-org/lune/pull/410
 
 ## `0.10.5` - July 2nd, 2026
 
