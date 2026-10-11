@@ -145,9 +145,17 @@ export type ServeConfig = {
 	@interface ServeHandle
 	@within Net
 
-	A handle to a currently running web server, containing a single `stop` method to gracefully shut down the web server.
+	A handle to a currently running web server.
+
+	This contains the following values:
+
+	* `ip` - The IP address that the web server is listening on
+	* `port` - The port that the web server is listening on
+	* `stop` - A method to gracefully shut down the web server
 ]=]
 export type ServeHandle = {
+	ip: string,
+	port: number,
 	stop: (self: ServeHandle) -> (),
 }
 
