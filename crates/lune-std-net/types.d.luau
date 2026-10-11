@@ -145,10 +145,10 @@ export type ServeConfig = {
 	@interface ServeHandle
 	@within Net
 
-	A handle to a currently running web server, containing a single `stop` function to gracefully shut down the web server.
+	A handle to a currently running web server, containing a single `stop` method to gracefully shut down the web server.
 ]=]
 export type ServeHandle = {
-	stop: () -> (),
+	stop: (self: ServeHandle) -> (),
 }
 
 --[=[
@@ -385,7 +385,7 @@ end
 	Creates an HTTP server that listens on the given `port`.
 
 	This will ***not*** block and will keep listening for requests on the given `port`
-	until the `stop` function on the returned `ServeHandle` has been called.
+	until the `stop` method on the returned `ServeHandle` has been called.
 
 	@param port The port to use for the server
 	@param handlerOrConfig The handler function or config to use for the server

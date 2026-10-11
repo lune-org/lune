@@ -13,7 +13,7 @@ use crate::shared::{hyper::HyperExecutor, tcp::Tcp};
 
 use self::{
     client::{stream::WsStream, tcp::TcpConfig},
-    server::config::ServeConfig,
+    server::{config::ServeConfig, handle::ServeHandle},
     shared::{request::Request, response::Response, websocket::Websocket},
 };
 
@@ -68,10 +68,8 @@ async fn net_http_request(lua: Lua, req: Request) -> LuaResult<Response> {
     self::client::send(req, lua).await
 }
 
-async fn net_http_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<LuaTable> {
-    self::server::serve(lua.clone(), port, config)
-        .await?
-        .into_lua_table(lua)
+async fn net_http_serve(lua: Lua, (port, config): (u16, ServeConfig)) -> LuaResult<ServeHandle> {
+    self::server::serve(lua, port, config).await
 }
 
 async fn net_tcp_connect(_: Lua, (host, port, config): (String, u16, TcpConfig)) -> LuaResult<Tcp> {
