@@ -23,6 +23,26 @@ pub fn make_list_writer() -> Box<ListWriter> {
     })
 }
 
+/**
+    Gets or creates a weak-valued cache table in the lua registry, for interning userdata.
+
+    Interning keeps a single canonical userdata per key, so that converting the same
+    underlying value to lua twice gives the *same* userdata - making it usable as a
+    table key and with rawequal. Since values are weak, userdata that is no longer
+    referenced anywhere in lua can still be collected and will be recreated on next access.
+*/
+pub fn interning_cache(lua: &Lua, key: &str) -> LuaResult<LuaTable> {
+    if let Ok(cache) = lua.named_registry_value::<LuaTable>(key) {
+        return Ok(cache);
+    }
+    let cache = lua.create_table()?;
+    let meta = lua.create_table()?;
+    meta.set("__mode", "v")?;
+    cache.set_metatable(Some(meta))?;
+    lua.set_named_registry_value(key, &cache)?;
+    Ok(cache)
+}
+
 /*
     Userdata metamethod implementations
 

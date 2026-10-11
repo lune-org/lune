@@ -3,7 +3,7 @@ use core::fmt;
 use mlua::prelude::*;
 use rbx_reflection::EnumDescriptor;
 
-use super::{super::*, EnumItem};
+use super::{super::*, EnumItem, enum_item_to_lua, opt_enum_item_to_lua};
 
 /**
     An implementation of the [Enum](https://create.roblox.com/docs/reference/engine/datatypes/Enum) Roblox datatype.
@@ -25,27 +25,25 @@ impl Enum {
 impl LuaUserData for Enum {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // Methods
-        methods.add_method("GetEnumItems", |_, this, ()| {
-            Ok(this
-                .desc
-                .items
-                .iter()
-                .map(|(name, value)| EnumItem {
-                    parent: this.clone(),
-                    name: name.to_string(),
-                    value: *value,
-                })
-                .collect::<Vec<_>>())
+        methods.add_method("GetEnumItems", |lua, this, ()| {
+            let items = this.desc.items.iter().map(|(name, value)| EnumItem {
+                parent: this.clone(),
+                name: name.to_string(),
+                value: *value,
+            });
+            items
+                .map(|item| enum_item_to_lua(lua, item))
+                .collect::<LuaResult<Vec<_>>>()
         });
-        methods.add_method("FromName", |_, this, name: LuaBorrowedStr| {
-            Ok(EnumItem::from_enum_and_name(this, name))
+        methods.add_method("FromName", |lua, this, name: LuaBorrowedStr| {
+            opt_enum_item_to_lua(lua, EnumItem::from_enum_and_name(this, name))
         });
-        methods.add_method("FromValue", |_, this, value: u32| {
-            Ok(EnumItem::from_enum_and_value(this, value))
+        methods.add_method("FromValue", |lua, this, value: u32| {
+            opt_enum_item_to_lua(lua, EnumItem::from_enum_and_value(this, value))
         });
-        methods.add_meta_method(LuaMetaMethod::Index, |_, this, name: String| {
+        methods.add_meta_method(LuaMetaMethod::Index, |lua, this, name: String| {
             match EnumItem::from_enum_and_name(this, &name) {
-                Some(item) => Ok(item),
+                Some(item) => enum_item_to_lua(lua, item),
                 None => Err(LuaError::RuntimeError(format!(
                     "The enum item '{}' does not exist for enum '{}'",
                     name, this.desc.name

@@ -35,6 +35,7 @@ pub use color3::Color3;
 pub use content::Content;
 pub use r#enum::Enum;
 pub use r#enum_item::EnumItem;
+pub(crate) use r#enum_item::{enum_item_to_lua, opt_enum_item_to_lua};
 pub use r#enums::Enums;
 pub use faces::Faces;
 pub use font::Font;

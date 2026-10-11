@@ -11,7 +11,7 @@ use crate::{
     datatypes::{
         attributes::{ensure_valid_attribute_name, ensure_valid_attribute_value},
         conversion::{DomValueToLua, LuaToDomValue},
-        types::EnumItem,
+        types::{EnumItem, enum_item_to_lua},
         userdata_impl_eq, userdata_impl_to_string,
     },
     shared::instance::{class_is_a, find_property_info},
@@ -267,14 +267,14 @@ fn instance_property_get(
                         "Failed to get property '{prop_name}' - encountered unknown enum",
                     ))
                 })?;
-                EnumItem::from_enum_name_and_value(&enum_name, enum_value.to_u32())
+                let enum_item = EnumItem::from_enum_name_and_value(&enum_name, enum_value.to_u32())
                     .ok_or_else(|| {
                         LuaError::RuntimeError(format!(
                             "Failed to get property '{}' - Enum.{} does not contain numeric value {}",
                             prop_name, enum_name, enum_value.to_u32()
                         ))
-                    })?
-                    .into_lua(lua)
+                    })?;
+                enum_item_to_lua(lua, enum_item)
             } else if let DomValue::Ref(referent) = prop {
                 // Must use the helper instead of dom_value_to_lua to preserve stable identity
                 opt_instance_to_lua(lua, Instance::new_opt(this.dom_id, referent))
@@ -282,13 +282,13 @@ fn instance_property_get(
                 Ok(LuaValue::dom_value_to_lua(lua, &prop)?)
             }
         } else if let (Some(enum_name), Some(enum_value)) = (info.enum_name, info.enum_default) {
-            EnumItem::from_enum_name_and_value(&enum_name, enum_value)
+            let enum_item = EnumItem::from_enum_name_and_value(&enum_name, enum_value)
                 .ok_or_else(|| {
                     LuaError::RuntimeError(format!(
                         "Failed to get property '{prop_name}' - Enum.{enum_name} does not contain numeric value {enum_value}",
                     ))
-                })?
-                .into_lua(lua)
+                })?;
+            enum_item_to_lua(lua, enum_item)
         } else if let Some(prop_default) = info.value_default {
             Ok(LuaValue::dom_value_to_lua(lua, prop_default)?)
         } else if info.value_type.is_some() {

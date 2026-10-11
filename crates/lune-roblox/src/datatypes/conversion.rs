@@ -39,6 +39,8 @@ pub(crate) trait DomValueToLua: Sized {
 
 impl DomValueToLua for LuaValue {
     fn dom_value_to_lua(lua: &Lua, variant: &DomValue) -> DomConversionResult<Self> {
+        use super::types::{EnumItem, enum_item_to_lua};
+
         use rbx_dom_weak::types as dom;
 
         match LuaAnyUserData::dom_value_to_lua(lua, variant) {
@@ -62,6 +64,12 @@ impl DomValueToLua for LuaValue {
                 // dom) in `instance_property_get`; any ref reaching here resolves
                 // to nil. Refs never appear as attribute values.
                 DomValue::Ref(_) => Ok(LuaValue::Nil),
+
+                // NOTE: Enum items are interned to preserve their identity, which the
+                // userdata conversion above can not do, so they are converted here instead
+                DomValue::EnumItem(value) => {
+                    Ok(enum_item_to_lua(lua, EnumItem::from(value.clone()))?)
+                }
 
                 // NOTE: Some values are either optional or default and we should handle
                 // that properly here since the userdata conversion above will always fail
@@ -205,7 +213,6 @@ impl DomValueToLua for LuaAnyUserData {
             DomValue::Color3uint8(value)    => dom_to_userdata!(lua, value => Color3),
             DomValue::ColorSequence(value)  => dom_to_userdata!(lua, value => ColorSequence),
             DomValue::Content(value)        => dom_to_userdata!(lua, value => Content),
-            DomValue::EnumItem(value)       => dom_to_userdata!(lua, value => EnumItem),
             DomValue::Faces(value)          => dom_to_userdata!(lua, value => Faces),
             DomValue::Font(value)           => dom_to_userdata!(lua, value => Font),
             DomValue::NumberRange(value)    => dom_to_userdata!(lua, value => NumberRange),

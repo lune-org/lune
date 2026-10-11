@@ -10,7 +10,7 @@ use lune_utils::TableBuilder;
 
 use crate::exports::LuaExportsTable;
 
-use super::{super::*, EnumItem};
+use super::{super::*, EnumItem, enum_item_to_lua};
 
 /**
     An implementation of the [Font](https://create.roblox.com/docs/reference/engine/datatypes/Font) Roblox datatype.
@@ -308,7 +308,7 @@ impl FromLua for FontWeight {
 impl IntoLua for FontWeight {
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match EnumItem::from_enum_name_and_name("FontWeight", self.to_string()) {
-            Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
+            Some(enum_item) => enum_item_to_lua(lua, enum_item),
             None => Err(LuaError::RuntimeError(format!(
                 "Found unknown Enum.FontWeight value '{self}'"
             ))),
@@ -395,7 +395,7 @@ impl FromLua for FontStyle {
 impl IntoLua for FontStyle {
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match EnumItem::from_enum_name_and_name("FontStyle", self.to_string()) {
-            Some(enum_item) => Ok(LuaValue::UserData(lua.create_userdata(enum_item)?)),
+            Some(enum_item) => enum_item_to_lua(lua, enum_item),
             None => Err(LuaError::RuntimeError(format!(
                 "Found unknown Enum.FontStyle value '{self}'"
             ))),

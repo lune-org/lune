@@ -24,7 +24,10 @@ pub use self::query::{QueryError, QueryResult, query_descendants};
 pub use crate::shared::instance::{CustomClassError, register_custom_class};
 
 #[cfg(feature = "mlua")]
-use crate::{exports::LuaExportsTable, shared::instance::class_exists};
+use crate::{
+    exports::LuaExportsTable,
+    shared::{instance::class_exists, userdata::interning_cache},
+};
 
 #[cfg(feature = "mlua")]
 pub(crate) mod base;
@@ -861,15 +864,7 @@ const INSTANCE_CACHE_KEY: &str = "__lune_roblox_instance_cache";
 
 #[cfg(feature = "mlua")]
 fn instance_cache(lua: &Lua) -> LuaResult<LuaTable> {
-    if let Ok(cache) = lua.named_registry_value::<LuaTable>(INSTANCE_CACHE_KEY) {
-        return Ok(cache);
-    }
-    let cache = lua.create_table()?;
-    let meta = lua.create_table()?;
-    meta.set("__mode", "v")?;
-    cache.set_metatable(Some(meta))?;
-    lua.set_named_registry_value(INSTANCE_CACHE_KEY, &cache)?;
-    Ok(cache)
+    interning_cache(lua, INSTANCE_CACHE_KEY)
 }
 
 #[cfg(feature = "mlua")]

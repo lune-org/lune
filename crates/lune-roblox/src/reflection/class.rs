@@ -14,7 +14,9 @@ use super::{property::DatabaseProperty, utils::*};
 
 #[cfg(feature = "mlua")]
 use crate::datatypes::{
-    conversion::DomValueToLua, types::EnumItem, userdata_impl_eq, userdata_impl_to_string,
+    conversion::DomValueToLua,
+    types::{EnumItem, enum_item_to_lua},
+    userdata_impl_eq, userdata_impl_to_string,
 };
 
 type DbClass = &'static ClassDescriptor<'static>;
@@ -102,7 +104,7 @@ impl LuaUserData for DatabaseClass {
             for (name, prop) in defaults {
                 let value = if let DomVariant::Enum(enum_value) = prop {
                     make_enum_value(this.0, &name, enum_value.to_u32())
-                        .and_then(|e| e.into_lua(lua))
+                        .and_then(|item| enum_item_to_lua(lua, item))
                 } else {
                     LuaValue::dom_value_to_lua(lua, &prop).into_lua_err()
                 };

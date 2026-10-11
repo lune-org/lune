@@ -115,3 +115,45 @@ impl From<DomEnumItem> for EnumItem {
             .expect("cannot convert rbx_type::EnumItem with unknown type into EnumItem")
     }
 }
+
+/*
+    Userdata interning
+
+    Enum items are interned in the same way as instances, so that two reads
+    of the same enum item give the *same* userdata - matching Roblox, and
+    making enum items work correctly as table keys and with rawequal.
+*/
+const ENUM_ITEM_CACHE_KEY: &str = "__lune_roblox_enum_item_cache";
+
+/**
+    Converts an enum item into its canonical lua userdata, creating and caching
+    it the first time and returning the same userdata on subsequent calls.
+
+    # Errors
+
+    Errors if creating the userdata or accessing the interning cache fails.
+*/
+pub(crate) fn enum_item_to_lua(lua: &Lua, item: EnumItem) -> LuaResult<LuaValue> {
+    let cache = interning_cache(lua, ENUM_ITEM_CACHE_KEY)?;
+    let key = item.to_string();
+    if let Ok(LuaValue::UserData(existing)) = cache.get::<LuaValue>(key.as_str()) {
+        return Ok(LuaValue::UserData(existing));
+    }
+    let userdata = lua.create_userdata(item)?;
+    cache.set(key, &userdata)?;
+    Ok(LuaValue::UserData(userdata))
+}
+
+/**
+    Converts an optional enum item into lua, returning [`LuaValue::Nil`] for [`None`].
+
+    # Errors
+
+    Errors if creating the userdata or accessing the interning cache fails.
+*/
+pub(crate) fn opt_enum_item_to_lua(lua: &Lua, item: Option<EnumItem>) -> LuaResult<LuaValue> {
+    match item {
+        Some(item) => enum_item_to_lua(lua, item),
+        None => Ok(LuaValue::Nil),
+    }
+}

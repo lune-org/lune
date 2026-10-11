@@ -10,7 +10,7 @@ use crate::{
     instance::{Instance, dom_registry::DomId, opt_instance_to_lua},
 };
 
-use super::{super::*, EnumItem};
+use super::{super::*, EnumItem, opt_enum_item_to_lua};
 
 /**
     An implementation of the [Content](https://create.roblox.com/docs/reference/engine/datatypes/Content) Roblox datatype.
@@ -74,7 +74,7 @@ impl LuaExportsTable for Content {
 
 impl LuaUserData for Content {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
-        fields.add_field_method_get("SourceType", |_, this| {
+        fields.add_field_method_get("SourceType", |lua, this| {
             let variant_name = match &this.0 {
                 ContentType::None => "None",
                 ContentType::Uri(_) => "Uri",
@@ -85,10 +85,10 @@ impl LuaUserData for Content {
                     )));
                 }
             };
-            Ok(EnumItem::from_enum_name_and_name(
-                "ContentSourceType",
-                variant_name,
-            ))
+            opt_enum_item_to_lua(
+                lua,
+                EnumItem::from_enum_name_and_name("ContentSourceType", variant_name),
+            )
         });
         fields.add_field_method_get("Uri", |_, this| {
             if let ContentType::Uri(uri) = &this.0 {

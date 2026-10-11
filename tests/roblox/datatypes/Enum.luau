@@ -42,3 +42,40 @@ for _, keyCode in Enum.KeyCode:GetEnumItems() do
 		"FromName did not return the KeyCode from its name"
 	)
 end
+
+-- Enum items should keep a stable identity, so that they work as table keys and with rawequal
+
+assert(
+	rawequal(Enum.KeyCode.X, Enum.KeyCode.X),
+	"Reading an enum item twice should give the same userdata"
+)
+assert(
+	rawequal(Enum.KeyCode.X, Enum.KeyCode:FromName("X")),
+	"FromName should give the same userdata"
+)
+assert(
+	rawequal(Enum.KeyCode.X, Enum.KeyCode:FromValue(Enum.KeyCode.X.Value)),
+	"FromValue should give the same userdata"
+)
+
+for _, keyCode in Enum.KeyCode:GetEnumItems() do
+	assert(
+		rawequal(keyCode, Enum.KeyCode[keyCode.Name]),
+		"GetEnumItems should give the same userdata"
+	)
+end
+
+local keyBinds = { [Enum.KeyCode.X] = "jump" }
+assert(keyBinds[Enum.KeyCode.X] == "jump", "Enum items should be usable as table keys")
+
+local part = roblox.Instance.new("Part")
+part.Material = Enum.Material.Wood
+assert(
+	rawequal(part.Material, Enum.Material.Wood),
+	"Enum items read from properties should give the same userdata"
+)
+part:SetAttribute("Material", Enum.Material.Wood)
+assert(
+	rawequal(part:GetAttribute("Material"), Enum.Material.Wood),
+	"Enum items read from attributes should give the same userdata"
+)
