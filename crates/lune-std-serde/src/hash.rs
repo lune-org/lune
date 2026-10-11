@@ -114,7 +114,7 @@ impl HashOptions {
     */
     #[inline]
     pub fn hmac(self) -> LuaResult<String> {
-        use hmac::{Hmac, Mac, SimpleHmac};
+        use hmac::{Hmac, KeyInit, Mac, SimpleHmac};
 
         let secret = self
             .secret
@@ -129,9 +129,9 @@ impl HashOptions {
             repeating lines. Essentially, there's several step to processing
             HMacs, which expands into the 3 lines you see below. However,
             the Hmac struct is specialized towards eager block-based processes.
-            In order to support anything else, like blake3, there's a second
-            type named `SimpleHmac`. This results in duplicate macros like
-            there are below.
+            In order to support anything else, like sha3 and blake3, there's a
+            second type named `SimpleHmac`. This results in duplicate macros
+            like there are below.
         */
         macro_rules! hmac {
             ($Type:ty) => {{
@@ -158,10 +158,10 @@ impl HashOptions {
             HashAlgorithm::Sha2_384 => hmac!(Sha384),
             HashAlgorithm::Sha2_512 => hmac!(Sha512),
 
-            HashAlgorithm::Sha3_224 => hmac!(Sha3_224),
-            HashAlgorithm::Sha3_256 => hmac!(Sha3_256),
-            HashAlgorithm::Sha3_384 => hmac!(Sha3_384),
-            HashAlgorithm::Sha3_512 => hmac!(Sha3_512),
+            HashAlgorithm::Sha3_224 => hmac_no_blocks!(Sha3_224),
+            HashAlgorithm::Sha3_256 => hmac_no_blocks!(Sha3_256),
+            HashAlgorithm::Sha3_384 => hmac_no_blocks!(Sha3_384),
+            HashAlgorithm::Sha3_512 => hmac_no_blocks!(Sha3_512),
 
             HashAlgorithm::Blake3 => hmac_no_blocks!(Blake3),
         };

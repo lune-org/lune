@@ -33,7 +33,7 @@ mlua = { version = "0.12.2", features = [
 async-fs = "2.1"
 async-io = "2.4"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tracing-tracy = "0.11"
+tracing-tracy = "0.12"
 
 [[example]]
 name = "basic_sleep"

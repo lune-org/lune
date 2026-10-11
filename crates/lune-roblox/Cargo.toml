@@ -19,7 +19,7 @@ mlua = ["dep:mlua", "dep:lune-utils"]
 [dependencies]
 mlua = { version = "0.12.2", optional = true, features = ["luau"] }
 
-glam = "0.33"
+glam = "0.34"
 rand = "0.10"
 thiserror = "2.0"
 
