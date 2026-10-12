@@ -55,8 +55,14 @@ impl RunCommand {
             rt.run_file(file_path).await
         };
 
-        // Write the coverage also when the script errored, such as for failing tests
+        // Write the coverage also when the script errored, such as for failing tests,
+        // but not when it could not be loaded and run at all, since nothing then ran
         if let (Some(path), Ok(_), Some(lcov)) = (&self.coverage, &result, rt.coverage_lcov()) {
+            if let Some(dir) = path.parent() {
+                async_fs::create_dir_all(dir)
+                    .await
+                    .with_context(|| format!("Failed to create directory \"{}\"", dir.display()))?;
+            }
             async_fs::write(path, lcov)
                 .await
                 .with_context(|| format!("Failed to write coverage to \"{}\"", path.display()))?;

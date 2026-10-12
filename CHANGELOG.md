@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 
   Options for `lune run` go before the script path, since any arguments after it are passed to the script.
+  The file is written also when the script errors, such as when tests fail, and its directory is created if missing.
   Embedders can collect coverage using `Runtime::with_coverage` and `Runtime::coverage_lcov`.
 
 ## `0.11.0` - October 11th, 2026
