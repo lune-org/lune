@@ -3,6 +3,7 @@
 mod table_builder;
 mod version_string;
 
+pub mod coverage;
 pub mod fmt;
 pub mod path;
 pub mod process;

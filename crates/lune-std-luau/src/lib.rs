@@ -2,7 +2,7 @@
 
 use mlua::prelude::*;
 
-use lune_utils::{TableBuilder, process::ProcessJitEnablement};
+use lune_utils::{TableBuilder, coverage::Coverage, process::ProcessJitEnablement};
 
 mod options;
 
@@ -48,7 +48,7 @@ fn load_source(
 ) -> LuaResult<LuaFunction> {
     let mut chunk = lua
         .load(source.as_bytes().to_vec())
-        .set_name(options.debug_name);
+        .set_name(&options.debug_name);
     let env_changed = options.environment.is_some();
 
     if let Some(custom_environment) = options.environment {
@@ -83,6 +83,8 @@ fn load_source(
     // changed, otherwise disable JIT since it'll fall back anyways
     lua.enable_jit(options.codegen_enabled && !env_changed);
     let function = chunk.into_function()?;
+    let file_name = options.debug_name.strip_prefix(['@', '=']);
+    Coverage::track(lua, file_name.unwrap_or(&options.debug_name), &function);
     lua.enable_jit(
         lua.app_data_ref::<ProcessJitEnablement>()
             .ok_or(LuaError::runtime(

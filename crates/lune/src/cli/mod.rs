@@ -1,4 +1,4 @@
-use std::{env::args_os, process::ExitCode};
+use std::{env::args_os, ffi::OsString, iter::once, process::ExitCode};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -45,23 +45,26 @@ impl Cli {
             .nth(1)
             .is_some_and(|arg| arg.eq_ignore_ascii_case("run"))
         {
-            let Some(script_path) = args_os()
-                .nth(2)
-                .and_then(|arg| arg.to_str().map(String::from))
+            // Options for lune come before the script path,
+            // and all arguments after it are passed to the script
+            let Some(script_index) = args_os()
+                .skip(2)
+                .position(|arg| !arg.as_encoded_bytes().starts_with(b"--"))
             else {
                 return Self::parse(); // Will fail and return the help message
             };
 
-            let script_args = args_os()
-                .skip(3)
+            let mut command = RunCommand::parse_from(
+                once(OsString::from("lune run")).chain(args_os().skip(2).take(script_index + 1)),
+            );
+
+            command.script_args = args_os()
+                .skip(script_index + 3)
                 .filter_map(|arg| arg.to_str().map(String::from))
                 .collect::<Vec<_>>();
 
             Self {
-                subcommand: Some(CliSubcommand::Run(RunCommand {
-                    script_path,
-                    script_args,
-                })),
+                subcommand: Some(CliSubcommand::Run(command)),
             }
         } else {
             Self::parse()
