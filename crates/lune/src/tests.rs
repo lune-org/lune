@@ -252,6 +252,8 @@ create_tests! {
 
 #[cfg(feature = "std-serde")]
 create_tests! {
+    serde_encoding_base64: "serde/encoding/base64",
+    serde_encoding_hex: "serde/encoding/hex",
     serde_compression_files: "serde/compression/files",
     serde_compression_roundtrip: "serde/compression/roundtrip",
     serde_json_decode: "serde/json/decode",
