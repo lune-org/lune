@@ -122,6 +122,7 @@ impl LuaToDomValue for LuaValue {
                 // NOTE: Some values are either optional or default and we
                 // should handle that here before trying to convert as userdata
                 (LuaValue::Nil, DomType::OptionalCFrame) => Ok(DomValue::OptionalCFrame(None)),
+                (LuaValue::Nil, DomType::Ref) => Ok(DomValue::Ref(dom::Ref::none())),
                 (LuaValue::Nil, DomType::PhysicalProperties) => Ok(DomValue::PhysicalProperties(
                     dom::PhysicalProperties::Default,
                 )),

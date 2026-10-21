@@ -34,6 +34,14 @@ part.Shape = Enum.PartType.Ball
 
 assert(part.Shape == Enum.PartType.Ball)
 
+-- Instance (ref) properties should work with either an instance and nil
+
+local highlight = Instance.new("Highlight")
+highlight.Adornee = part
+assert(highlight.Adornee == part)
+highlight.Adornee = nil
+assert(highlight.Adornee == nil)
+
 -- Enums should roundtrip through serde without problem
 
 local decal = Instance.new("Decal")

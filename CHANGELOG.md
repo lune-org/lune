@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   print(part.MeshId) -- the reverse also works, the value is properly "rbxassetid://0987654321"
   ```
 
+### Fixed
+
+- Fixed not being able to set Instance reference properties to `nil`
+
 ## `0.11.1` - October 21st, 2026
 
 This release addresses a security vulnerability with HTTPS certificates. If you are using `net.request`, especially with untrusted / dynamic input, it is suggested that you upgrade Lune. You can read more about the vulnerability [here](https://rustsec.org/advisories/RUSTSEC-2026-0382).
