@@ -39,6 +39,11 @@ assert(UDim2.fromOffset(1, 1).Y == UDim.new(0, 1))
 assert(UDim2.fromOffset(1, 1).Width == UDim.new(0, 1))
 assert(UDim2.fromOffset(1, 1).Height == UDim.new(0, 1))
 
+assert(UDim2.new(0, 10.9, 0, -3.7).X.Offset == 10)
+assert(UDim2.new(0, 10.9, 0, -3.7).Y.Offset == -3)
+assert(UDim2.fromOffset(10.9, -3.7).X.Offset == 10)
+assert(UDim2.fromOffset(10.9, -3.7).Y.Offset == -3)
+
 -- Ops
 
 assert(UDim2.new(2, 4, 6, 8) + UDim2.new(1, 1, 1, 1) == UDim2.new(3, 5, 7, 9))

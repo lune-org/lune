@@ -8,6 +8,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Fixed a regression where passing fractional numeric args to certain datatype constructors in `@lune/roblox` would error in Lune `0.12` while they did not in `0.11` nor in Roblox
+
 ## `0.11.0` - October 11th, 2026
 
 This version of Lune contains one breaking change for scripts - the `stop` function on web server handles returned by `net.serve` is now a method, meaning `handle.stop()` is now `handle:stop()`.

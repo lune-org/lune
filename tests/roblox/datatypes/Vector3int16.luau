@@ -8,6 +8,11 @@ Vector3int16.new(0)
 Vector3int16.new(0, 0)
 Vector3int16.new(0, 0, 0)
 
+-- Fractional numbers truncate, as in Roblox
+assert(Vector3int16.new(1.9, -2.1, 3.5).X == 1)
+assert(Vector3int16.new(1.9, -2.1, 3.5).Y == -2)
+assert(Vector3int16.new(1.9, -2.1, 3.5).Z == 3)
+
 assert(not pcall(function()
 	return Vector3int16.new(999_999, 999_999, 999_999)
 end))

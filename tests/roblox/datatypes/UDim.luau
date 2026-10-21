@@ -21,6 +21,9 @@ end))
 assert(UDim.new(1, 2).Scale == 1)
 assert(UDim.new(1, 2).Offset == 2)
 
+assert(UDim.new(0, 4.5).Offset == 4)
+assert(UDim.new(0, -4.5).Offset == -4)
+
 -- Ops
 
 assert(UDim.new(2, 4) + UDim.new(1, 1) == UDim.new(3, 5))

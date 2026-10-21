@@ -23,6 +23,9 @@ end))
 assert(Vector2int16.new(1, 2).X == 1)
 assert(Vector2int16.new(1, 2).Y == 2)
 
+assert(Vector2int16.new(1.9, -2.1).X == 1)
+assert(Vector2int16.new(1.9, -2.1).Y == -2)
+
 -- Ops
 
 assert(Vector2int16.new(2, 4) + Vector2int16.new(1, 1) == Vector2int16.new(3, 5))

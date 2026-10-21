@@ -24,6 +24,8 @@ assert(Color3.new(0.25, 0.5, 1).R == 0.25)
 assert(Color3.new(0.25, 0.5, 1).G == 0.5)
 assert(Color3.new(0.25, 0.5, 1).B == 1)
 
+assert(Color3.fromRGB(127.5, 0, 0).R == 0.5)
+
 assert(Color3.fromRGB(0, 0, 0) == Color3.new(0, 0, 0))
 assert(Color3.fromRGB(255, 255, 255) == Color3.new(1, 1, 1))
 

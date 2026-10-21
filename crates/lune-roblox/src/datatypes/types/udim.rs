@@ -31,10 +31,10 @@ impl LuaExportsTable for UDim {
     const EXPORT_NAME: &'static str = "UDim";
 
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
-        let udim_new = |_: &Lua, (scale, offset): (Option<f32>, Option<i32>)| {
+        let udim_new = |_: &Lua, (scale, offset): (Option<f32>, Option<f64>)| {
             Ok(UDim {
                 scale: scale.unwrap_or_default(),
-                offset: offset.unwrap_or_default(),
+                offset: offset.unwrap_or_default() as i32,
             })
         };
 

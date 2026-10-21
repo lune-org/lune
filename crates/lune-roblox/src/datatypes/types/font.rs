@@ -72,7 +72,8 @@ impl LuaExportsTable for Font {
             };
 
         let font_from_id =
-            |_: &Lua, (id, weight, style): (i32, Option<FontWeight>, Option<FontStyle>)| {
+            |_: &Lua, (id, weight, style): (f64, Option<FontWeight>, Option<FontStyle>)| {
+                let id = id as i64;
                 Ok(Font {
                     family: format!("rbxassetid://{id}"),
                     weight: weight.unwrap_or_default(),

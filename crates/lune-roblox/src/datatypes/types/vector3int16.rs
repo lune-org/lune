@@ -7,6 +7,7 @@ use rbx_dom_weak::types::Vector3int16 as DomVector3int16;
 
 use lune_utils::TableBuilder;
 
+use crate::datatypes::util::int16_from;
 use crate::exports::LuaExportsTable;
 
 use super::super::*;
@@ -25,11 +26,11 @@ impl LuaExportsTable for Vector3int16 {
     const EXPORT_NAME: &'static str = "Vector3int16";
 
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
-        let vector3int16_new = |_: &Lua, (x, y, z): (Option<i16>, Option<i16>, Option<i16>)| {
+        let vector3int16_new = |_: &Lua, (x, y, z): (Option<f64>, Option<f64>, Option<f64>)| {
             Ok(Vector3int16(IVec3 {
-                x: x.unwrap_or_default() as i32,
-                y: y.unwrap_or_default() as i32,
-                z: z.unwrap_or_default() as i32,
+                x: int16_from(x)?,
+                y: int16_from(y)?,
+                z: int16_from(z)?,
             }))
         };
 

@@ -32,11 +32,11 @@ impl LuaExportsTable for Color3 {
     const EXPORT_NAME: &'static str = "Color3";
 
     fn create_exports_table(lua: Lua) -> LuaResult<LuaTable> {
-        let color3_from_rgb = |_: &Lua, (r, g, b): (Option<u8>, Option<u8>, Option<u8>)| {
+        let color3_from_rgb = |_: &Lua, (r, g, b): (Option<f32>, Option<f32>, Option<f32>)| {
             Ok(Color3 {
-                r: (r.unwrap_or_default() as f32) / 255f32,
-                g: (g.unwrap_or_default() as f32) / 255f32,
-                b: (b.unwrap_or_default() as f32) / 255f32,
+                r: r.unwrap_or_default() / 255f32,
+                g: g.unwrap_or_default() / 255f32,
+                b: b.unwrap_or_default() / 255f32,
             })
         };
 
