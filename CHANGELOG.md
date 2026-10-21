@@ -8,7 +8,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## `0.11.1` - October 21st, 2026
+
+This release addresses a security vulnerability with HTTPS certificates. If you are using `net.request`, especially with untrusted / dynamic input, it is suggested that you upgrade Lune. You can read more about the vulnerability [here](https://rustsec.org/advisories/RUSTSEC-2026-0382).
 
 ### Fixed
 

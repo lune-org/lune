@@ -1,6 +1,6 @@
 [package]
 name = "lune"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/lune-org/lune"
@@ -68,7 +68,7 @@ futures-lite = "2.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-lune-std = { optional = true, version = "0.4.0", path = "../lune-std" }
+lune-std = { optional = true, version = "0.4.1", path = "../lune-std" }
 lune-std-net = { optional = true, version = "0.4.0", path = "../lune-std-net" }
 lune-utils = { version = "0.4.0", path = "../lune-utils" }
 
