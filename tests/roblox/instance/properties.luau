@@ -4,6 +4,7 @@ local Instance = roblox.Instance
 local Vector3 = roblox.Vector3
 local CFrame = roblox.CFrame
 local Enum = roblox.Enum
+local UDim = roblox.UDim
 
 local part = Instance.new("Part")
 
@@ -72,3 +73,21 @@ local objectValue = Instance.new("ObjectValue")
 assert(objectValue.Value == nil)
 objectValue.Value = meshPart
 assert(objectValue.Value == meshPart)
+
+-- A property that was migrated to something else internally still works
+
+local corner1 = Instance.new("UICorner")
+assert(corner1.CornerRadius == UDim.new(0, 8))
+
+local corner2 = Instance.new("UICorner")
+corner2.CornerRadius = UDim.new(0, 4)
+assert(corner2.CornerRadius == UDim.new(0, 4))
+assert(corner2.TopLeftRadius == UDim.new(0, 4))
+assert(corner2.BottomRightRadius == UDim.new(0, 4))
+
+local animation1 = Instance.new("Animation")
+assert(animation1.AnimationId == "")
+
+local animation2 = Instance.new("Animation")
+animation2.AnimationId = "rbxassetid://123"
+assert(animation2.AnimationId == "rbxassetid://123")

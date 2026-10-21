@@ -7,7 +7,7 @@ use std::{
 };
 
 use rbx_dom_weak::types::{Variant as DomValue, VariantType as DomType};
-use rbx_reflection::{ClassTag, DataType};
+use rbx_reflection::{ClassTag, DataType, PropertyKind, PropertyMigration, PropertySerialization};
 use thiserror::Error;
 
 /**
@@ -105,6 +105,7 @@ pub(crate) struct PropertyInfo {
     pub enum_default: Option<u32>,
     pub value_type: Option<DomType>,
     pub value_default: Option<&'static DomValue>,
+    pub migration: Option<&'static PropertyMigration<'static>>,
 }
 
 /**
@@ -163,6 +164,15 @@ pub(crate) fn find_property_info(
                 },
                 _ => PropertyInfo::default(),
             });
+            if let (
+                Some(info),
+                PropertyKind::Canonical {
+                    serialization: PropertySerialization::Migrate(migration),
+                },
+            ) = (class_info.as_mut(), &prop_definition.kind)
+            {
+                info.migration = Some(migration);
+            }
             break;
         }
         current = superclass_of(&class_name);
