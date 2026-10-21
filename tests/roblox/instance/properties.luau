@@ -91,3 +91,18 @@ assert(animation1.AnimationId == "")
 local animation2 = Instance.new("Animation")
 animation2.AnimationId = "rbxassetid://123"
 assert(animation2.AnimationId == "rbxassetid://123")
+
+local gui1 = Instance.new("ScreenGui")
+assert(gui1.IgnoreGuiInset == false)
+
+local gui2 = Instance.new("ScreenGui")
+gui2.IgnoreGuiInset = true
+assert(gui2.IgnoreGuiInset == true)
+assert(gui2.ScreenInsets == Enum.ScreenInsets.DeviceSafeInsets)
+
+local mesh1 = Instance.new("CharacterMesh")
+assert(mesh1.MeshId == 0)
+
+local mesh2 = Instance.new("CharacterMesh")
+mesh2.MeshId = 1234
+assert(mesh2.MeshId == 1234)

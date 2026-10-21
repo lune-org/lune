@@ -34,6 +34,8 @@ pub(crate) mod base;
 #[cfg(feature = "mlua")]
 pub(crate) mod data_model;
 #[cfg(feature = "mlua")]
+pub(crate) mod migration;
+#[cfg(feature = "mlua")]
 pub(crate) mod terrain;
 #[cfg(feature = "mlua")]
 pub(crate) mod workspace;

@@ -4,22 +4,21 @@ use mlua::prelude::*;
 
 use rbx_dom_weak::{
     Instance as DomInstance,
-    types::{ContentType, Variant as DomValue, VariantType as DomType},
+    types::{Variant as DomValue, VariantType as DomType},
 };
-use rbx_reflection::PropertyMigration;
 
 use crate::{
     datatypes::{
         attributes::{ensure_valid_attribute_name, ensure_valid_attribute_value},
         conversion::{DomValueToLua, LuaToDomValue},
-        types::{BrickColor, Color3, EnumItem, enum_item_to_lua},
+        types::{EnumItem, enum_item_to_lua},
         userdata_impl_eq, userdata_impl_to_string,
     },
-    shared::instance::{PropertyInfo, class_is_a, find_property_info},
+    shared::instance::{class_is_a, find_property_info},
 };
 
 use super::{
-    Instance, data_model, instance_to_lua, instances_to_lua, opt_instance_to_lua,
+    Instance, data_model, instance_to_lua, instances_to_lua, migration, opt_instance_to_lua,
     registry::InstanceRegistry, rekey_cache_after_transfer,
 };
 
@@ -282,7 +281,7 @@ fn instance_property_get(
             } else {
                 Ok(LuaValue::dom_value_to_lua(lua, &prop)?)
             }
-        } else if let Some(prop) = migrated_property_get(&this, &info) {
+        } else if let Some(prop) = migration::get(&this, &info) {
             Ok(LuaValue::dom_value_to_lua(lua, &prop)?)
         } else if let (Some(enum_name), Some(enum_value)) = (info.enum_name, info.enum_default) {
             let enum_item = EnumItem::from_enum_name_and_value(&enum_name, enum_value)
@@ -398,8 +397,8 @@ fn instance_property_set(
         } else if let Some(dom_type) = info.value_type {
             match prop_value.lua_to_dom_value(lua, Some(dom_type)) {
                 Ok(dom_value) => {
-                    if let Some(migration) = info.migration {
-                        migrated_property_set(&this, &prop_name, migration, &dom_value)
+                    if let Some(property_migration) = info.migration {
+                        migration::set(&this, &prop_name, property_migration, dom_value)
                     } else {
                         this.set_property(prop_name, dom_value);
                         Ok(())
@@ -418,54 +417,5 @@ fn instance_property_set(
         Err(LuaError::RuntimeError(format!(
             "{prop_name} is not a valid member of {this}",
         )))
-    }
-}
-
-fn migrated_property_get(this: &Instance, info: &PropertyInfo) -> Option<DomValue> {
-    let migration = info.migration?;
-    let new_name = migration.new_property_names().first()?;
-    let new_value = this.get_property(new_name).or_else(|| {
-        find_property_info(this.class_name, new_name)?
-            .value_default
-            .cloned()
-    })?;
-    attempt_reverse_migration(info.value_type?, new_value)
-}
-
-fn migrated_property_set(
-    this: &Instance,
-    prop_name: &str,
-    migration: &PropertyMigration,
-    value: &DomValue,
-) -> LuaResult<()> {
-    let migrated = migration.perform(value).map_err(|e| {
-        LuaError::RuntimeError(format!("Failed to set property '{prop_name}' - {e}"))
-    })?;
-    for new_name in migration.new_property_names() {
-        this.set_property(new_name, migrated.clone());
-    }
-    this.remove_property(prop_name);
-    Ok(())
-}
-
-fn attempt_reverse_migration(old_type: DomType, new_value: DomValue) -> Option<DomValue> {
-    if new_value.ty() == old_type {
-        Some(new_value)
-    } else {
-        match (old_type, new_value) {
-            (DomType::BrickColor, DomValue::Color3uint8(color)) => Some(DomValue::BrickColor(
-                BrickColor::from(Color3::from(color)).into(),
-            )),
-            (DomType::BrickColor, DomValue::Color3(color)) => Some(DomValue::BrickColor(
-                BrickColor::from(Color3::from(color)).into(),
-            )),
-            (DomType::ContentId, DomValue::Content(content)) => {
-                Some(DomValue::ContentId(match content.value() {
-                    ContentType::Uri(uri) => uri.as_str().into(),
-                    _ => "".into(),
-                }))
-            }
-            _ => None,
-        }
     }
 }
