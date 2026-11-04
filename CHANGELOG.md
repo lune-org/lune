@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `SetAttribute` in `@lune/roblox` rounding or wrapping whole numbers above `2^24` by storing them as `Float64` instead of `Int32`/`Float32`, matching how Roblox stores number attributes
 - Fixed not being able to set Instance reference properties to `nil`
 
 ## `0.11.1` - October 21st, 2026
