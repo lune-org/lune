@@ -102,6 +102,13 @@ local folder = Instance.new("Folder")
 folder:SetAttribute("Foo", "Bar")
 assert(folder:GetAttribute("Foo") == "Bar")
 
+-- Whole numbers above 2^24 should be stored exactly (as Float64)
+
+folder:SetAttribute("UserId", 522587921)
+assert(folder:GetAttribute("UserId") == 522587921)
+folder:SetAttribute("AssetId", 16917873935)
+assert(folder:GetAttribute("AssetId") == 16917873935)
+
 -- Setting attributes to nil should work
 
 folder:SetAttribute("Foo", nil)
