@@ -1,4 +1,8 @@
-use hyper::{Method, Response as HyperResponse, Uri, body::Incoming, header::LOCATION};
+use hyper::{
+    HeaderMap, Method, Response as HyperResponse, Uri,
+    body::Incoming,
+    header::{HOST, HeaderValue, LOCATION},
+};
 
 use mlua::prelude::*;
 use url::Url;
@@ -23,6 +27,33 @@ pub use self::fetch::fetch;
 pub use self::send::send;
 
 const MAX_REDIRECTS: usize = 10;
+
+/**
+    Sets the `Host` header for a request to `url`.
+
+    The header carries the port whenever it is not the default for the
+    scheme, as required by RFC 9110 section 7.2. It is taken from `url`,
+    which is always absolute, so it is also correct after a relative redirect.
+
+    A `Host` header set by the caller is kept for the original request,
+    but replaced once a redirect has been followed, since the request may
+    now be going to a different host.
+*/
+fn set_host_header(headers: &mut HeaderMap, url: &Url, redirected: bool) {
+    if !redirected && headers.contains_key(HOST) {
+        return;
+    }
+    let Some(host) = url.host_str() else {
+        return;
+    };
+    let value = match url.port() {
+        Some(port) => format!("{host}:{port}"),
+        None => host.to_string(),
+    };
+    if let Ok(value) = HeaderValue::from_str(&value) {
+        headers.insert(HOST, value);
+    }
+}
 
 /**
     Connects to a websocket at the given URL.
