@@ -2,7 +2,7 @@ use http_body_util::Full;
 use hyper::{
     Method, Request as HyperRequest,
     client::conn::http1::handshake,
-    header::{ACCEPT, CONTENT_LENGTH, HOST, HeaderValue, USER_AGENT},
+    header::{ACCEPT, CONTENT_LENGTH, HeaderValue, USER_AGENT},
 };
 
 use mlua::prelude::*;
@@ -58,10 +58,7 @@ pub async fn send(mut request: Request, lua: Lua) -> LuaResult<Response> {
         HyperExecutor::execute(lua.clone(), conn);
 
         let (mut parts, body) = request.clone_inner().into_parts();
-        if let Some(host) = parts.uri.host() {
-            let host = HeaderValue::from_str(host).unwrap();
-            parts.headers.insert(HOST, host);
-        }
+        super::set_host_header(&mut parts.headers, &url, request.redirects.is_some());
 
         let data = HyperRequest::from_parts(parts, Full::new(body.into_bytes()));
         let incoming = sender.send_request(data).await.into_lua_err()?;

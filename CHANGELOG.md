@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed not being able to set Instance reference properties to `nil`
+- Fixed `net.request` sending a `Host` header without the port for URLs with a non-default port, and overwriting a `Host` header set in the request ([#429](https://github.com/lune-org/lune/issues/429))
 
 ## `0.11.1` - October 21st, 2026
 
